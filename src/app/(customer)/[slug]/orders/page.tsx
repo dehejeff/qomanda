@@ -50,11 +50,41 @@ export default function OrdersPage() {
   const [participants, setParticipants] = useState<SessionParticipant[]>([])
   const [loading, setLoading]         = useState(true)
   const [sessionClosing, setSessionClosing] = useState(false)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
   const [grandTotal, setGrandTotal]   = useState(0)
 
   const customerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
+
+  async function cancelOrder(orderId: string) {
+    if (!customerId) {
+      toast.error('Não foi possível identificar sua conta.')
+      return
+    }
+    if (!window.confirm('Deseja cancelar este pedido?')) return
+
+    setCancellingId(orderId)
+    try {
+      const res = await fetch('/api/orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, customerId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Erro ao cancelar pedido.')
+        return
+      }
+      toast.success('Pedido cancelado.')
+      setMyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+      setAllOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+    } catch {
+      toast.error('Erro ao cancelar pedido.')
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -268,24 +298,45 @@ export default function OrdersPage() {
                       </div>
                       <div className="px-4 py-3 space-y-2">
                         {(order.items ?? []).map(item => (
-                          <div key={item.id} className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
-                              style={{ background: '#2d3449' }}>
-                              {item.menu_item?.image_url
-                                ? <img src={item.menu_item.image_url} alt="" className="w-full h-full object-cover rounded-lg" />
-                                : <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>fastfood</span>}
+                          <div key={item.id}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
+                                style={{ background: '#2d3449' }}>
+                                {item.menu_item?.image_url
+                                  ? <img src={item.menu_item.image_url} alt="" className="w-full h-full object-cover rounded-lg" />
+                                  : <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>fastfood</span>}
+                              </div>
+                              <div className="flex-1 flex justify-between items-start">
+                                <p className="text-sm font-semibold">{item.quantity}x {item.menu_item?.name}</p>
+                                <p className="text-sm font-mono" style={{ color: '#ffb690' }}>{formatCurrency(item.unit_price * item.quantity)}</p>
+                              </div>
                             </div>
-                            <div className="flex-1 flex justify-between items-start">
-                              <p className="text-sm font-semibold">{item.quantity}x {item.menu_item?.name}</p>
-                              <p className="text-sm font-mono" style={{ color: '#ffb690' }}>{formatCurrency(item.unit_price * item.quantity)}</p>
-                            </div>
+                            {item.notes && (
+                              <p className="text-[11px] font-mono mt-1 ml-[60px] flex items-start gap-1" style={{ color: '#f59e0b' }}>
+                                <span className="material-symbols-outlined text-[13px] shrink-0">chat</span>
+                                {item.notes}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
-                      <div className="flex justify-between px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
+                      <div className="flex justify-between items-center px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
                         <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>Subtotal</span>
                         <span className="text-sm font-semibold" style={{ color: '#ffb690' }}>{formatCurrency(ot)}</span>
                       </div>
+                      {order.status === 'pending' && (
+                        <div className="px-4 pb-3">
+                          <button
+                            type="button"
+                            onClick={() => cancelOrder(order.id)}
+                            disabled={cancellingId === order.id}
+                            className="w-full py-2.5 rounded-lg text-xs font-mono font-bold transition-all active:scale-95 disabled:opacity-50"
+                            style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+                          >
+                            {cancellingId === order.id ? 'Cancelando...' : 'Cancelar pedido'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -345,9 +396,17 @@ export default function OrdersPage() {
                   {orders.length > 0 && (
                     <div className="px-4 py-3 space-y-1.5">
                       {orders.flatMap(o => o.items ?? []).map((item, i) => (
-                        <div key={i} className="flex justify-between text-xs" style={{ color: '#e0c0b1' }}>
-                          <span>{item.quantity}x {item.menu_item?.name}</span>
-                          <span className="font-mono">{formatCurrency(item.unit_price * item.quantity)}</span>
+                        <div key={i}>
+                          <div className="flex justify-between text-xs" style={{ color: '#e0c0b1' }}>
+                            <span>{item.quantity}x {item.menu_item?.name}</span>
+                            <span className="font-mono">{formatCurrency(item.unit_price * item.quantity)}</span>
+                          </div>
+                          {item.notes && (
+                            <p className="text-[10px] font-mono pl-3 flex items-start gap-1" style={{ color: '#f59e0b' }}>
+                              <span className="material-symbols-outlined text-[11px] shrink-0">chat</span>
+                              {item.notes}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>

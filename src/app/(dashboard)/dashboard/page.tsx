@@ -1,24 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { DEV_BYPASS, mockTables, mockOrders } from '@/lib/dev-mock'
-
-const STATUS_BADGE: Record<string, string> = {
-  pending:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  confirmed: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-  preparing: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  ready:     'bg-primary-container/20 text-primary border border-primary/20',
-  delivered: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pending:   'Aguardando',
-  confirmed: 'Confirmado',
-  preparing: 'Preparo',
-  ready:     'Pronto',
-  delivered: 'Servido',
-}
+import { OverviewOrdersPanel } from '@/components/dashboard/overview-orders-panel'
 
 export default async function DashboardPage() {
   if (DEV_BYPASS) {
@@ -43,7 +27,12 @@ export default async function DashboardPage() {
     supabase.from('tables').select('id, number, status').eq('restaurant_id', restaurant.id).order('number'),
     supabase.from('orders').select('id').eq('restaurant_id', restaurant.id).in('status', ['pending', 'confirmed', 'preparing', 'ready']),
     supabase.from('payments').select('amount').eq('restaurant_id', restaurant.id).eq('status', 'paid').gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
-    supabase.from('orders').select('id, status, created_at, items:order_items(unit_price, quantity)').eq('restaurant_id', restaurant.id).not('status', 'in', '("cancelled")').order('created_at', { ascending: false }).limit(5),
+    supabase
+      .from('orders')
+      .select('id, status, created_at, items:order_items(unit_price, quantity), session:sessions(table:tables(number)), customer:customers(first_name, last_name)')
+      .eq('restaurant_id', restaurant.id)
+      .order('created_at', { ascending: false })
+      .limit(1000),
   ])
 
   const tables = tablesRes.data ?? []
@@ -179,64 +168,9 @@ function OverviewView({ stats, tables, orders }: {
           </div>
         </div>
 
-        {/* Recent orders */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>Pedidos Recentes</h3>
-            <Link href="/dashboard/orders" className="text-xs font-mono text-primary hover:underline">Ver todos</Link>
-          </div>
-          <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-surface-container-high">
-                <tr>
-                  {['ID', 'Mesa', 'Total', 'Status'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-mono text-on-surface-variant uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-sm font-mono text-on-surface-variant">Nenhum pedido</td>
-                  </tr>
-                ) : (
-                  orders.map((order) => {
-                    const total = (order.items ?? []).reduce((a: number, i: any) => a + i.unit_price * i.quantity, 0)
-                    const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE.pending
-                    const label = STATUS_LABEL[order.status] ?? order.status
-                    const time = new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                    return (
-                      <tr key={order.id} className="hover:bg-surface-container-highest transition-colors cursor-pointer">
-                        <td className="px-4 py-4">
-                          <span className="text-sm font-mono text-on-surface">#{order.id.slice(-4).toUpperCase()}</span>
-                          <p className="text-[10px] font-mono text-on-surface-variant">{time}</p>
-                        </td>
-                        <td className="px-4 py-4 text-sm font-bold font-mono text-primary">—</td>
-                        <td className="px-4 py-4 text-sm font-mono text-on-surface">{formatCurrency(total)}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${badge}`}>{label}</span>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Kitchen activity */}
-          <div className="tonal-layer-1 ghost-border rounded-xl p-stack-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-error-container/20 flex items-center justify-center text-error">
-                <span className="material-symbols-outlined">local_fire_department</span>
-              </div>
-              <div>
-                <p className="text-sm font-mono text-on-surface">Atividade na Cozinha</p>
-                <p className="text-[11px] font-mono text-on-surface-variant">{orders.filter((o) => o.status === 'preparing').length} pedidos em preparo</p>
-              </div>
-            </div>
-            <Link href="/dashboard/orders" className="px-4 py-1.5 border border-outline-variant rounded text-[11px] font-mono hover:bg-surface-container-highest transition-colors">Ver Fila</Link>
-          </div>
+        {/* Orders */}
+        <div className="lg:col-span-5">
+          <OverviewOrdersPanel orders={orders} />
         </div>
       </div>
     </div>

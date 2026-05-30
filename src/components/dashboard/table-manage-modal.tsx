@@ -60,21 +60,28 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     const supabase = createClient()
     supabase
       .from('sessions')
-      .select('id, started_at, restaurant_id, table_history, orders(id, order_items(unit_price, quantity))')
+      .select('id, started_at, restaurant_id, table_history')
       .eq('table_id', table.id)
       .eq('status', 'open')
       .single()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (!data) { setLoadingSession(false); return }
-        const orders = (data as any).orders ?? []
-        const total = orders
-          .flatMap((o: any) => o.order_items ?? [])
-          .reduce((a: number, i: any) => a + i.unit_price * i.quantity, 0)
+
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('id, items:order_items(unit_price, quantity)')
+          .eq('session_id', data.id)
+
+        const orderList = orders ?? []
+        const total = orderList
+          .flatMap((o) => o.items ?? [])
+          .reduce((a, i) => a + i.unit_price * i.quantity, 0)
+
         setSession({
           id: data.id,
           restaurant_id: data.restaurant_id,
           started_at: data.started_at,
-          orderCount: orders.length,
+          orderCount: orderList.length,
           total,
           table_history: (data as any).table_history ?? [],
         })

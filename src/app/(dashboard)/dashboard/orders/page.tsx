@@ -136,14 +136,28 @@ export default function OrdersPage() {
               {/* Items */}
               <div className="flex-1 space-y-2 border-t border-outline-variant pt-3">
                 {(order.items ?? []).map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant font-mono">
-                      <span className="text-on-surface-variant/60 mr-1">{item.quantity}×</span>
-                      {item.menu_item?.name}
-                    </span>
-                    <span className="text-on-surface-variant font-mono tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+                  <div key={item.id} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-on-surface-variant font-mono">
+                        <span className="text-on-surface-variant/60 mr-1">{item.quantity}×</span>
+                        {item.menu_item?.name}
+                      </span>
+                      <span className="text-on-surface-variant font-mono tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+                    </div>
+                    {item.notes && (
+                      <p className="text-[11px] font-mono text-amber-400/90 pl-5 flex items-start gap-1">
+                        <span className="material-symbols-outlined text-[13px] shrink-0 mt-px">chat</span>
+                        {item.notes}
+                      </p>
+                    )}
                   </div>
                 ))}
+                {order.notes && (
+                  <p className="text-[11px] font-mono text-amber-400/90 flex items-start gap-1 pt-1">
+                    <span className="material-symbols-outlined text-[13px] shrink-0 mt-px">sticky_note_2</span>
+                    {order.notes}
+                  </p>
+                )}
               </div>
 
               {/* Footer */}
