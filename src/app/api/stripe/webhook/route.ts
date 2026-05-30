@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { generateConfirmationCode } from '@/lib/utils'
 
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   let event
   try {
-    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = getStripe().webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch {
     return NextResponse.json({ error: 'Webhook inválido' }, { status: 400 })
   }
