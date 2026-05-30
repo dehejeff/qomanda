@@ -392,15 +392,30 @@ export default function CheckoutPage() {
   const router = useRouter()
   const sessionId = searchParams.get('session')
 
-  const [step, setStep] = useState<Step>('summary')
-  const [total, setTotal] = useState(0)
-  const [splitCount, setSplitCount] = useState(1)
-  const [method, setMethod] = useState<PaymentMethod>('pix')
-  const [loading, setLoading] = useState(true)
-  const [paying, setPaying] = useState(false)
+  type Participant = { id: string; customer_id: string; name: string; total: number; isMe: boolean }
+
+  const [step, setStep]             = useState<Step>('summary')
+  const [total, setTotal]           = useState(0)
+  const [method, setMethod]         = useState<PaymentMethod>('pix')
+  const [loading, setLoading]       = useState(true)
+  const [paying, setPaying]         = useState(false)
   const [confirmationCode, setConfirmationCode] = useState('')
   const [tableNumber, setTableNumber] = useState('')
   const [orderItems, setOrderItems] = useState<{ name: string; amount: number }[]>([])
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
+
+  const myCustomerId = typeof window !== 'undefined'
+    ? localStorage.getItem('qomanda_customer_id') : null
+
+  function toggleParticipant(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -411,8 +426,16 @@ export default function CheckoutPage() {
         amount: i.unit_price * i.quantity,
       }))
       setOrderItems(items)
-      setTotal(items.reduce((s, i) => s + i.amount, 0))
+      const t = items.reduce((s, i) => s + i.amount, 0)
+      setTotal(t)
       setTableNumber('04')
+      const demoParticipants: Participant[] = [
+        { id: 'c1', customer_id: 'c1', name: 'João Silva',   total: t * 0.45, isMe: true  },
+        { id: 'c2', customer_id: 'c2', name: 'Maria Santos', total: t * 0.32, isMe: false },
+        { id: 'c3', customer_id: 'c3', name: 'Pedro Costa',  total: t * 0.23, isMe: false },
+      ]
+      setParticipants(demoParticipants)
+      setSelectedIds(new Set(['c1'])) // default: just me
       setLoading(false)
       return
     }
@@ -424,25 +447,54 @@ export default function CheckoutPage() {
       if (!session) { router.replace(`/${params.slug}`); return }
       setTableNumber((session.table as any)?.number ?? '')
 
-      const { data: items } = await supabase
-        .from('order_items')
-        .select('unit_price, quantity, menu_item:menu_items(name), order:orders!inner(session_id)')
-        .eq('order.session_id', sessionId)
+      const [itemsRes, ordersRes, participantsRes] = await Promise.all([
+        supabase
+          .from('order_items')
+          .select('unit_price, quantity, menu_item:menu_items(name), order:orders!inner(session_id)')
+          .eq('order.session_id', sessionId),
+        supabase
+          .from('orders')
+          .select('customer_id, items:order_items(unit_price, quantity)')
+          .eq('session_id', sessionId),
+        supabase
+          .from('session_participants')
+          .select('customer_id, customer:customers(first_name, last_name)')
+          .eq('session_id', sessionId),
+      ])
 
-      const mapped = (items ?? []).map((i: any) => ({
+      const mapped = (itemsRes.data ?? []).map((i: any) => ({
         name: `${i.quantity}x ${i.menu_item?.name ?? 'Item'}`,
         amount: i.unit_price * i.quantity,
       }))
       setOrderItems(mapped)
-      setTotal(mapped.reduce((s: number, i) => s + i.amount, 0))
+      const t = mapped.reduce((s: number, i) => s + i.amount, 0)
+      setTotal(t)
+
+      // Build participants with their individual totals
+      const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
+        const pOrders = (ordersRes.data ?? []).filter((o: any) => o.customer_id === p.customer_id)
+        const pTotal = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+        return {
+          id: p.customer_id,
+          customer_id: p.customer_id,
+          name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
+          total: pTotal,
+          isMe: p.customer_id === myCustomerId,
+        }
+      })
+      setParticipants(parts)
+      // Default selection: only myself
+      if (myCustomerId) setSelectedIds(new Set([myCustomerId]))
+      else setSelectedIds(new Set(parts.map(p => p.id)))
+
       setLoading(false)
     }
     loadData()
-  }, [sessionId, params.slug, router])
+  }, [sessionId, params.slug, router, myCustomerId])
 
   async function processPayment() {
     setPaying(true)
-    const amountToPay = grandTotal / splitCount
+    const amountToPay = amountPerPerson
 
     if (params.slug === 'demo') {
       await new Promise(r => setTimeout(r, 1500))
@@ -489,9 +541,17 @@ export default function CheckoutPage() {
     else setStep('card')
   }
 
-  const serviceFee = total * 0.1
-  const grandTotal = total + serviceFee
-  const amountPerPerson = grandTotal / splitCount
+  const serviceFee    = total * 0.1
+  const grandTotal    = total + serviceFee
+  // Amount I owe = sum of selected participants' individual totals (+ their share of service fee)
+  // If no individual totals known, split grandTotal equally among selected
+  const selectedParts = participants.filter(p => selectedIds.has(p.id))
+  const selectedTotal = selectedParts.reduce((s, p) => s + p.total, 0)
+  const amountPerPerson = selectedParts.length > 0
+    ? selectedTotal > 0
+      ? selectedTotal * 1.1   // use individual totals when available
+      : grandTotal / Math.max(1, selectedIds.size)  // equal split fallback
+    : grandTotal
 
   const PAYMENT_METHODS = [
     { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',          label: 'PIX'    },
@@ -638,30 +698,76 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        {/* Split */}
+        {/* Split — participants */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px]" style={{ color: '#7bd0ff' }}>groups</span>
-            <h3 className="text-xs font-mono uppercase tracking-wider" style={{ color: '#dae2fd' }}>Dividir Conta</h3>
+            <h3 className="text-xs font-mono uppercase tracking-wider" style={{ color: '#dae2fd' }}>Divisão da Conta</h3>
+            <span className="text-[10px] font-mono ml-auto" style={{ color: '#a78b7d' }}>
+              {participants.length} {participants.length === 1 ? 'pessoa' : 'pessoas'} na mesa
+            </span>
           </div>
-          <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', backdropFilter: 'blur(12px)' }}>
-            <span className="text-sm" style={{ color: '#e0c0b1' }}>Número de pessoas</span>
-            <div className="flex items-center gap-4 rounded-full px-2 py-1" style={{ background: '#2d3449' }}>
-              <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-all" style={{ color: '#f97316' }}>
-                <span className="material-symbols-outlined">remove</span>
-              </button>
-              <span className="text-xl font-bold w-5 text-center" style={{ fontFamily: 'Geist, sans-serif' }}>{splitCount}</span>
-              <button onClick={() => setSplitCount(splitCount + 1)} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-all" style={{ color: '#f97316' }}>
-                <span className="material-symbols-outlined">add</span>
-              </button>
-            </div>
-          </div>
-          {splitCount > 1 && (
-            <div className="flex justify-between items-center rounded-lg px-4 py-3" style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.15)' }}>
-              <span className="text-sm" style={{ color: '#7bd0ff' }}>Cada pessoa paga:</span>
-              <span className="font-semibold font-mono" style={{ color: '#7bd0ff' }}>{formatCurrency(amountPerPerson)}</span>
+
+          {participants.length > 1 ? (
+            <>
+              <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+                Selecione por quem você está pagando:
+              </p>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+                {participants.map((p, i) => (
+                  <button key={p.id} onClick={() => toggleParticipant(p.id)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
+                    style={{
+                      background: selectedIds.has(p.id) ? 'rgba(249,115,22,0.08)' : 'rgba(30,41,59,0.7)',
+                      borderTop: i > 0 ? '1px solid rgba(51,65,85,0.5)' : 'none',
+                    }}>
+                    <div className="flex items-center gap-3">
+                      {/* Checkbox visual */}
+                      <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 transition-all"
+                        style={{
+                          background: selectedIds.has(p.id) ? '#f97316' : 'transparent',
+                          border: `2px solid ${selectedIds.has(p.id) ? '#f97316' : '#584237'}`,
+                        }}>
+                        {selectedIds.has(p.id) && (
+                          <span className="material-symbols-outlined text-[13px]" style={{ color: '#582200', fontVariationSettings: "'FILL' 1" }}>check</span>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>
+                          {p.name}
+                          {p.isMe && <span className="text-[10px] font-mono ml-1.5" style={{ color: '#34d399' }}>(você)</span>}
+                        </p>
+                        {p.total > 0 && (
+                          <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+                            Consumiu {formatCurrency(p.total)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-mono font-semibold" style={{ color: selectedIds.has(p.id) ? '#f97316' : '#584237' }}>
+                      {p.total > 0 ? formatCurrency(p.total * 1.1) : '—'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl p-4 flex items-center gap-3" style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+              <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399' }}>person</span>
+              <span className="text-sm" style={{ color: '#e0c0b1' }}>Você é o único na mesa — pagará a conta inteira.</span>
             </div>
           )}
+
+          {/* Amount I pay */}
+          <div className="flex justify-between items-center rounded-xl px-4 py-3"
+            style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
+            <span className="text-sm font-semibold" style={{ color: '#ffb690' }}>
+              {selectedIds.size > 1 ? `Você paga (${selectedIds.size} pessoas)` : 'Você paga'}
+            </span>
+            <span className="text-xl font-black font-mono" style={{ color: '#f97316' }}>
+              {formatCurrency(amountPerPerson)}
+            </span>
+          </div>
         </section>
 
         {/* Payment method */}

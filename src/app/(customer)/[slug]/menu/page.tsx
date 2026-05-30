@@ -106,9 +106,11 @@ export default function MenuPage() {
 
     if (!session) { toast.error('Sessão inválida.'); setPlacing(false); return }
 
+    const customerId = localStorage.getItem('qomanda_customer_id') ?? null
+
     const { data: order, error } = await supabase
       .from('orders')
-      .insert({ session_id: sessionId, restaurant_id: session.restaurant_id, status: 'pending' })
+      .insert({ session_id: sessionId, restaurant_id: session.restaurant_id, customer_id: customerId, status: 'pending' })
       .select().single()
 
     if (error || !order) { toast.error('Erro ao enviar pedido.'); setPlacing(false); return }

@@ -106,6 +106,17 @@ after insert or update on sessions
 for each row execute function fn_session_open_table();
 
 -- ============================================================
+-- SESSION PARTICIPANTS  (múltiplos clientes na mesma mesa/sessão)
+-- ============================================================
+create table session_participants (
+  id          uuid primary key default uuid_generate_v4(),
+  session_id  uuid references sessions(id) on delete cascade not null,
+  customer_id uuid references customers(id) on delete cascade not null,
+  joined_at   timestamptz not null default now(),
+  unique(session_id, customer_id)
+);
+
+-- ============================================================
 -- MENU CATEGORIES
 -- ============================================================
 create table menu_categories (
@@ -138,6 +149,7 @@ create table orders (
   id             uuid primary key default uuid_generate_v4(),
   session_id     uuid references sessions(id) on delete cascade not null,
   restaurant_id  uuid references restaurants(id) on delete cascade not null,
+  customer_id    uuid references customers(id) on delete set null,  -- quem fez o pedido
   status         text not null default 'pending'
                    check (status in ('pending','confirmed','preparing','ready','delivered','cancelled')),
   notes          text,
@@ -193,6 +205,10 @@ alter table payments         enable row level security;
 alter table loyalty_rules enable row level security;
 create policy "owner_all" on loyalty_rules for all
   using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
+
+-- Session participants: público
+alter table session_participants enable row level security;
+create policy "public_all" on session_participants for all using (true);
 
 -- Customers: público insere e consulta o próprio (por whatsapp)
 create policy "public_insert" on customers for insert with check (true);

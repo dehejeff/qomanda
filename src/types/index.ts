@@ -23,6 +23,14 @@ export interface LoyaltyRule {
   created_at: string
 }
 
+export interface SessionParticipant {
+  id: string
+  session_id: string
+  customer_id: string
+  joined_at: string
+  customer?: Customer
+}
+
 export interface CustomerVisit {
   id: string
   customer_id: string
@@ -91,6 +99,7 @@ export interface Order {
   id: string
   session_id: string
   restaurant_id: string
+  customer_id: string | null
   status: OrderStatus
   notes: string | null
   created_at: string

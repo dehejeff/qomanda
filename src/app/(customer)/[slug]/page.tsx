@@ -170,31 +170,53 @@ export default function CheckInPage() {
 
     if (!table) { toast.error('Mesa não encontrada.'); setCheckingIn(false); return }
 
-    // Create session
-    const { data: session, error: sessionError } = await supabase
+    // Check if an open session already exists for this table
+    const { data: existingSession } = await supabase
       .from('sessions')
-      .insert({ table_id: table.id, restaurant_id: restaurant.id, customer_id: customerId, status: 'open' })
-      .select().single()
+      .select('id')
+      .eq('table_id', table.id)
+      .eq('status', 'open')
+      .maybeSingle()
 
-    if (sessionError || !session) {
-      toast.error('Erro ao realizar check-in. Tente novamente.')
-      setCheckingIn(false)
-      return
+    let sessionId: string
+
+    if (existingSession) {
+      // Join the existing session instead of creating a new one
+      sessionId = existingSession.id
+    } else {
+      // Create new session
+      const { data: session, error: sessionError } = await supabase
+        .from('sessions')
+        .insert({ table_id: table.id, restaurant_id: restaurant.id, customer_id: customerId, status: 'open' })
+        .select().single()
+
+      if (sessionError || !session) {
+        toast.error('Erro ao realizar check-in. Tente novamente.')
+        setCheckingIn(false)
+        return
+      }
+      sessionId = session.id
     }
 
-    // Register visit for loyalty
-    await supabase.from('customer_visits').insert({
-      customer_id: customerId,
-      restaurant_id: restaurant.id,
-      session_id: session.id,
-    })
+    // Add as participant (upsert in case they scan again)
+    await supabase.from('session_participants').upsert(
+      { session_id: sessionId, customer_id: customerId },
+      { onConflict: 'session_id,customer_id' }
+    )
 
-    localStorage.setItem('qomanda_session_id', session.id)
+    // Register visit for loyalty
+    await supabase.from('customer_visits').upsert(
+      { customer_id: customerId, restaurant_id: restaurant.id, session_id: sessionId },
+      { onConflict: 'session_id' }
+    )
+
+    localStorage.setItem('qomanda_session_id', sessionId)
+    localStorage.setItem('qomanda_customer_id', customerId ?? '')
     localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
     setCheckedIn(true)
     setCheckingIn(false)
-    toast.success(`Bem-vindo, ${name}!`)
-    setTimeout(() => router.push(`/${params.slug}/home?session=${session.id}`), 700)
+    toast.success(existingSession ? `Bem-vindo à mesa, ${name}!` : `Bem-vindo, ${name}!`)
+    setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
   }
 
   const tableLabel = tableNumber.padStart(2, '0')
