@@ -5,11 +5,8 @@ import type { RestaurantTable } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { toast } from 'sonner'
-import { X, Loader2, ArrowLeftRight, LogOut, XCircle, CheckCircle2, ChevronLeft, Smartphone, CreditCard, Banknote, Users } from 'lucide-react'
-import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
-import type { PaymentMethod } from '@/types'
-
-type PaymentMethodExtended = PaymentMethod | 'cash'
+import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 interface Props {
   table: RestaurantTable
@@ -19,22 +16,22 @@ interface Props {
   onTableSwitched: (fromId: string, toId: string) => void
 }
 
-type View = 'detail' | 'switch' | 'payment' | 'confirmed'
+type View = 'detail' | 'switch' | 'waiting'
+
+interface TableChange {
+  from: string
+  to: string
+  at: string
+}
 
 interface SessionInfo {
   id: string
-  started_at: string
   restaurant_id: string
+  started_at: string
   orderCount: number
   total: number
+  table_history: TableChange[]
 }
-
-const PAYMENT_METHODS: { id: PaymentMethodExtended; label: string; icon: React.ElementType }[] = [
-  { id: 'pix',    label: 'PIX',      icon: Smartphone },
-  { id: 'debit',  label: 'Débito',   icon: CreditCard },
-  { id: 'credit', label: 'Crédito',  icon: CreditCard },
-  { id: 'cash',   label: 'Dinheiro', icon: Banknote },
-]
 
 export function TableManageModal({ table, freeTables, onClose, onTableUpdated, onTableSwitched }: Props) {
   const [view, setView] = useState<View>('detail')
@@ -42,21 +39,17 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
   const [loadingSession, setLoadingSession] = useState(table.status === 'occupied')
   const [acting, setActing] = useState(false)
 
-  // Payment state
-  const [splitCount, setSplitCount] = useState(1)
-  const [method, setMethod] = useState<PaymentMethodExtended>('pix')
-  const [confirmationCode, setConfirmationCode] = useState('')
-
   useEffect(() => {
     if (table.status !== 'occupied') return
 
     if (DEV_BYPASS) {
       setSession({
         id: 'mock-session-1',
-        started_at: new Date(Date.now() - 73 * 60 * 1000).toISOString(),
         restaurant_id: 'mock-restaurant-id',
+        started_at: new Date(Date.now() - 73 * 60 * 1000).toISOString(),
         orderCount: 2,
         total: 61.80,
+        table_history: [],
       })
       setLoadingSession(false)
       return
@@ -65,16 +58,24 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     const supabase = createClient()
     supabase
       .from('sessions')
-      .select('id, started_at, restaurant_id, orders(id, order_items(unit_price, quantity))')
+      .select('id, started_at, restaurant_id, table_history, orders(id, order_items(unit_price, quantity))')
       .eq('table_id', table.id)
       .eq('status', 'open')
       .single()
       .then(({ data }) => {
         if (!data) { setLoadingSession(false); return }
         const orders = (data as any).orders ?? []
-        const total = orders.flatMap((o: any) => o.order_items ?? [])
+        const total = orders
+          .flatMap((o: any) => o.order_items ?? [])
           .reduce((a: number, i: any) => a + i.unit_price * i.quantity, 0)
-        setSession({ id: data.id, started_at: data.started_at, restaurant_id: data.restaurant_id, orderCount: orders.length, total })
+        setSession({
+          id: data.id,
+          restaurant_id: data.restaurant_id,
+          started_at: data.started_at,
+          orderCount: orders.length,
+          total,
+          table_history: (data as any).table_history ?? [],
+        })
         setLoadingSession(false)
       })
   }, [table])
@@ -85,48 +86,28 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     return `${Math.floor(mins / 60)}h ${mins % 60}min`
   }
 
-  async function handleConfirmPayment() {
+  async function handleRequestClose() {
     if (!session) return
     setActing(true)
 
-    const amountPer = session.total / splitCount
-    const code = generateConfirmationCode()
-
     if (DEV_BYPASS) {
-      setConfirmationCode(code)
-      onTableUpdated(table.id, 'free')
-      setView('confirmed')
+      setView('waiting')
       setActing(false)
+      toast.success('Solicitação enviada ao cliente.')
       return
     }
 
     const supabase = createClient()
-
-    // Create payment record
-    const { error: paymentError } = await supabase.from('payments').insert({
-      session_id: session.id,
-      restaurant_id: session.restaurant_id,
-      amount: amountPer,
-      method: method === 'cash' ? 'pix' : method, // map cash to pix for schema compatibility
-      status: 'paid',
-      confirmation_code: code,
-      paid_at: new Date().toISOString(),
-    })
-
-    if (paymentError) { toast.error('Erro ao registrar pagamento'); setActing(false); return }
-
-    // Close session
-    const { error: sessionError } = await supabase
+    const { error } = await supabase
       .from('sessions')
-      .update({ status: 'closed', closed_at: new Date().toISOString() })
+      .update({ status: 'closing' })
       .eq('id', session.id)
 
-    if (sessionError) { toast.error('Erro ao encerrar sessão'); setActing(false); return }
+    if (error) { toast.error('Erro ao solicitar fechamento'); setActing(false); return }
 
-    onTableUpdated(table.id, 'free')
-    setConfirmationCode(code)
-    setView('confirmed')
+    setView('waiting')
     setActing(false)
+    toast.success('Solicitação enviada ao cliente.')
   }
 
   async function handleCancelReservation() {
@@ -148,14 +129,27 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
   async function handleSwitchTable(targetTable: RestaurantTable) {
     if (!session) return
     setActing(true)
+
+    const changeEntry: TableChange = {
+      from: table.number,
+      to: targetTable.number,
+      at: new Date().toISOString(),
+    }
+    const newHistory = [...session.table_history, changeEntry]
+
     if (DEV_BYPASS) {
       onTableSwitched(table.id, targetTable.id)
       toast.success(`Mesa ${table.number} → Mesa ${targetTable.number}`)
       onClose()
       return
     }
+
     const supabase = createClient()
-    const { error } = await supabase.from('sessions').update({ table_id: targetTable.id }).eq('id', session.id)
+    const { error } = await supabase
+      .from('sessions')
+      .update({ table_id: targetTable.id, table_history: newHistory })
+      .eq('id', session.id)
+
     if (error) { toast.error('Erro ao trocar mesa'); setActing(false); return }
     await supabase.from('tables').update({ status: 'free' }).eq('id', table.id)
     await supabase.from('tables').update({ status: 'occupied' }).eq('id', targetTable.id)
@@ -169,20 +163,24 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
 
   const titles: Record<View, string> = {
-    detail:    `Mesa ${table.number}`,
-    switch:    'Trocar para qual mesa?',
-    payment:   'Fechar Conta',
-    confirmed: 'Pagamento Confirmado',
+    detail:  `Mesa ${table.number}`,
+    switch:  'Trocar para qual mesa?',
+    waiting: 'Aguardando cliente',
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={view === 'confirmed' ? onClose : onClose}>
-      <div className="bg-surface-container border border-outline-variant rounded-xl w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container border border-outline-variant rounded-xl w-full max-w-sm shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <div className="flex items-center gap-3">
-            {(view === 'switch' || view === 'payment') && (
+            {view === 'switch' && (
               <button
                 onClick={() => setView('detail')}
                 className="text-on-surface-variant hover:text-on-surface transition-colors"
@@ -201,11 +199,9 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
               )}
             </div>
           </div>
-          {view !== 'confirmed' && (
-            <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface transition-colors">
-              <X className="h-5 w-5" />
-            </button>
-          )}
+          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface transition-colors">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Content */}
@@ -215,28 +211,49 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
           {view === 'detail' && (
             <div className="space-y-4">
               {table.status === 'occupied' && (
-                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 space-y-3">
-                  {loadingSession ? (
-                    <div className="flex justify-center py-2"><Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" /></div>
-                  ) : session ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-xs font-mono text-on-surface-variant">Tempo na mesa</span>
-                        <span className="text-sm font-bold font-mono text-on-surface">{formatDuration(session.started_at)}</span>
+                <>
+                  <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 space-y-3">
+                    {loadingSession ? (
+                      <div className="flex justify-center py-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-xs font-mono text-on-surface-variant">Pedidos</span>
-                        <span className="text-sm font-bold font-mono text-on-surface">{session.orderCount}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-outline-variant pt-3">
-                        <span className="text-xs font-mono text-on-surface-variant">Total acumulado</span>
-                        <span className="text-base font-bold font-mono text-primary">{formatCurrency(session.total)}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs font-mono text-on-surface-variant text-center">Sessão não encontrada</p>
+                    ) : session ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-xs font-mono text-on-surface-variant">Tempo na mesa</span>
+                          <span className="text-sm font-bold font-mono text-on-surface">{formatDuration(session.started_at)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs font-mono text-on-surface-variant">Pedidos realizados</span>
+                          <span className="text-sm font-bold font-mono text-on-surface">{session.orderCount}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-outline-variant pt-3">
+                          <span className="text-xs font-mono text-on-surface-variant">Total em aberto</span>
+                          <span className="text-base font-bold font-mono text-primary">{formatCurrency(session.total)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs font-mono text-on-surface-variant text-center">Sessão não encontrada</p>
+                    )}
+                  </div>
+
+                  {/* Table history */}
+                  {session && session.table_history.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" /> Histórico de trocas
+                      </p>
+                      {session.table_history.map((h, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs font-mono text-on-surface-variant bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2">
+                          <span>Mesa {h.from}</span>
+                          <ArrowLeftRight className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Mesa {h.to}</span>
+                          <span className="ml-auto opacity-50">{new Date(h.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {table.status === 'reserved' && (
@@ -255,13 +272,19 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
                     >
                       <ArrowLeftRight className="h-4 w-4" />
                       Trocar de Mesa
+                      {freeTables.length === 0 && (
+                        <span className="text-[10px] text-on-surface-variant">(sem mesas livres)</span>
+                      )}
                     </button>
                     <button
-                      onClick={() => setView('payment')}
-                      disabled={!session}
+                      onClick={handleRequestClose}
+                      disabled={acting || !session}
                       className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40"
                     >
-                      <LogOut className="h-4 w-4" />
+                      {acting
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Send className="h-4 w-4" />
+                      }
                       Encerrar Mesa
                     </button>
                   </>
@@ -284,14 +307,16 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
           {/* ── SWITCH TABLE ── */}
           {view === 'switch' && (
             <div className="space-y-3">
-              <p className="text-xs font-mono text-on-surface-variant mb-3">Selecione uma mesa livre para mover a sessão.</p>
+              <p className="text-xs font-mono text-on-surface-variant">
+                Todos os pedidos, tempo e histórico serão migrados para a mesa escolhida.
+              </p>
               <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
                 {freeTables.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => handleSwitchTable(t)}
                     disabled={acting}
-                    className="aspect-square border border-outline-variant hover:border-primary hover:bg-primary-container/10 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 group"
+                    className="aspect-square border border-outline-variant hover:border-primary hover:bg-primary-container/10 rounded-lg flex flex-col items-center justify-center transition-all disabled:opacity-50 group"
                   >
                     <span className="text-xs font-bold font-mono text-on-surface-variant group-hover:text-primary transition-colors">
                       T-{t.number.padStart(2, '0')}
@@ -302,103 +327,29 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
             </div>
           )}
 
-          {/* ── PAYMENT ── */}
-          {view === 'payment' && session && (
-            <div className="space-y-4">
-              {/* Total */}
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                <p className="text-xs font-mono text-on-surface-variant mb-1">Total da conta</p>
-                <p className="text-2xl font-black text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>
-                  {formatCurrency(session.total)}
-                </p>
-              </div>
-
-              {/* Split */}
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-on-surface-variant" />
-                  <span className="text-xs font-mono text-on-surface-variant">Dividir entre</span>
-                </div>
-                <div className="flex items-center justify-center gap-5">
-                  <button
-                    onClick={() => setSplitCount(Math.max(1, splitCount - 1))}
-                    className="w-9 h-9 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-bold hover:bg-surface-variant transition-colors"
-                  >
-                    −
-                  </button>
-                  <span className="text-2xl font-black text-on-surface w-8 text-center" style={{ fontFamily: 'Geist, sans-serif' }}>
-                    {splitCount}
-                  </span>
-                  <button
-                    onClick={() => setSplitCount(splitCount + 1)}
-                    className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-lg font-bold hover:opacity-90 transition-opacity"
-                  >
-                    +
-                  </button>
-                </div>
-                {splitCount > 1 && (
-                  <p className="text-center text-xs font-mono text-on-surface-variant">
-                    Cada um paga: <span className="text-primary font-bold">{formatCurrency(session.total / splitCount)}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Payment method */}
-              <div className="space-y-2">
-                <p className="text-xs font-mono text-on-surface-variant uppercase tracking-widest">Forma de pagamento</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {PAYMENT_METHODS.map(({ id, label, icon: Icon }) => (
-                    <button
-                      key={id}
-                      onClick={() => setMethod(id)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-colors text-sm font-mono ${
-                        method === id
-                          ? 'border-primary-container bg-primary-container/10 text-primary'
-                          : 'border-outline-variant text-on-surface-variant hover:border-outline'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Amount per person + confirm */}
-              <div className="flex items-center justify-between pt-1">
-                <div>
-                  <p className="text-xs font-mono text-on-surface-variant">
-                    {splitCount > 1 ? `${splitCount} pessoas pagam` : 'Total a pagar'}
-                  </p>
-                  <p className="text-lg font-black text-primary" style={{ fontFamily: 'Geist, sans-serif' }}>
-                    {formatCurrency(session.total / splitCount)}
-                  </p>
-                </div>
-                <button
-                  onClick={handleConfirmPayment}
-                  disabled={acting}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── CONFIRMED ── */}
-          {view === 'confirmed' && (
+          {/* ── WAITING FOR CLIENT PAYMENT ── */}
+          {view === 'waiting' && (
             <div className="flex flex-col items-center gap-5 py-4 text-center">
-              <CheckCircle2 className="h-16 w-16 text-emerald-400" />
-              <div>
-                <p className="text-lg font-bold text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento Confirmado!</p>
-                <p className="text-sm font-mono text-on-surface-variant mt-1">Mesa {table.number} liberada</p>
+              <div className="w-16 h-16 rounded-full bg-primary-container/10 border border-primary/20 flex items-center justify-center">
+                <Send className="h-7 w-7 text-primary animate-pulse" />
               </div>
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl px-8 py-5 w-full">
-                <p className="text-xs font-mono text-on-surface-variant mb-2">Código de confirmação</p>
-                <p className="text-3xl font-black tracking-widest text-primary" style={{ fontFamily: 'Geist, sans-serif' }}>
-                  {confirmationCode}
+              <div>
+                <p className="text-base font-bold text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>
+                  Solicitação enviada!
+                </p>
+                <p className="text-sm font-mono text-on-surface-variant mt-1.5 leading-relaxed">
+                  O cliente da Mesa {table.number} recebeu a notificação no app e irá escolher o método de pagamento e fechar a conta.
                 </p>
               </div>
+              <div className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-4">
+                <p className="text-xs font-mono text-on-surface-variant">Total em aberto</p>
+                <p className="text-xl font-black text-primary mt-1" style={{ fontFamily: 'Geist, sans-serif' }}>
+                  {session ? formatCurrency(session.total) : '—'}
+                </p>
+              </div>
+              <p className="text-xs font-mono text-on-surface-variant/60">
+                A mesa será liberada automaticamente após a confirmação do pagamento.
+              </p>
               <button
                 onClick={onClose}
                 className="w-full py-2.5 bg-surface-container-high border border-outline-variant text-on-surface font-mono text-sm rounded-lg hover:bg-surface-variant transition-colors"

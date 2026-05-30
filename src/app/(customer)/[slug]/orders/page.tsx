@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { Order, OrderItem } from '@/types'
+import type { Order } from '@/types'
 import { formatCurrency } from '@/lib/utils'
-import { Loader2, ArrowLeft, Receipt } from 'lucide-react'
+import { Loader2, ArrowLeft, Receipt, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pending:   { label: 'Aguardando',  color: 'bg-yellow-100 text-yellow-700' },
@@ -27,6 +26,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
+  const [sessionClosing, setSessionClosing] = useState(false)
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -41,24 +41,55 @@ export default function OrdersPage() {
 
       const ordersData = (data ?? []) as Order[]
       setOrders(ordersData)
-      const sum = ordersData.flatMap((o) => o.items ?? []).reduce(
-        (acc, i) => acc + (i.unit_price * i.quantity), 0
-      )
-      setTotal(sum)
+      setTotal(ordersData.flatMap((o) => o.items ?? []).reduce((acc, i) => acc + i.unit_price * i.quantity, 0))
       setLoading(false)
     }
 
+    async function checkSessionStatus() {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single()
+      if (data?.status === 'closing') setSessionClosing(true)
+    }
+
     loadOrders()
+    checkSessionStatus()
 
     const supabase = createClient()
-    const channel = supabase
-      .channel('orders-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` }, () => {
-        loadOrders()
+
+    // Ouve mudanças em pedidos
+    const ordersChannel = supabase
+      .channel('customer-orders')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        filter: `session_id=eq.${sessionId}`,
+      }, () => loadOrders())
+      .subscribe()
+
+    // Ouve mudança de status da sessão (garçom solicitou fechamento)
+    const sessionChannel = supabase
+      .channel('customer-session')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'sessions',
+        filter: `id=eq.${sessionId}`,
+      }, (payload) => {
+        if ((payload.new as any)?.status === 'closing') {
+          setSessionClosing(true)
+        }
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(ordersChannel)
+      supabase.removeChannel(sessionChannel)
+    }
   }, [sessionId, params.slug, router])
 
   if (loading) {
@@ -70,7 +101,8 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-32">
+    <div className="min-h-screen bg-slate-50 pb-36">
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5 text-slate-600" />
@@ -78,6 +110,26 @@ export default function OrdersPage() {
         <h1 className="text-lg font-bold text-slate-900">Meus Pedidos</h1>
       </div>
 
+      {/* Banner de fechamento solicitado pelo garçom */}
+      {sessionClosing && (
+        <div className="mx-4 mt-4 bg-orange-500 text-white rounded-2xl p-4 flex items-start gap-3 shadow-lg">
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Bell className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-base">O garçom está encerrando sua mesa</p>
+            <p className="text-orange-100 text-sm mt-0.5">Escolha como deseja pagar e feche sua conta agora.</p>
+            <button
+              onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
+              className="mt-3 bg-white text-orange-500 font-bold text-sm px-5 py-2 rounded-xl hover:bg-orange-50 transition-colors"
+            >
+              Pagar agora →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Orders list */}
       {orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-8">
           <Receipt className="h-16 w-16 text-slate-200 mb-4" />
@@ -113,6 +165,7 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {/* Bottom bar */}
       {orders.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100">
           <div className="flex justify-between items-center mb-3 px-1">
@@ -121,9 +174,13 @@ export default function OrdersPage() {
           </div>
           <Button
             onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white h-14 rounded-xl text-base font-semibold"
+            className={`w-full h-14 rounded-xl text-base font-semibold text-white transition-colors ${
+              sessionClosing
+                ? 'bg-orange-600 hover:bg-orange-700 animate-pulse'
+                : 'bg-orange-500 hover:bg-orange-600'
+            }`}
           >
-            Fechar Conta
+            {sessionClosing ? 'Pagar Agora !' : 'Fechar Conta'}
           </Button>
         </div>
       )}

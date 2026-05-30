@@ -43,7 +43,9 @@ create table sessions (
   restaurant_id  uuid references restaurants(id) on delete cascade not null,
   status         text not null default 'open' check (status in ('open','closing','closed')),
   started_at     timestamptz not null default now(),
-  closed_at      timestamptz
+  closed_at      timestamptz,
+  -- Histórico de trocas de mesa: [{from: "1", to: "2", at: "ISO"}]
+  table_history  jsonb not null default '[]'
 );
 
 -- Quando uma sessão abre, marca a mesa como ocupada
