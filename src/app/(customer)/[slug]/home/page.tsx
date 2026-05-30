@@ -53,7 +53,8 @@ export default function CustomerHomePage() {
       setLogoUrl((session.restaurant as any)?.logo_url ?? null)
       setTableNumber((session.table as any)?.number ?? '')
 
-      const { data: orders } = await supabase
+      const customerId = localStorage.getItem('qomanda_customer_id')
+      let ordersQuery = supabase
         .from('orders')
         .select('status, items:order_items(unit_price, quantity)')
         .eq('session_id', sessionId)
@@ -61,10 +62,18 @@ export default function CustomerHomePage() {
         .order('created_at', { ascending: false })
         .limit(1)
 
+      if (customerId) {
+        ordersQuery = ordersQuery.eq('customer_id', customerId)
+      }
+
+      const { data: orders } = await ordersQuery
+
       if (orders && orders.length > 0) {
         const o = orders[0] as any
         const total = (o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
         setLatestOrder({ status: o.status, total, itemCount: o.items?.length ?? 0 })
+      } else {
+        setLatestOrder(null)
       }
 
       setLoading(false)
