@@ -46,6 +46,7 @@ export function AddItemModal({ categories, restaurantId, defaultCategoryId, onCl
         price: priceNum,
         image_url: imageUrl.trim() || null,
         available,
+        contains_alcohol: false,
       }
       onCreated(newItem, categoryId)
       toast.success('Item criado!')

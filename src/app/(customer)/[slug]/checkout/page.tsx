@@ -348,6 +348,8 @@ export default function CheckoutPage() {
 
   type Participant = { id: string; name: string; myConsumption: number; isMe: boolean }
 
+  type AlcoholSplit = { food: number; alcohol: number; hasAlcohol: boolean }
+
   const [step, setStep]             = useState<Step>('mode')
   const [closeMode, setCloseMode]   = useState<CloseMode>('individual')
   const [splitType, setSplitType]   = useState<SplitType>('equal')
@@ -355,7 +357,13 @@ export default function CheckoutPage() {
   const [loading, setLoading]       = useState(true)
   const [paying, setPaying]         = useState(false)
   const [confirmationCode, setConfirmationCode] = useState('')
+  const [confirmationCode2, setConfirmationCode2] = useState('') // alcohol split
   const [tableNumber, setTableNumber] = useState('')
+  const [alcoholSplit, setAlcoholSplit] = useState<AlcoholSplit>({ food: 0, alcohol: 0, hasAlcohol: false })
+  const [splitAlcohol, setSplitAlcohol] = useState(false)       // customer opted in to split
+  const [restaurantId, setRestaurantId] = useState('')
+  const [customerWhatsapp, setCustomerWhatsapp] = useState('')
+  const [restaurantName, setRestaurantName] = useState('')
 
   // Amounts
   const [grandTotal, setGrandTotal] = useState(0)   // full session total (pre-tax subtotal * 1.1)
@@ -426,28 +434,47 @@ export default function CheckoutPage() {
       const supabase = createClient()
 
       const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
-        supabase.from('sessions').select('*, table:tables(number)').eq('id', sessionId).single(),
-        supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name)').eq('session_id', sessionId),
-        supabase.from('orders').select('customer_id, items:order_items(unit_price,quantity)').eq('session_id', sessionId),
+        supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
+        supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
+        supabase.from('orders').select('customer_id, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol))').eq('session_id', sessionId),
         supabase.from('payments').select('amount').eq('session_id', sessionId).eq('status', 'paid'),
       ])
+
+      const restaurant = (sessionRes.data as any)?.restaurant
+      if (restaurant) {
+        setRestaurantId(restaurant.id)
+        setRestaurantName(restaurant.name)
+      }
+
+      // Customer WhatsApp
+      const myParticipant = (participantsRes.data ?? []).find((p: any) => p.customer_id === myCustomerId) as any
+      if (myParticipant?.customer?.whatsapp) {
+        setCustomerWhatsapp(String(myParticipant.customer.whatsapp))
+      }
 
       if (!sessionRes.data) { router.replace(`/${params.slug}`); return }
       setTableNumber((sessionRes.data.table as any)?.number ?? '')
 
-      const allItems = (ordersRes.data ?? []).flatMap((o: any) => o.items ?? [])
-      const sub      = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-      const gt       = sub * 1.1
-      const paid     = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
-      const rem      = Math.max(0, gt - paid)
+      const allItems   = (ordersRes.data ?? []).flatMap((o: any) => o.items ?? [])
+      const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      const gt         = sub * 1.1
+      const paid       = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
+      const rem        = Math.max(0, gt - paid)
       setGrandTotal(gt)
       setAlreadyPaid(paid)
       setRemaining(rem)
 
-      // My consumption
-      const myOrders = (ordersRes.data ?? []).filter((o: any) => o.customer_id === myCustomerId)
-      const mySub    = myOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      // My consumption + alcohol detection
+      const myOrdersData = (ordersRes.data ?? []).filter((o: any) => o.customer_id === myCustomerId)
+      const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
+      const mySub        = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
       setMyConsumption(mySub * 1.1)
+
+      const foodItems = myAllItems.filter((i: any) => !i.menu_item?.contains_alcohol)
+      const alcItems  = myAllItems.filter((i: any) =>  i.menu_item?.contains_alcohol)
+      const foodTotal = foodItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0) * 1.1
+      const alcTotal  = alcItems.reduce((s: number,  i: any) => s + i.unit_price * i.quantity, 0) * 1.1
+      setAlcoholSplit({ food: foodTotal, alcohol: alcTotal, hasAlcohol: alcItems.length > 0 })
 
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
@@ -487,6 +514,33 @@ export default function CheckoutPage() {
     setCustomAmounts(prev => ({ ...prev, [id]: value }))
   }
 
+  async function sendWhatsApp(phone: string, message: string) {
+    if (!restaurantId || !phone) return
+    try {
+      await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: phone, restaurantId, message }),
+      })
+    } catch {
+      // WhatsApp failure is non-blocking
+    }
+  }
+
+  function buildReceiptMessage(
+    items: { name: string; amount: number }[],
+    total: number,
+    code: string,
+    label?: string
+  ) {
+    const date = new Date().toLocaleDateString('pt-BR')
+    const itemLines = items.map(i => `• ${i.name} — ${formatCurrency(i.amount)}`).join('\n')
+    const header = label
+      ? `🧾 *${restaurantName}*\n${label}\nMesa: ${tableNumber} | Data: ${date}`
+      : `🧾 *${restaurantName}*\nMesa: ${tableNumber} | Data: ${date}`
+    return `${header}\n\n*Itens:*\n${itemLines}\n\n*Total: ${formatCurrency(total)}*\n\nCódigo de confirmação: *${code}*\n\n_A NF-e será emitida e enviada em seguida._`
+  }
+
   async function createCloseRequest() {
     if (params.slug === 'demo') return
     const supabase = createClient()
@@ -513,7 +567,18 @@ export default function CheckoutPage() {
 
     if (params.slug === 'demo') {
       await new Promise(r => setTimeout(r, 1500))
-      setConfirmationCode(generateConfirmationCode())
+      const code1 = generateConfirmationCode()
+      const code2 = splitAlcohol ? generateConfirmationCode() : ''
+      setConfirmationCode(code1)
+      setConfirmationCode2(code2)
+      // Mock WhatsApp
+      const phone = customerWhatsapp || '11999999999'
+      if (splitAlcohol) {
+        console.log('[WhatsApp Mock] Nota alimentação:', buildReceiptMessage([], alcoholSplit.food, code1, '🍽️ Alimentação (Reembolsável)'))
+        console.log('[WhatsApp Mock] Nota bebidas:', buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
+      } else {
+        console.log('[WhatsApp Mock] Nota completa:', buildReceiptMessage([], paidAmount, code1))
+      }
       setStep('confirmed')
       setPaying(false)
       return
@@ -529,10 +594,26 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erro')
 
+      const confirmAndNotify = async (paymentId: string, code: string, msgOverride?: string) => {
+        await supabase.from('payments').update({ status: 'paid', confirmation_code: code, paid_at: new Date().toISOString() }).eq('id', paymentId)
+        // Dispara WhatsApp
+        if (customerWhatsapp) {
+          await sendWhatsApp(customerWhatsapp, msgOverride ?? buildReceiptMessage([], paidAmount, code))
+        }
+      }
+
       if (method === 'pix' || method === 'debit') {
         const code = generateConfirmationCode()
-        await supabase.from('payments').update({ status: 'paid', confirmation_code: code, paid_at: new Date().toISOString() }).eq('id', data.payment_id)
-        setConfirmationCode(code)
+        if (splitAlcohol) {
+          const code2 = generateConfirmationCode()
+          await confirmAndNotify(data.payment_id, code, buildReceiptMessage([], alcoholSplit.food, code, '🍽️ Alimentação (Reembolsável)'))
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
+          setConfirmationCode(code)
+          setConfirmationCode2(code2)
+        } else {
+          await confirmAndNotify(data.payment_id, code, buildReceiptMessage([], getAmountToPay(), code))
+          setConfirmationCode(code)
+        }
         setStep('confirmed')
       } else {
         const stripe = await stripePromise
@@ -540,7 +621,7 @@ export default function CheckoutPage() {
         const { error } = await stripe.confirmCardPayment(data.client_secret)
         if (error) throw new Error(error.message)
         const code = generateConfirmationCode()
-        await supabase.from('payments').update({ status: 'paid', confirmation_code: code, paid_at: new Date().toISOString() }).eq('id', data.payment_id)
+        await confirmAndNotify(data.payment_id, code)
         setConfirmationCode(code)
         setStep('confirmed')
       }
@@ -609,16 +690,45 @@ export default function CheckoutPage() {
               </p>
             </div>
           </div>
-          <div className="w-full rounded-xl p-6 flex flex-col items-center gap-4"
-            style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Código de validação</p>
-            <div className="bg-white rounded-xl px-8 py-5">
-              <p className="text-4xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
+          {splitAlcohol && confirmationCode2 ? (
+            /* Two receipts */
+            <div className="w-full space-y-3">
+              <div className="rounded-xl p-5 flex flex-col items-center gap-3"
+                style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#34d399' }}>🍽️ Recibo Alimentação (Empresa)</p>
+                <div className="bg-white rounded-xl px-6 py-4">
+                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
+                </div>
+                <p className="text-xs text-center" style={{ color: '#34d399' }}>
+                  {formatCurrency(alcoholSplit.food)} · Reembolsável
+                </p>
+              </div>
+              <div className="rounded-xl p-5 flex flex-col items-center gap-3"
+                style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.3)' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#f97316' }}>🍷 Recibo Bebidas (Pessoal)</p>
+                <div className="bg-white rounded-xl px-6 py-4">
+                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode2}</p>
+                </div>
+                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
+                  {formatCurrency(alcoholSplit.alcohol)} · Conta pessoal
+                </p>
+              </div>
+              <p className="text-xs text-center leading-relaxed" style={{ color: '#a78b7d' }}>
+                Ambos os recibos foram enviados para o seu WhatsApp 📱
+              </p>
             </div>
-            <p className="text-xs text-center max-w-[220px] leading-relaxed" style={{ color: '#e0c0b1' }}>
-              Apresente ao garçom para liberar a saída
-            </p>
-          </div>
+          ) : (
+            <div className="w-full rounded-xl p-6 flex flex-col items-center gap-4"
+              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Código de validação</p>
+              <div className="bg-white rounded-xl px-8 py-5">
+                <p className="text-4xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
+              </div>
+              <p className="text-xs text-center max-w-[220px] leading-relaxed" style={{ color: '#e0c0b1' }}>
+                Apresente ao garçom para liberar a saída · Recibo enviado no WhatsApp 📱
+              </p>
+            </div>
+          )}
           {closeMode === 'table' && selectedParts.filter(p => !p.isMe).length > 0 && (
             <div className="w-full rounded-xl p-4 flex items-start gap-3"
               style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.15)' }}>
@@ -771,6 +881,74 @@ export default function CheckoutPage() {
                   <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
                     Seu consumo era {formatCurrency(myConsumption)}, mas o saldo já pago por outros
                     cobre {formatCurrency(myConsumption - remaining)}. Você paga apenas {formatCurrency(remaining)}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Alcohol split option */}
+            {alcoholSplit.hasAlcohol && !splitAlcohol && (
+              <div className="rounded-xl p-4 flex items-start gap-3"
+                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                <span className="text-xl shrink-0 mt-0.5">🍷</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>
+                    Você tem bebidas alcoólicas na conta
+                  </p>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
+                    Separar em dois recibos? A empresa aceita o de alimentação para reembolso.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => setSplitAlcohol(true)}
+                      className="text-xs font-mono font-bold px-4 py-2 rounded-lg active:scale-95 transition-all"
+                      style={{ background: '#f97316', color: '#582200' }}>
+                      Sim, separar recibos
+                    </button>
+                    <button className="text-xs font-mono px-4 py-2 rounded-lg transition-all"
+                      style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}>
+                      Não, pagar tudo junto
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {splitAlcohol && (
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+                <div className="px-4 py-3 flex items-center gap-2"
+                  style={{ background: 'rgba(52,211,153,0.06)', borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
+                  <span className="material-symbols-outlined text-[16px]" style={{ color: '#34d399' }}>call_split</span>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#34d399' }}>
+                    Recibos separados ativado
+                  </span>
+                  <button onClick={() => setSplitAlcohol(false)}
+                    className="ml-auto text-[10px] font-mono" style={{ color: '#584237' }}>
+                    Desfazer
+                  </button>
+                </div>
+                <div className="divide-y" style={{ borderColor: 'rgba(88,66,55,0.2)' }}>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍽️ Alimentação</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>Reembolsável pela empresa</p>
+                    </div>
+                    <p className="text-base font-black font-mono" style={{ color: '#34d399' }}>
+                      {formatCurrency(alcoholSplit.food)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍷 Bebidas Alcoólicas</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Conta pessoal</p>
+                    </div>
+                    <p className="text-base font-black font-mono" style={{ color: '#ffb690' }}>
+                      {formatCurrency(alcoholSplit.alcohol)}
+                    </p>
+                  </div>
+                </div>
+                <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', background: 'rgba(30,41,59,0.5)' }}>
+                  <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+                    Você receberá <strong style={{ color: '#dae2fd' }}>2 recibos</strong> no seu WhatsApp — um de alimentação para o RH e um de bebidas para controle pessoal.
                   </p>
                 </div>
               </div>

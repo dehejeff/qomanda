@@ -10,6 +10,9 @@ export const mockRestaurant: Restaurant = {
   address: 'Rua das Flores, 123',
   phone: '(11) 99999-9999',
   status: 'active',
+  whatsapp_phone_id: null,
+  whatsapp_access_token: null,
+  whatsapp_nfe_enabled: false,
   created_at: new Date().toISOString(),
 }
 
@@ -29,8 +32,8 @@ export const mockCategories: MenuCategory[] = [
     name: 'Entradas',
     display_order: 0,
     items: [
-      { id: 'item-1', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Pão de Alho', description: 'Pão artesanal com manteiga e alho tostado', price: 18.90, image_url: null, available: true },
-      { id: 'item-2', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Caldo de Feijão', description: 'Caldo cremoso com bacon e linguiça', price: 22.00, image_url: null, available: true },
+      { id: 'item-1', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Pão de Alho', description: 'Pão artesanal com manteiga e alho tostado', price: 18.90, image_url: null, available: true, contains_alcohol: false },
+      { id: 'item-2', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Caldo de Feijão', description: 'Caldo cremoso com bacon e linguiça', price: 22.00, image_url: null, available: true, contains_alcohol: false },
     ],
   },
   {
@@ -39,8 +42,8 @@ export const mockCategories: MenuCategory[] = [
     name: 'Pratos Principais',
     display_order: 1,
     items: [
-      { id: 'item-3', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Frango Grelhado', description: 'Filé de frango grelhado com legumes', price: 42.90, image_url: null, available: true },
-      { id: 'item-4', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Picanha na Brasa', description: '300g de picanha com arroz e farofa', price: 89.90, image_url: null, available: false },
+      { id: 'item-3', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Frango Grelhado', description: 'Filé de frango grelhado com legumes', price: 42.90, image_url: null, available: true, contains_alcohol: false },
+      { id: 'item-4', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Picanha na Brasa', description: '300g de picanha com arroz e farofa', price: 89.90, image_url: null, available: false, contains_alcohol: false },
     ],
   },
   {
@@ -49,8 +52,10 @@ export const mockCategories: MenuCategory[] = [
     name: 'Bebidas',
     display_order: 2,
     items: [
-      { id: 'item-5', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Refrigerante Lata', description: 'Coca-Cola, Guaraná ou Sprite', price: 8.00, image_url: null, available: true },
-      { id: 'item-6', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Suco Natural', description: 'Laranja, Limão ou Maracujá', price: 14.00, image_url: null, available: true },
+      { id: 'item-5', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Refrigerante Lata', description: 'Coca-Cola, Guaraná ou Sprite', price: 8.00, image_url: null, available: true, contains_alcohol: false },
+      { id: 'item-6', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Suco Natural', description: 'Laranja, Limão ou Maracujá', price: 14.00, image_url: null, available: true, contains_alcohol: false },
+      { id: 'item-7', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Caipirinha', description: 'Cachaça artesanal, limão e açúcar', price: 22.00, image_url: null, available: true, contains_alcohol: true },
+      { id: 'item-8', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Cerveja Artesanal', description: 'IPA 350ml', price: 18.00, image_url: null, available: true, contains_alcohol: true },
     ],
   },
 ]
@@ -66,8 +71,8 @@ export const mockOrders: Order[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     items: [
-      { id: 'oi-1', order_id: 'order-aabbcc', menu_item_id: 'item-1', quantity: 2, unit_price: 18.90, notes: null, menu_item: { id: 'item-1', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Pão de Alho', description: null, price: 18.90, image_url: null, available: true } },
-      { id: 'oi-2', order_id: 'order-aabbcc', menu_item_id: 'item-5', quantity: 3, unit_price: 8.00, notes: null, menu_item: { id: 'item-5', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Refrigerante Lata', description: null, price: 8.00, image_url: null, available: true } },
+      { id: 'oi-1', order_id: 'order-aabbcc', menu_item_id: 'item-1', quantity: 2, unit_price: 18.90, notes: null, menu_item: { id: 'item-1', restaurant_id: 'mock-restaurant-id', category_id: 'cat-1', name: 'Pão de Alho', description: null, price: 18.90, image_url: null, available: true, contains_alcohol: false } },
+      { id: 'oi-2', order_id: 'order-aabbcc', menu_item_id: 'item-5', quantity: 3, unit_price: 8.00, notes: null, menu_item: { id: 'item-5', restaurant_id: 'mock-restaurant-id', category_id: 'cat-3', name: 'Refrigerante Lata', description: null, price: 8.00, image_url: null, available: true, contains_alcohol: false } },
     ],
   },
   {
@@ -80,7 +85,7 @@ export const mockOrders: Order[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     items: [
-      { id: 'oi-3', order_id: 'order-ddeeff', menu_item_id: 'item-3', quantity: 1, unit_price: 42.90, notes: null, menu_item: { id: 'item-3', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Frango Grelhado', description: null, price: 42.90, image_url: null, available: true } },
+      { id: 'oi-3', order_id: 'order-ddeeff', menu_item_id: 'item-3', quantity: 1, unit_price: 42.90, notes: null, menu_item: { id: 'item-3', restaurant_id: 'mock-restaurant-id', category_id: 'cat-2', name: 'Frango Grelhado', description: null, price: 42.90, image_url: null, available: true, contains_alcohol: false } },
     ],
   },
 ]

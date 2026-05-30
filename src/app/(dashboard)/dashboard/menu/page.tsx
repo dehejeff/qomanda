@@ -95,6 +95,20 @@ export default function MenuManagementPage() {
     )
   }
 
+  function toggleItemAlcohol(itemId: string, current: boolean) {
+    if (!DEV_BYPASS) {
+      const supabase = createClient()
+      supabase.from('menu_items').update({ contains_alcohol: !current }).eq('id', itemId)
+    }
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        items: cat.items?.map((i) => i.id === itemId ? { ...i, contains_alcohol: !current } : i),
+      }))
+    )
+    toast.success(!current ? '🍷 Item marcado como alcoólico' : 'Item desmarcado como alcoólico')
+  }
+
   const totalItems = categories.reduce((a, c) => a + (c.items?.length ?? 0), 0)
   const activeItems = categories.reduce((a, c) => a + (c.items?.filter((i) => i.available).length ?? 0), 0)
 
@@ -245,7 +259,27 @@ export default function MenuManagementPage() {
                           {item.description && (
                             <p className="text-sm text-on-surface-variant line-clamp-2 mb-3">{item.description}</p>
                           )}
-                          <div className="flex items-center justify-end gap-3 mt-2">
+                          <div className="flex items-center justify-end gap-4 mt-2 flex-wrap">
+                            {/* Álcool badge */}
+                            {item.contains_alcohol && (
+                              <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded"
+                                style={{ background: 'rgba(249,115,22,0.12)', color: '#f97316', border: '1px solid rgba(249,115,22,0.25)' }}>
+                                🍷 ALCOÓLICO
+                              </span>
+                            )}
+                            {/* Alcohol toggle */}
+                            <label className="relative inline-flex items-center gap-2 cursor-pointer" title="Marcar como bebida alcoólica">
+                              <span className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Álcool</span>
+                              <input
+                                type="checkbox"
+                                className="sr-only"
+                                checked={item.contains_alcohol}
+                                onChange={() => toggleItemAlcohol(item.id, item.contains_alcohol)}
+                              />
+                              <div className={`w-10 h-5 rounded-full transition-colors border relative ${item.contains_alcohol ? 'bg-amber-500 border-amber-500' : 'bg-surface-container-highest border-outline-variant'}`}>
+                                <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all ${item.contains_alcohol ? 'left-[22px]' : 'left-[2px]'}`} />
+                              </div>
+                            </label>
                             <span className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Disponível</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input

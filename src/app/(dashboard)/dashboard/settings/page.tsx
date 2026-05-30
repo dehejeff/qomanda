@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import type { LoyaltyBenefitType } from '@/types'
 
-type Tab = 'pagamentos' | 'fidelidade' | 'seguranca' | 'equipe'
+type Tab = 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'pagamentos', label: 'Pagamentos' },
-  { id: 'fidelidade', label: 'Fidelidade' },
-  { id: 'seguranca',  label: 'Segurança' },
-  { id: 'equipe',     label: 'Equipe' },
+  { id: 'pagamentos',   label: 'Pagamentos'  },
+  { id: 'fidelidade',   label: 'Fidelidade'  },
+  { id: 'integracoes',  label: 'Integrações' },
+  { id: 'seguranca',    label: 'Segurança'   },
+  { id: 'equipe',       label: 'Equipe'      },
 ]
 
 const MOCK_TRANSACTIONS = [
@@ -74,6 +75,27 @@ export default function SettingsPage() {
 
   const benefitIcon = (type: LoyaltyBenefitType) =>
     BENEFIT_OPTIONS.find(o => o.value === type)?.icon ?? 'redeem'
+
+  // WhatsApp / Integrações state
+  const [wpPhoneId, setWpPhoneId]       = useState('')
+  const [wpToken, setWpToken]           = useState('')
+  const [wpNfeEnabled, setWpNfeEnabled] = useState(false)
+  const [wpSaving, setWpSaving]         = useState(false)
+  const [wpTesting, setWpTesting]       = useState(false)
+
+  async function saveWhatsApp() {
+    setWpSaving(true)
+    await new Promise(r => setTimeout(r, 800)) // mock save
+    setWpSaving(false)
+    alert('Configurações de WhatsApp salvas! (conecte ao Supabase para persistir)')
+  }
+
+  async function testWhatsApp() {
+    setWpTesting(true)
+    await new Promise(r => setTimeout(r, 1500))
+    setWpTesting(false)
+    alert('Mensagem de teste enviada! Verifique o número cadastrado.')
+  }
 
   return (
     <div className="space-y-stack-lg">
@@ -480,6 +502,128 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── INTEGRAÇÕES ────────────────────────────────── */}
+      {tab === 'integracoes' && (
+        <div className="space-y-card-gap">
+
+          {/* WhatsApp Business */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+            <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant"
+              style={{ background: 'linear-gradient(135deg, rgba(37,211,102,0.08), transparent)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.2)' }}>
+                💬
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-on-surface">WhatsApp Business API</h3>
+                <p className="text-sm text-on-surface-variant mt-0.5">
+                  Envie automaticamente a nota de pagamento e NF-e para o WhatsApp do cliente após cada transação.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                CONFIGURAR
+              </span>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                    Phone Number ID
+                  </label>
+                  <input
+                    value={wpPhoneId} onChange={e => setWpPhoneId(e.target.value)}
+                    placeholder="Ex: 123456789012345"
+                    className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
+                  />
+                  <p className="text-[10px] text-on-surface-variant opacity-60">
+                    Encontrado em Meta → WhatsApp → API Setup
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                    Access Token
+                  </label>
+                  <input
+                    type="password" value={wpToken} onChange={e => setWpToken(e.target.value)}
+                    placeholder="EAAxxxxxxxxxxxxx..."
+                    className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
+                  />
+                  <p className="text-[10px] text-on-surface-variant opacity-60">
+                    Token permanente do sistema (não o temporário de 24h)
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle NF-e automática */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+                <div>
+                  <p className="text-sm font-semibold text-on-surface">Enviar nota automaticamente após pagamento</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">
+                    O cliente recebe a nota no WhatsApp assim que o pagamento for confirmado
+                  </p>
+                </div>
+                <button onClick={() => setWpNfeEnabled(v => !v)}
+                  className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
+                  style={{ background: wpNfeEnabled ? '#f97316' : '#2d3449' }}>
+                  <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                    style={{ left: wpNfeEnabled ? '1.375rem' : '0.125rem' }} />
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={saveWhatsApp} disabled={wpSaving || !wpPhoneId || !wpToken}
+                  className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-40">
+                  {wpSaving ? 'Salvando...' : 'Salvar configuração'}
+                </button>
+                <button onClick={testWhatsApp} disabled={wpTesting || !wpPhoneId || !wpToken}
+                  className="h-10 px-5 rounded-lg text-sm font-mono border border-outline-variant text-on-surface-variant hover:bg-surface-container-highest transition-colors disabled:opacity-40">
+                  {wpTesting ? 'Enviando...' : '📱 Enviar mensagem de teste'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* NF-e */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+            <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                style={{ background: 'rgba(123,208,255,0.1)', border: '1px solid rgba(123,208,255,0.2)' }}>
+                🧾
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-on-surface">Nota Fiscal Eletrônica (NF-e)</h3>
+                <p className="text-sm text-on-surface-variant mt-0.5">
+                  Emissão automática de NF-e integrada com Focus NFe, NFe.io ou similar. Documento oficial aceito para reembolso corporativo.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(88,66,55,0.2)', color: '#a78b7d', border: '1px solid rgba(88,66,55,0.3)' }}>
+                EM BREVE
+              </span>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              {[
+                { icon: 'business',        text: 'CNPJ do restaurante + certificado digital A1' },
+                { icon: 'receipt_long',    text: 'Emissão automática via SEFAZ após pagamento' },
+                { icon: 'call_split',      text: 'NF-e separada: alimentação (reembolsável) e bebidas (pessoal)' },
+                { icon: 'send',            text: 'Envio automático por WhatsApp ao CPF do cliente' },
+              ].map(item => (
+                <div key={item.text} className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-on-surface-variant opacity-50">{item.icon}</span>
+                  <p className="text-sm text-on-surface-variant">{item.text}</p>
+                </div>
+              ))}
+              <div className="mt-2 px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low">
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  <span className="font-semibold text-on-surface">Para configurar:</span> o restaurante precisa de CNPJ ativo, certificado digital A1 e conta em um provedor homologado (Focus NFe, NFe.io, Nota Simples, etc.). Entre em contato: <span className="text-primary font-mono">contato@qomanda.com.br</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 

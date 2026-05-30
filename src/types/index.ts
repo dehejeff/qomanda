@@ -78,6 +78,9 @@ export interface Restaurant {
   address: string | null
   phone: string | null
   status: RestaurantStatus
+  whatsapp_phone_id: string | null
+  whatsapp_access_token: string | null
+  whatsapp_nfe_enabled: boolean
   created_at: string
 }
 
@@ -118,6 +121,7 @@ export interface MenuItem {
   price: number
   image_url: string | null
   available: boolean
+  contains_alcohol: boolean
   category?: MenuCategory
 }
 

@@ -10,15 +10,19 @@ create extension if not exists "uuid-ossp";
 -- RESTAURANTS
 -- ============================================================
 create table restaurants (
-  id          uuid primary key default uuid_generate_v4(),
-  owner_id    uuid references auth.users(id) on delete cascade not null,
-  name        text not null,
-  slug        text not null unique,
-  logo_url    text,
-  address     text,
-  phone       text,
-  status      text not null default 'active' check (status in ('active','inactive')),
-  created_at  timestamptz not null default now()
+  id                      uuid primary key default uuid_generate_v4(),
+  owner_id                uuid references auth.users(id) on delete cascade not null,
+  name                    text not null,
+  slug                    text not null unique,
+  logo_url                text,
+  address                 text,
+  phone                   text,
+  status                  text not null default 'active' check (status in ('active','inactive')),
+  -- WhatsApp Business API (Meta Cloud API)
+  whatsapp_phone_id       text,   -- Phone Number ID do WhatsApp Business
+  whatsapp_access_token   text,   -- Token de acesso (armazenar criptografado em produção)
+  whatsapp_nfe_enabled    boolean not null default false,
+  created_at              timestamptz not null default now()
 );
 
 -- ============================================================
@@ -157,15 +161,16 @@ create table menu_categories (
 -- MENU ITEMS
 -- ============================================================
 create table menu_items (
-  id             uuid primary key default uuid_generate_v4(),
-  restaurant_id  uuid references restaurants(id) on delete cascade not null,
-  category_id    uuid references menu_categories(id) on delete cascade not null,
-  name           text not null,
-  description    text,
-  price          numeric(10,2) not null check (price >= 0),
-  image_url      text,
-  available      boolean not null default true,
-  created_at     timestamptz not null default now()
+  id               uuid primary key default uuid_generate_v4(),
+  restaurant_id    uuid references restaurants(id) on delete cascade not null,
+  category_id      uuid references menu_categories(id) on delete cascade not null,
+  name             text not null,
+  description      text,
+  price            numeric(10,2) not null check (price >= 0),
+  image_url        text,
+  available        boolean not null default true,
+  contains_alcohol boolean not null default false,  -- separa reembolso empresa/pessoal
+  created_at       timestamptz not null default now()
 );
 
 -- ============================================================
