@@ -403,6 +403,7 @@ export default function CheckoutPage() {
   const [method, setMethod]         = useState<PaymentMethod>('pix')
   const [loading, setLoading]       = useState(true)
   const [paying, setPaying]             = useState(false)
+  const [includeServiceFee, setIncludeServiceFee] = useState(true)
   const [confirmationCode, setConfirmationCode]   = useState('')
   const [confirmationCode2, setConfirmationCode2] = useState('')
   // Dados do PIX gerados pelo Asaas
@@ -418,7 +419,8 @@ export default function CheckoutPage() {
   const [restaurantName, setRestaurantName] = useState('')
 
   // Amounts
-  const [grandTotal, setGrandTotal] = useState(0)   // full session total (pre-tax subtotal * 1.1)
+  const [subTotal, setSubTotal]     = useState(0)   // subtotal sem taxa
+  const [grandTotal, setGrandTotal] = useState(0)   // subtotal + taxa (quando aplicável)
   const [alreadyPaid, setAlreadyPaid] = useState(0) // sum of individual payments already made
   const [myConsumption, setMyConsumption] = useState(0) // my portion
   const [remaining, setRemaining]   = useState(0)   // grandTotal - alreadyPaid
@@ -490,6 +492,7 @@ export default function CheckoutPage() {
       const gt         = sub * 1.1
       const paid       = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
       const rem        = Math.max(0, gt - paid)
+      setSubTotal(sub)
       setGrandTotal(gt)
       setAlreadyPaid(paid)
       setRemaining(rem)
@@ -527,6 +530,14 @@ export default function CheckoutPage() {
     }
     load()
   }, [sessionId, params.slug, router, myCustomerId])
+
+  // Recalcula grandTotal e remaining quando a taxa de serviço muda
+  useEffect(() => {
+    const gt  = includeServiceFee ? subTotal * 1.1 : subTotal
+    const rem = Math.max(0, gt - alreadyPaid)
+    setGrandTotal(gt)
+    setRemaining(rem)
+  }, [includeServiceFee, subTotal, alreadyPaid])
 
   // Recalculate equal amounts when selection changes or remaining changes
   useEffect(() => {
@@ -1209,6 +1220,28 @@ export default function CheckoutPage() {
             </div>
           </section>
         )}
+
+        {/* ── Taxa de serviço opcional ────────────────── */}
+        <section>
+          <div className="flex items-center justify-between rounded-xl px-4 py-3.5"
+            style={{ background: '#1e293b', border: '1px solid #334155' }}>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Taxa de serviço (10%)</p>
+              <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                {includeServiceFee
+                  ? `+ ${formatCurrency(subTotal * 0.1)} incluídos`
+                  : 'Não incluída — opcional'}
+              </p>
+            </div>
+            <button
+              onClick={() => setIncludeServiceFee(v => !v)}
+              className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
+              style={{ background: includeServiceFee ? '#f97316' : '#334155' }}>
+              <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                style={{ left: includeServiceFee ? '1.375rem' : '0.125rem' }} />
+            </button>
+          </div>
+        </section>
 
         {/* ── Método de pagamento ─────────────────────── */}
         <section className="space-y-3">

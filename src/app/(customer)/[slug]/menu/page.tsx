@@ -17,6 +17,8 @@ export default function MenuPage() {
 
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+  const [notes, setNotes] = useState<Record<string, string>>({}) // itemId → nota
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null) // item com nota expandida
   const [loading, setLoading] = useState(true)
   const [placing, setPlacing] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
@@ -96,14 +98,17 @@ export default function MenuPage() {
 
     await supabase.from('order_items').insert(
       cart.map(c => ({
-        order_id: order.id,
+        order_id:    order.id,
         menu_item_id: c.menu_item.id,
-        quantity: c.quantity,
-        unit_price: c.menu_item.price,
+        quantity:    c.quantity,
+        unit_price:  c.menu_item.price,
+        notes:       notes[c.menu_item.id] || null,
       }))
     )
 
     setCart([])
+    setNotes({})
+    setOpenNoteId(null)
     toast.success('Pedido enviado!')
     setPlacing(false)
   }
@@ -289,6 +294,42 @@ export default function MenuPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Campo de observação — aparece quando item está no carrinho */}
+                    {qty > 0 && (
+                      <div className="mt-2">
+                        {openNoteId === item.id ? (
+                          <div className="flex gap-2 items-center">
+                            <input
+                              autoFocus
+                              type="text"
+                              placeholder="ex: sem cebola, ponto bem passado…"
+                              value={notes[item.id] ?? ''}
+                              onChange={e => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              onBlur={() => setOpenNoteId(null)}
+                              className="flex-1 h-8 px-2.5 rounded-lg text-xs outline-none"
+                              style={{ background: '#0b1326', border: '1px solid #f97316', color: '#dae2fd' }}
+                            />
+                            <button onClick={() => setOpenNoteId(null)}
+                              className="text-[10px] font-mono shrink-0"
+                              style={{ color: '#34d399' }}>
+                              OK
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setOpenNoteId(item.id)}
+                            className="flex items-center gap-1 text-[11px] font-mono transition-colors"
+                            style={{ color: notes[item.id] ? '#f97316' : '#584237' }}
+                          >
+                            <span className="material-symbols-outlined text-[13px]">
+                              {notes[item.id] ? 'edit_note' : 'add_comment'}
+                            </span>
+                            {notes[item.id] ? notes[item.id] : 'Adicionar observação'}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )
