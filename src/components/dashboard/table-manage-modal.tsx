@@ -43,13 +43,15 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     if (table.status !== 'occupied') return
 
     if (DEV_BYPASS) {
+      const savedHistory = localStorage.getItem('qomanda_mock_table_history')
+      const savedStartedAt = localStorage.getItem('qomanda_mock_started_at')
       setSession({
         id: 'mock-session-1',
         restaurant_id: 'mock-restaurant-id',
-        started_at: new Date(Date.now() - 73 * 60 * 1000).toISOString(),
+        started_at: savedStartedAt ?? new Date(Date.now() - 73 * 60 * 1000).toISOString(),
         orderCount: 2,
         total: 61.80,
-        table_history: [],
+        table_history: savedHistory ? JSON.parse(savedHistory) : [],
       })
       setLoadingSession(false)
       return
@@ -91,6 +93,8 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     setActing(true)
 
     if (DEV_BYPASS) {
+      localStorage.removeItem('qomanda_mock_table_history')
+      localStorage.removeItem('qomanda_mock_started_at')
       setView('waiting')
       setActing(false)
       toast.success('Solicitação enviada ao cliente.')
@@ -138,6 +142,12 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     const newHistory = [...session.table_history, changeEntry]
 
     if (DEV_BYPASS) {
+      const newHistory = [...session.table_history, changeEntry]
+      localStorage.setItem('qomanda_mock_table_history', JSON.stringify(newHistory))
+      // Preserve started_at so timer continues from original start
+      if (!localStorage.getItem('qomanda_mock_started_at')) {
+        localStorage.setItem('qomanda_mock_started_at', session.started_at)
+      }
       onTableSwitched(table.id, targetTable.id)
       toast.success(`Mesa ${table.number} → Mesa ${targetTable.number}`)
       onClose()
