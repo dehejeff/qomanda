@@ -43,50 +43,90 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Upsert do cliente ──────────────────────────────────
-    // Estratégia: CPF primeiro (mais estável), fallback por WhatsApp
     let customerId: string | null = null
 
-    if (documentType === 'cpf' && cpf && cpf.length === 11) {
-      // Busca por hash — nunca por CPF em texto puro
-      const cpfHash = hashCPF(cpf)
-      const { data: byCpf } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('cpf_hash', cpfHash)
-        .maybeSingle()
+    // Tenta criptografar o CPF — falha silenciosa se colunas não existirem
+    let cpfHash: string | null = null
+    let cpfEncrypted: string | null = null
 
-      if (byCpf) {
-        await supabase
-          .from('customers')
-          .update({ first_name: firstName, last_name: lastName, whatsapp })
-          .eq('id', byCpf.id)
-        customerId = byCpf.id
+    if (documentType === 'cpf' && cpf && cpf.length === 11) {
+      try {
+        cpfHash      = hashCPF(cpf)
+        cpfEncrypted = encryptCPF(cpf)
+      } catch (cryptoErr) {
+        console.warn('[CheckIn] Falha na criptografia do CPF:', cryptoErr)
+        // Continua sem CPF — não bloqueia o check-in
+      }
+
+      // Busca cliente existente pelo hash do CPF
+      if (cpfHash) {
+        try {
+          const { data: byCpf } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('cpf_hash', cpfHash)
+            .maybeSingle()
+
+          if (byCpf) {
+            await supabase
+              .from('customers')
+              .update({ first_name: firstName, last_name: lastName, whatsapp })
+              .eq('id', byCpf.id)
+            customerId = byCpf.id
+          }
+        } catch (lookupErr) {
+          console.warn('[CheckIn] Busca por CPF falhou (coluna pode não existir):', lookupErr)
+        }
       }
     }
 
     if (!customerId) {
+      // Monta payload base (sempre presente)
       const payload: Record<string, unknown> = {
         first_name: firstName,
-        last_name: lastName,
+        last_name:  lastName,
         whatsapp,
       }
-      if (documentType === 'cpf' && cpf) {
-        payload.document_type = 'cpf'
-        payload.cpf_hash      = hashCPF(cpf)     // irreversível, para lookup
-        payload.cpf_encrypted = encryptCPF(cpf)  // reversível, para NF-e
-      }
-      if (documentType === 'passport' && passport)  { payload.document_type = 'passport'; payload.passport = passport }
 
-      const { data: customer, error } = await supabase
+      // Adiciona CPF criptografado somente se disponível
+      if (cpfHash && cpfEncrypted) {
+        payload.document_type = 'cpf'
+        payload.cpf_hash      = cpfHash
+        payload.cpf_encrypted = cpfEncrypted
+      } else if (documentType === 'cpf' && cpf) {
+        // CPF informado mas crypto falhou — salva só o tipo de documento
+        payload.document_type = 'cpf'
+      }
+
+      if (documentType === 'passport' && passport) {
+        payload.document_type = 'passport'
+        payload.passport      = passport
+      }
+
+      const { data: customer, error: upsertErr } = await supabase
         .from('customers')
-        .upsert(payload, { onConflict: 'whatsapp', ignoreDuplicates: false })
+        .upsert(payload, { onConflict: 'whatsapp' })
         .select('id')
         .single()
 
-      if (error || !customer) {
-        return NextResponse.json({ error: 'Erro ao salvar dados do cliente.' }, { status: 500 })
+      if (upsertErr) {
+        console.error('[CheckIn] Erro ao salvar cliente:', upsertErr)
+
+        // Último fallback: tenta sem CPF (pode ser coluna inexistente)
+        const { data: fallback, error: fallbackErr } = await supabase
+          .from('customers')
+          .upsert({ first_name: firstName, last_name: lastName, whatsapp }, { onConflict: 'whatsapp' })
+          .select('id')
+          .single()
+
+        if (fallbackErr || !fallback) {
+          console.error('[CheckIn] Fallback também falhou:', fallbackErr)
+          return NextResponse.json({ error: 'Erro ao salvar dados do cliente.' }, { status: 500 })
+        }
+        customerId = fallback.id
+      } else {
+        customerId = customer?.id ?? null
       }
-      customerId = customer.id
     }
 
     // ── 3. Resolver mesa ─────────────────────────────────────
