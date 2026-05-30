@@ -29,6 +29,7 @@ export default function CustomerHomePage() {
   const [customerName, setCustomerName] = useState('')
   const [latestOrder, setLatestOrder] = useState<{ status: string; total: number; itemCount: number } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [closeInvite, setCloseInvite] = useState<{ requestId: string; initiatorName: string; amountOwed: number } | null>(null)
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -81,6 +82,35 @@ export default function CustomerHomePage() {
       setLoading(false)
     }
     load()
+
+    // Subscribe to close request invites
+    if (params.slug !== 'demo') {
+      const supabase = createClient()
+      const myCustomerId = localStorage.getItem('qomanda_customer_id')
+      if (myCustomerId) {
+        const ch = supabase.channel('close-invite')
+          .on('postgres_changes', {
+            event: 'INSERT', schema: 'public', table: 'close_request_participants',
+            filter: `customer_id=eq.${myCustomerId}`,
+          }, async (payload) => {
+            const p = payload.new as any
+            if (p.status !== 'pending') return
+            const { data: req } = await supabase
+              .from('close_requests')
+              .select('*, initiator:customers!initiator_id(first_name,last_name)')
+              .eq('id', p.request_id).single()
+            if (!req) return
+            const ini = (req as any).initiator
+            setCloseInvite({
+              requestId: req.id,
+              initiatorName: ini ? `${ini.first_name} ${ini.last_name}` : 'Alguém',
+              amountOwed: p.amount_owed,
+            })
+          })
+          .subscribe()
+        return () => { supabase.removeChannel(ch) }
+      }
+    }
   }, [sessionId, params.slug, router])
 
   if (loading) {
@@ -121,6 +151,42 @@ export default function CustomerHomePage() {
           Mesa {tableNumber}
         </span>
       </header>
+
+      {/* Close request invite banner */}
+      {closeInvite && (
+        <div className="fixed top-16 left-0 right-0 z-50 px-4 pt-3">
+          <div className="rounded-xl p-4 shadow-2xl"
+            style={{ background: '#1e3a5f', border: '2px solid rgba(123,208,255,0.4)', backdropFilter: 'blur(12px)' }}>
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-[22px] shrink-0 mt-0.5" style={{ color: '#7bd0ff' }}>receipt_long</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold" style={{ color: '#dae2fd' }}>
+                  {closeInvite.initiatorName} quer fechar a mesa!
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                  Sua parte calculada: <strong style={{ color: '#ffb690' }}>{formatCurrency(closeInvite.amountOwed)}</strong>
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setCloseInvite(null)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-mono transition-all"
+                style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}>
+                Recusar
+              </button>
+              <button
+                onClick={() => {
+                  setCloseInvite(null)
+                  router.push(`/${params.slug}/checkout?session=${sessionId}&request=${closeInvite.requestId}`)
+                }}
+                className="flex-[2] py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95"
+                style={{ background: '#7bd0ff', color: '#001e2c' }}>
+                Confirmar e Pagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="px-6 pt-6 space-y-5 relative z-10">
         {/* Welcome */}

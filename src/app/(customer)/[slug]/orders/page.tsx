@@ -36,12 +36,23 @@ export default function OrdersPage() {
   const router      = useRouter()
   const sessionId   = searchParams.get('session')
 
+  type PaymentProgress = {
+    participantId: string
+    name: string
+    isMe: boolean
+    amountOwed: number
+    amountPaid: number | null
+    status: string
+  }
+
   const [tab, setTab]                 = useState<Tab>('mine')
   const [myOrders, setMyOrders]       = useState<Order[]>([])
   const [allOrders, setAllOrders]     = useState<Order[]>([])
   const [participants, setParticipants] = useState<SessionParticipant[]>([])
   const [loading, setLoading]         = useState(true)
   const [sessionClosing, setSessionClosing] = useState(false)
+  const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
+  const [grandTotal, setGrandTotal]   = useState(0)
 
   const customerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
@@ -86,6 +97,35 @@ export default function OrdersPage() {
       setMyOrders(customerId ? orders.filter(o => o.customer_id === customerId) : orders)
       setParticipants((participantsRes.data ?? []) as SessionParticipant[])
       if (sessionRes.data?.status === 'closing') setSessionClosing(true)
+
+      // Load close request payment progress if one exists
+      const { data: closeReq } = await supabase
+        .from('close_requests')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+      if (closeReq) {
+        const { data: crParticipants } = await supabase
+          .from('close_request_participants')
+          .select('*, customer:customers(first_name,last_name)')
+          .eq('request_id', closeReq.id)
+
+        const allItemsTotal = orders.flatMap(o => (o as any).items ?? [])
+          .reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0) * 1.1
+        setGrandTotal(allItemsTotal)
+
+        setPaymentProgress((crParticipants ?? []).map((p: any) => ({
+          participantId: p.customer_id,
+          name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
+          isMe: p.customer_id === customerId,
+          amountOwed: p.amount_owed,
+          amountPaid: p.amount_paid,
+          status: p.status,
+        })))
+      }
+
       setLoading(false)
     }
 
@@ -331,6 +371,59 @@ export default function OrdersPage() {
                 </div>
               )
             })}
+
+            {/* Payment progress countdown */}
+            {paymentProgress.length > 0 && (
+              <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+                <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
+                  <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                    Progresso do Fechamento
+                  </p>
+                </div>
+                {/* Progress bar */}
+                {(() => {
+                  const totalPaid  = paymentProgress.reduce((s, p) => s + (p.amountPaid ?? 0), 0)
+                  const pct        = grandTotal > 0 ? Math.min(100, (totalPaid / grandTotal) * 100) : 0
+                  const remaining  = Math.max(0, grandTotal - totalPaid)
+                  return (
+                    <div className="px-5 py-4 space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-xs" style={{ color: '#a78b7d' }}>
+                            {formatCurrency(totalPaid)} pagos
+                          </span>
+                          <span className="text-xs font-bold" style={{ color: remaining > 0 ? '#f87171' : '#34d399' }}>
+                            {remaining > 0 ? `Falta ${formatCurrency(remaining)}` : '✓ Mesa fechada!'}
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${pct}%`, background: pct === 100 ? '#34d399' : '#f97316' }} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {paymentProgress.map(p => (
+                          <div key={p.participantId} className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-[16px]"
+                              style={{ color: p.status === 'paid' ? '#34d399' : p.status === 'declined' ? '#f87171' : '#f59e0b', fontVariationSettings: p.status === 'paid' ? "'FILL' 1" : "'FILL' 0" }}>
+                              {p.status === 'paid' ? 'check_circle' : p.status === 'declined' ? 'cancel' : 'pending'}
+                            </span>
+                            <span className="flex-1 text-sm" style={{ color: '#dae2fd' }}>
+                              {p.name}{p.isMe && <span className="text-[10px] font-mono ml-1" style={{ color: '#34d399' }}>(você)</span>}
+                            </span>
+                            <span className="text-sm font-mono" style={{ color: p.status === 'paid' ? '#34d399' : '#a78b7d' }}>
+                              {p.status === 'paid' && p.amountPaid
+                                ? formatCurrency(p.amountPaid)
+                                : formatCurrency(p.amountOwed)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
 
             {/* Table total */}
             {allOrders.length > 0 && (

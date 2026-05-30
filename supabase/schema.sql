@@ -78,6 +78,32 @@ create table loyalty_rules (
 );
 
 -- ============================================================
+-- CLOSE REQUESTS  (iniciativa de fechamento de mesa)
+-- ============================================================
+create table close_requests (
+  id            uuid primary key default uuid_generate_v4(),
+  session_id    uuid references sessions(id) on delete cascade not null,
+  initiator_id  uuid references customers(id) not null,
+  mode          text not null check (mode in ('individual','table')),
+  status        text not null default 'pending'
+                  check (status in ('pending','completed','cancelled')),
+  created_at    timestamptz not null default now()
+);
+
+create table close_request_participants (
+  id           uuid primary key default uuid_generate_v4(),
+  request_id   uuid references close_requests(id) on delete cascade not null,
+  customer_id  uuid references customers(id) not null,
+  amount_owed  numeric(10,2) not null,   -- cota calculada
+  amount_paid  numeric(10,2),            -- pode ser maior que amount_owed
+  status       text not null default 'pending'
+                 check (status in ('pending','confirmed','paid','declined')),
+  confirmed_at timestamptz,
+  paid_at      timestamptz,
+  unique(request_id, customer_id)
+);
+
+-- ============================================================
 -- CUSTOMER VISITS  (base para programa de fidelidade)
 -- ============================================================
 create table customer_visits (
@@ -205,6 +231,12 @@ alter table payments         enable row level security;
 alter table loyalty_rules enable row level security;
 create policy "owner_all" on loyalty_rules for all
   using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
+
+-- Close requests: público
+alter table close_requests enable row level security;
+create policy "public_all" on close_requests for all using (true);
+alter table close_request_participants enable row level security;
+create policy "public_all" on close_request_participants for all using (true);
 
 -- Session participants: público
 alter table session_participants enable row level security;

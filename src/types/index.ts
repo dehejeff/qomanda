@@ -23,6 +23,32 @@ export interface LoyaltyRule {
   created_at: string
 }
 
+export type CloseMode              = 'individual' | 'table'
+export type CloseRequestStatus     = 'pending' | 'completed' | 'cancelled'
+export type CloseParticipantStatus = 'pending' | 'confirmed' | 'paid' | 'declined'
+
+export interface CloseRequest {
+  id: string
+  session_id: string
+  initiator_id: string
+  mode: CloseMode
+  status: CloseRequestStatus
+  created_at: string
+  participants?: CloseRequestParticipant[]
+}
+
+export interface CloseRequestParticipant {
+  id: string
+  request_id: string
+  customer_id: string
+  amount_owed: number
+  amount_paid: number | null
+  status: CloseParticipantStatus
+  confirmed_at: string | null
+  paid_at: string | null
+  customer?: Customer
+}
+
 export interface SessionParticipant {
   id: string
   session_id: string
