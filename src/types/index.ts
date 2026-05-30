@@ -6,7 +6,8 @@ export interface Customer {
   last_name: string
   whatsapp: string
   document_type: 'cpf' | 'passport' | null
-  cpf: string | null
+  cpf_hash: string | null       // HMAC-SHA256 — nunca o CPF em texto puro
+  cpf_encrypted: string | null  // AES-256-GCM — descriptografar apenas server-side
   passport: string | null
   created_at: string
 }

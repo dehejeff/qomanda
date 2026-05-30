@@ -783,6 +783,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 # Encontrar em: Supabase Dashboard → Settings → API → service_role key
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
+# Criptografia de CPF (AES-256-GCM)
+# Gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+CPF_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+
+# Salt para hash HMAC-SHA256 do CPF (irreversível)
+# Gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+CPF_HASH_SALT=0000000000000000000000000000000000000000000000000000000000000000
+
 # Stripe (necessário para pagamentos com cartão)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_SECRET_KEY=sk_test_...

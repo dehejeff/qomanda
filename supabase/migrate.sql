@@ -21,11 +21,15 @@ alter table restaurants
   add column if not exists whatsapp_access_token text,
   add column if not exists whatsapp_nfe_enabled  boolean not null default false;
 
--- customers: identificação por CPF / passaporte
+-- customers: identificação por CPF / passaporte (CPF nunca em texto puro)
 alter table customers
   add column if not exists document_type text check (document_type in ('cpf','passport')),
-  add column if not exists cpf           text unique,
+  add column if not exists cpf_hash      text unique,  -- HMAC-SHA256 para busca
+  add column if not exists cpf_encrypted text,         -- AES-256-GCM para NF-e
   add column if not exists passport      text;
+
+-- Remove coluna cpf em texto puro (se existir de versão anterior)
+alter table customers drop column if exists cpf;
 
 -- sessions: iniciador do check-in + histórico de trocas
 alter table sessions
@@ -156,7 +160,7 @@ create index if not exists idx_session_participants_session  on session_particip
 create index if not exists idx_close_req_participants_customer on close_request_participants(customer_id, status);
 create index if not exists idx_close_requests_session        on close_requests(session_id, status);
 create index if not exists idx_customer_visits_loyalty       on customer_visits(customer_id, restaurant_id);
-create index if not exists idx_customers_cpf                 on customers(cpf) where cpf is not null;
+create index if not exists idx_customers_cpf_hash            on customers(cpf_hash) where cpf_hash is not null;
 
 -- ============================================================
 -- RLS DAS NOVAS TABELAS

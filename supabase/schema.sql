@@ -67,7 +67,9 @@ create table if not exists customers (
   last_name     text        not null,
   whatsapp      text        not null unique,  -- dígitos apenas
   document_type text        check (document_type in ('cpf','passport')),
-  cpf           text        unique,           -- 11 dígitos, sem formatação
+  -- CPF armazenado em duas formas (NUNCA em texto puro):
+  cpf_hash      text        unique,   -- HMAC-SHA256 — para busca e unicidade
+  cpf_encrypted text,                 -- AES-256-GCM — para NF-e futura
   passport      text,
   created_at    timestamptz not null default now()
 );
@@ -319,10 +321,10 @@ create index idx_close_requests_session
 create index idx_customer_visits_loyalty
   on customer_visits(customer_id, restaurant_id);
 
--- Busca de cliente por CPF (upsert no check-in)
-create index idx_customers_cpf
-  on customers(cpf)
-  where cpf is not null;
+-- Busca de cliente por hash do CPF (upsert no check-in)
+create index idx_customers_cpf_hash
+  on customers(cpf_hash)
+  where cpf_hash is not null;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)

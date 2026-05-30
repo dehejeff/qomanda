@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { hashCPF, encryptCPF } from '@/lib/crypto'
 
 export type CheckInRequest = {
   slug: string
@@ -46,10 +47,12 @@ export async function POST(req: NextRequest) {
     let customerId: string | null = null
 
     if (documentType === 'cpf' && cpf && cpf.length === 11) {
+      // Busca por hash — nunca por CPF em texto puro
+      const cpfHash = hashCPF(cpf)
       const { data: byCpf } = await supabase
         .from('customers')
         .select('id')
-        .eq('cpf', cpf)
+        .eq('cpf_hash', cpfHash)
         .maybeSingle()
 
       if (byCpf) {
@@ -67,12 +70,16 @@ export async function POST(req: NextRequest) {
         last_name: lastName,
         whatsapp,
       }
-      if (documentType === 'cpf' && cpf)           { payload.document_type = 'cpf';      payload.cpf = cpf }
+      if (documentType === 'cpf' && cpf) {
+        payload.document_type = 'cpf'
+        payload.cpf_hash      = hashCPF(cpf)     // irreversível, para lookup
+        payload.cpf_encrypted = encryptCPF(cpf)  // reversível, para NF-e
+      }
       if (documentType === 'passport' && passport)  { payload.document_type = 'passport'; payload.passport = passport }
 
       const { data: customer, error } = await supabase
         .from('customers')
-        .upsert(payload, { onConflict: 'whatsapp' })
+        .upsert(payload, { onConflict: 'whatsapp', ignoreDuplicates: false })
         .select('id')
         .single()
 
