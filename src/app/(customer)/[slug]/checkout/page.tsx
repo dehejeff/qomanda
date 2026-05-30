@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { loadStripe } from '@stripe/stripe-js'
-import type { PaymentMethod, CloseRequestParticipant } from '@/types'
+import type { PaymentMethod } from '@/types'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { mockOrders } from '@/lib/dev-mock'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
@@ -13,13 +13,12 @@ import { Loader2 } from 'lucide-react'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-type Step     = 'mode' | 'pix' | 'card' | 'confirmed'
 type CloseMode = 'individual' | 'table'
+type SplitType = 'equal' | 'custom'
+type Step      = 'mode' | 'pix' | 'card' | 'confirmed'
 
-// ── Helpers ──────────────────────────────────────────────────
 function maskCard(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 16)
-  return d.replace(/(.{4})/g, '$1 ').trim()
+  return v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
 }
 function maskExpiry(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 4)
@@ -28,9 +27,14 @@ function maskExpiry(v: string) {
 
 // ── PIX Screen ───────────────────────────────────────────────
 function PixScreen({
-  suggestedAmount, onConfirm, onBack, loading,
+  suggestedAmount,
+  fixedAmount,
+  onConfirm,
+  onBack,
+  loading,
 }: {
   suggestedAmount: number
+  fixedAmount: boolean
   onConfirm: (amount: number) => void
   onBack: () => void
   loading: boolean
@@ -45,17 +49,11 @@ function PixScreen({
     return () => clearInterval(t)
   }, [])
 
-  const mm = String(Math.floor(seconds / 60)).padStart(2, '0')
-  const ss = String(seconds % 60).padStart(2, '0')
-  const expired    = seconds === 0
-  const parsedAmt  = parseFloat(amount.replace(',', '.')) || 0
-  const extraAmt   = parsedAmt - suggestedAmount
-
-  function copy() {
-    navigator.clipboard.writeText(PIX_KEY).then(() => {
-      setCopied(true); setTimeout(() => setCopied(false), 2000)
-    })
-  }
+  const mm        = String(Math.floor(seconds / 60)).padStart(2, '0')
+  const ss        = String(seconds % 60).padStart(2, '0')
+  const expired   = seconds === 0
+  const parsedAmt = parseFloat(amount.replace(',', '.')) || 0
+  const extraAmt  = parsedAmt - suggestedAmount
 
   return (
     <div className="flex flex-col gap-5">
@@ -74,16 +72,16 @@ function PixScreen({
             <span className="material-symbols-outlined text-[80px]" style={{ color: '#334155', fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
           </div>
         </div>
-        <p className="text-xs text-center max-w-[220px] leading-relaxed" style={{ color: '#e0c0b1' }}>
-          Escaneie o QR Code ou copie a chave abaixo
+        <p className="text-xs text-center leading-relaxed" style={{ color: '#e0c0b1' }}>
+          Escaneie o QR Code ou copie a chave PIX abaixo
         </p>
       </div>
 
-      {/* Chave PIX */}
+      {/* PIX key */}
       <div className="flex items-center gap-2 rounded-xl px-4 py-3"
         style={{ background: '#1e293b', border: '1px solid #334155' }}>
         <span className="flex-1 text-sm font-mono truncate" style={{ color: '#dae2fd' }}>{PIX_KEY}</span>
-        <button onClick={copy}
+        <button onClick={() => { navigator.clipboard.writeText(PIX_KEY).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}
           className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
           style={{
             background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
@@ -95,29 +93,47 @@ function PixScreen({
         </button>
       </div>
 
-      {/* Custom amount */}
-      <div className="rounded-xl p-4 space-y-3" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+      {/* Amount — fixed in Mesa Toda, editable in Individual */}
+      <div className="rounded-xl p-4 space-y-2"
+        style={{ background: '#1e293b', border: '1px solid #334155' }}>
         <div className="flex justify-between items-center">
-          <span className="text-xs font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Valor a pagar</span>
-          <span className="text-xs font-mono" style={{ color: '#584237' }}>
-            Sugerido: {formatCurrency(suggestedAmount)}
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+            {fixedAmount ? 'Valor a pagar (definido)' : 'Valor a pagar'}
           </span>
+          {!fixedAmount && (
+            <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+              Mínimo: {formatCurrency(suggestedAmount)}
+            </span>
+          )}
         </div>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
-          <input
-            type="number" step="0.01" min={suggestedAmount.toFixed(2)}
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
-            style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
-          />
-        </div>
-        {extraAmt > 0.01 && (
+        {fixedAmount ? (
+          <div className="flex items-center gap-2 h-12 px-3 rounded-lg"
+            style={{ background: '#0b1326', border: '1px solid #584237' }}>
+            <span className="text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
+              {suggestedAmount.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="material-symbols-outlined text-[16px] ml-auto" style={{ color: '#584237' }}>lock</span>
+          </div>
+        ) : (
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
+            <input
+              type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
+              onChange={e => setAmount(e.target.value)}
+              className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
+              style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+            />
+          </div>
+        )}
+        {!fixedAmount && extraAmt > 0.01 && (
           <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2"
-            style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399' }}>
-            <span className="material-symbols-outlined text-[14px] shrink-0 mt-0.5">volunteer_activism</span>
-            <span>Você está contribuindo <strong>{formatCurrency(extraAmt)}</strong> a mais. O saldo da mesa diminui automaticamente para os outros. Obrigado! 🙌</span>
+            style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.15)' }}>
+            <span className="material-symbols-outlined text-[14px] shrink-0 mt-0.5">savings</span>
+            <span>
+              <strong>+{formatCurrency(extraAmt)}</strong> virará saldo da mesa.
+              Quando alguém fechar a conta completa, esse valor já está coberto.
+            </span>
           </div>
         )}
       </div>
@@ -143,7 +159,9 @@ function PixScreen({
         )}
       </div>
 
-      <button onClick={() => onConfirm(parsedAmt)} disabled={loading || expired || parsedAmt < suggestedAmount}
+      <button
+        onClick={() => onConfirm(fixedAmount ? suggestedAmount : parsedAmt)}
+        disabled={loading || expired || (!fixedAmount && parsedAmt < suggestedAmount)}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
         style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
         {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
@@ -156,35 +174,37 @@ function PixScreen({
 
 // ── Card Screen ──────────────────────────────────────────────
 function CardScreen({
-  method, suggestedAmount, onConfirm, onBack, loading,
+  method, suggestedAmount, fixedAmount, onConfirm, onBack, loading,
 }: {
   method: 'debit' | 'credit'
   suggestedAmount: number
+  fixedAmount: boolean
   onConfirm: (amount: number) => void
   onBack: () => void
   loading: boolean
 }) {
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardName, setCardName]     = useState('')
-  const [expiry, setExpiry]         = useState('')
-  const [cvv, setCvv]               = useState('')
-  const [showCvv, setShowCvv]       = useState(false)
+  const [cardNumber, setCardNumber]     = useState('')
+  const [cardName, setCardName]         = useState('')
+  const [expiry, setExpiry]             = useState('')
+  const [cvv, setCvv]                   = useState('')
+  const [showCvv, setShowCvv]           = useState(false)
   const [installments, setInstallments] = useState(1)
-  const [amount, setAmount]         = useState(suggestedAmount.toFixed(2))
+  const [amount, setAmount]             = useState(suggestedAmount.toFixed(2))
 
   const isCredit   = method === 'credit'
-  const parsedAmt  = parseFloat(amount.replace(',', '.')) || 0
+  const parsedAmt  = fixedAmount ? suggestedAmount : (parseFloat(amount.replace(',', '.')) || 0)
   const extraAmt   = parsedAmt - suggestedAmount
-  const formValid  = cardNumber.replace(/\s/g, '').length === 16 && cardName.trim() && expiry.length === 5 && cvv.length >= 3 && parsedAmt >= suggestedAmount
-  const brand      = cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Master' : null
+  const formValid  = cardNumber.replace(/\s/g, '').length === 16 && cardName.trim()
+    && expiry.length === 5 && cvv.length >= 3
+    && (fixedAmount || parsedAmt >= suggestedAmount)
+  const brand = cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Master' : null
 
   const inputSt: React.CSSProperties = {
     background: '#0b1326', border: '1px solid #334155', color: '#dae2fd',
     outline: 'none', width: '100%', height: 44, borderRadius: 12, padding: '0 12px', fontSize: 14,
-    fontFamily: 'Geist, sans-serif',
   }
-  function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#f97316' }
-  function onBlur (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#334155' }
+  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#f97316' }
+  const onBlur  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#334155' }
 
   return (
     <div className="flex flex-col gap-5">
@@ -200,8 +220,7 @@ function CardScreen({
       {/* Card preview */}
       <div className="rounded-xl p-5 h-36 flex flex-col justify-between relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg,#1e3a5f,#0f2027)', border: '1px solid #334155' }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%,#7bd0ff,transparent 60%)' }} />
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between">
           <span className="text-xs font-mono uppercase tracking-widest" style={{ color: 'rgba(218,226,253,0.5)' }}>
             {isCredit ? 'Crédito' : 'Débito'}
           </span>
@@ -222,13 +241,14 @@ function CardScreen({
         </div>
       </div>
 
-      {/* Fields */}
+      {/* Form */}
       <div className="space-y-3">
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Número do Cartão</label>
           <input type="text" inputMode="numeric" value={cardNumber}
-            onChange={e => setCardNumber(maskCard(e.target.value))} placeholder="0000 0000 0000 0000"
-            maxLength={19} style={inputSt} onFocus={onFocus} onBlur={onBlur} />
+            onChange={e => setCardNumber(maskCard(e.target.value))}
+            placeholder="0000 0000 0000 0000" maxLength={19}
+            style={inputSt} onFocus={onFocus} onBlur={onBlur} />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Nome do Titular</label>
@@ -239,16 +259,15 @@ function CardScreen({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Validade</label>
             <input type="text" inputMode="numeric" value={expiry}
-              onChange={e => setExpiry(maskExpiry(e.target.value))} placeholder="MM/AA"
-              maxLength={5} style={inputSt} onFocus={onFocus} onBlur={onBlur} />
+              onChange={e => setExpiry(maskExpiry(e.target.value))}
+              placeholder="MM/AA" maxLength={5} style={inputSt} onFocus={onFocus} onBlur={onBlur} />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>CVV</label>
             <div className="relative">
               <input type={showCvv ? 'text' : 'password'} inputMode="numeric" value={cvv}
                 onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="•••" style={{ ...inputSt, paddingRight: 40 }}
-                onFocus={onFocus} onBlur={onBlur} />
+                placeholder="•••" style={{ ...inputSt, paddingRight: 40 }} onFocus={onFocus} onBlur={onBlur} />
               <button type="button" onClick={() => setShowCvv(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#584237' }}>
                 <span className="material-symbols-outlined text-[18px]">{showCvv ? 'visibility_off' : 'visibility'}</span>
@@ -269,30 +288,40 @@ function CardScreen({
           </div>
         )}
 
-        {/* Custom amount */}
+        {/* Amount */}
         <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
           <div className="flex justify-between">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Valor a pagar</label>
-            <span className="text-[10px] font-mono" style={{ color: '#584237' }}>Sugerido: {formatCurrency(suggestedAmount)}</span>
+            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+              {fixedAmount ? 'Valor definido' : 'Valor a pagar'}
+            </label>
+            {!fixedAmount && (
+              <span className="text-[10px] font-mono" style={{ color: '#584237' }}>Mínimo: {formatCurrency(suggestedAmount)}</span>
+            )}
           </div>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
-            <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
-              onChange={e => setAmount(e.target.value)}
-              className="w-full h-11 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
-              style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }} />
-          </div>
-          {extraAmt > 0.01 && (
+          {fixedAmount ? (
+            <div className="flex items-center gap-2 h-11 px-3 rounded-lg"
+              style={{ background: '#0b1326', border: '1px solid #584237' }}>
+              <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
+              <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
+                {suggestedAmount.toFixed(2).replace('.', ',')}
+              </span>
+              <span className="material-symbols-outlined text-[16px] ml-auto" style={{ color: '#584237' }}>lock</span>
+            </div>
+          ) : (
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+              <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className="w-full h-11 pl-9 pr-3 rounded-lg font-bold font-mono outline-none text-base"
+                style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }} />
+            </div>
+          )}
+          {!fixedAmount && extraAmt > 0.01 && (
             <p className="text-xs" style={{ color: '#34d399' }}>
-              +{formatCurrency(extraAmt)} de contribuição extra — obrigado! 🙌
+              +{formatCurrency(extraAmt)} virará saldo da mesa 💛
             </p>
           )}
         </div>
-      </div>
-
-      <div className="flex items-center justify-center gap-2">
-        <span className="material-symbols-outlined text-[14px]" style={{ color: '#584237' }}>lock</span>
-        <span className="text-[10px] font-mono" style={{ color: '#584237' }}>Integração Stripe em breve</span>
       </div>
 
       <button onClick={() => onConfirm(parsedAmt)} disabled={loading || !formValid}
@@ -312,30 +341,38 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams()
   const router      = useRouter()
   const sessionId   = searchParams.get('session')
-  // If coming from a close_request notification
-  const requestId   = searchParams.get('request')
+  const requestId   = searchParams.get('request') // pre-filled from notification
 
   const myCustomerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
 
-  type Participant = { id: string; name: string; total: number; isMe: boolean }
+  type Participant = { id: string; name: string; myConsumption: number; isMe: boolean }
 
-  const [step, setStep]           = useState<Step>('mode')
-  const [closeMode, setCloseMode] = useState<CloseMode>('individual')
-  const [method, setMethod]       = useState<PaymentMethod>('pix')
-  const [loading, setLoading]     = useState(true)
-  const [paying, setPaying]       = useState(false)
+  const [step, setStep]             = useState<Step>('mode')
+  const [closeMode, setCloseMode]   = useState<CloseMode>('individual')
+  const [splitType, setSplitType]   = useState<SplitType>('equal')
+  const [method, setMethod]         = useState<PaymentMethod>('pix')
+  const [loading, setLoading]       = useState(true)
+  const [paying, setPaying]         = useState(false)
   const [confirmationCode, setConfirmationCode] = useState('')
   const [tableNumber, setTableNumber] = useState('')
-  const [grandTotal, setGrandTotal]   = useState(0)
-  const [myTotal, setMyTotal]         = useState(0)
-  const [orderItems, setOrderItems]   = useState<{ name: string; amount: number }[]>([])
-  const [participants, setParticipants] = useState<Participant[]>([])
-  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
-  const [amountToPay, setAmountToPay]   = useState(0)
+
+  // Amounts
+  const [grandTotal, setGrandTotal] = useState(0)   // full session total (pre-tax subtotal * 1.1)
+  const [alreadyPaid, setAlreadyPaid] = useState(0) // sum of individual payments already made
+  const [myConsumption, setMyConsumption] = useState(0) // my portion
+  const [remaining, setRemaining]   = useState(0)   // grandTotal - alreadyPaid
+
+  // Participants for Mesa Toda
+  const [participants, setParticipants]   = useState<Participant[]>([])
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({})
+
+  // Individual extra
+  const [extraAmount, setExtraAmount] = useState('')
 
   function toggleParticipant(id: string) {
-    if (id === myCustomerId) return // initiator can't uncheck themselves
+    if (id === myCustomerId) return
     setSelectedIds(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -343,30 +380,42 @@ export default function CheckoutPage() {
     })
   }
 
+  // Computed values
+  const selectedParts     = participants.filter(p => selectedIds.has(p.id))
+  const equalShare        = selectedParts.length > 0 ? remaining / selectedParts.length : 0
+  const customSum         = Object.entries(customAmounts)
+    .filter(([id]) => selectedIds.has(id))
+    .reduce((s, [, v]) => s + (parseFloat(v) || 0), 0)
+  const customSumOk       = Math.abs(customSum - remaining) < 0.02
+  const myDefinedAmount   = splitType === 'equal' ? equalShare : (parseFloat(customAmounts[myCustomerId ?? ''] ?? '0') || 0)
+  const myIndividualTotal = myConsumption + (parseFloat(extraAmount) || 0)
+
+  function getAmountToPay() {
+    if (closeMode === 'individual') return myIndividualTotal
+    return myDefinedAmount
+  }
+
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
 
     if (params.slug === 'demo') {
-      const items = mockOrders.flatMap(o => o.items ?? []).map(i => ({
-        name: `${i.quantity}x ${i.menu_item?.name ?? 'Item'}`,
-        amount: i.unit_price * i.quantity,
-      }))
-      setOrderItems(items)
-      const t = items.reduce((s, i) => s + i.amount, 0)
-      const gt = t * 1.1
+      const allItems = mockOrders.flatMap(o => o.items ?? [])
+      const sub = allItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+      const gt = sub * 1.1
+      const mc = gt * 0.4
       setGrandTotal(gt)
+      setAlreadyPaid(0)
+      setRemaining(gt)
+      setMyConsumption(mc)
+      setTableNumber('04')
       const demo: Participant[] = [
-        { id: 'c1', name: 'João Silva',   total: gt * 0.40, isMe: true  },
-        { id: 'c2', name: 'Maria Santos', total: gt * 0.35, isMe: false },
-        { id: 'c3', name: 'Pedro Costa',  total: gt * 0.25, isMe: false },
+        { id: 'c1', name: 'João Silva',   myConsumption: gt * 0.40, isMe: true  },
+        { id: 'c2', name: 'Maria Santos', myConsumption: gt * 0.35, isMe: false },
+        { id: 'c3', name: 'Pedro Costa',  myConsumption: gt * 0.25, isMe: false },
       ]
       setParticipants(demo)
-      const my = demo.find(p => p.isMe)?.total ?? gt
-      setMyTotal(my)
-      setAmountToPay(my)
-      setTableNumber('04')
-      if (myCustomerId) setSelectedIds(new Set([myCustomerId ?? 'c1']))
-      else setSelectedIds(new Set(['c1']))
+      setSelectedIds(new Set([myCustomerId ?? 'c1']))
+      setCustomAmounts(Object.fromEntries(demo.map(p => [p.id, (gt / 3).toFixed(2)])))
       setLoading(false)
       return
     }
@@ -374,60 +423,67 @@ export default function CheckoutPage() {
     async function load() {
       const supabase = createClient()
 
-      const [sessionRes, participantsRes, ordersRes] = await Promise.all([
+      const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name)').eq('session_id', sessionId),
         supabase.from('orders').select('customer_id, items:order_items(unit_price,quantity)').eq('session_id', sessionId),
+        supabase.from('payments').select('amount').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
       if (!sessionRes.data) { router.replace(`/${params.slug}`); return }
       setTableNumber((sessionRes.data.table as any)?.number ?? '')
 
       const allItems = (ordersRes.data ?? []).flatMap((o: any) => o.items ?? [])
-      const subTotal = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-      const gt = subTotal * 1.1
+      const sub      = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      const gt       = sub * 1.1
+      const paid     = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
+      const rem      = Math.max(0, gt - paid)
       setGrandTotal(gt)
+      setAlreadyPaid(paid)
+      setRemaining(rem)
 
-      const oItems = allItems.map((i: any) => ({
-        name: `Item`,
-        amount: i.unit_price * i.quantity,
-      }))
-      setOrderItems(oItems)
+      // My consumption
+      const myOrders = (ordersRes.data ?? []).filter((o: any) => o.customer_id === myCustomerId)
+      const mySub    = myOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      setMyConsumption(mySub * 1.1)
 
+      // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
         const pOrders = (ordersRes.data ?? []).filter((o: any) => o.customer_id === p.customer_id)
-        const pSub = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-        const pTotal = pSub * 1.1
+        const pSub    = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
         return {
           id: p.customer_id,
           name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
-          total: pTotal,
+          myConsumption: pSub * 1.1,
           isMe: p.customer_id === myCustomerId,
         }
       })
       setParticipants(parts)
 
-      const my = parts.find(p => p.isMe)?.total ?? (gt / Math.max(1, parts.length))
-      setMyTotal(my)
-      setAmountToPay(my)
       if (myCustomerId) setSelectedIds(new Set([myCustomerId]))
-      else setSelectedIds(new Set(parts.map(p => p.id)))
-
+      // Init equal amounts
+      const equalAmt = parts.length > 0 ? (rem / parts.length).toFixed(2) : '0'
+      setCustomAmounts(Object.fromEntries(parts.map(p => [p.id, equalAmt])))
       setLoading(false)
     }
     load()
   }, [sessionId, params.slug, router, myCustomerId])
 
-  // When mode or selection changes, recalculate amountToPay
+  // Recalculate equal amounts when selection changes or remaining changes
   useEffect(() => {
-    if (closeMode === 'individual') {
-      setAmountToPay(myTotal)
-    } else {
-      const sel = participants.filter(p => selectedIds.has(p.id))
-      const selTotal = sel.reduce((s, p) => s + p.total, 0)
-      setAmountToPay(selTotal > 0 ? selTotal : grandTotal / Math.max(1, selectedIds.size))
+    if (splitType === 'equal') {
+      const eq = selectedParts.length > 0 ? (remaining / selectedParts.length).toFixed(2) : '0'
+      setCustomAmounts(prev => {
+        const next = { ...prev }
+        participants.forEach(p => { next[p.id] = selectedIds.has(p.id) ? eq : '0' })
+        return next
+      })
     }
-  }, [closeMode, selectedIds, myTotal, grandTotal, participants])
+  }, [splitType, selectedIds, remaining, participants])
+
+  function setParticipantAmount(id: string, value: string) {
+    setCustomAmounts(prev => ({ ...prev, [id]: value }))
+  }
 
   async function createCloseRequest() {
     if (params.slug === 'demo') return
@@ -439,16 +495,11 @@ export default function CheckoutPage() {
     if (!req) return
 
     if (closeMode === 'table') {
-      const participants_to_notify = [...selectedIds].filter(id => id !== myCustomerId)
-      const selectedParts = participants.filter(p => selectedIds.has(p.id))
-      const equalShare = amountToPay / selectedIds.size
-
-      // Insert participant records
       await supabase.from('close_request_participants').insert(
         [...selectedIds].map(cid => ({
           request_id: req.id,
           customer_id: cid,
-          amount_owed: selectedParts.find(p => p.id === cid)?.total || equalShare,
+          amount_owed: splitType === 'equal' ? equalShare : (parseFloat(customAmounts[cid] ?? '0') || 0),
           status: cid === myCustomerId ? 'confirmed' : 'pending',
         }))
       )
@@ -491,26 +542,28 @@ export default function CheckoutPage() {
         setConfirmationCode(code)
         setStep('confirmed')
       }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao processar pagamento')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao processar')
     } finally {
       setPaying(false)
     }
   }
 
-  async function handleProceedToPayment() {
+  async function handleProceed() {
+    if (closeMode === 'table' && splitType === 'custom' && !customSumOk) {
+      toast.error('Os valores não fecham com o total da conta. Ajuste os valores.')
+      return
+    }
     await createCloseRequest()
     if (method === 'pix') setStep('pix')
     else setStep('card')
   }
 
   const PAYMENT_METHODS = [
-    { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',       label: 'PIX'    },
-    { value: 'debit'  as PaymentMethod, icon: 'credit_card',     label: 'Débito' },
-    { value: 'credit' as PaymentMethod, icon: 'contactless',     label: 'Crédito'},
+    { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'    },
+    { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito' },
+    { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito'},
   ]
-
-  const serviceLabel = '#0b1326'
 
   if (loading) {
     return (
@@ -526,7 +579,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
           style={{ background: 'rgba(52,211,153,0.08)', filter: 'blur(80px)' }} />
-        <header className="sticky top-0 z-40 flex justify-center items-center px-6 h-16"
+        <header className="sticky top-0 z-40 flex justify-center items-center h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>Pagamento</h1>
         </header>
@@ -550,7 +603,7 @@ export default function CheckoutPage() {
             <div className="text-right">
               <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Você pagou</p>
               <p className="text-xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                {formatCurrency(amountToPay)}
+                {formatCurrency(getAmountToPay())}
               </p>
             </div>
           </div>
@@ -561,15 +614,24 @@ export default function CheckoutPage() {
               <p className="text-4xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
             </div>
             <p className="text-xs text-center max-w-[220px] leading-relaxed" style={{ color: '#e0c0b1' }}>
-              Apresente este código ao garçom para liberar a saída
+              Apresente ao garçom para liberar a saída
             </p>
           </div>
-          {closeMode === 'table' && selectedIds.size > 1 && (
+          {closeMode === 'table' && selectedParts.filter(p => !p.isMe).length > 0 && (
             <div className="w-full rounded-xl p-4 flex items-start gap-3"
               style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.15)' }}>
               <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#7bd0ff' }}>notifications</span>
               <p className="text-xs leading-relaxed" style={{ color: '#7bd0ff' }}>
-                Os outros participantes foram notificados para confirmar e pagar a parte deles.
+                {selectedParts.filter(p => !p.isMe).map(p => p.name.split(' ')[0]).join(', ')} foram notificados com seus respectivos valores para pagar.
+              </p>
+            </div>
+          )}
+          {closeMode === 'individual' && (myIndividualTotal - myConsumption) > 0.01 && (
+            <div className="w-full rounded-xl p-4 flex items-start gap-3"
+              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
+              <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#34d399' }}>savings</span>
+              <p className="text-xs leading-relaxed" style={{ color: '#34d399' }}>
+                <strong>+{formatCurrency(myIndividualTotal - myConsumption)}</strong> ficaram como saldo na mesa. Os outros pagantes vão se beneficiar. 💛
               </p>
             </div>
           )}
@@ -580,7 +642,9 @@ export default function CheckoutPage() {
     )
   }
 
-  // ── PIX SCREEN ─────────────────────────────────────────────
+  // ── PIX / CARD ─────────────────────────────────────────────
+  const isTableMode = closeMode === 'table'
+
   if (step === 'pix') {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -588,15 +652,20 @@ export default function CheckoutPage() {
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
         </header>
-        <main className="flex-1 px-6 py-6 pb-28 relative z-10">
-          <PixScreen suggestedAmount={amountToPay} onConfirm={processPayment} onBack={() => setStep('mode')} loading={paying} />
+        <main className="flex-1 px-6 py-6 pb-28">
+          <PixScreen
+            suggestedAmount={getAmountToPay()}
+            fixedAmount={isTableMode}
+            onConfirm={processPayment}
+            onBack={() => setStep('mode')}
+            loading={paying}
+          />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
       </div>
     )
   }
 
-  // ── CARD SCREEN ────────────────────────────────────────────
   if (step === 'card') {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -606,16 +675,26 @@ export default function CheckoutPage() {
             Pagamento · {method === 'credit' ? 'Crédito' : 'Débito'}
           </h1>
         </header>
-        <main className="flex-1 px-6 py-6 pb-28 relative z-10">
-          <CardScreen method={method as 'debit' | 'credit'} suggestedAmount={amountToPay}
-            onConfirm={processPayment} onBack={() => setStep('mode')} loading={paying} />
+        <main className="flex-1 px-6 py-6 pb-28">
+          <CardScreen
+            method={method as 'debit' | 'credit'}
+            suggestedAmount={getAmountToPay()}
+            fixedAmount={isTableMode}
+            onConfirm={processPayment}
+            onBack={() => setStep('mode')}
+            loading={paying}
+          />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
       </div>
     )
   }
 
-  // ── MODE / SUMMARY ─────────────────────────────────────────
+  // ── MODE + SUMMARY ─────────────────────────────────────────
+  const canProceed = closeMode === 'individual'
+    ? myConsumption > 0
+    : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
       <div className="pointer-events-none fixed top-1/4 right-0 w-64 h-64 rounded-full"
@@ -628,24 +707,37 @@ export default function CheckoutPage() {
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Fechar Conta</h1>
       </header>
 
-      <main className="flex-1 px-6 py-6 pb-32 space-y-5 relative z-10">
+      <main className="flex-1 px-6 py-6 pb-32 space-y-5">
 
-        {/* ── Modo de fechamento ──────────────────────────── */}
+        {/* ── Saldo já pago ───────────────────────────── */}
+        {alreadyPaid > 0 && (
+          <div className="rounded-xl px-4 py-3 flex items-center gap-3"
+            style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>savings</span>
+            <div>
+              <p className="text-xs font-semibold" style={{ color: '#34d399' }}>
+                Saldo já pago: {formatCurrency(alreadyPaid)}
+              </p>
+              <p className="text-[10px]" style={{ color: '#a78b7d' }}>
+                Total da mesa: {formatCurrency(grandTotal)} → Restante: {formatCurrency(remaining)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modo de fechamento ──────────────────────── */}
         <section className="space-y-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
-            Como você quer pagar?
-          </p>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Como você quer pagar?</p>
           <div className="grid grid-cols-2 gap-3">
             {([
-              { mode: 'individual' as CloseMode, icon: 'person', title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
-              { mode: 'table'      as CloseMode, icon: 'groups', title: 'Fechar mesa toda', desc: 'Inicia fechamento para todos' },
+              { mode: 'individual' as CloseMode, icon: 'person',  title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
+              { mode: 'table'      as CloseMode, icon: 'groups',  title: 'Fechar mesa toda',  desc: 'Inicia fechamento coletivo' },
             ]).map(opt => (
               <button key={opt.mode} onClick={() => setCloseMode(opt.mode)}
                 className="flex flex-col items-start gap-2 p-4 rounded-xl text-left transition-all active:scale-95"
                 style={{
                   background: closeMode === opt.mode ? 'rgba(249,115,22,0.12)' : 'rgba(30,41,59,0.7)',
                   border: `2px solid ${closeMode === opt.mode ? '#f97316' : '#334155'}`,
-                  backdropFilter: 'blur(12px)',
                 }}>
                 <span className="material-symbols-outlined text-[24px]"
                   style={{ color: closeMode === opt.mode ? '#f97316' : '#a78b7d', fontVariationSettings: closeMode === opt.mode ? "'FILL' 1" : "'FILL' 0" }}>
@@ -662,108 +754,175 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        {/* ── Resumo do pedido ────────────────────────────── */}
+        {/* ── Individual: meu consumo + extra opcional ── */}
         {closeMode === 'individual' && (
           <section className="space-y-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meu consumo</p>
-            <div className="rounded-xl p-4 space-y-2.5"
+            <div className="rounded-xl p-5 space-y-3"
               style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', backdropFilter: 'blur(12px)' }}>
-              {orderItems.slice(0, 5).map((item, i) => (
-                <div key={i} className="flex justify-between text-sm" style={{ color: '#e0c0b1' }}>
-                  <span>{item.name}</span>
-                  <span className="font-mono">{formatCurrency(item.amount)}</span>
-                </div>
-              ))}
-              <div className="pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-mono uppercase tracking-widest" style={{ color: '#7bd0ff' }}>Meu total (c/ taxa)</span>
-                  <span className="text-3xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                    {formatCurrency(myTotal)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ── Participantes (modo Mesa Toda) ──────────────── */}
-        {closeMode === 'table' && participants.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
-                Quem vai dividir a conta?
-              </p>
-              <p className="text-[10px] font-mono" style={{ color: '#584237' }}>
-                Você está bloqueado como iniciador
-              </p>
-            </div>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
-              {participants.map((p, i) => {
-                const isSelected = selectedIds.has(p.id)
-                const locked     = p.isMe
-                return (
-                  <button key={p.id} onClick={() => toggleParticipant(p.id)}
-                    className="w-full flex items-center gap-4 px-4 py-3.5 transition-all text-left"
-                    style={{
-                      background: isSelected ? 'rgba(249,115,22,0.08)' : 'rgba(30,41,59,0.7)',
-                      borderTop: i > 0 ? '1px solid rgba(51,65,85,0.5)' : 'none',
-                      cursor: locked ? 'not-allowed' : 'pointer',
-                    }}>
-                    {/* Checkbox */}
-                    <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 relative"
-                      style={{
-                        background: isSelected ? '#f97316' : 'transparent',
-                        border: `2px solid ${isSelected ? '#f97316' : '#584237'}`,
-                      }}>
-                      {isSelected && (
-                        <span className="material-symbols-outlined text-[13px]"
-                          style={{ color: '#582200', fontVariationSettings: "'FILL' 1" }}>check</span>
-                      )}
-                      {locked && (
-                        <span className="absolute -top-1.5 -right-1.5 material-symbols-outlined text-[10px]"
-                          style={{ color: '#f97316' }}>lock</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>
-                        {p.name}
-                        {p.isMe && <span className="text-[10px] font-mono ml-2" style={{ color: '#34d399' }}>(você · iniciador)</span>}
-                      </p>
-                      {p.total > 0 && (
-                        <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>
-                          Consumiu {formatCurrency(p.total)}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-sm font-bold font-mono shrink-0"
-                      style={{ color: isSelected ? '#f97316' : '#584237' }}>
-                      {p.total > 0 ? formatCurrency(p.total) : '—'}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="flex justify-between items-center rounded-xl px-4 py-3"
-              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
-              <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>Total selecionado</p>
-              <p className="text-2xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                {formatCurrency(amountToPay)}
-              </p>
-            </div>
-            {selectedIds.size > 1 && (
-              <div className="flex items-start gap-2 text-xs rounded-xl px-4 py-3"
-                style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.15)', color: '#7bd0ff' }}>
-                <span className="material-symbols-outlined text-[15px] shrink-0 mt-0.5">notifications</span>
-                <span>
-                  {participants.filter(p => selectedIds.has(p.id) && !p.isMe).map(p => p.name.split(' ')[0]).join(', ')} receberão
-                  uma notificação para confirmar e pagar a parte deles.
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Meu consumo</span>
+                <span className="text-2xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
+                  {formatCurrency(myConsumption)}
                 </span>
               </div>
-            )}
+              <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
+                <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
+                  Contribuição extra para a mesa (opcional)
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+                    <input
+                      type="number" step="0.01" min="0" placeholder="0,00" value={extraAmount}
+                      onChange={e => setExtraAmount(e.target.value)}
+                      className="w-full h-11 pl-9 pr-3 rounded-lg font-mono outline-none text-sm"
+                      style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
+                      onFocus={e => (e.target.style.borderColor = '#f97316')}
+                      onBlur={e => (e.target.style.borderColor = '#584237')}
+                    />
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Total a pagar</p>
+                    <p className="text-lg font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                      {formatCurrency(myIndividualTotal)}
+                    </p>
+                  </div>
+                </div>
+                {(parseFloat(extraAmount) || 0) > 0.01 && (
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: '#34d399' }}>
+                    O valor extra vira saldo da mesa e reduz o que os outros pagarão quando fecharem a conta.
+                  </p>
+                )}
+              </div>
+            </div>
           </section>
         )}
 
-        {/* ── Método de pagamento ─────────────────────────── */}
+        {/* ── Mesa Toda: participantes + divisão ─────── */}
+        {closeMode === 'table' && (
+          <section className="space-y-4">
+            {/* Participant selection */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                Quem vai dividir? (você é o iniciador — obrigatório)
+              </p>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+                {participants.map((p, i) => {
+                  const sel    = selectedIds.has(p.id)
+                  const locked = p.isMe
+                  return (
+                    <button key={p.id} onClick={() => toggleParticipant(p.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+                      style={{
+                        background: sel ? 'rgba(249,115,22,0.08)' : 'rgba(30,41,59,0.7)',
+                        borderTop: i > 0 ? '1px solid rgba(51,65,85,0.5)' : 'none',
+                        cursor: locked ? 'not-allowed' : 'pointer',
+                      }}>
+                      <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 relative"
+                        style={{
+                          background: sel ? '#f97316' : 'transparent',
+                          border: `2px solid ${sel ? '#f97316' : '#584237'}`,
+                        }}>
+                        {sel && <span className="material-symbols-outlined text-[13px]" style={{ color: '#582200', fontVariationSettings: "'FILL' 1" }}>check</span>}
+                        {locked && <span className="absolute -top-1.5 -right-1.5 material-symbols-outlined text-[10px]" style={{ color: '#f97316' }}>lock</span>}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>
+                          {p.name}
+                          {p.isMe && <span className="text-[10px] font-mono ml-2" style={{ color: '#34d399' }}>(você · iniciador)</span>}
+                        </p>
+                        {p.myConsumption > 0 && (
+                          <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>Consumiu {formatCurrency(p.myConsumption)}</p>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Split type */}
+            <div className="space-y-3">
+              <div className="flex gap-2 p-1 rounded-xl" style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.35)' }}>
+                {([
+                  { type: 'equal' as SplitType, label: '= Dividir igualmente' },
+                  { type: 'custom' as SplitType, label: '≠ Definir valores'   },
+                ]).map(opt => (
+                  <button key={opt.type} onClick={() => setSplitType(opt.type)}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+                    style={{
+                      background: splitType === opt.type ? '#f97316' : 'transparent',
+                      color: splitType === opt.type ? '#582200' : '#a78b7d',
+                      fontFamily: 'Geist, sans-serif',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Per-person amounts */}
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+                {selectedParts.map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-3 px-4 py-3"
+                    style={{ borderTop: i > 0 ? '1px solid rgba(51,65,85,0.4)' : 'none', background: 'rgba(30,41,59,0.5)' }}>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{p.name}</p>
+                      {p.isMe && <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>você</p>}
+                    </div>
+                    {splitType === 'equal' ? (
+                      <div className="flex items-center gap-1 h-10 px-3 rounded-lg"
+                        style={{ background: '#0b1326', border: '1px solid #584237' }}>
+                        <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
+                        <span className="font-bold font-mono text-sm" style={{ color: '#ffb690' }}>
+                          {equalShare.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#a78b7d' }}>R$</span>
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={customAmounts[p.id] ?? ''}
+                          onChange={e => setParticipantAmount(p.id, e.target.value)}
+                          className="w-28 h-10 pl-7 pr-2 rounded-lg text-sm font-mono font-bold outline-none"
+                          style={{ background: '#0b1326', border: `1px solid ${customSumOk ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Sum indicator */}
+                <div className="flex justify-between items-center px-4 py-3"
+                  style={{
+                    borderTop: '1px solid rgba(88,66,55,0.3)',
+                    background: customSumOk || splitType === 'equal' ? 'rgba(52,211,153,0.06)' : 'rgba(248,113,113,0.06)',
+                  }}>
+                  <p className="text-xs font-mono uppercase tracking-wider"
+                    style={{ color: customSumOk || splitType === 'equal' ? '#34d399' : '#f87171' }}>
+                    {splitType === 'equal'
+                      ? `Total: ${formatCurrency(remaining)} ✓`
+                      : customSumOk
+                        ? `Total: ${formatCurrency(customSum)} ✓ Fechado!`
+                        : `Total definido: ${formatCurrency(customSum)} — Falta ${formatCurrency(remaining - customSum)}`
+                    }
+                  </p>
+                  <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+                    Necessário: {formatCurrency(remaining)}
+                  </p>
+                </div>
+              </div>
+
+              {splitType === 'custom' && !customSumOk && (
+                <p className="text-xs text-center" style={{ color: '#f87171' }}>
+                  A soma dos valores deve ser exatamente {formatCurrency(remaining)}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Método de pagamento ─────────────────────── */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]" style={{ color: '#7bd0ff' }}>payments</span>
@@ -776,10 +935,8 @@ export default function CheckoutPage() {
                 style={{
                   background: method === m.value ? 'rgba(249,115,22,0.1)' : 'rgba(30,41,59,0.7)',
                   borderColor: method === m.value ? '#f97316' : '#334155',
-                  backdropFilter: 'blur(12px)',
                 }}>
-                <span className="material-symbols-outlined text-[22px]"
-                  style={{ color: method === m.value ? '#f97316' : '#e0c0b1' }}>{m.icon}</span>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: method === m.value ? '#f97316' : '#e0c0b1' }}>{m.icon}</span>
                 <span className="text-xs font-mono" style={{ color: method === m.value ? '#f97316' : '#e0c0b1' }}>{m.label}</span>
               </button>
             ))}
@@ -790,8 +947,10 @@ export default function CheckoutPage() {
       {/* CTA */}
       <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
         style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
-        <button onClick={handleProceedToPayment}
-          className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all"
+        <button
+          onClick={handleProceed}
+          disabled={!canProceed}
+          className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
           style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.3)', fontFamily: 'Geist, sans-serif' }}>
           Confirmar e Ir para Pagamento
           <span className="material-symbols-outlined">arrow_forward</span>
