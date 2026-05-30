@@ -388,7 +388,9 @@ export default function CheckoutPage() {
     .reduce((s, [, v]) => s + (parseFloat(v) || 0), 0)
   const customSumOk       = Math.abs(customSum - remaining) < 0.02
   const myDefinedAmount   = splitType === 'equal' ? equalShare : (parseFloat(customAmounts[myCustomerId ?? ''] ?? '0') || 0)
-  const myIndividualTotal = myConsumption + (parseFloat(extraAmount) || 0)
+  // Base for individual = min(my consumption, remaining) — credit from others auto-applied
+  const myIndividualBase  = Math.min(myConsumption, Math.max(0, remaining))
+  const myIndividualTotal = myIndividualBase + (parseFloat(extraAmount) || 0)
 
   function getAmountToPay() {
     if (closeMode === 'individual') return myIndividualTotal
@@ -757,43 +759,82 @@ export default function CheckoutPage() {
         {/* ── Individual: meu consumo + extra opcional ── */}
         {closeMode === 'individual' && (
           <section className="space-y-3">
+            {/* Saldo beneficiando este pagador */}
+            {remaining < myConsumption && remaining > 0 && (
+              <div className="rounded-xl px-4 py-3 flex items-start gap-3"
+                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5" style={{ color: '#34d399' }}>celebration</span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                    Saldo da mesa reduziu o seu valor!
+                  </p>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
+                    Seu consumo era {formatCurrency(myConsumption)}, mas o saldo já pago por outros
+                    cobre {formatCurrency(myConsumption - remaining)}. Você paga apenas {formatCurrency(remaining)}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {remaining <= 0 && (
+              <div className="rounded-xl px-4 py-3 flex items-start gap-3"
+                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                <span className="material-symbols-outlined text-[20px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                  A conta da mesa já está totalmente coberta! Nenhum pagamento necessário.
+                </p>
+              </div>
+            )}
+
             <div className="rounded-xl p-5 space-y-3"
               style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', backdropFilter: 'blur(12px)' }}>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Meu consumo</span>
+                <div>
+                  <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Meu consumo</span>
+                  {remaining < myConsumption && (
+                    <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                      (original: {formatCurrency(myConsumption)})
+                    </p>
+                  )}
+                </div>
                 <span className="text-2xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                  {formatCurrency(myConsumption)}
+                  {/* Show remaining if lower than consumption, else show consumption */}
+                  {formatCurrency(Math.min(myConsumption, Math.max(0, remaining)))}
                 </span>
               </div>
-              <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
-                <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
-                  Contribuição extra para a mesa (opcional)
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
-                    <input
-                      type="number" step="0.01" min="0" placeholder="0,00" value={extraAmount}
-                      onChange={e => setExtraAmount(e.target.value)}
-                      className="w-full h-11 pl-9 pr-3 rounded-lg font-mono outline-none text-sm"
-                      style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                      onFocus={e => (e.target.style.borderColor = '#f97316')}
-                      onBlur={e => (e.target.style.borderColor = '#584237')}
-                    />
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Total a pagar</p>
-                    <p className="text-lg font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
-                      {formatCurrency(myIndividualTotal)}
-                    </p>
-                  </div>
-                </div>
-                {(parseFloat(extraAmount) || 0) > 0.01 && (
-                  <p className="text-xs mt-2 leading-relaxed" style={{ color: '#34d399' }}>
-                    O valor extra vira saldo da mesa e reduz o que os outros pagarão quando fecharem a conta.
+
+              {/* Extra contribution — only makes sense if they can still pay */}
+              {remaining > 0 && (
+                <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
+                    Contribuição extra para a mesa (opcional)
                   </p>
-                )}
-              </div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+                      <input
+                        type="number" step="0.01" min="0" placeholder="0,00" value={extraAmount}
+                        onChange={e => setExtraAmount(e.target.value)}
+                        className="w-full h-11 pl-9 pr-3 rounded-lg font-mono outline-none text-sm"
+                        style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
+                        onFocus={e => (e.target.style.borderColor = '#f97316')}
+                        onBlur={e => (e.target.style.borderColor = '#584237')}
+                      />
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Total a pagar</p>
+                      <p className="text-lg font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                        {formatCurrency(myIndividualTotal)}
+                      </p>
+                    </div>
+                  </div>
+                  {(parseFloat(extraAmount) || 0) > 0.01 && (
+                    <p className="text-xs mt-2 leading-relaxed" style={{ color: '#34d399' }}>
+                      O valor extra vira saldo da mesa — quem pagar por último pagará menos.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         )}
