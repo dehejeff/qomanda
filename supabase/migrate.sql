@@ -255,6 +255,21 @@ $$;
 drop policy if exists "public_select" on customer_visits;
 
 -- ============================================================
+-- PATCH: leitura pública de restaurantes ativos
+-- ============================================================
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where tablename = 'restaurants' and policyname = 'public_read_active'
+  ) then
+    create policy "public_read_active" on restaurants
+      for select using (status = 'active');
+  end if;
+end;
+$$;
+
+-- ============================================================
 -- FIM DA MIGRAÇÃO
 -- Ative Realtime nas tabelas novas:
 --   + close_request_participants

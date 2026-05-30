@@ -349,6 +349,12 @@ alter table customer_visits          enable row level security;
 create policy "owner_all" on restaurants
   for all using (owner_id = auth.uid());
 
+-- Leitura pública de restaurantes ativos (clientes sem auth precisam ver nome/logo)
+-- Credenciais sensíveis (whatsapp_access_token) não são retornadas pois
+-- o cliente seleciona apenas os campos necessários
+create policy "public_read_active" on restaurants
+  for select using (status = 'active');
+
 -- Mesas: dono gerencia as mesas do seu restaurante
 create policy "owner_all" on tables
   for all using (

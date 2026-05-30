@@ -73,10 +73,11 @@ export default function CheckInPage() {
     async function loadRestaurant() {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from('restaurants').select('*')
+        .from('restaurants')
+        .select('id, name, slug, logo_url, status')  // sem credenciais sensíveis
         .eq('slug', params.slug).eq('status', 'active').single()
       if (error || !data) { toast.error('Restaurante não encontrado.'); setLoading(false); return }
-      setRestaurant(data)
+      setRestaurant(data as unknown as Restaurant)
       setLoading(false)
     }
     loadRestaurant()
