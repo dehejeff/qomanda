@@ -28,7 +28,7 @@ export default function OrdersPage() {
     const supabase = createClient()
     const { data } = await supabase
       .from('orders')
-      .select('*, items:order_items(*, menu_item:menu_items(name))')
+      .select('*, items:order_items(*, menu_item:menu_items(name)), session:sessions(table:tables(number))')
       .eq('restaurant_id', restaurantId)
       .not('status', 'in', '("delivered","cancelled")')
       .order('created_at')
@@ -113,11 +113,20 @@ export default function OrdersPage() {
           const s = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
           const total = (order.items ?? []).reduce((a, i) => a + i.unit_price * i.quantity, 0)
           const time = new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          const tableNumber = (order as any).session?.table?.number
           return (
             <div key={order.id} className="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col gap-4 hover:border-primary/50 transition-colors">
               {/* Header */}
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold font-mono text-on-surface">#{order.id.slice(-6).toUpperCase()}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold font-mono text-on-surface">#{order.id.slice(-6).toUpperCase()}</span>
+                  {tableNumber && (
+                    <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[12px]">table_restaurant</span>
+                      {tableNumber}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-on-surface-variant">{time}</span>
                   <span className={`text-[10px] font-bold font-mono uppercase px-2 py-0.5 rounded ${s.badge}`}>{s.label}</span>
