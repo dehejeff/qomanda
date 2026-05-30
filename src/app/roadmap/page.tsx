@@ -180,7 +180,8 @@ export default function RoadmapPage() {
         </Link>
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>← Voltar ao site</Link>
-          <Link href="/dashboard/login"
+          <Link href="/login" className="hidden md:block text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>Entrar</Link>
+          <Link href="/cadastro"
             className="text-sm font-bold px-4 py-2 rounded-xl transition-all"
             style={{ background: C.primary, color: '#582200' }}>
             Cadastre-se
@@ -297,7 +298,7 @@ export default function RoadmapPage() {
               <span className="material-symbols-outlined text-[18px]">mail</span>
               Enviar feedback
             </a>
-            <Link href="/dashboard/login"
+            <Link href="/cadastro"
               className="flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:opacity-80"
               style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.text }}>
               Começar grátis

@@ -94,7 +94,7 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <Link href="/dashboard/login"
+      <Link href="/cadastro"
         className="w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all active:scale-95"
         style={{
           background: highlight ? C.primary : 'transparent',
@@ -156,11 +156,11 @@ export default function LandingPage() {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+          <Link href="/login" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
             style={{ color: C.muted }}>
             Entrar
           </Link>
-          <Link href="/dashboard/login"
+          <Link href="/cadastro"
             className="text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 hover:opacity-90"
             style={{ background: C.primary, color: '#582200' }}>
             Cadastre-se grátis
@@ -191,7 +191,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/dashboard/login"
+            <Link href="/cadastro"
               className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95"
               style={{ background: C.primary, color: '#582200', boxShadow: '0 12px 40px rgba(249,115,22,0.3)' }}>
               <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
@@ -507,7 +507,7 @@ export default function LandingPage() {
           <p className="text-lg mb-10" style={{ color: C.muted }}>
             Junte-se a centenas de restaurantes que já transformaram a experiência dos seus clientes com a Qomanda.
           </p>
-          <Link href="/dashboard/login"
+          <Link href="/cadastro"
             className="inline-flex items-center gap-2 px-10 py-5 rounded-xl font-bold text-lg transition-all active:scale-95 hover:opacity-90"
             style={{ background: C.primary, color: '#582200', boxShadow: '0 12px 40px rgba(249,115,22,0.3)' }}>
             <span className="material-symbols-outlined">rocket_launch</span>

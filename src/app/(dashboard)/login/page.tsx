@@ -2,78 +2,136 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { QomandaLogo } from '@/components/qomanda-logo'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       toast.error('E-mail ou senha incorretos.')
       setLoading(false)
       return
     }
-
     router.push('/dashboard')
   }
 
+  const inputStyle: React.CSSProperties = {
+    background: '#131b2e',
+    border: '1px solid #584237',
+    color: '#dae2fd',
+    outline: 'none',
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    padding: '0 16px',
+    fontSize: 14,
+    fontFamily: 'Geist, sans-serif',
+    transition: 'border-color 0.15s',
+  }
+
+  function onFocus(e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#f97316' }
+  function onBlur (e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#584237' }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-8">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="text-4xl font-black">
-            <span className="text-orange-500">Q</span><span className="text-white">omanda</span>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-8 relative"
+      style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}
+    >
+      {/* Ambient glow */}
+      <div className="pointer-events-none fixed top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full"
+        style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
+
+      <div className="relative z-10 w-full max-w-sm space-y-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3">
+          <QomandaLogo size={48} />
+          <div className="text-center">
+            <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Bem-vindo de volta</h1>
+            <p className="text-sm mt-1" style={{ color: '#a78b7d' }}>Acesse o painel do seu restaurante</p>
           </div>
-          <p className="text-slate-400 mt-2 text-sm">Painel do Restaurante</p>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-300">E-mail</Label>
-            <Input
-              id="email"
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+              E-mail
+            </label>
+            <input
               type="email"
               value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              onChange={e => setEmail(e.target.value)}
+              placeholder="seu@restaurante.com"
               required
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              style={inputStyle}
+              onFocus={onFocus}
+              onBlur={onBlur}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-slate-300">Senha</Label>
-            <Input
-              id="password"
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+              Senha
+            </label>
+            <input
               type="password"
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              style={inputStyle}
+              onFocus={onFocus}
+              onBlur={onBlur}
             />
           </div>
-          <Button
+
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 font-semibold rounded-xl"
+            className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
+            style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}
           >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Entrar'}
-          </Button>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Entrar no Painel'}
+          </button>
         </form>
+
+        {/* Links */}
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm" style={{ color: '#584237' }}>
+            Novo por aqui?{' '}
+            <Link href="/cadastro" className="font-semibold transition-colors hover:opacity-80" style={{ color: '#f97316' }}>
+              Cadastre seu restaurante
+            </Link>
+          </p>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 w-full">
+            <div className="flex-1 h-px" style={{ background: '#1e293b' }} />
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>dev</span>
+            <div className="flex-1 h-px" style={{ background: '#1e293b' }} />
+          </div>
+
+          {/* Dev shortcut */}
+          <Link
+            href="/scan?slug=demo&mesa=4"
+            className="w-full h-11 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95 hover:opacity-80"
+            style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}
+          >
+            <span className="material-symbols-outlined text-[18px]">phone_iphone</span>
+            Acessar como Cliente (demo)
+          </Link>
+        </div>
       </div>
     </div>
   )
