@@ -309,19 +309,22 @@ export default function ProfilePage() {
           ))}
         </div>
 
+        {/* Logout */}
+        <button
+          onClick={() => { localStorage.clear(); router.push('/') }}
+          className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+          style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
+        >
+          <span className="material-symbols-outlined text-[18px]">logout</span>
+          Encerrar sessão
+        </button>
+
         {/* Powered by */}
-        <div className="flex flex-col items-center gap-3 py-4">
-          <div className="flex items-center gap-2 opacity-40">
-            <QomandaLogo size={20} />
-            <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>Powered by Qomanda</span>
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="flex items-center gap-2 opacity-30">
+            <QomandaLogo size={16} />
+            <span className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Powered by Qomanda</span>
           </div>
-          <button
-            onClick={() => { localStorage.clear(); router.push('/') }}
-            className="text-xs font-mono underline transition-colors"
-            style={{ color: '#584237' }}
-          >
-            Encerrar sessão
-          </button>
         </div>
       </main>
 

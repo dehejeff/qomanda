@@ -20,7 +20,6 @@ export function CustomerBottomNav({ slug, sessionId }: Props) {
   const pathname = usePathname()
 
   function href(segment: string) {
-    if (segment === 'profile') return '#'
     return `/${slug}/${segment}?session=${sessionId}`
   }
 

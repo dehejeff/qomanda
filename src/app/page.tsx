@@ -136,40 +136,75 @@ const FAQS = [
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [mobileMenu, setMobileMenu] = useState(false)
 
   return (
     <div style={{ background: C.bg, color: C.text, ...font }} className="min-h-screen">
 
       {/* ── NAVBAR ──────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-12 h-16"
-        style={{ background: 'rgba(11,19,38,0.85)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
-        <div className="flex items-center gap-2.5">
-          <QomandaLogo size={30} />
-          <span className="text-lg font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>Qomanda</span>
+      <nav className="fixed top-0 left-0 right-0 z-50"
+        style={{ background: 'rgba(11,19,38,0.95)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
+        <div className="flex justify-between items-center px-5 md:px-12 h-16">
+          <div className="flex items-center gap-2.5">
+            <QomandaLogo size={28} />
+            <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>Qomanda</span>
+          </div>
+          <div className="hidden md:flex items-center gap-8">
+            {['Funcionalidades', 'Como funciona', 'Preços', 'FAQ'].map(item => (
+              <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`}
+                className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>
+                {item}
+              </a>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+              style={{ color: C.muted }}>
+              Entrar
+            </Link>
+            <Link href="/cadastro"
+              className="text-sm font-bold px-4 py-2.5 rounded-xl transition-all active:scale-95 hover:opacity-90"
+              style={{ background: C.primary, color: '#582200' }}>
+              <span className="hidden sm:inline">Cadastre-se grátis</span>
+              <span className="sm:hidden">Cadastrar</span>
+            </Link>
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 rounded-lg transition-colors"
+              style={{ color: C.muted }}
+              onClick={() => setMobileMenu(v => !v)}
+            >
+              <span className="material-symbols-outlined text-[22px]">
+                {mobileMenu ? 'close' : 'menu'}
+              </span>
+            </button>
+          </div>
         </div>
-        <div className="hidden md:flex items-center gap-8">
-          {['Funcionalidades', 'Como funciona', 'Preços', 'FAQ'].map(item => (
-            <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`}
-              className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>
-              {item}
-            </a>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
-            style={{ color: C.muted }}>
-            Entrar
-          </Link>
-          <Link href="/cadastro"
-            className="text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 hover:opacity-90"
-            style={{ background: C.primary, color: '#582200' }}>
-            Cadastre-se grátis
-          </Link>
-        </div>
+
+        {/* Mobile dropdown */}
+        {mobileMenu && (
+          <div className="md:hidden flex flex-col px-5 pb-4 gap-1"
+            style={{ borderTop: `1px solid ${C.border}` }}>
+            {['Funcionalidades', 'Como funciona', 'Preços', 'FAQ'].map(item => (
+              <a key={item}
+                href={`#${item.toLowerCase().replace(' ', '-')}`}
+                onClick={() => setMobileMenu(false)}
+                className="py-3 text-sm border-b transition-colors hover:opacity-80"
+                style={{ ...mono, color: C.muted, borderColor: `${C.border}` }}>
+                {item}
+              </a>
+            ))}
+            <Link href="/login" onClick={() => setMobileMenu(false)}
+              className="py-3 text-sm font-semibold transition-colors"
+              style={{ color: C.primary }}>
+              Já tenho conta — Entrar
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="relative pt-32 pb-24 px-6 md:px-12 flex flex-col items-center text-center overflow-hidden">
+      <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-5 md:px-12 flex flex-col items-center text-center overflow-hidden">
         {/* Glows */}
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full"
           style={{ background: 'rgba(249,115,22,0.08)', filter: 'blur(120px)' }} />
@@ -179,14 +214,14 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-4xl mx-auto">
           <Tag>Novo · Cardápio digital + Pagamento integrado</Tag>
 
-          <h1 className="text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mt-6 mb-6"
+          <h1 className="text-[38px] sm:text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mt-6 mb-6"
             style={{ letterSpacing: '-0.03em' }}>
             O restaurante do<br />
             <span style={{ color: C.primary }}>futuro começa</span><br />
             com um QR Code.
           </h1>
 
-          <p className="text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: C.muted }}>
+          <p className="text-base md:text-xl leading-relaxed max-w-2xl mx-auto mb-8 md:mb-10 px-2" style={{ color: C.muted }}>
             Substitua cardápios físicos, reduza erros de pedido, receba pagamentos direto na mesa e fidelize seus clientes — tudo em uma plataforma só.
           </p>
 
@@ -419,12 +454,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── COMPARISON ──────────────────────────────────────── */}
-      <section className="py-16 px-6 md:px-12 max-w-4xl mx-auto">
+      <section className="py-16 px-5 md:px-12 max-w-4xl mx-auto">
         <h3 className="text-2xl font-black text-center mb-10" style={{ letterSpacing: '-0.02em' }}>
           Por que a Qomanda?
         </h3>
-        <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.borderBlu}` }}>
-          <table className="w-full text-sm">
+        <div className="rounded-2xl overflow-hidden overflow-x-auto" style={{ border: `1px solid ${C.borderBlu}` }}>
+          <table className="w-full text-sm" style={{ minWidth: 480 }}>
             <thead>
               <tr style={{ background: C.bgCard }}>
                 <th className="text-left px-5 py-4 font-mono text-xs uppercase tracking-wider" style={{ color: C.muted }}>Funcionalidade</th>
