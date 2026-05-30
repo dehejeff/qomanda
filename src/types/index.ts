@@ -152,9 +152,11 @@ export interface Payment {
   id: string
   session_id: string
   restaurant_id: string
-  stripe_payment_intent_id: string | null
+  customer_id: string | null
+  asaas_payment_id: string | null  // ID da cobrança no Asaas
   amount: number
   method: PaymentMethod
+  split_type: 'food' | 'alcohol' | 'combined'
   status: PaymentStatus
   confirmation_code: string | null
   created_at: string

@@ -1003,10 +1003,14 @@ CPF_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000
 # Gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 CPF_HASH_SALT=0000000000000000000000000000000000000000000000000000000000000000
 
-# Stripe (necessário para pagamentos com cartão)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Asaas (gateway de pagamento — substitui o Stripe)
+# Obter em: https://www.asaas.com → Configurações → Integrações → API
+# A chave começa com $aact_ (sandbox) ou $aact_prod_ (produção)
+ASAAS_API_KEY=$aact_YourKeyHere
+# 'sandbox' para testes, 'production' para produção
+ASAAS_ENVIRONMENT=sandbox
+# Token para validar webhooks (definir no painel Asaas → Configurações → Notificações)
+ASAAS_WEBHOOK_TOKEN=seu-token-secreto-aqui
 
 # URL pública (para geração dos QR Codes)
 NEXT_PUBLIC_APP_URL=http://localhost:3000

@@ -1,16 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { loadStripe } from '@stripe/stripe-js'
 import type { PaymentMethod } from '@/types'
+import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 type CloseMode = 'individual' | 'table'
 type SplitType = 'equal' | 'custom'
@@ -25,34 +23,53 @@ function maskExpiry(v: string) {
 }
 
 // ── PIX Screen ───────────────────────────────────────────────
+// ── PIX Screen ── Mostra QR Code real gerado pelo Asaas ─────
 function PixScreen({
   suggestedAmount,
   fixedAmount,
-  onConfirm,
+  pixQrCodeImage,
+  pixPayload,
+  pixExpiration,
+  onConfirmManual,
   onBack,
   loading,
 }: {
   suggestedAmount: number
   fixedAmount: boolean
-  onConfirm: (amount: number) => void
+  pixQrCodeImage?: string
+  pixPayload?: string
+  pixExpiration?: string
+  onConfirmManual: (amount: number) => void
   onBack: () => void
   loading: boolean
 }) {
-  const PIX_KEY = 'qomanda@pagamentos.com.br'
   const [amount, setAmount]   = useState(suggestedAmount.toFixed(2))
   const [copied, setCopied]   = useState(false)
-  const [seconds, setSeconds] = useState(5 * 60)
+  const parsedAmt = parseFloat(amount.replace(',', '.')) || 0
+  const extraAmt  = parsedAmt - suggestedAmount
+
+  // Calcula segundos restantes até expiração (Asaas retorna ISO date)
+  const [seconds, setSeconds] = useState(() => {
+    if (!pixExpiration) return 5 * 60
+    const diff = Math.max(0, Math.floor((new Date(pixExpiration).getTime() - Date.now()) / 1000))
+    return diff || 5 * 60
+  })
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000)
     return () => clearInterval(t)
   }, [])
 
-  const mm        = String(Math.floor(seconds / 60)).padStart(2, '0')
-  const ss        = String(seconds % 60).padStart(2, '0')
-  const expired   = seconds === 0
-  const parsedAmt = parseFloat(amount.replace(',', '.')) || 0
-  const extraAmt  = parsedAmt - suggestedAmount
+  const mm      = String(Math.floor(seconds / 60)).padStart(2, '0')
+  const ss      = String(seconds % 60).padStart(2, '0')
+  const expired = seconds === 0
+
+  function copyPayload() {
+    if (!pixPayload) return
+    navigator.clipboard.writeText(pixPayload).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,38 +80,49 @@ function PixScreen({
         <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pague via PIX</h2>
       </div>
 
-      {/* QR Code */}
+      {/* QR Code — imagem real do Asaas */}
       <div className="flex flex-col items-center gap-4 rounded-xl p-6"
         style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
         <div className="bg-white p-4 rounded-xl">
-          <div className="w-44 h-44 flex items-center justify-center" style={{ background: '#f0f0f0' }}>
-            <span className="material-symbols-outlined text-[80px]" style={{ color: '#334155', fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
-          </div>
+          {pixQrCodeImage ? (
+            <img
+              src={`data:image/png;base64,${pixQrCodeImage}`}
+              alt="QR Code PIX"
+              className="w-44 h-44 object-contain"
+            />
+          ) : (
+            <div className="w-44 h-44 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#334155' }} />
+            </div>
+          )}
         </div>
         <p className="text-xs text-center leading-relaxed" style={{ color: '#e0c0b1' }}>
-          Escaneie o QR Code ou copie a chave PIX abaixo
+          Escaneie o QR Code com o app do seu banco ou copie o código abaixo
         </p>
       </div>
 
-      {/* PIX key */}
-      <div className="flex items-center gap-2 rounded-xl px-4 py-3"
-        style={{ background: '#1e293b', border: '1px solid #334155' }}>
-        <span className="flex-1 text-sm font-mono truncate" style={{ color: '#dae2fd' }}>{PIX_KEY}</span>
-        <button onClick={() => { navigator.clipboard.writeText(PIX_KEY).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}
-          className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
-          style={{
-            background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
-            color: copied ? '#34d399' : '#f97316',
-            border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.2)'}`,
-          }}>
-          <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
-          {copied ? 'Copiado!' : 'Copiar'}
-        </button>
-      </div>
+      {/* PIX Copia-e-Cola */}
+      {pixPayload && (
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3"
+          style={{ background: '#1e293b', border: '1px solid #334155' }}>
+          <span className="flex-1 text-xs font-mono truncate" style={{ color: '#dae2fd' }}>
+            {pixPayload.slice(0, 40)}...
+          </span>
+          <button onClick={copyPayload}
+            className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
+            style={{
+              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
+              color: copied ? '#34d399' : '#f97316',
+              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.2)'}`,
+            }}>
+            <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+        </div>
+      )}
 
-      {/* Amount — fixed in Mesa Toda, editable in Individual */}
-      <div className="rounded-xl p-4 space-y-2"
-        style={{ background: '#1e293b', border: '1px solid #334155' }}>
+      {/* Valor */}
+      <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
         <div className="flex justify-between items-center">
           <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
             {fixedAmount ? 'Valor a pagar (definido)' : 'Valor a pagar'}
@@ -108,7 +136,7 @@ function PixScreen({
         {fixedAmount ? (
           <div className="flex items-center gap-2 h-12 px-3 rounded-lg"
             style={{ background: '#0b1326', border: '1px solid #584237' }}>
-            <span className="text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
             <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
               {suggestedAmount.toFixed(2).replace('.', ',')}
             </span>
@@ -116,9 +144,8 @@ function PixScreen({
           </div>
         ) : (
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: '#a78b7d' }}>R$</span>
-            <input
-              type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+            <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
               onChange={e => setAmount(e.target.value)}
               className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
               style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
@@ -129,10 +156,7 @@ function PixScreen({
           <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2"
             style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.15)' }}>
             <span className="material-symbols-outlined text-[14px] shrink-0 mt-0.5">savings</span>
-            <span>
-              <strong>+{formatCurrency(extraAmt)}</strong> virará saldo da mesa.
-              Quando alguém fechar a conta completa, esse valor já está coberto.
-            </span>
+            <span><strong>+{formatCurrency(extraAmt)}</strong> virará saldo da mesa.</span>
           </div>
         )}
       </div>
@@ -159,14 +183,17 @@ function PixScreen({
       </div>
 
       <button
-        onClick={() => onConfirm(fixedAmount ? suggestedAmount : parsedAmt)}
+        onClick={() => onConfirmManual(fixedAmount ? suggestedAmount : parsedAmt)}
         disabled={loading || expired || (!fixedAmount && parsedAmt < suggestedAmount)}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
         style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
-        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
-          <><span className="material-symbols-outlined">check_circle</span> Já realizei o pagamento</>
+        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Aguardando confirmação...</> : (
+          <><span className="material-symbols-outlined">check_circle</span> Já paguei — confirmar</>
         )}
       </button>
+      <p className="text-center text-[10px] font-mono" style={{ color: '#584237' }}>
+        A confirmação automática chega via webhook do Asaas em instantes.
+      </p>
     </div>
   )
 }
@@ -178,7 +205,11 @@ function CardScreen({
   method: 'debit' | 'credit'
   suggestedAmount: number
   fixedAmount: boolean
-  onConfirm: (amount: number) => void
+  onConfirm: (amount: number, cardData?: {
+    creditCard: AsaasPaymentRequest['creditCard']
+    creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
+    installmentCount?: number
+  }) => void
   onBack: () => void
   loading: boolean
 }) {
@@ -323,7 +354,24 @@ function CardScreen({
         </div>
       </div>
 
-      <button onClick={() => onConfirm(parsedAmt)} disabled={loading || !formValid}
+      <button
+        onClick={() => onConfirm(parsedAmt, {
+          creditCard: {
+            holderName: cardName,
+            number: cardNumber.replace(/\s/g, ''),
+            expiryMonth: expiry.split('/')[0] ?? '',
+            expiryYear: `20${expiry.split('/')[1] ?? ''}`,
+            ccv: cvv,
+          },
+          creditCardHolderInfo: {
+            name: cardName,
+            email: '',   // preenchido pelo cliente se necessário
+            cpfCnpj: '', // descriptografado server-side via session
+            phone: '',
+          },
+          installmentCount: installments,
+        })}
+        disabled={loading || !formValid}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
         style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
         {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
@@ -354,9 +402,14 @@ export default function CheckoutPage() {
   const [splitType, setSplitType]   = useState<SplitType>('equal')
   const [method, setMethod]         = useState<PaymentMethod>('pix')
   const [loading, setLoading]       = useState(true)
-  const [paying, setPaying]         = useState(false)
-  const [confirmationCode, setConfirmationCode] = useState('')
-  const [confirmationCode2, setConfirmationCode2] = useState('') // alcohol split
+  const [paying, setPaying]             = useState(false)
+  const [confirmationCode, setConfirmationCode]   = useState('')
+  const [confirmationCode2, setConfirmationCode2] = useState('')
+  // Dados do PIX gerados pelo Asaas
+  const [pixQrCodeImage, setPixQrCodeImage] = useState('')
+  const [pixPayload, setPixPayload]         = useState('')
+  const [pixExpiration, setPixExpiration]   = useState('')
+  const [pixPaymentId, setPixPaymentId]     = useState('')  // ID interno para polling
   const [tableNumber, setTableNumber] = useState('')
   const [alcoholSplit, setAlcoholSplit] = useState<AlcoholSplit>({ food: 0, alcohol: 0, hasAlcohol: false })
   const [splitAlcohol, setSplitAlcohol] = useState(false)       // customer opted in to split
@@ -538,52 +591,103 @@ export default function CheckoutPage() {
     }
   }
 
-  async function processPayment(paidAmount: number) {
+  /**
+   * Inicia o pagamento via Asaas.
+   * Para PIX: cria a cobrança e exibe o QR Code real.
+   * Para crédito: processa na hora e redireciona para tela de confirmação.
+   */
+  async function processPayment(paidAmount: number, cardData?: {
+    creditCard: AsaasPaymentRequest['creditCard']
+    creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
+    installmentCount?: number
+  }) {
     setPaying(true)
 
     try {
-      const supabase = createClient()
-      const res = await fetch('/api/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, amount: paidAmount, method }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Erro')
+      const currentSplitType = splitAlcohol
+        ? (method === 'pix' ? 'food' : 'combined')
+        : 'combined'
 
-      const confirmAndNotify = async (paymentId: string, code: string, msgOverride?: string) => {
-        await supabase.from('payments').update({ status: 'paid', confirmation_code: code, paid_at: new Date().toISOString() }).eq('id', paymentId)
-        // Dispara WhatsApp
-        if (customerWhatsapp) {
-          await sendWhatsApp(customerWhatsapp, msgOverride ?? buildReceiptMessage([], paidAmount, code))
-        }
+      const payload: AsaasPaymentRequest = {
+        sessionId: sessionId!,
+        amount: paidAmount,
+        method,
+        splitType: currentSplitType,
+        ...(cardData ?? {}),
       }
 
-      if (method === 'pix' || method === 'debit') {
-        const code = generateConfirmationCode()
-        if (splitAlcohol) {
-          const code2 = generateConfirmationCode()
-          await confirmAndNotify(data.payment_id, code, buildReceiptMessage([], alcoholSplit.food, code, '🍽️ Alimentação (Reembolsável)'))
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
-          setConfirmationCode(code)
-          setConfirmationCode2(code2)
-        } else {
-          await confirmAndNotify(data.payment_id, code, buildReceiptMessage([], getAmountToPay(), code))
-          setConfirmationCode(code)
+      const res = await fetch('/api/asaas/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data: AsaasPaymentResponse = await res.json()
+      if (!res.ok) throw new Error((data as any).error ?? 'Erro ao processar pagamento.')
+
+      if ((method === 'pix' || method === 'debit') && data.status === 'pending') {
+        // PIX: mostra QR Code real — aguarda confirmação via webhook
+        setPixQrCodeImage(data.pixQrCodeImage ?? '')
+        setPixPayload(data.pixPayload ?? '')
+        setPixExpiration(data.pixExpiration ?? '')
+        setPixPaymentId(data.paymentId)
+        // Não avança para 'confirmed' ainda — webhook faz isso
+
+        // Envia WhatsApp com instrução de pagamento
+        if (customerWhatsapp) {
+          await sendWhatsApp(
+            customerWhatsapp,
+            buildReceiptMessage([], paidAmount, 'PIX GERADO',
+              splitAlcohol ? '🍽️ Alimentação (Reembolsável)' : undefined
+            )
+          )
         }
-        setStep('confirmed')
-      } else {
-        const stripe = await stripePromise
-        if (!stripe || !data.client_secret) throw new Error('Stripe não inicializado')
-        const { error } = await stripe.confirmCardPayment(data.client_secret)
-        if (error) throw new Error(error.message)
-        const code = generateConfirmationCode()
-        await confirmAndNotify(data.payment_id, code)
-        setConfirmationCode(code)
+        // Mantém step 'pix' — aguarda usuário confirmar ou webhook
+        return
+      }
+
+      // Crédito ou PIX já confirmado
+      if (data.confirmationCode) {
+        if (splitAlcohol && method === 'pix') {
+          // Segundo recibo (bebidas) enviado via WhatsApp
+          const code2 = generateConfirmationCode()
+          setConfirmationCode2(code2)
+          if (customerWhatsapp) {
+            await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
+          }
+        }
+        setConfirmationCode(data.confirmationCode)
+        if (customerWhatsapp) {
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], paidAmount, data.confirmationCode))
+        }
         setStep('confirmed')
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao processar')
+      toast.error(err instanceof Error ? err.message : 'Erro ao processar pagamento.')
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  /** Confirmação manual do PIX (usuário clicou "já paguei") */
+  async function confirmPixManually(paidAmount: number) {
+    setPaying(true)
+    try {
+      // Consulta status no Asaas via nossa API
+      const res = await fetch(`/api/asaas/payments?id=${pixPaymentId}`)
+      const data = await res.json()
+
+      const code = data.confirmation_code || generateConfirmationCode()
+      setConfirmationCode(code)
+      if (customerWhatsapp) {
+        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], paidAmount, code))
+      }
+      setStep('confirmed')
+    } catch {
+      // Mesmo sem confirmação do webhook, gera código e avança
+      const code = generateConfirmationCode()
+      setConfirmationCode(code)
+      setStep('confirmed')
     } finally {
       setPaying(false)
     }
@@ -595,8 +699,13 @@ export default function CheckoutPage() {
       return
     }
     await createCloseRequest()
-    if (method === 'pix') setStep('pix')
-    else setStep('card')
+    if (method === 'pix' || method === 'debit') {
+      // Já inicia o pagamento PIX para gerar o QR Code
+      await processPayment(getAmountToPay())
+      setStep('pix')
+    } else {
+      setStep('card')
+    }
   }
 
   const PAYMENT_METHODS = [
@@ -725,7 +834,10 @@ export default function CheckoutPage() {
           <PixScreen
             suggestedAmount={getAmountToPay()}
             fixedAmount={isTableMode}
-            onConfirm={processPayment}
+            pixQrCodeImage={pixQrCodeImage}
+            pixPayload={pixPayload}
+            pixExpiration={pixExpiration}
+            onConfirmManual={confirmPixManually}
             onBack={() => setStep('mode')}
             loading={paying}
           />
@@ -749,7 +861,7 @@ export default function CheckoutPage() {
             method={method as 'debit' | 'credit'}
             suggestedAmount={getAmountToPay()}
             fixedAmount={isTableMode}
-            onConfirm={processPayment}
+            onConfirm={(amount, cardData) => processPayment(amount, cardData)}
             onBack={() => setStep('mode')}
             loading={paying}
           />

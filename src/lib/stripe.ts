@@ -1,18 +1,12 @@
-import Stripe from 'stripe'
+/**
+ * Stripe foi substituído pelo Asaas como gateway de pagamento.
+ * Este arquivo está mantido apenas para compatibilidade com imports existentes.
+ * @deprecated Use src/lib/asaas.ts
+ */
 
-let _stripe: Stripe | null = null
-
-export function getStripe(): Stripe {
-  if (!_stripe) {
-    const key = process.env.STRIPE_SECRET_KEY
-    if (!key) throw new Error('STRIPE_SECRET_KEY not configured')
-    _stripe = new Stripe(key, { apiVersion: '2026-05-27.dahlia' })
-  }
-  return _stripe
+export function getStripe() {
+  throw new Error('Stripe foi substituído pelo Asaas. Use /api/asaas/payments.')
 }
 
-export const formatAmountForStripe = (amount: number): number =>
-  Math.round(amount * 100)
-
-export const formatAmountFromStripe = (amount: number): number =>
-  amount / 100
+export const formatAmountForStripe = (amount: number): number => Math.round(amount * 100)
+export const formatAmountFromStripe = (amount: number): number => amount / 100

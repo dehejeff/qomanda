@@ -41,11 +41,15 @@ alter table sessions
 alter table orders
   add column if not exists customer_id uuid references customers(id) on delete set null;
 
--- payments: quem pagou + tipo de split (álcool/alimentação)
+-- payments: quem pagou + tipo de split (álcool/alimentação) + ID Asaas
 alter table payments
-  add column if not exists customer_id  uuid references customers(id) on delete set null,
-  add column if not exists split_type   text not null default 'combined'
-                                        check (split_type in ('food','alcohol','combined'));
+  add column if not exists customer_id     uuid references customers(id) on delete set null,
+  add column if not exists asaas_payment_id text,
+  add column if not exists split_type      text not null default 'combined'
+                                           check (split_type in ('food','alcohol','combined'));
+
+-- Remove coluna Stripe (se existir de versão anterior)
+alter table payments drop column if exists stripe_payment_intent_id;
 
 -- menu_items: flag de bebida alcoólica
 alter table menu_items

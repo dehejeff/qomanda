@@ -206,12 +206,12 @@ create table if not exists order_items (
 --       'alcohol'  = apenas bebidas alcoólicas (conta pessoal)
 -- ============================================================
 create table if not exists payments (
-  id                       uuid          primary key default uuid_generate_v4(),
-  session_id               uuid          not null references sessions(id) on delete cascade,
-  restaurant_id            uuid          not null references restaurants(id) on delete cascade,
-  customer_id              uuid          references customers(id) on delete set null,
-  stripe_payment_intent_id text,
-  amount                   numeric(10,2) not null check (amount > 0),
+  id                  uuid          primary key default uuid_generate_v4(),
+  session_id          uuid          not null references sessions(id) on delete cascade,
+  restaurant_id       uuid          not null references restaurants(id) on delete cascade,
+  customer_id         uuid          references customers(id) on delete set null,
+  asaas_payment_id    text,         -- ID da cobrança no Asaas (pay_xxx)
+  amount              numeric(10,2) not null check (amount > 0),
   method                   text          not null check (method in ('credit','debit','pix')),
   split_type               text          not null default 'combined'
                                          check (split_type in ('food','alcohol','combined')),
