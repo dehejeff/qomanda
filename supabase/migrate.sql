@@ -193,7 +193,14 @@ begin
     select 1 from pg_policies where tablename = 'customer_visits' and policyname = 'public_insert'
   ) then
     create policy "public_insert" on customer_visits for insert with check (true);
-    create policy "public_select" on customer_visits for select using (true);
+  end if;
+
+  -- customer_visits: admin vê apenas as visitas do seu restaurante
+  if not exists (
+    select 1 from pg_policies where tablename = 'customer_visits' and policyname = 'admin_select'
+  ) then
+    create policy "admin_select" on customer_visits for select
+      using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
   end if;
 
   if not exists (
@@ -202,8 +209,42 @@ begin
     create policy "owner_all" on loyalty_rules for all
       using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
   end if;
+
+  if not exists (
+    select 1 from pg_policies where tablename = 'loyalty_rules' and policyname = 'public_read'
+  ) then
+    create policy "public_read" on loyalty_rules for select using (active = true);
+  end if;
 end;
 $$;
+
+-- ============================================================
+-- PATCH DE SEGURANÇA: remover public_select de customers
+-- ============================================================
+
+-- Remove a política antiga de leitura irrestrita (se existir)
+drop policy if exists "public_select" on customers;
+
+-- Adiciona política restrita: admin vê apenas clientes do seu restaurante
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'customers' and policyname = 'admin_select'
+  ) then
+    create policy "admin_select" on customers for select
+      using (
+        id in (
+          select cv.customer_id from customer_visits cv
+          join restaurants r on r.id = cv.restaurant_id
+          where r.owner_id = auth.uid()
+        )
+      );
+  end if;
+end;
+$$;
+
+-- Remove public_select de customer_visits
+drop policy if exists "public_select" on customer_visits;
 
 -- ============================================================
 -- FIM DA MIGRAÇÃO

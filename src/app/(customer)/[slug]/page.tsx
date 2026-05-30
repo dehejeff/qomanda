@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
+import type { CheckInResponse } from '@/app/api/checkin/route'
 
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -96,103 +97,34 @@ export default function CheckInPage() {
     setCheckingIn(true)
     const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
 
-    const supabase = createClient()
+    // Toda a lógica sensível (upsert de cliente, sessão, fidelidade)
+    // roda server-side com service role — sem exposição da tabela customers
+    const res = await fetch('/api/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: params.slug,
+        mesa,
+        firstName: name,
+        lastName: surname,
+        whatsapp: phone,
+        documentType: docType,
+        cpf: cpfDigits.length === 11 ? cpfDigits : null,
+        passport: passport.trim() || null,
+      }),
+    })
 
-    // Build customer payload
-    const customerPayload: Record<string, unknown> = {
-      first_name: name,
-      last_name: surname,
-      whatsapp: phone,
-    }
-    if (docType === 'cpf' && cpfDigits.length === 11) {
-      customerPayload.document_type = 'cpf'
-      customerPayload.cpf = cpfDigits
-    } else if (docType === 'passport' && passport.trim()) {
-      customerPayload.document_type = 'passport'
-      customerPayload.passport = passport.trim()
-    }
-
-    // Upsert strategy: CPF first (more stable), then WhatsApp
-    let customerId: string | null = null
-
-    if (docType === 'cpf' && cpfDigits.length === 11) {
-      // Try to find existing customer by CPF
-      const { data: byCpf } = await supabase
-        .from('customers').select('id').eq('cpf', cpfDigits).single()
-
-      if (byCpf) {
-        // Update name/WhatsApp in case they changed
-        await supabase.from('customers').update({
-          first_name: name, last_name: surname, whatsapp: phone,
-        }).eq('id', byCpf.id)
-        customerId = byCpf.id
-      }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao realizar check-in. Tente novamente.')
+      setCheckingIn(false)
+      return
     }
 
-    if (!customerId) {
-      // Fallback: upsert by WhatsApp
-      const { data: customer, error: customerError } = await supabase
-        .from('customers')
-        .upsert(customerPayload, { onConflict: 'whatsapp' })
-        .select().single()
-
-      if (customerError || !customer) {
-        toast.error('Erro ao salvar seus dados. Tente novamente.')
-        setCheckingIn(false)
-        return
-      }
-      customerId = customer.id
-    }
-
-    // Get table
-    const { data: table } = await supabase
-      .from('tables').select('*')
-      .eq('restaurant_id', restaurant.id).eq('number', mesa).single()
-
-    if (!table) { toast.error('Mesa não encontrada.'); setCheckingIn(false); return }
-
-    // Check if an open session already exists for this table
-    const { data: existingSession } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('table_id', table.id)
-      .eq('status', 'open')
-      .maybeSingle()
-
-    let sessionId: string
-
-    if (existingSession) {
-      // Join the existing session instead of creating a new one
-      sessionId = existingSession.id
-    } else {
-      // Create new session
-      const { data: session, error: sessionError } = await supabase
-        .from('sessions')
-        .insert({ table_id: table.id, restaurant_id: restaurant.id, customer_id: customerId, status: 'open' })
-        .select().single()
-
-      if (sessionError || !session) {
-        toast.error('Erro ao realizar check-in. Tente novamente.')
-        setCheckingIn(false)
-        return
-      }
-      sessionId = session.id
-    }
-
-    // Add as participant (upsert in case they scan again)
-    await supabase.from('session_participants').upsert(
-      { session_id: sessionId, customer_id: customerId },
-      { onConflict: 'session_id,customer_id' }
-    )
-
-    // Register visit for loyalty
-    await supabase.from('customer_visits').upsert(
-      { customer_id: customerId, restaurant_id: restaurant.id, session_id: sessionId },
-      { onConflict: 'session_id' }
-    )
+    const { sessionId, customerId } = (await res.json()) as CheckInResponse
 
     localStorage.setItem('qomanda_session_id', sessionId)
-    localStorage.setItem('qomanda_customer_id', customerId ?? '')
+    localStorage.setItem('qomanda_customer_id', customerId)
     localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
     setCheckedIn(true)
     setCheckingIn(false)

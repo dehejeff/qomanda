@@ -779,6 +779,9 @@ Criar o arquivo `.env.local` na raiz do projeto:
 # Supabase (obrigatório)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+# Service Role Key — NUNCA expor no frontend — usar apenas server-side
+# Encontrar em: Supabase Dashboard → Settings → API → service_role key
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Stripe (necessário para pagamentos com cartão)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...

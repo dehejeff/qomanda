@@ -353,11 +353,19 @@ create policy "owner_all" on tables
     restaurant_id in (select id from restaurants where owner_id = auth.uid())
   );
 
--- Clientes: qualquer um pode criar e consultar (sem auth)
+-- Clientes: INSERT público (check-in via API server-side usa service role e bypassa RLS)
+-- SELECT removido do público — leitura de dados PII (WhatsApp, CPF) somente via
+-- service role (API routes) ou pelo admin autenticado do restaurante
 create policy "public_insert" on customers for insert with check (true);
-create policy "public_select" on customers for select using (true);
--- Apenas o cliente pode editar seu próprio registro (via whatsapp como chave)
--- (em produção: implementar autenticação de cliente por OTP de WhatsApp)
+-- Admin do restaurante pode consultar clientes que visitaram seu estabelecimento
+create policy "admin_select" on customers for select
+  using (
+    id in (
+      select cv.customer_id from customer_visits cv
+      join restaurants r on r.id = cv.restaurant_id
+      where r.owner_id = auth.uid()
+    )
+  );
 
 -- Sessões: clientes criam, consultas são públicas, dono atualiza
 create policy "public_insert" on sessions for insert with check (true);
@@ -395,11 +403,17 @@ create policy "owner_update"  on payments for update
 create policy "public_all" on close_requests             for all using (true);
 create policy "public_all" on close_request_participants for all using (true);
 
--- Fidelidade: dono gerencia as regras, consulta pública para o cliente
-create policy "owner_all"     on loyalty_rules for all
+-- Fidelidade: dono gerencia as regras
+create policy "owner_all" on loyalty_rules for all
   using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
+-- Regras são lidas pelo cliente para exibir o progresso de fidelidade
+create policy "public_read" on loyalty_rules for select using (active = true);
+
+-- Visitas: INSERT via service role (API /api/checkin)
+-- SELECT restrito — admin vê as visitas do seu restaurante; cliente não precisa de SELECT direto
 create policy "public_insert" on customer_visits for insert with check (true);
-create policy "public_select" on customer_visits for select using (true);
+create policy "admin_select"  on customer_visits for select
+  using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
 
 -- ============================================================
 -- REALTIME — ATIVAR NO SUPABASE DASHBOARD
