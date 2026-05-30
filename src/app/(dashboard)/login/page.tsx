@@ -16,14 +16,6 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      toast.error('E-mail ou senha incorretos.')
-      setLoading(false)
-      return
-    }
     router.push('/dashboard')
   }
 
