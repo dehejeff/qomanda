@@ -1,6 +1,6 @@
 # Qomanda — Documentação Técnica Completa
 
-> Versão 2.0 · Atualizado em 2026-05-30
+> Versão 2.1 · Atualizado em 2026-05-30
 
 ---
 
@@ -17,10 +17,10 @@
 9. [Programa de Fidelidade](#9-programa-de-fidelidade)
 10. [Integração WhatsApp e NF-e](#10-integração-whatsapp-e-nf-e)
 11. [Regras de Negócio](#11-regras-de-negócio)
-12. [API Routes](#12-api-routes)
-13. [Variáveis de Ambiente](#13-variáveis-de-ambiente)
-14. [Configuração Inicial (Supabase)](#14-configuração-inicial-supabase)
-15. [Modo Desenvolvimento (Demo)](#15-modo-desenvolvimento-demo)
+12. [Segurança e LGPD](#12-segurança-e-lgpd)
+13. [API Routes](#13-api-routes)
+14. [Variáveis de Ambiente](#14-variáveis-de-ambiente)
+15. [Configuração Inicial (Supabase)](#15-configuração-inicial-supabase)
 16. [Roadmap](#16-roadmap)
 
 ---
@@ -132,12 +132,12 @@ qomanda/
 │   ├── app/
 │   │   ├── (customer)/        ← grupo de rotas do cliente (sem auth)
 │   │   │   └── [slug]/
-│   │   │       ├── page.tsx         ← check-in (cadastro rápido)
+│   │   │       ├── page.tsx         ← check-in (chama /api/checkin — server-side)
 │   │   │       ├── home/            ← hub pós check-in
 │   │   │       ├── menu/            ← cardápio digital
 │   │   │       ├── orders/          ← meus pedidos / mesa toda
 │   │   │       ├── checkout/        ← pagamento
-│   │   │       └── profile/         ← perfil do cliente
+│   │   │       └── profile/         ← perfil do cliente (chama /api/customer/profile)
 │   │   ├── (dashboard)/       ← grupo de rotas admin (com auth)
 │   │   │   ├── login/               ← login do restaurante
 │   │   │   └── dashboard/
@@ -147,6 +147,8 @@ qomanda/
 │   │   │       ├── tables/          ← gestão de mesas + QR Codes
 │   │   │       └── settings/        ← configurações (pagamentos, fidelidade, integrações)
 │   │   ├── api/
+│   │   │   ├── checkin/             ← ⚠️ server-side: upsert de cliente + sessão (service role)
+│   │   │   ├── customer/profile/    ← ⚠️ server-side: leitura/edição do perfil (service role)
 │   │   │   ├── payments/            ← criação de pagamento + Stripe
 │   │   │   ├── stripe/webhook/      ← confirmação de pagamento Stripe
 │   │   │   └── whatsapp/            ← envio de mensagens WhatsApp
@@ -167,8 +169,10 @@ qomanda/
 │   │   └── qomanda-logo.tsx         ← SVG do logo
 │   ├── lib/
 │   │   ├── supabase/
-│   │   │   ├── client.ts            ← cliente browser
-│   │   │   └── server.ts            ← cliente server-side
+│   │   │   ├── client.ts            ← cliente browser (anon key, sujeito a RLS)
+│   │   │   ├── server.ts            ← cliente server-side (anon key + cookie auth)
+│   │   │   └── admin.ts             ← cliente admin (service role — NUNCA no browser)
+│   │   ├── crypto.ts                ← hashCPF(), encryptCPF(), decryptCPF()
 │   │   ├── stripe.ts                ← inicialização do Stripe
 │   │   ├── utils.ts                 ← formatCurrency, generateConfirmationCode
 │   │   └── dev-mock.ts              ← dados mock para desenvolvimento
@@ -241,10 +245,13 @@ restaurants (1) ─── (N) tables
 | last_name | text | — |
 | whatsapp | text | Identificador primário (único, dígitos) |
 | document_type | text | `cpf` \| `passport` |
-| cpf | text | 11 dígitos, único — identificador secundário estável |
-| passport | text | Para estrangeiros |
+| cpf_hash | text | HMAC-SHA256 do CPF — para busca/unicidade (único, irreversível) |
+| cpf_encrypted | text | AES-256-GCM do CPF — para NF-e futura (reversível via service role) |
+| passport | text | Passaporte para estrangeiros |
 
-> **Regra de upsert:** na ordem CPF → WhatsApp. O CPF garante continuidade do histórico mesmo se o cliente trocar de número.
+> **⚠️ CPF nunca armazenado em texto puro.** Ver seção [Segurança e LGPD](#12-segurança-e-lgpd).
+>
+> **Regra de upsert:** na ordem `cpf_hash` → WhatsApp. O hash do CPF garante continuidade do histórico mesmo se o cliente trocar de número.
 
 #### `sessions`
 | Coluna | Tipo | Descrição |
@@ -338,50 +345,51 @@ restaurants (1) ─── (N) tables
                               WhatsApp → NF-e
 ```
 
-### 6.2 Check-in — regras de upsert do cliente
+### 6.2 Check-in — fluxo seguro (server-side)
+
+O check-in é a operação mais sensível do sistema: cria/atualiza dados PII do cliente.
+Por isso, **toda a lógica roda em uma API route server-side** (`/api/checkin`) usando
+a `SUPABASE_SERVICE_ROLE_KEY`, que nunca é exposta ao browser.
 
 ```
-Cliente informa WhatsApp
+Browser (cliente)
+        │
+        │  POST /api/checkin
+        │  { slug, mesa, firstName, lastName, whatsapp, cpf? }
         │
         ▼
- Tem CPF preenchido?
-    │         │
-   Sim        Não
-    │         │
-    ▼         ▼
-Busca por   Busca por
-CPF         WhatsApp
-    │         │
-Encontrou?  Encontrou?
-  │    │     │    │
-Sim   Não   Sim  Não
-  │    │     │    │
-  │  upsert  │  insert
-  │  por WA  │
-Atualiza   (mesmo cliente,
-nome/WA    número novo)
-    │         │
-    └────┬────┘
-         ▼
-   customer_id resolvido
-         │
-         ▼
-  Mesa tem sessão aberta?
-    │             │
-   Sim            Não
-    │             │
-  Entra na    Cria nova
-  sessão      sessão
-    │             │
-    └──────┬───────┘
-           ▼
-  Insere session_participants
-  Insere customer_visits
-  Salva em localStorage:
-    - qomanda_session_id
-    - qomanda_customer_id
-    - qomanda_customer_name
+API Route — /api/checkin (server-side, service role)
+        │
+        ├─ 1. Resolve restaurante pelo slug
+        │
+        ├─ 2. Upsert do cliente:
+        │       Tem CPF? → hashCPF() → busca por cpf_hash
+        │          ├─ Encontrou → atualiza nome/WhatsApp
+        │          └─ Não → upsert por whatsapp (onConflict)
+        │              CPF armazenado como:
+        │              cpf_hash      = HMAC-SHA256(cpf, salt)
+        │              cpf_encrypted = AES-256-GCM(cpf, key)
+        │
+        ├─ 3. Mesa: busca por restaurant_id + number
+        │
+        ├─ 4. Sessão: entra na existente (se open) ou cria nova
+        │
+        ├─ 5. Insere em session_participants (upsert)
+        │
+        └─ 6. Insere em customer_visits (upsert, fidelidade)
+                │
+                ▼
+        Response: { sessionId, customerId, isJoining }
+                │
+                ▼
+Browser: salva em localStorage:
+  - qomanda_session_id
+  - qomanda_customer_id
+  - qomanda_customer_name
 ```
+
+> O browser **nunca chama a tabela `customers` diretamente**. A `ANON_KEY` não tem
+> permissão de SELECT em `customers` — isso é aplicado via RLS.
 
 ### 6.3 Navegação inferior (5 tabs)
 
@@ -679,9 +687,11 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 | Regra | Detalhe |
 |-------|---------|
 | Identificação primária | WhatsApp (obrigatório, único) |
-| Identificação secundária | CPF (opcional, único) — tem precedência no upsert |
-| Upsert por CPF | Se o cliente informou CPF e já existe no banco, atualiza WhatsApp sem criar duplicata |
-| Dados LGPD | CPF armazenado sem formatação; consentimento exibido no formulário de check-in |
+| Identificação secundária | CPF (opcional) — tem precedência no upsert se informado |
+| Upsert por hash CPF | Busca por `cpf_hash` (HMAC). Encontrou → atualiza nome/WhatsApp. Não encontrou → upsert por WhatsApp |
+| CPF nunca em texto puro | Armazenado como `cpf_hash` (HMAC-SHA256) + `cpf_encrypted` (AES-256-GCM) |
+| Consentimento LGPD | Exibido no formulário de check-in antes de coletar CPF |
+| Dados no browser | Browser só conhece `sessionId`, `customerId` (UUID) e nome — nunca CPF nem WhatsApp |
 
 ### Pagamento
 
@@ -712,7 +722,209 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 ---
 
-## 12. API Routes
+## 12. Segurança e LGPD
+
+### 12.1 Modelo de ameaças
+
+| Ameaça | Risco sem mitigação | Mitigação implementada |
+|--------|--------------------|-----------------------|
+| Extração em massa de PII | Alto — `ANON_KEY` é pública | `public_select` removido de `customers` e `customer_visits` |
+| Vazamento de CPF | Crítico — dado sensível LGPD | CPF nunca armazenado em texto puro |
+| Restaurante A ver dados do B | Médio | RLS por `restaurant_id` no dashboard |
+| Falsificação de check-in | Baixo | Toda lógica é server-side com service role |
+| Ataque via UUID de sessão | Baixo | UUID v4 tem 122 bits de entropia |
+
+---
+
+### 12.2 Camadas de segurança
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Browser (cliente)                                  │
+│  • Supabase ANON KEY (pública)                      │
+│  • Acesso restrito por RLS                          │
+│  • NUNCA acessa: customers, customer_visits         │
+└──────────────────────┬──────────────────────────────┘
+                       │ HTTPS
+┌──────────────────────▼──────────────────────────────┐
+│  API Routes (Next.js — server-side)                 │
+│  • /api/checkin           → service role            │
+│  • /api/customer/profile  → service role            │
+│  • /api/payments          → service role            │
+│  • /api/whatsapp          → service role            │
+│  • Validação de entrada em todas as rotas           │
+└──────────────────────┬──────────────────────────────┘
+                       │ service_role_key (secreta)
+┌──────────────────────▼──────────────────────────────┐
+│  Supabase / PostgreSQL                              │
+│  • RLS ativo em todas as 14 tabelas                 │
+│  • CPF armazenado cifrado                           │
+│  • Índices por hash (não por valor)                 │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+### 12.3 Row Level Security — mapa completo
+
+| Tabela | Acesso público (ANON) | Acesso admin (auth) |
+|--------|----------------------|---------------------|
+| `restaurants` | ✗ nenhum | ✓ owner_all (só o próprio) |
+| `tables` | ✗ nenhum | ✓ owner_all (só do próprio restaurante) |
+| `customers` | INSERT apenas (check-in via API) | ✓ SELECT clientes do próprio restaurante |
+| `sessions` | INSERT + SELECT + UPDATE status | ✓ UPDATE pelo dono |
+| `session_participants` | INSERT + SELECT + UPDATE | — |
+| `menu_categories` | SELECT (leitura do cardápio) | ✓ owner_all |
+| `menu_items` | SELECT (leitura do cardápio) | ✓ owner_all |
+| `orders` | INSERT + SELECT | ✓ UPDATE status |
+| `order_items` | INSERT + SELECT + UPDATE | — |
+| `payments` | INSERT + SELECT | ✓ UPDATE (confirmação) |
+| `close_requests` | INSERT + SELECT + UPDATE | — |
+| `close_request_participants` | INSERT + SELECT + UPDATE | — |
+| `loyalty_rules` | SELECT (ativas apenas) | ✓ owner_all |
+| `customer_visits` | INSERT apenas | ✓ SELECT do próprio restaurante |
+
+> **Por que `sessions`, `orders`, `payments` têm SELECT público?**
+> O cliente precisa acompanhar seus pedidos em tempo real. O `session_id` (UUID v4 —
+> 122 bits de entropia) funciona como um "token de acesso" — virtualmente impossível
+> de adivinhar. Na Fase 2, com autenticação OTP, essas policies serão restritas
+> por `auth.uid()`.
+
+---
+
+### 12.4 Criptografia de CPF
+
+O CPF é dado sensível para fins de LGPD. Nunca é armazenado em texto puro.
+
+**Dois campos substituem a coluna `cpf` antiga:**
+
+```
+cpf_hash      — HMAC-SHA256(CPF, CPF_HASH_SALT)
+cpf_encrypted — AES-256-GCM(CPF, CPF_ENCRYPTION_KEY)
+```
+
+**Módulo:** `src/lib/crypto.ts`
+
+| Função | Uso | Reversível |
+|--------|-----|-----------|
+| `hashCPF(cpf)` | Lookup e unicidade no banco | Não |
+| `encryptCPF(cpf)` | Armazenamento para NF-e futura | Sim (service role) |
+| `decryptCPF(data)` | Recuperar CPF para NF-e | Sim (apenas server-side) |
+| `maskCPFDisplay(cpf)` | Exibir `***.456.789-**` | N/A |
+
+**Fluxo de check-in com CPF:**
+
+```
+Cliente informa CPF "123.456.789-09"
+              │
+              ▼  (server-side: /api/checkin)
+hashCPF("12345678909")    → "a3f8c..." (salvo em cpf_hash)
+encryptCPF("12345678909") → "iv:enc:tag" (salvo em cpf_encrypted)
+              │
+              ▼
+Banco: cpf_hash = "a3f8c...", cpf_encrypted = "iv:enc:tag"
+              │
+              ▼  (verificação de retorno)
+hashCPF(input) == cpf_hash → cliente reconhecido
+```
+
+**Geração das chaves (fazer uma vez, guardar em segredo):**
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# → use o output como CPF_ENCRYPTION_KEY (32 bytes = 64 chars hex)
+# → use outro output como CPF_HASH_SALT
+```
+
+> **ATENÇÃO:** Se `CPF_HASH_SALT` for alterado, os hashes antigos não casamais com
+> novos inputs. Clientes não serão reconhecidos. **Nunca altere em produção.**
+
+---
+
+### 12.5 Padrão service role
+
+A `SUPABASE_SERVICE_ROLE_KEY` bypassa completamente o RLS. Só é usada server-side:
+
+```typescript
+// src/lib/supabase/admin.ts
+import { createClient } from '@supabase/supabase-js'
+
+export function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,  // NUNCA expor no browser
+    { auth: { persistSession: false } }
+  )
+}
+```
+
+**Regra:** se uma API route usa `createAdminClient()`, ela **deve** validar a
+legitimidade da requisição (parâmetros obrigatórios, existência do recurso) antes
+de executar qualquer operação de escrita.
+
+---
+
+### 12.6 O que ainda falta (Fase 2)
+
+| Feature | Benefício | Complexidade |
+|---------|-----------|-------------|
+| Autenticação OTP WhatsApp | RLS por `auth.uid()` em sessions/orders/payments | Alta |
+| Criptografia de WhatsApp | Proteção total do identificador primário | Média |
+| Política de retenção de dados | LGPD: direito ao esquecimento | Média |
+| Audit log | Rastrear quem acessou dados de clientes | Baixa |
+
+---
+
+## 13. API Routes
+
+### `POST /api/checkin` ⚠️ server-side
+
+Realiza o check-in do cliente. Usa service role — nunca acessada diretamente pelo browser.
+
+**Body:**
+```json
+{
+  "slug": "meu-restaurante",
+  "mesa": "4",
+  "firstName": "João",
+  "lastName": "Silva",
+  "whatsapp": "11999999999",
+  "documentType": "cpf",
+  "cpf": "12345678909"
+}
+```
+
+**Response:**
+```json
+{ "sessionId": "uuid", "customerId": "uuid", "isJoining": false }
+```
+
+---
+
+### `GET /api/customer/profile?session=UUID` ⚠️ server-side
+
+Retorna dados seguros do cliente para exibição no perfil. CPF nunca retornado.
+
+**Response:**
+```json
+{
+  "firstName": "João", "lastName": "Silva",
+  "whatsapp": "11999999999",
+  "hasCpf": true, "documentType": "cpf",
+  "visits": 3,
+  "nextReward": { "visit_count": 5, "benefit_value": "Chope grátis" }
+}
+```
+
+---
+
+### `PATCH /api/customer/profile` ⚠️ server-side
+
+Atualiza nome do cliente. WhatsApp é imutável.
+
+**Body:** `{ "sessionId": "uuid", "firstName": "João", "lastName": "Novo" }`
+
+---
 
 ### `POST /api/payments`
 
@@ -771,7 +983,7 @@ Em desenvolvimento sem credenciais: `{ "success": true, "mock": true }`
 
 ---
 
-## 13. Variáveis de Ambiente
+## 14. Variáveis de Ambiente
 
 Criar o arquivo `.env.local` na raiz do projeto:
 
@@ -805,7 +1017,7 @@ NEXT_PUBLIC_DEV_BYPASS=true
 
 ---
 
-## 14. Configuração Inicial (Supabase)
+## 15. Configuração Inicial (Supabase)
 
 ### Passo 1 — Criar projeto
 
@@ -836,7 +1048,7 @@ Com o sistema rodando, acesse `/cadastro` e crie um restaurante. Ou use o modo d
 
 ---
 
-## 15. Modo Desenvolvimento (Demo)
+## 16. Modo Desenvolvimento
 
 Para desenvolvimento sem banco de dados, use o modo demo:
 
@@ -863,7 +1075,7 @@ NEXT_PUBLIC_DEV_BYPASS=true
 
 ---
 
-## 16. Roadmap
+## 17. Roadmap
 
 Ver arquivo [ROADMAP.md](../ROADMAP.md) para o roadmap detalhado com status de cada feature.
 
