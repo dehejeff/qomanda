@@ -1,4 +1,32 @@
 export type RestaurantStatus = 'active' | 'inactive'
+
+export interface Customer {
+  id: string
+  first_name: string
+  last_name: string
+  whatsapp: string
+  created_at: string
+}
+
+export type LoyaltyBenefitType = 'free_drink' | 'free_item' | 'discount_pct' | 'custom'
+
+export interface LoyaltyRule {
+  id: string
+  restaurant_id: string
+  visit_count: number
+  benefit_type: LoyaltyBenefitType
+  benefit_value: string
+  active: boolean
+  created_at: string
+}
+
+export interface CustomerVisit {
+  id: string
+  customer_id: string
+  restaurant_id: string
+  session_id: string
+  created_at: string
+}
 export type TableStatus = 'free' | 'occupied' | 'reserved'
 export type SessionStatus = 'open' | 'closing' | 'closed'
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'

@@ -1,0 +1,271 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { mockRestaurant, mockOrders } from '@/lib/dev-mock'
+import { CustomerBottomNav } from '@/components/customer/bottom-nav'
+import { formatCurrency } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; progress: number }> = {
+  pending:   { label: 'Aguardando confirmação', color: '#f59e0b', icon: 'pending',       progress: 15  },
+  confirmed: { label: 'Pedido confirmado',      color: '#7bd0ff', icon: 'check_circle',  progress: 35  },
+  preparing: { label: 'Preparando com carinho', color: '#f97316', icon: 'skillet',       progress: 65  },
+  ready:     { label: 'Pronto! A caminho',       color: '#34d399', icon: 'done_all',      progress: 90  },
+  delivered: { label: 'Entregue',               color: '#a78b7d', icon: 'check',         progress: 100 },
+}
+
+export default function CustomerHomePage() {
+  const params = useParams<{ slug: string }>()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const sessionId = searchParams.get('session')
+
+  const [restaurantName, setRestaurantName] = useState('')
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [tableNumber, setTableNumber] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [latestOrder, setLatestOrder] = useState<{ status: string; total: number; itemCount: number } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!sessionId) { router.replace(`/${params.slug}`); return }
+    const name = localStorage.getItem('qomanda_customer_name') ?? 'Cliente'
+    setCustomerName(name)
+  }, [sessionId, params.slug, router])
+
+  useEffect(() => {
+    if (!sessionId) return
+
+    if (params.slug === 'demo') {
+      setRestaurantName(mockRestaurant.name)
+      setLogoUrl(mockRestaurant.logo_url)
+      setTableNumber('04')
+      const order = mockOrders[0]
+      const total = (order.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
+      setLatestOrder({ status: order.status, total, itemCount: order.items?.length ?? 0 })
+      setLoading(false)
+      return
+    }
+
+    async function load() {
+      const supabase = createClient()
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('*, restaurant:restaurants(*), table:tables(*)')
+        .eq('id', sessionId)
+        .single()
+
+      if (!session) { router.replace(`/${params.slug}`); return }
+
+      setRestaurantName((session.restaurant as any)?.name ?? '')
+      setLogoUrl((session.restaurant as any)?.logo_url ?? null)
+      setTableNumber((session.table as any)?.number ?? '')
+
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('status, items:order_items(unit_price, quantity)')
+        .eq('session_id', sessionId)
+        .not('status', 'in', '("cancelled","delivered")')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (orders && orders.length > 0) {
+        const o = orders[0] as any
+        const total = (o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+        setLatestOrder({ status: o.status, total, itemCount: o.items?.length ?? 0 })
+      }
+
+      setLoading(false)
+    }
+    load()
+  }, [sessionId, params.slug, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      </div>
+    )
+  }
+
+  const statusCfg = latestOrder ? (STATUS_CONFIG[latestOrder.status] ?? STATUS_CONFIG.pending) : null
+  const firstName = customerName.split(' ')[0]
+
+  return (
+    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      {/* Ambient glow */}
+      <div className="pointer-events-none fixed top-[-10%] right-[-5%] w-[50%] h-[40%] rounded-full" style={{ background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)' }} />
+      <div className="pointer-events-none fixed bottom-0 left-[-10%] w-[40%] h-[30%] rounded-full" style={{ background: 'rgba(123,208,255,0.06)', filter: 'blur(80px)' }} />
+
+      {/* Header */}
+      <header
+        className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
+        style={{ background: 'rgba(11,19,38,0.85)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}
+      >
+        <div className="flex items-center gap-3">
+          {logoUrl ? (
+            <img src={logoUrl} alt={restaurantName} className="h-8 w-auto object-contain" />
+          ) : (
+            <span className="font-bold text-base" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+              {restaurantName}
+            </span>
+          )}
+        </div>
+        <span
+          className="text-xs font-mono px-3 py-1.5 rounded-lg"
+          style={{ background: 'rgba(249,115,22,0.12)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.2)' }}
+        >
+          Mesa {tableNumber}
+        </span>
+      </header>
+
+      <main className="px-6 pt-6 space-y-5 relative z-10">
+        {/* Welcome */}
+        <div>
+          <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Bem-vindo de volta,</p>
+          <h1 className="text-3xl font-bold tracking-tight mt-0.5" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
+            Olá, <span style={{ color: '#ffb690' }}>{firstName}!</span>
+          </h1>
+        </div>
+
+        {/* Active order status card */}
+        {latestOrder && statusCfg ? (
+          <div
+            className="rounded-xl p-5 relative overflow-hidden"
+            style={{ background: 'linear-gradient(145deg, #1e293b 0%, #131b2e 100%)', border: '1px solid #334155' }}
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-8 pointer-events-none">
+              <span className="material-symbols-outlined text-[72px]" style={{ color: statusCfg.color }}>timer</span>
+            </div>
+            <div className="flex items-center gap-3 mb-2">
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ background: statusCfg.color, boxShadow: `0 0 8px ${statusCfg.color}90`, animation: 'pulse 2s infinite' }}
+              />
+              <span className="text-xs font-mono uppercase tracking-widest" style={{ color: statusCfg.color }}>
+                {statusCfg.label}
+              </span>
+            </div>
+            <p className="text-sm mb-4" style={{ color: '#e0c0b1' }}>
+              {latestOrder.itemCount} {latestOrder.itemCount === 1 ? 'item' : 'itens'} · {formatCurrency(latestOrder.total)}
+            </p>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{ width: `${statusCfg.progress}%`, background: statusCfg.color, boxShadow: `0 0 12px ${statusCfg.color}60` }}
+              />
+            </div>
+            <Link
+              href={`/${params.slug}/orders?session=${sessionId}`}
+              className="flex items-center gap-1 text-xs font-mono mt-3 w-fit transition-colors"
+              style={{ color: '#a78b7d' }}
+            >
+              Ver detalhes
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </Link>
+          </div>
+        ) : (
+          <div
+            className="rounded-xl p-5 flex items-center gap-4"
+            style={{ background: '#131b2e', border: '1px dashed rgba(88,66,55,0.5)' }}
+          >
+            <span className="material-symbols-outlined text-[32px]" style={{ color: '#584237' }}>receipt_long</span>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Nenhum pedido ainda</p>
+              <p className="text-xs" style={{ color: '#a78b7d' }}>Acesse o cardápio e faça seu pedido</p>
+            </div>
+          </div>
+        )}
+
+        {/* Quick actions */}
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-3" style={{ color: '#a78b7d' }}>Acesso rápido</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              {
+                href: `/${params.slug}/menu?session=${sessionId}`,
+                icon: 'restaurant_menu',
+                label: 'Cardápio',
+                desc: 'Ver todos os pratos',
+                accent: '#f97316',
+              },
+              {
+                href: `/${params.slug}/orders?session=${sessionId}`,
+                icon: 'list_alt',
+                label: 'Meus Pedidos',
+                desc: 'Acompanhar status',
+                accent: '#7bd0ff',
+              },
+              {
+                href: `/${params.slug}/checkout?session=${sessionId}`,
+                icon: 'account_balance_wallet',
+                label: 'Fechar Conta',
+                desc: 'Pagar e encerrar',
+                accent: '#34d399',
+              },
+              {
+                href: '#',
+                icon: 'support_agent',
+                label: 'Chamar Garçom',
+                desc: 'Em breve',
+                accent: '#a78b7d',
+                disabled: true,
+              },
+            ].map(item => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex flex-col gap-3 p-4 rounded-xl transition-all active:scale-95 ${item.disabled ? 'opacity-40 pointer-events-none' : ''}`}
+                style={{ background: '#1e293b', border: '1px solid #334155' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ background: `${item.accent}18` }}
+                >
+                  <span className="material-symbols-outlined text-[22px]" style={{ color: item.accent }}>
+                    {item.icon}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{item.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{item.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Session info */}
+        <div
+          className="rounded-xl px-5 py-4 flex items-center justify-between"
+          style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.3)' }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>info</span>
+            <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+              {restaurantName} · Mesa {tableNumber}
+            </span>
+          </div>
+          <span
+            className="text-[10px] font-mono px-2 py-0.5 rounded"
+            style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399' }}
+          >
+            ATIVO
+          </span>
+        </div>
+      </main>
+
+      <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
+    </div>
+  )
+}

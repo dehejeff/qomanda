@@ -35,17 +35,53 @@ create table tables (
 );
 
 -- ============================================================
+-- CUSTOMERS
+-- ============================================================
+create table customers (
+  id          uuid primary key default uuid_generate_v4(),
+  first_name  text not null,
+  last_name   text not null,
+  whatsapp    text not null unique,
+  created_at  timestamptz not null default now()
+);
+
+-- ============================================================
 -- SESSIONS
 -- ============================================================
 create table sessions (
   id             uuid primary key default uuid_generate_v4(),
   table_id       uuid references tables(id) on delete cascade not null,
   restaurant_id  uuid references restaurants(id) on delete cascade not null,
+  customer_id    uuid references customers(id) on delete set null,
   status         text not null default 'open' check (status in ('open','closing','closed')),
   started_at     timestamptz not null default now(),
   closed_at      timestamptz,
   -- Histórico de trocas de mesa: [{from: "1", to: "2", at: "ISO"}]
   table_history  jsonb not null default '[]'
+);
+
+-- ============================================================
+-- LOYALTY RULES  (regras configuradas pelo admin do restaurante)
+-- ============================================================
+create table loyalty_rules (
+  id             uuid primary key default uuid_generate_v4(),
+  restaurant_id  uuid references restaurants(id) on delete cascade not null,
+  visit_count    int not null check (visit_count > 0),
+  benefit_type   text not null check (benefit_type in ('free_drink','free_item','discount_pct','custom')),
+  benefit_value  text not null,
+  active         boolean not null default true,
+  created_at     timestamptz not null default now()
+);
+
+-- ============================================================
+-- CUSTOMER VISITS  (base para programa de fidelidade)
+-- ============================================================
+create table customer_visits (
+  id             uuid primary key default uuid_generate_v4(),
+  customer_id    uuid references customers(id) on delete cascade not null,
+  restaurant_id  uuid references restaurants(id) on delete cascade not null,
+  session_id     uuid references sessions(id) on delete cascade not null unique,
+  created_at     timestamptz not null default now()
 );
 
 -- Quando uma sessão abre, marca a mesa como ocupada
@@ -138,14 +174,29 @@ create table payments (
 -- ROW LEVEL SECURITY
 -- ============================================================
 
-alter table restaurants    enable row level security;
-alter table tables         enable row level security;
-alter table sessions       enable row level security;
-alter table menu_categories enable row level security;
-alter table menu_items     enable row level security;
-alter table orders         enable row level security;
-alter table order_items    enable row level security;
-alter table payments       enable row level security;
+alter table restaurants      enable row level security;
+alter table tables           enable row level security;
+alter table customers        enable row level security;
+alter table sessions         enable row level security;
+alter table customer_visits  enable row level security;
+alter table menu_categories  enable row level security;
+alter table menu_items       enable row level security;
+alter table orders           enable row level security;
+alter table order_items      enable row level security;
+alter table payments         enable row level security;
+
+-- Loyalty rules: dono do restaurante gerencia
+alter table loyalty_rules enable row level security;
+create policy "owner_all" on loyalty_rules for all
+  using (restaurant_id in (select id from restaurants where owner_id = auth.uid()));
+
+-- Customers: público insere e consulta o próprio (por whatsapp)
+create policy "public_insert" on customers for insert with check (true);
+create policy "public_select" on customers for select using (true);
+
+-- Customer visits: público insere, dono do restaurante consulta
+create policy "public_insert" on customer_visits for insert with check (true);
+create policy "public_select" on customer_visits for select using (true);
 
 -- Restaurantes: dono vê/edita o próprio
 create policy "owner_all" on restaurants for all using (owner_id = auth.uid());

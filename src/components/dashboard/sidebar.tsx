@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
+import { QomandaLogo } from '@/components/qomanda-logo'
 
 const NAV_ITEMS = [
   { href: '/dashboard',        icon: 'dashboard',        label: 'Overview' },
@@ -28,14 +29,12 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-surface-container border-r border-outline-variant p-4 gap-base z-50">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container flex-shrink-0">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>restaurant</span>
+        <div className="flex flex-col gap-1 px-2 mb-8">
+          <div className="flex items-center gap-2.5">
+            <QomandaLogo size={32} />
+            <h1 className="text-xl font-black text-on-surface leading-tight" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Qomanda</h1>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-primary leading-tight" style={{ fontFamily: 'Geist, sans-serif' }}>Qomanda</h1>
-            <p className="text-[11px] text-on-surface-variant opacity-70 font-mono truncate max-w-[140px]">{restaurantName}</p>
-          </div>
+          <p className="text-[11px] text-on-surface-variant opacity-60 font-mono truncate pl-1">{restaurantName}</p>
         </div>
 
         {/* Nav */}
