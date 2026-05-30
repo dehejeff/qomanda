@@ -139,7 +139,7 @@ export default function LandingPage() {
   const [mobileMenu, setMobileMenu] = useState(false)
 
   return (
-    <div style={{ background: C.bg, color: C.text, ...font }} className="min-h-screen">
+    <div style={{ background: C.bg, color: C.text, ...font }} className="min-h-screen overflow-x-hidden w-full">
 
       {/* ── NAVBAR ──────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50"
@@ -262,7 +262,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FEATURES ────────────────────────────────────────── */}
-      <section id="funcionalidades" className="py-24 px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="funcionalidades" className="py-24 px-4 md:px-12 w-full max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <Tag color={C.blue}>Funcionalidades</Tag>
           <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4" style={{ letterSpacing: '-0.02em' }}>
@@ -296,7 +296,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── HOW IT WORKS ────────────────────────────────────── */}
-      <section id="como-funciona" className="py-24 px-6 md:px-12"
+      <section id="como-funciona" className="py-24 px-4 md:px-12 w-full"
         style={{ background: C.bgCard }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
@@ -346,7 +346,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ─────────────────────────────────────────── */}
-      <section id="preços" className="py-24 px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="preços" className="py-24 px-4 md:px-12 w-full max-w-6xl mx-auto">
         <div className="text-center mb-6">
           <Tag color={C.primary}>Preços</Tag>
           <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4" style={{ letterSpacing: '-0.02em' }}>
@@ -454,12 +454,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── COMPARISON ──────────────────────────────────────── */}
-      <section className="py-16 px-5 md:px-12 max-w-4xl mx-auto">
+      <section className="py-16 px-4 md:px-12 w-full max-w-4xl mx-auto">
         <h3 className="text-2xl font-black text-center mb-10" style={{ letterSpacing: '-0.02em' }}>
           Por que a Qomanda?
         </h3>
         <div className="rounded-2xl overflow-hidden overflow-x-auto" style={{ border: `1px solid ${C.borderBlu}` }}>
-          <table className="w-full text-sm" style={{ minWidth: 480 }}>
+          <table className="w-full text-sm" style={{ minWidth: 400 }}>
             <thead>
               <tr style={{ background: C.bgCard }}>
                 <th className="text-left px-5 py-4 font-mono text-xs uppercase tracking-wider" style={{ color: C.muted }}>Funcionalidade</th>
@@ -500,7 +500,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FAQ ─────────────────────────────────────────────── */}
-      <section id="faq" className="py-24 px-6 md:px-12 max-w-3xl mx-auto">
+      <section id="faq" className="py-24 px-4 md:px-12 w-full max-w-3xl mx-auto">
         <div className="text-center mb-12">
           <Tag color={C.muted}>FAQ</Tag>
           <h2 className="text-4xl font-black mt-4" style={{ letterSpacing: '-0.02em' }}>Dúvidas frequentes</h2>
@@ -555,8 +555,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ──────────────────────────────────────────── */}
-      <footer className="py-12 px-6 md:px-12" style={{ borderTop: `1px solid ${C.border}` }}>
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+      <footer className="py-12 px-4 md:px-12 w-full" style={{ borderTop: `1px solid ${C.border}` }}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           <div className="flex items-center gap-2.5">
             <QomandaLogo size={28} />
             <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>

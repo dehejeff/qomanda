@@ -115,23 +115,23 @@ export default function TablesPage() {
     <>
       <div className="space-y-stack-lg">
         {/* Header */}
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-center gap-3">
           <div>
-            <h2 className="text-3xl font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Mesas</h2>
-            <p className="text-sm text-on-surface-variant mt-1">{tables.length} mesas cadastradas</p>
+            <h2 className="text-2xl md:text-3xl font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Mesas</h2>
+            <p className="text-sm text-on-surface-variant mt-0.5">{tables.length} mesas cadastradas</p>
           </div>
           <button
             onClick={addTable}
             disabled={adding}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 shrink-0"
           >
             {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="material-symbols-outlined text-[18px]">add</span>}
-            Nova Mesa
+            <span className="hidden sm:inline">Nova Mesa</span>
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-card-gap">
+        <div className="grid grid-cols-3 gap-3 md:gap-card-gap">
           {[
             { label: 'OCUPADAS',   value: occupied, color: 'text-primary' },
             { label: 'RESERVADAS', value: reserved, color: 'text-amber-400' },
@@ -145,7 +145,7 @@ export default function TablesPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-3 md:gap-6">
           <span className="text-xs font-mono text-on-surface-variant">Legenda:</span>
           {[
             { cls: 'border border-outline-variant',                       label: 'Livre' },
@@ -157,7 +157,7 @@ export default function TablesPage() {
               <span className="text-xs font-mono text-on-surface-variant">{label}</span>
             </div>
           ))}
-          <span className="text-xs font-mono text-on-surface-variant/50 ml-auto">
+          <span className="hidden md:block text-xs font-mono text-on-surface-variant/50 ml-auto">
             Livre → QR Code · Ocupada/Reservada → Gerenciar
           </span>
         </div>
