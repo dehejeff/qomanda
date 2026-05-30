@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe, formatAmountForStripe } from '@/lib/stripe'
+import { getStripe, formatAmountForStripe } from '@/lib/stripe'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (method === 'credit') {
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await getStripe().paymentIntents.create({
         amount: formatAmountForStripe(amount),
         currency: 'brl',
         metadata: { payment_id: payment.id, session_id },
