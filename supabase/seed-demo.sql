@@ -1,14 +1,9 @@
 -- ============================================================
 -- Qomanda — Dados de teste: Tasca do Porto
 -- ============================================================
--- ÚNICO PASSO:
---   1. Crie o usuário admin em:
---      Supabase → Authentication → Users → Add User
---      (use o email que vai acessar o painel)
---
---   2. Substitua o email abaixo pelo email que você cadastrou
---
---   3. Execute no SQL Editor do Supabase
+-- Admin: admin@tascaporto.com
+-- UUID:  d9de81b1-5b87-4b5a-a041-541602c2f1a1
+-- Pronto para executar — sem substituições necessárias.
 -- ============================================================
 
 DO $$
@@ -18,15 +13,8 @@ DECLARE
 
 BEGIN
 
-  -- ── Busca o UUID do usuário pelo email ──────────────────
-  SELECT id INTO v_owner_id
-  FROM auth.users
-  WHERE email = 'SEU_EMAIL@AQUI.COM';   -- ← TROQUE ESTE EMAIL
-
-  IF v_owner_id IS NULL THEN
-    RAISE EXCEPTION
-      'Usuário não encontrado. Crie o usuário em Authentication → Users primeiro.';
-  END IF;
+  -- UUID do usuário admin da Tasca do Porto
+  v_owner_id := 'd9de81b1-5b87-4b5a-a041-541602c2f1a1';
 
   -- ── 1. RESTAURANTE ────────────────────────────────────
   INSERT INTO restaurants (
