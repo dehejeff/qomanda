@@ -38,11 +38,15 @@ create table tables (
 -- CUSTOMERS
 -- ============================================================
 create table customers (
-  id          uuid primary key default uuid_generate_v4(),
-  first_name  text not null,
-  last_name   text not null,
-  whatsapp    text not null unique,
-  created_at  timestamptz not null default now()
+  id              uuid primary key default uuid_generate_v4(),
+  first_name      text not null,
+  last_name       text not null,
+  whatsapp        text not null unique,
+  -- Documento de identificação (opcional — aumenta estabilidade do ID único)
+  document_type   text check (document_type in ('cpf', 'passport')),
+  cpf             text unique,          -- apenas dígitos, 11 chars
+  passport        text,                 -- passaporte para estrangeiros
+  created_at      timestamptz not null default now()
 );
 
 -- ============================================================

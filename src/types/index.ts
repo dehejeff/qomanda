@@ -5,6 +5,9 @@ export interface Customer {
   first_name: string
   last_name: string
   whatsapp: string
+  document_type: 'cpf' | 'passport' | null
+  cpf: string | null
+  passport: string | null
   created_at: string
 }
 

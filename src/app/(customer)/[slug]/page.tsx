@@ -8,6 +8,8 @@ import { mockRestaurant, mockTables } from '@/lib/dev-mock'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
+// ── Helpers ─────────────────────────────────────────────────
+
 function formatWhatsApp(value: string) {
   const d = value.replace(/\D/g, '').slice(0, 11)
   if (d.length <= 2) return d.length ? `(${d}` : ''
@@ -15,18 +17,52 @@ function formatWhatsApp(value: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
+function maskCPF(value: string) {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}
+
+function validateCPF(cpf: string): boolean {
+  const d = cpf.replace(/\D/g, '')
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false
+  let sum = 0
+  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i)
+  let r1 = 11 - (sum % 11)
+  if (r1 >= 10) r1 = 0
+  sum = 0
+  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i)
+  let r2 = 11 - (sum % 11)
+  if (r2 >= 10) r2 = 0
+  return r1 === parseInt(d[9]) && r2 === parseInt(d[10])
+}
+
+// ── Component ────────────────────────────────────────────────
+
 export default function CheckInPage() {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
+
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]       = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
-  const [checkedIn, setCheckedIn] = useState(false)
+  const [checkedIn, setCheckedIn]   = useState(false)
   const [tableNumber, setTableNumber] = useState('1')
 
+  // Form fields
   const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
+  const [lastName, setLastName]   = useState('')
+  const [whatsapp, setWhatsapp]   = useState('')
+  const [docType, setDocType]     = useState<'cpf' | 'passport'>('cpf')
+  const [cpf, setCpf]             = useState('')
+  const [passport, setPassport]   = useState('')
+
+  // CPF validation state
+  const cpfDigits   = cpf.replace(/\D/g, '')
+  const cpfComplete = cpfDigits.length === 11
+  const cpfValid    = cpfComplete && validateCPF(cpf)
 
   useEffect(() => {
     setTableNumber(new URLSearchParams(window.location.search).get('mesa') ?? '1')
@@ -38,21 +74,12 @@ export default function CheckInPage() {
       setLoading(false)
       return
     }
-
     async function loadRestaurant() {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('slug', params.slug)
-        .eq('status', 'active')
-        .single()
-
-      if (error || !data) {
-        toast.error('Restaurante não encontrado.')
-        setLoading(false)
-        return
-      }
+        .from('restaurants').select('*')
+        .eq('slug', params.slug).eq('status', 'active').single()
+      if (error || !data) { toast.error('Restaurante não encontrado.'); setLoading(false); return }
       setRestaurant(data)
       setLoading(false)
     }
@@ -61,23 +88,20 @@ export default function CheckInPage() {
 
   async function handleCheckIn() {
     if (!restaurant) return
-
-    const name = firstName.trim()
+    const name    = firstName.trim()
     const surname = lastName.trim()
-    const phone = whatsapp.replace(/\D/g, '')
+    const phone   = whatsapp.replace(/\D/g, '')
 
-    if (!name || !surname) {
-      toast.error('Informe seu nome e sobrenome.')
-      return
-    }
-    if (phone.length < 10) {
-      toast.error('Informe um WhatsApp válido.')
-      return
+    if (!name || !surname) { toast.error('Informe seu nome e sobrenome.'); return }
+    if (phone.length < 10)  { toast.error('Informe um WhatsApp válido.'); return }
+    if (docType === 'cpf' && cpf && !cpfValid) {
+      toast.error('CPF inválido. Verifique os números.'); return
     }
 
     setCheckingIn(true)
     const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
 
+    // ── Demo mode ──
     if (params.slug === 'demo') {
       await new Promise(r => setTimeout(r, 600))
       const fakeSessionId = `demo-session-${Date.now()}`
@@ -90,39 +114,67 @@ export default function CheckInPage() {
       return
     }
 
+    // ── Production ──
     const supabase = createClient()
 
-    // Upsert customer por whatsapp (identidade única)
-    const { data: customer, error: customerError } = await supabase
-      .from('customers')
-      .upsert({ first_name: name, last_name: surname, whatsapp: phone }, { onConflict: 'whatsapp' })
-      .select()
-      .single()
-
-    if (customerError || !customer) {
-      toast.error('Erro ao salvar seus dados. Tente novamente.')
-      setCheckingIn(false)
-      return
+    // Build customer payload
+    const customerPayload: Record<string, unknown> = {
+      first_name: name,
+      last_name: surname,
+      whatsapp: phone,
+    }
+    if (docType === 'cpf' && cpfDigits.length === 11) {
+      customerPayload.document_type = 'cpf'
+      customerPayload.cpf = cpfDigits
+    } else if (docType === 'passport' && passport.trim()) {
+      customerPayload.document_type = 'passport'
+      customerPayload.passport = passport.trim()
     }
 
+    // Upsert strategy: CPF first (more stable), then WhatsApp
+    let customerId: string | null = null
+
+    if (docType === 'cpf' && cpfDigits.length === 11) {
+      // Try to find existing customer by CPF
+      const { data: byCpf } = await supabase
+        .from('customers').select('id').eq('cpf', cpfDigits).single()
+
+      if (byCpf) {
+        // Update name/WhatsApp in case they changed
+        await supabase.from('customers').update({
+          first_name: name, last_name: surname, whatsapp: phone,
+        }).eq('id', byCpf.id)
+        customerId = byCpf.id
+      }
+    }
+
+    if (!customerId) {
+      // Fallback: upsert by WhatsApp
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .upsert(customerPayload, { onConflict: 'whatsapp' })
+        .select().single()
+
+      if (customerError || !customer) {
+        toast.error('Erro ao salvar seus dados. Tente novamente.')
+        setCheckingIn(false)
+        return
+      }
+      customerId = customer.id
+    }
+
+    // Get table
     const { data: table } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .eq('number', mesa)
-      .single()
+      .from('tables').select('*')
+      .eq('restaurant_id', restaurant.id).eq('number', mesa).single()
 
-    if (!table) {
-      toast.error('Mesa não encontrada.')
-      setCheckingIn(false)
-      return
-    }
+    if (!table) { toast.error('Mesa não encontrada.'); setCheckingIn(false); return }
 
+    // Create session
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
-      .insert({ table_id: table.id, restaurant_id: restaurant.id, customer_id: customer.id, status: 'open' })
-      .select()
-      .single()
+      .insert({ table_id: table.id, restaurant_id: restaurant.id, customer_id: customerId, status: 'open' })
+      .select().single()
 
     if (sessionError || !session) {
       toast.error('Erro ao realizar check-in. Tente novamente.')
@@ -130,9 +182,9 @@ export default function CheckInPage() {
       return
     }
 
-    // Registra visita para fidelidade
+    // Register visit for loyalty
     await supabase.from('customer_visits').insert({
-      customer_id: customer.id,
+      customer_id: customerId,
       restaurant_id: restaurant.id,
       session_id: session.id,
     })
@@ -146,8 +198,9 @@ export default function CheckInPage() {
   }
 
   const tableLabel = tableNumber.padStart(2, '0')
-  const formValid = firstName.trim() && lastName.trim() && whatsapp.replace(/\D/g, '').length >= 10
+  const formValid  = firstName.trim() && lastName.trim() && whatsapp.replace(/\D/g, '').length >= 10
 
+  // ── Loading ──────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
@@ -156,9 +209,11 @@ export default function CheckInPage() {
     )
   }
 
+  // ── Not found ─────────────────────────────────────────────
   if (!restaurant) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
+        style={{ background: '#0b1326', color: '#dae2fd' }}>
         <span className="material-symbols-outlined mb-4" style={{ fontSize: 64, color: '#584237' }}>no_meals</span>
         <h1 className="text-xl font-semibold">Restaurante não encontrado</h1>
         <p className="mt-2 text-sm" style={{ color: '#e0c0b1' }}>Verifique o QR Code e tente novamente.</p>
@@ -166,21 +221,22 @@ export default function CheckInPage() {
     )
   }
 
+  // ── Main ──────────────────────────────────────────────────
   return (
-    <div
-      className="min-h-screen flex flex-col items-center relative"
-      style={{ background: '#0b1326', color: '#dae2fd' }}
-    >
+    <div className="min-h-screen flex flex-col items-center relative"
+      style={{ background: '#0b1326', color: '#dae2fd' }}>
       {/* Ambient glow */}
-      <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full" style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
-      <div className="pointer-events-none fixed bottom-[-5%] right-[-5%] w-[40%] h-[30%] rounded-full" style={{ background: 'rgba(123,208,255,0.07)', filter: 'blur(100px)' }} />
+      <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
+        style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+      <div className="pointer-events-none fixed bottom-[-5%] right-[-5%] w-[40%] h-[30%] rounded-full"
+        style={{ background: 'rgba(123,208,255,0.07)', filter: 'blur(100px)' }} />
 
       <div className="relative z-10 w-full max-w-md px-6 pb-10 flex flex-col">
         {/* Header */}
         <header className="pt-8 flex flex-col items-center gap-5 mb-7">
           <div className="flex justify-center items-center h-16">
             {restaurant.logo_url ? (
-              <img src={restaurant.logo_url} alt={`${restaurant.name} logo`} className="max-w-[160px] max-h-14 object-contain" />
+              <img src={restaurant.logo_url} alt={restaurant.name} className="max-w-[160px] max-h-14 object-contain" />
             ) : (
               <span className="text-2xl font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
             )}
@@ -198,7 +254,8 @@ export default function CheckInPage() {
 
         {/* Bento grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="col-span-2 p-4 rounded-xl flex items-center justify-between relative overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+          <div className="col-span-2 p-4 rounded-xl flex items-center justify-between relative overflow-hidden"
+            style={{ background: '#1e293b', border: '1px solid #334155' }}>
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%)' }} />
             <div className="relative z-10">
               <span className="text-xs font-mono uppercase tracking-wider block mb-1" style={{ color: '#e0c0b1' }}>MESA ATUAL</span>
@@ -226,94 +283,131 @@ export default function CheckInPage() {
         </div>
 
         {/* Form */}
-        <div className="rounded-xl p-5 flex flex-col gap-4 mb-6" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+        <div className="rounded-xl p-5 flex flex-col gap-4 mb-6"
+          style={{ background: '#1e293b', border: '1px solid #334155' }}>
+
+          {/* Name row */}
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined text-[20px]" style={{ color: '#ffb690' }}>person</span>
             <span className="text-sm font-semibold">Seus dados</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>Nome</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                placeholder="João"
-                autoComplete="given-name"
-                className="w-full h-11 px-3 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: '#0b1326',
-                  border: '1px solid #584237',
-                  color: '#dae2fd',
-                }}
-                onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>Sobrenome</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                placeholder="Silva"
-                autoComplete="family-name"
-                className="w-full h-11 px-3 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: '#0b1326',
-                  border: '1px solid #584237',
-                  color: '#dae2fd',
-                }}
-                onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')}
-              />
-            </div>
+            {[
+              { label: 'Nome', value: firstName, set: setFirstName, placeholder: 'João', ac: 'given-name' },
+              { label: 'Sobrenome', value: lastName, set: setLastName, placeholder: 'Silva', ac: 'family-name' },
+            ].map(f => (
+              <div key={f.label} className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>{f.label}</label>
+                <input type="text" value={f.value} onChange={e => f.set(e.target.value)}
+                  placeholder={f.placeholder} autoComplete={f.ac}
+                  className="w-full h-11 px-3 rounded-lg text-sm outline-none transition-all"
+                  style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
+                  onFocus={e => (e.target.style.borderColor = '#f97316')}
+                  onBlur={e => (e.target.style.borderColor = '#584237')} />
+              </div>
+            ))}
           </div>
 
+          {/* WhatsApp */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>WhatsApp</label>
             <div className="relative">
-              <span
-                className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]"
-                style={{ color: '#a78b7d' }}
-              >
-                phone
-              </span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                value={whatsapp}
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+              <input type="tel" inputMode="numeric" value={whatsapp}
                 onChange={e => setWhatsapp(formatWhatsApp(e.target.value))}
-                placeholder="(11) 99999-9999"
-                autoComplete="tel"
+                placeholder="(11) 99999-9999" autoComplete="tel"
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: '#0b1326',
-                  border: '1px solid #584237',
-                  color: '#dae2fd',
-                }}
+                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
                 onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')}
-              />
+                onBlur={e => (e.target.style.borderColor = '#584237')} />
             </div>
-            <p className="text-[11px]" style={{ color: '#a78b7d' }}>
-              Usado para divisão de conta e nota fiscal
-            </p>
           </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px" style={{ background: '#334155' }} />
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>
+              Identificação (opcional)
+            </span>
+            <div className="flex-1 h-px" style={{ background: '#334155' }} />
+          </div>
+
+          {/* BR / Estrangeiro toggle */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #334155' }}>
+            {(['cpf', 'passport'] as const).map(t => (
+              <button key={t} onClick={() => setDocType(t)}
+                className="flex-1 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all"
+                style={{
+                  background: docType === t ? '#f97316' : 'transparent',
+                  color: docType === t ? '#582200' : '#a78b7d',
+                }}>
+                {t === 'cpf' ? '🇧🇷 CPF' : '🌍 Passaporte'}
+              </button>
+            ))}
+          </div>
+
+          {/* CPF field */}
+          {docType === 'cpf' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>CPF</label>
+              <div className="relative">
+                <input type="text" inputMode="numeric" value={cpf}
+                  onChange={e => setCpf(maskCPF(e.target.value))}
+                  placeholder="000.000.000-00" maxLength={14}
+                  className="w-full h-11 px-3 pr-10 rounded-lg text-sm font-mono outline-none transition-all"
+                  style={{
+                    background: '#0b1326',
+                    border: `1px solid ${cpfComplete ? (cpfValid ? '#34d399' : '#f87171') : '#584237'}`,
+                    color: '#dae2fd',
+                  }}
+                  onFocus={e => { if (!cpfComplete) e.target.style.borderColor = '#f97316' }}
+                  onBlur={e => { if (!cpfComplete) e.target.style.borderColor = '#584237' }} />
+                {cpfComplete && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]"
+                    style={{ color: cpfValid ? '#34d399' : '#f87171', fontVariationSettings: "'FILL' 1" }}>
+                    {cpfValid ? 'check_circle' : 'cancel'}
+                  </span>
+                )}
+              </div>
+              {cpfComplete && !cpfValid && (
+                <p className="text-[11px] font-mono" style={{ color: '#f87171' }}>CPF inválido. Verifique os números.</p>
+              )}
+            </div>
+          )}
+
+          {/* Passport field */}
+          {docType === 'passport' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>
+                Número do Passaporte
+              </label>
+              <input type="text" value={passport}
+                onChange={e => setPassport(e.target.value.toUpperCase())}
+                placeholder="AB123456"
+                className="w-full h-11 px-3 rounded-lg text-sm font-mono outline-none transition-all"
+                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
+                onFocus={e => (e.target.style.borderColor = '#f97316')}
+                onBlur={e => (e.target.style.borderColor = '#584237')} />
+            </div>
+          )}
+
+          {/* Consent note */}
+          <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+            <span className="material-symbols-outlined text-[13px] align-middle mr-1">lock</span>
+            Dados usados para emissão de nota fiscal e manutenção do seu histórico de fidelidade. Não compartilhamos com terceiros.
+          </p>
         </div>
 
         {/* CTA */}
-        <button
-          onClick={handleCheckIn}
-          disabled={checkingIn || checkedIn || !formValid}
+        <button onClick={handleCheckIn} disabled={checkingIn || checkedIn || !formValid}
           className="w-full py-5 rounded-xl text-xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.97] disabled:opacity-50"
           style={{
             background: checkedIn ? '#22c55e' : '#f97316',
             color: checkedIn ? '#fff' : '#582200',
             boxShadow: formValid ? '0 16px 32px rgba(249,115,22,0.2)' : 'none',
-          }}
-        >
+            fontFamily: 'Geist, sans-serif',
+          }}>
           {checkingIn ? (
             <Loader2 className="h-6 w-6 animate-spin" />
           ) : checkedIn ? (
@@ -322,14 +416,12 @@ export default function CheckInPage() {
               Mesa {tableLabel} Ativada
             </>
           ) : (
-            <>
-              Fazer Check-in
-              <span className="material-symbols-outlined">login</span>
-            </>
+            <>Fazer Check-in <span className="material-symbols-outlined">login</span></>
           )}
         </button>
 
-        <p className="text-center text-xs font-mono uppercase tracking-widest mt-4" style={{ color: 'rgba(218,226,253,0.35)' }}>
+        <p className="text-center text-xs font-mono uppercase tracking-widest mt-4"
+          style={{ color: 'rgba(218,226,253,0.35)' }}>
           Toque para iniciar o pedido
         </p>
 
