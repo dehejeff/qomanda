@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { QomandaLogo } from '@/components/qomanda-logo'
 
 type ScanStatus = 'starting' | 'scanning' | 'detected' | 'no-support' | 'denied'
 
 export default function ScanPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
