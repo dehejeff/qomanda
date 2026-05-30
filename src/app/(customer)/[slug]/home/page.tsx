@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { mockRestaurant, mockOrders } from '@/lib/dev-mock'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -40,17 +39,6 @@ export default function CustomerHomePage() {
   useEffect(() => {
     if (!sessionId) return
 
-    if (params.slug === 'demo') {
-      setRestaurantName(mockRestaurant.name)
-      setLogoUrl(mockRestaurant.logo_url)
-      setTableNumber('04')
-      const order = mockOrders[0]
-      const total = (order.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
-      setLatestOrder({ status: order.status, total, itemCount: order.items?.length ?? 0 })
-      setLoading(false)
-      return
-    }
-
     async function load() {
       const supabase = createClient()
       const { data: session } = await supabase
@@ -84,32 +72,30 @@ export default function CustomerHomePage() {
     load()
 
     // Subscribe to close request invites
-    if (params.slug !== 'demo') {
-      const supabase = createClient()
-      const myCustomerId = localStorage.getItem('qomanda_customer_id')
-      if (myCustomerId) {
-        const ch = supabase.channel('close-invite')
-          .on('postgres_changes', {
-            event: 'INSERT', schema: 'public', table: 'close_request_participants',
-            filter: `customer_id=eq.${myCustomerId}`,
-          }, async (payload) => {
-            const p = payload.new as any
-            if (p.status !== 'pending') return
-            const { data: req } = await supabase
-              .from('close_requests')
-              .select('*, initiator:customers!initiator_id(first_name,last_name)')
-              .eq('id', p.request_id).single()
-            if (!req) return
-            const ini = (req as any).initiator
-            setCloseInvite({
-              requestId: req.id,
-              initiatorName: ini ? `${ini.first_name} ${ini.last_name}` : 'Alguém',
-              amountOwed: p.amount_owed,
-            })
+    const supabase = createClient()
+    const myCustomerId = localStorage.getItem('qomanda_customer_id')
+    if (myCustomerId) {
+      const ch = supabase.channel('close-invite')
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'close_request_participants',
+          filter: `customer_id=eq.${myCustomerId}`,
+        }, async (payload) => {
+          const p = payload.new as any
+          if (p.status !== 'pending') return
+          const { data: req } = await supabase
+            .from('close_requests')
+            .select('*, initiator:customers!initiator_id(first_name,last_name)')
+            .eq('id', p.request_id).single()
+          if (!req) return
+          const ini = (req as any).initiator
+          setCloseInvite({
+            requestId: req.id,
+            initiatorName: ini ? `${ini.first_name} ${ini.last_name}` : 'Alguém',
+            amountOwed: p.amount_owed,
           })
-          .subscribe()
-        return () => { supabase.removeChannel(ch) }
-      }
+        })
+        .subscribe()
+      return () => { supabase.removeChannel(ch) }
     }
   }, [sessionId, params.slug, router])
 

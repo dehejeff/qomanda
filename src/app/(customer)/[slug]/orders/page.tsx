@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Order, SessionParticipant } from '@/types'
-import { mockOrders } from '@/lib/dev-mock'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -59,18 +58,6 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
-
-    if (params.slug === 'demo') {
-      setMyOrders(mockOrders.slice(0, 1))
-      setAllOrders(mockOrders)
-      setParticipants([
-        { id: '1', session_id: 'demo', customer_id: 'c1', joined_at: '', customer: { id: 'c1', first_name: 'João', last_name: 'Silva', whatsapp: '', document_type: null, cpf: null, passport: null, created_at: '' } },
-        { id: '2', session_id: 'demo', customer_id: 'c2', joined_at: '', customer: { id: 'c2', first_name: 'Maria', last_name: 'Santos', whatsapp: '', document_type: null, cpf: null, passport: null, created_at: '' } },
-        { id: '3', session_id: 'demo', customer_id: 'c3', joined_at: '', customer: { id: 'c3', first_name: 'Pedro', last_name: 'Costa', whatsapp: '', document_type: null, cpf: null, passport: null, created_at: '' } },
-      ])
-      setLoading(false)
-      return
-    }
 
     const supabase = createClient()
 

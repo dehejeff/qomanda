@@ -39,14 +39,6 @@ export default function ProfilePage() {
     setFirstName(fn)
     setLastName(rest.join(' '))
 
-    if (params.slug === 'demo') {
-      setWhatsapp('(11) 99999-9999')
-      setVisits(3)
-      setNextReward({ visit_count: 5, benefit_value: 'Chope ou refrigerante grátis' })
-      setLoading(false)
-      return
-    }
-
     async function load() {
       const supabase = createClient()
       const { data: session } = await supabase
@@ -107,17 +99,15 @@ export default function ProfilePage() {
 
     localStorage.setItem('qomanda_customer_name', `${firstName.trim()} ${lastName.trim()}`)
 
-    if (params.slug !== 'demo') {
-      const supabase = createClient()
-      const { data: session } = await supabase
-        .from('sessions').select('customer_id').eq('id', sessionId).single()
+    const supabase = createClient()
+    const { data: session } = await supabase
+      .from('sessions').select('customer_id').eq('id', sessionId).single()
 
-      if (session?.customer_id) {
-        await supabase.from('customers').update({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-        }).eq('id', session.customer_id)
-      }
+    if (session?.customer_id) {
+      await supabase.from('customers').update({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+      }).eq('id', session.customer_id)
     }
 
     setSaving(false)

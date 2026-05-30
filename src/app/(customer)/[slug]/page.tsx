@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
-import { mockRestaurant, mockTables } from '@/lib/dev-mock'
+
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -69,11 +69,6 @@ export default function CheckInPage() {
   }, [])
 
   useEffect(() => {
-    if (params.slug === 'demo') {
-      setRestaurant(mockRestaurant)
-      setLoading(false)
-      return
-    }
     async function loadRestaurant() {
       const supabase = createClient()
       const { data, error } = await supabase
@@ -101,20 +96,6 @@ export default function CheckInPage() {
     setCheckingIn(true)
     const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
 
-    // ── Demo mode ──
-    if (params.slug === 'demo') {
-      await new Promise(r => setTimeout(r, 600))
-      const fakeSessionId = `demo-session-${Date.now()}`
-      localStorage.setItem('qomanda_session_id', fakeSessionId)
-      localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
-      setCheckedIn(true)
-      setCheckingIn(false)
-      toast.success(`Bem-vindo, ${name}!`)
-      setTimeout(() => router.push(`/demo/home?session=${fakeSessionId}`), 700)
-      return
-    }
-
-    // ── Production ──
     const supabase = createClient()
 
     // Build customer payload
@@ -215,7 +196,7 @@ export default function CheckInPage() {
     localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
     setCheckedIn(true)
     setCheckingIn(false)
-    toast.success(existingSession ? `Bem-vindo à mesa, ${name}!` : `Bem-vindo, ${name}!`)
+    toast.success(`Bem-vindo, ${name}!`)
     setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
   }
 

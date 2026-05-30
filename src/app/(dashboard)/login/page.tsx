@@ -16,6 +16,14 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      toast.error('E-mail ou senha incorretos.')
+      setLoading(false)
+      return
+    }
     router.push('/dashboard')
   }
 
@@ -37,16 +45,12 @@ export default function LoginPage() {
   function onBlur (e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#584237' }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center p-8 relative"
-      style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}
-    >
-      {/* Ambient glow */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 relative"
+      style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
       <div className="pointer-events-none fixed top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full"
         style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
 
       <div className="relative z-10 w-full max-w-sm space-y-8">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <QomandaLogo size={48} />
           <div className="text-center">
@@ -55,50 +59,26 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
-              E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@restaurante.com"
-              required
-              style={inputStyle}
-              onFocus={onFocus}
-              onBlur={onBlur}
-            />
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>E-mail</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="seu@restaurante.com" required
+              style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={inputStyle}
-              onFocus={onFocus}
-              onBlur={onBlur}
-            />
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Senha</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••" required
+              style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
+          <button type="submit" disabled={loading}
             className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-            style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}
-          >
+            style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}>
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Entrar no Painel'}
           </button>
         </form>
 
-        {/* Links */}
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm" style={{ color: '#584237' }}>
             Novo por aqui?{' '}
@@ -107,21 +87,17 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 w-full">
             <div className="flex-1 h-px" style={{ background: '#1e293b' }} />
-            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>dev</span>
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>acesso rápido</span>
             <div className="flex-1 h-px" style={{ background: '#1e293b' }} />
           </div>
 
-          {/* Dev shortcut */}
-          <Link
-            href="/scan?slug=demo&mesa=4"
+          <Link href="/scan"
             className="w-full h-11 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95 hover:opacity-80"
-            style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}
-          >
+            style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}>
             <span className="material-symbols-outlined text-[18px]">phone_iphone</span>
-            Acessar como Cliente (demo)
+            Ir para Scanner (cliente)
           </Link>
         </div>
       </div>

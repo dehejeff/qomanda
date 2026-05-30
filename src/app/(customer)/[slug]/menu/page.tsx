@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { MenuCategory, MenuItem, CartItem } from '@/types'
-import { mockCategories } from '@/lib/dev-mock'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -26,18 +25,6 @@ export default function MenuPage() {
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
-
-    if (params.slug === 'demo') {
-      const filtered = mockCategories.map(cat => ({
-        ...cat,
-        items: (cat.items ?? []).filter(i => i.available),
-      })).filter(cat => (cat.items ?? []).length > 0)
-      setCategories(filtered)
-      if (filtered.length > 0) setActiveCategory(filtered[0].id)
-      setRestaurantName('Restaurante Demo')
-      setLoading(false)
-      return
-    }
 
     async function loadMenu() {
       const supabase = createClient()
@@ -91,14 +78,6 @@ export default function MenuPage() {
   async function placeOrder() {
     if (cart.length === 0) return
     setPlacing(true)
-
-    if (params.slug === 'demo') {
-      await new Promise(r => setTimeout(r, 800))
-      setCart([])
-      toast.success('Pedido enviado!')
-      setPlacing(false)
-      return
-    }
 
     const supabase = createClient()
     const { data: session } = await supabase

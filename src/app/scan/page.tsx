@@ -91,10 +91,6 @@ export default function ScanPage() {
     }
   }
 
-  function handleSkipScan() {
-    router.push('/demo?mesa=4')
-  }
-
   const isDetected = status === 'detected'
   const hasError = status === 'no-support' || status === 'denied'
 
@@ -223,12 +219,12 @@ export default function ScanPage() {
               DIGITAR CÓDIGO MANUALMENTE
             </button>
             <button
-              onClick={handleSkipScan}
+              onClick={handleManualEntry}
               className="w-full h-12 flex items-center justify-center gap-2 text-sm font-mono rounded-lg active:scale-95 transition-all"
               style={{ background: '#f97316', color: '#582200' }}
             >
-              <span className="material-symbols-outlined text-[18px]">login</span>
-              IR PARA CHECK-IN
+              <span className="material-symbols-outlined text-[18px]">keyboard</span>
+              DIGITAR CÓDIGO DA MESA
             </button>
           </div>
         )}

@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { loadStripe } from '@stripe/stripe-js'
 import type { PaymentMethod } from '@/types'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
-import { mockOrders } from '@/lib/dev-mock'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -408,28 +407,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
 
-    if (params.slug === 'demo') {
-      const allItems = mockOrders.flatMap(o => o.items ?? [])
-      const sub = allItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
-      const gt = sub * 1.1
-      const mc = gt * 0.4
-      setGrandTotal(gt)
-      setAlreadyPaid(0)
-      setRemaining(gt)
-      setMyConsumption(mc)
-      setTableNumber('04')
-      const demo: Participant[] = [
-        { id: 'c1', name: 'João Silva',   myConsumption: gt * 0.40, isMe: true  },
-        { id: 'c2', name: 'Maria Santos', myConsumption: gt * 0.35, isMe: false },
-        { id: 'c3', name: 'Pedro Costa',  myConsumption: gt * 0.25, isMe: false },
-      ]
-      setParticipants(demo)
-      setSelectedIds(new Set([myCustomerId ?? 'c1']))
-      setCustomAmounts(Object.fromEntries(demo.map(p => [p.id, (gt / 3).toFixed(2)])))
-      setLoading(false)
-      return
-    }
-
     async function load() {
       const supabase = createClient()
 
@@ -542,7 +519,6 @@ export default function CheckoutPage() {
   }
 
   async function createCloseRequest() {
-    if (params.slug === 'demo') return
     const supabase = createClient()
     const { data: req } = await supabase
       .from('close_requests')
@@ -564,25 +540,6 @@ export default function CheckoutPage() {
 
   async function processPayment(paidAmount: number) {
     setPaying(true)
-
-    if (params.slug === 'demo') {
-      await new Promise(r => setTimeout(r, 1500))
-      const code1 = generateConfirmationCode()
-      const code2 = splitAlcohol ? generateConfirmationCode() : ''
-      setConfirmationCode(code1)
-      setConfirmationCode2(code2)
-      // Mock WhatsApp
-      const phone = customerWhatsapp || '11999999999'
-      if (splitAlcohol) {
-        console.log('[WhatsApp Mock] Nota alimentação:', buildReceiptMessage([], alcoholSplit.food, code1, '🍽️ Alimentação (Reembolsável)'))
-        console.log('[WhatsApp Mock] Nota bebidas:', buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
-      } else {
-        console.log('[WhatsApp Mock] Nota completa:', buildReceiptMessage([], paidAmount, code1))
-      }
-      setStep('confirmed')
-      setPaying(false)
-      return
-    }
 
     try {
       const supabase = createClient()
