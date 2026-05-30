@@ -3,9 +3,11 @@
 -- Versão: 2.0  |  Atualizado: 2026-05-30
 --
 -- INSTRUÇÕES:
---   1. Abra o SQL Editor no Supabase Dashboard
---   2. Cole este arquivo inteiro e execute
---   3. Depois, ative Realtime nas tabelas indicadas no final
+--   • Banco vazio (primeira vez):   execute este arquivo inteiro
+--   • Banco já existente:           execute supabase/migrate.sql
+--   • Resetar tudo (⚠️ apaga dados): execute supabase/reset.sql primeiro
+--
+--   Depois de executar: ative Realtime nas tabelas indicadas no final
 -- ============================================================
 
 -- Extensões necessárias
@@ -16,7 +18,7 @@ create extension if not exists "uuid-ossp";
 --    Cada restaurante tem um owner (auth.users) e um slug único
 --    que é usado na URL do cliente: /{slug}?mesa={n}
 -- ============================================================
-create table restaurants (
+create table if not exists restaurants (
   id                    uuid        primary key default uuid_generate_v4(),
   owner_id              uuid        not null references auth.users(id) on delete cascade,
   name                  text        not null,
@@ -42,7 +44,7 @@ create table restaurants (
 --    Cada mesa tem um número único por restaurante e um QR Code
 --    gerado em: /{slug}?mesa={number}
 -- ============================================================
-create table tables (
+create table if not exists tables (
   id            uuid        primary key default uuid_generate_v4(),
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
   number        text        not null,
@@ -59,7 +61,7 @@ create table tables (
 --    Identificação secundária: CPF ou Passaporte (opcional)
 --    O CPF garante continuidade do histórico mesmo com troca de número
 -- ============================================================
-create table customers (
+create table if not exists customers (
   id            uuid        primary key default uuid_generate_v4(),
   first_name    text        not null,
   last_name     text        not null,
@@ -76,7 +78,7 @@ create table customers (
 --    Múltiplos clientes podem participar da mesma sessão (ver session_participants).
 --    customer_id = quem abriu a sessão (primeiro a fazer check-in).
 -- ============================================================
-create table sessions (
+create table if not exists sessions (
   id            uuid        primary key default uuid_generate_v4(),
   table_id      uuid        not null references tables(id) on delete cascade,
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
@@ -112,7 +114,7 @@ for each row execute function fn_session_table_status();
 --    Rastreia todos os clientes que fizeram check-in na mesma mesa.
 --    Base para: divisão de conta, identificação de pedidos por pessoa.
 -- ============================================================
-create table session_participants (
+create table if not exists session_participants (
   id          uuid        primary key default uuid_generate_v4(),
   session_id  uuid        not null references sessions(id) on delete cascade,
   customer_id uuid        not null references customers(id) on delete cascade,
@@ -123,7 +125,7 @@ create table session_participants (
 -- ============================================================
 -- 6. CATEGORIAS DO CARDÁPIO
 -- ============================================================
-create table menu_categories (
+create table if not exists menu_categories (
   id            uuid        primary key default uuid_generate_v4(),
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
   name          text        not null,
@@ -135,7 +137,7 @@ create table menu_categories (
 -- 7. ITENS DO CARDÁPIO
 --    contains_alcohol: separa reembolso empresa (alimentação) vs pessoal (bebidas)
 -- ============================================================
-create table menu_items (
+create table if not exists menu_items (
   id               uuid           primary key default uuid_generate_v4(),
   restaurant_id    uuid           not null references restaurants(id) on delete cascade,
   category_id      uuid           not null references menu_categories(id) on delete cascade,
@@ -153,7 +155,7 @@ create table menu_items (
 --    customer_id: quem fez o pedido (null = pedido sem identificação)
 --    Permite separar "Minha Conta" de "Mesa Toda" na tela do cliente.
 -- ============================================================
-create table orders (
+create table if not exists orders (
   id            uuid        primary key default uuid_generate_v4(),
   session_id    uuid        not null references sessions(id) on delete cascade,
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
@@ -184,7 +186,7 @@ for each row execute function fn_orders_updated_at();
 -- ============================================================
 -- 9. ITENS DO PEDIDO
 -- ============================================================
-create table order_items (
+create table if not exists order_items (
   id           uuid          primary key default uuid_generate_v4(),
   order_id     uuid          not null references orders(id) on delete cascade,
   menu_item_id uuid          not null references menu_items(id),
@@ -201,7 +203,7 @@ create table order_items (
 --       'food'     = apenas alimentação (reembolsável pela empresa)
 --       'alcohol'  = apenas bebidas alcoólicas (conta pessoal)
 -- ============================================================
-create table payments (
+create table if not exists payments (
   id                       uuid          primary key default uuid_generate_v4(),
   session_id               uuid          not null references sessions(id) on delete cascade,
   restaurant_id            uuid          not null references restaurants(id) on delete cascade,
@@ -226,7 +228,7 @@ create table payments (
 --     close_request_participants: quem divide, quanto cada um deve e pagou
 --     Regra anti-fraude: initiator_id não pode ser desmarcado pelo UI
 -- ============================================================
-create table close_requests (
+create table if not exists close_requests (
   id           uuid        primary key default uuid_generate_v4(),
   session_id   uuid        not null references sessions(id) on delete cascade,
   initiator_id uuid        not null references customers(id),
@@ -236,7 +238,7 @@ create table close_requests (
   created_at   timestamptz not null default now()
 );
 
-create table close_request_participants (
+create table if not exists close_request_participants (
   id           uuid          primary key default uuid_generate_v4(),
   request_id   uuid          not null references close_requests(id) on delete cascade,
   customer_id  uuid          not null references customers(id),
@@ -258,7 +260,7 @@ create table close_request_participants (
 --     Contagem de visitas: SELECT COUNT(*) FROM customer_visits
 --       WHERE customer_id = X AND restaurant_id = Y
 -- ============================================================
-create table loyalty_rules (
+create table if not exists loyalty_rules (
   id            uuid        primary key default uuid_generate_v4(),
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
   visit_count   int         not null check (visit_count > 0),
@@ -269,7 +271,7 @@ create table loyalty_rules (
   created_at    timestamptz not null default now()
 );
 
-create table customer_visits (
+create table if not exists customer_visits (
   id            uuid        primary key default uuid_generate_v4(),
   customer_id   uuid        not null references customers(id) on delete cascade,
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
