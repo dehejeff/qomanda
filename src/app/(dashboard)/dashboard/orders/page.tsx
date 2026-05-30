@@ -38,19 +38,39 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (DEV_BYPASS) { setOrders(mockOrders as Order[]); setLoading(false); return }
+
     const supabase = createClient()
-    let restaurantId: string
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let cancelled = false
+
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+
       const { data: r } = await supabase.from('restaurants').select('id').eq('owner_id', user.id).single()
-      if (!r) return
-      restaurantId = r.id
-      loadOrders(restaurantId)
-      const channel = supabase.channel('dashboard-orders')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => loadOrders(restaurantId))
+      if (!r || cancelled) return
+
+      const restaurantId = r.id
+      await loadOrders(restaurantId)
+      if (cancelled) return
+
+      // Canal com nome único por restaurante para evitar conflito de re-subscribe
+      channel = supabase
+        .channel(`dashboard-orders-${restaurantId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` },
+          () => { if (!cancelled) loadOrders(restaurantId) }
+        )
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
-    })
+    }
+
+    init()
+
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [])
 
   async function advanceStatus(orderId: string, currentStatus: string) {
