@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send, ListOrdered } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { SETTLE_TOLERANCE } from '@/lib/session-billing'
 
 interface Props {
   table: RestaurantTable
@@ -64,8 +65,10 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
       .from('sessions')
       .select('id, started_at, restaurant_id, table_history')
       .eq('table_id', table.id)
-      .eq('status', 'open')
-      .single()
+      .in('status', ['open', 'closing'])
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
       .then(async ({ data }) => {
         if (!data) { setLoadingSession(false); return }
 
@@ -101,9 +104,18 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     if (!session) return
     setActing(true)
 
+    // Sem consumo: nada a pagar → fecha a sessão direto e libera a mesa.
+    const hasNothingToPay = session.total <= SETTLE_TOLERANCE
+
     if (DEV_BYPASS) {
       localStorage.removeItem('qomanda_mock_table_history')
       localStorage.removeItem('qomanda_mock_started_at')
+      if (hasNothingToPay) {
+        onTableUpdated(table.id, 'free')
+        toast.success(`Mesa ${table.number} encerrada (sem consumo).`)
+        onClose()
+        return
+      }
       setView('waiting')
       setActing(false)
       toast.success('Solicitação enviada ao cliente.')
@@ -111,6 +123,22 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     }
 
     const supabase = createClient()
+
+    if (hasNothingToPay) {
+      const { error } = await supabase
+        .from('sessions')
+        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .eq('id', session.id)
+        .in('status', ['open', 'closing'])
+
+      if (error) { toast.error('Erro ao encerrar mesa'); setActing(false); return }
+
+      onTableUpdated(table.id, 'free')
+      toast.success(`Mesa ${table.number} encerrada (sem consumo).`)
+      onClose()
+      return
+    }
+
     const { error } = await supabase
       .from('sessions')
       .update({ status: 'closing' })
@@ -136,6 +164,29 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     if (error) { toast.error('Erro ao cancelar reserva'); setActing(false); return }
     onTableUpdated(table.id, 'free')
     toast.success(`Reserva da Mesa ${table.number} cancelada.`)
+    onClose()
+  }
+
+  /** Libera uma mesa órfã: ocupada mas sem sessão aberta (estado inconsistente). */
+  async function handleForceFree() {
+    setActing(true)
+    if (DEV_BYPASS) {
+      onTableUpdated(table.id, 'free')
+      toast.success(`Mesa ${table.number} liberada.`)
+      onClose()
+      return
+    }
+    const supabase = createClient()
+    // Encerra qualquer sessão pendente e libera a mesa.
+    await supabase
+      .from('sessions')
+      .update({ status: 'closed', closed_at: new Date().toISOString() })
+      .eq('table_id', table.id)
+      .in('status', ['open', 'closing'])
+    const { error } = await supabase.from('tables').update({ status: 'free' }).eq('id', table.id)
+    if (error) { toast.error('Erro ao liberar mesa'); setActing(false); return }
+    onTableUpdated(table.id, 'free')
+    toast.success(`Mesa ${table.number} liberada.`)
     onClose()
   }
 
@@ -282,15 +333,14 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
               )}
 
               <div className="space-y-2 pt-1">
-                {table.status === 'occupied' && (
+                {table.status === 'occupied' && session && (
                   <>
                     <button
                       onClick={() => {
                         onClose()
                         router.push(`/dashboard/orders/table/${table.id}`)
                       }}
-                      disabled={!session}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-surface-container-high border border-outline-variant text-on-surface font-mono text-sm rounded-lg hover:bg-surface-variant transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-surface-container-high border border-outline-variant text-on-surface font-mono text-sm rounded-lg hover:bg-surface-variant transition-colors"
                     >
                       <ListOrdered className="h-4 w-4" />
                       Ir para pedidos
@@ -308,16 +358,30 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
                     </button>
                     <button
                       onClick={handleRequestClose}
-                      disabled={acting || !session}
+                      disabled={acting}
                       className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40"
                     >
                       {acting
                         ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Send className="h-4 w-4" />
+                        : session.total <= SETTLE_TOLERANCE
+                          ? <XCircle className="h-4 w-4" />
+                          : <Send className="h-4 w-4" />
                       }
-                      Encerrar Mesa
+                      {session.total <= SETTLE_TOLERANCE ? 'Encerrar Mesa (sem consumo)' : 'Encerrar Mesa'}
                     </button>
                   </>
+                )}
+
+                {/* Mesa órfã: ocupada mas sem sessão aberta — permite recuperação */}
+                {table.status === 'occupied' && !loadingSession && !session && (
+                  <button
+                    onClick={handleForceFree}
+                    disabled={acting}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-error/10 border border-error/30 text-error font-bold font-mono text-sm rounded-lg hover:bg-error/20 transition-colors disabled:opacity-50"
+                  >
+                    {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                    Liberar Mesa
+                  </button>
                 )}
 
                 {table.status === 'reserved' && (
