@@ -227,10 +227,10 @@ export default function CustomersPage() {
         <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-[1.2fr_0.8fr_1fr_0.8fr_1.2fr_auto] gap-3 px-6 py-3 border-b border-outline-variant text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
             <span>Cliente</span>
-            <span className="text-center">Visitas</span>
-            <span className="text-center">Última visita</span>
-            <span className="text-center">Sem voltar</span>
-            <span className="text-center">Fidelidade</span>
+            <span>Visitas</span>
+            <span>Última visita</span>
+            <span>Sem voltar</span>
+            <span>Fidelidade</span>
             <span className="text-right">Ações</span>
           </div>
           <div className="divide-y divide-outline-variant">
