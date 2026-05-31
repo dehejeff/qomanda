@@ -145,19 +145,25 @@ export default function ReportsPage() {
                 <p className="text-sm font-mono text-on-surface-variant">Nenhuma atividade neste período.</p>
               </div>
             ) : (
-              <div className="flex items-end gap-1.5 h-48 overflow-x-auto">
+              <div className="flex items-stretch gap-2 h-56 overflow-x-auto">
                 {data.daily.map((d) => {
-                  const heightPct = Math.round((d.revenue / maxRevenue) * 100)
+                  const heightPct = d.revenue > 0 ? Math.max((d.revenue / maxRevenue) * 100, 4) : 0
                   const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                   return (
-                    <div key={d.date} className="flex-1 min-w-[28px] flex flex-col items-center gap-2 group">
-                      <div className="relative w-full flex-1 flex items-end">
+                    <div key={d.date} className="flex-1 min-w-[32px] h-full flex flex-col items-center gap-2 group">
+                      {/* valor no topo */}
+                      <span className="text-[10px] font-mono text-on-surface-variant h-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                        {d.revenue > 0 ? formatCurrency(d.revenue) : ''}
+                      </span>
+                      {/* área da barra (ocupa o espaço restante) */}
+                      <div className="w-full flex-1 flex items-end">
                         <div
-                          className="w-full bg-primary-container/40 group-hover:bg-primary-container rounded-t transition-all"
-                          style={{ height: `${Math.max(heightPct, 2)}%` }}
-                          title={`${dayLabel}: ${formatCurrency(d.revenue)} · ${d.orders} pedidos`}
+                          className="w-full bg-primary-container/50 group-hover:bg-primary-container rounded-t-md transition-all cursor-default"
+                          style={{ height: `${heightPct}%` }}
+                          title={`${dayLabel}: ${formatCurrency(d.revenue)} · ${d.orders} ${d.orders === 1 ? 'pedido' : 'pedidos'}`}
                         />
                       </div>
+                      {/* rótulo do dia */}
                       <span className="text-[9px] font-mono text-on-surface-variant whitespace-nowrap">{dayLabel}</span>
                     </div>
                   )
