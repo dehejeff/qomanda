@@ -8,6 +8,7 @@ import { QomandaLogo } from '@/components/qomanda-logo'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
+import { formatWhatsAppDisplay } from '@/lib/customer-form'
 
 type Prefs = { notifications: boolean; shareHistory: boolean; newsletter: boolean }
 
@@ -21,11 +22,6 @@ type ProfileData = {
   nextReward: { visit_count: number; benefit_value: string } | null
 }
 
-function formatWhatsAppDisplay(digits: string) {
-  const d = digits.replace(/\D/g, '')
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-  return digits
-}
 
 export default function ProfilePage() {
   const params      = useParams<{ slug: string }>()

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeBrazilWhatsApp, whatsappLookupVariants } from '@/lib/whatsapp-normalize'
+import { normalizeWhatsApp, whatsappLookupVariants } from '@/lib/whatsapp-normalize'
 
 export type CustomerRow = {
   id: string
@@ -10,7 +10,7 @@ export type CustomerRow = {
 }
 
 /**
- * Busca cliente pelo WhatsApp tolerando 55, 9º dígito e formatos legados.
+ * Busca cliente pelo WhatsApp tolerando formatos legados e códigos de país.
  */
 export async function findCustomerByWhatsApp(
   supabase: SupabaseClient,
@@ -27,14 +27,14 @@ export async function findCustomerByWhatsApp(
 
   if (!rows?.length) return null
 
-  const canonical = normalizeBrazilWhatsApp(phone)
-  const exact = rows.find(r => r.whatsapp === canonical)
+  const { e164 } = normalizeWhatsApp(phone)
+  const exact = rows.find(r => r.whatsapp === e164)
   if (exact) return exact as CustomerRow
 
   return rows[0] as CustomerRow
 }
 
-/** Normaliza WhatsApp antes de gravar (cadastro / check-in). */
+/** Normaliza WhatsApp antes de gravar — sempre com código do país quando possível. */
 export function whatsappForStorage(input: string): string {
-  return normalizeBrazilWhatsApp(input)
+  return normalizeWhatsApp(input).e164
 }

@@ -8,7 +8,7 @@ import type { CheckInResponse } from '@/app/api/checkin/route'
 
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { formatWhatsApp } from '@/lib/customer-form'
+import { formatPhoneInput, formatWhatsApp } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
 import { isValidPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
@@ -346,9 +346,9 @@ export default function CheckInPage() {
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
-              <input type="tel" inputMode="numeric" value={loginWhatsapp}
-                onChange={e => setLoginWhatsapp(formatWhatsApp(e.target.value))}
-                placeholder="(11) 99999-9999" autoComplete="tel"
+              <input type="tel" inputMode="tel" value={loginWhatsapp}
+                onChange={e => setLoginWhatsapp(formatPhoneInput(e.target.value))}
+                placeholder="(21) 99999-9999 ou +351…" autoComplete="tel"
                 disabled={Boolean(pinStep)}
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
                 style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep ? 0.6 : 1 }}
@@ -441,9 +441,9 @@ export default function CheckInPage() {
             <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>WhatsApp</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
-              <input type="tel" inputMode="numeric" value={whatsapp}
-                onChange={e => setWhatsapp(formatWhatsApp(e.target.value))}
-                placeholder="(11) 99999-9999" autoComplete="tel"
+              <input type="tel" inputMode="tel" value={whatsapp}
+                onChange={e => setWhatsapp(docType === 'passport' ? formatPhoneInput(e.target.value) : formatWhatsApp(e.target.value))}
+                placeholder={docType === 'passport' ? '+351 912 345 678' : '(11) 99999-9999'} autoComplete="tel"
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
                 style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
                 onFocus={e => (e.target.style.borderColor = '#f97316')}

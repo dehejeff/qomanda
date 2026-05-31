@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { formatWhatsApp } from '@/lib/customer-form'
+import { formatPhoneInput } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
 import { isValidPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin, finishCustomerLogin } from '@/lib/customer-login-client'
@@ -127,8 +127,8 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
               type="tel"
               inputMode="numeric"
               value={whatsapp}
-              onChange={e => setWhatsapp(formatWhatsApp(e.target.value))}
-              placeholder="(11) 99999-9999"
+              onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
+              placeholder="(21) 99999-9999 ou +351…"
               required
               autoComplete="tel"
               style={{ ...inputStyle, paddingLeft: 40 }}
@@ -162,8 +162,9 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
       </Link>
       <div className="rounded-xl p-4" style={{ background: 'rgba(123,208,255,0.06)', border: '1px solid rgba(123,208,255,0.15)' }}>
         <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-          <strong style={{ color: '#7bd0ff' }}>Use o mesmo WhatsApp</strong>{' '}
-          do cadastro. Se tiver PIN configurado, será solicitado aqui. Check-in na mesa continua sem PIN.
+                <strong style={{ color: '#7bd0ff' }}>Brasil:</strong>{' '}
+                DDD + número. <strong style={{ color: '#7bd0ff' }}>Exterior:</strong>{' '}
+                comece com + e código do país (ex: +351912345678).
         </p>
       </div>
     </div>

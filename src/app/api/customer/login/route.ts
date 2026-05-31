@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
 import { findCustomerByWhatsApp } from '@/lib/customer-lookup'
 import { createLoginChallenge } from '@/lib/login-challenge'
-import { isValidBrazilWhatsApp, normalizeBrazilWhatsApp } from '@/lib/whatsapp-normalize'
+import { isValidWhatsApp, normalizeWhatsApp } from '@/lib/whatsapp-normalize'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
 
 export type { CustomerAuthPayload, CustomerLoginResponse }
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as { whatsapp?: string }
     const phone = body.whatsapp?.replace(/\D/g, '') ?? ''
 
-    if (!isValidBrazilWhatsApp(phone)) {
-      return NextResponse.json({ error: 'Informe um WhatsApp válido com DDD.' }, { status: 400 })
+    if (!isValidWhatsApp(phone)) {
+      return NextResponse.json({ error: 'Informe um WhatsApp válido (BR ou internacional com +).' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Unifica formato legado no banco (ex.: sem 9º dígito ou com 55)
-    const canonical = normalizeBrazilWhatsApp(phone)
+    const canonical = normalizeWhatsApp(phone).e164
     if (customer.whatsapp !== canonical) {
       await supabase.from('customers').update({ whatsapp: canonical }).eq('id', customer.id)
     }

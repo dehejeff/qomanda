@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatWhatsApp, maskCPF, validateCPF } from '@/lib/customer-form'
+import { formatPhoneInput, formatWhatsApp, maskCPF, validateCPF } from '@/lib/customer-form'
 import type { CustomerRegisterResponse } from '@/app/api/customer/register/route'
 
 type Props = {
@@ -86,9 +86,9 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
 
       <div className="space-y-1.5">
         <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>WhatsApp</label>
-        <input type="tel" inputMode="numeric" value={whatsapp}
-          onChange={e => setWhatsapp(formatWhatsApp(e.target.value))}
-          placeholder="(11) 99999-9999" required autoComplete="tel"
+        <input type="tel" inputMode="tel" value={whatsapp}
+          onChange={e => setWhatsapp(docType === 'passport' ? formatPhoneInput(e.target.value) : formatWhatsApp(e.target.value))}
+          placeholder={docType === 'passport' ? '+351 912 345 678' : '(11) 99999-9999'} required autoComplete="tel"
           style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
       </div>
 

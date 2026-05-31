@@ -10,12 +10,7 @@ import { CustomerPinSettings } from '@/components/customer/customer-pin-settings
 import type { HubActiveSession } from '@/app/api/customer/hub/route'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-
-function formatWhatsApp(digits: string) {
-  const d = digits.replace(/\D/g, '')
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-  return digits
-}
+import { formatWhatsAppDisplay } from '@/lib/customer-form'
 
 function HubProfileContent() {
   const router = useRouter()
@@ -82,7 +77,7 @@ function HubProfileContent() {
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meu perfil</p>
           <div>
             <p className="text-lg font-bold">{firstName} {lastName}</p>
-            <p className="text-sm mt-0.5" style={{ color: '#a78b7d' }}>{formatWhatsApp(whatsapp)}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#a78b7d' }}>{formatWhatsAppDisplay(whatsapp)}</p>
           </div>
           {activeSession && (
             <>
