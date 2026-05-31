@@ -92,6 +92,13 @@ export interface AsaasCreditCardHolderInfo {
   postalCode?: string
   addressNumber?: string
   phone?: string
+  mobilePhone?: string
+}
+
+export interface AsaasCreditCardTokenResponse {
+  creditCardNumber: string
+  creditCardBrand: string
+  creditCardToken: string
 }
 
 // ── Customers ────────────────────────────────────────────────
@@ -199,6 +206,64 @@ export async function createCreditCardPayment(params: {
         ccv: params.creditCard.ccv,
       },
       creditCardHolderInfo: params.creditCardHolderInfo,
+    }),
+  })
+}
+
+/**
+ * Tokeniza um cartão de crédito no Asaas (sem cobrança).
+ */
+export async function tokenizeCreditCard(params: {
+  customerId: string
+  creditCard: AsaasCreditCard
+  creditCardHolderInfo: AsaasCreditCardHolderInfo
+  remoteIp: string
+}): Promise<AsaasCreditCardTokenResponse> {
+  return request<AsaasCreditCardTokenResponse>('/creditCard/tokenize', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: params.customerId,
+      creditCard: {
+        holderName: params.creditCard.holderName,
+        number: params.creditCard.number.replace(/\s/g, ''),
+        expiryMonth: params.creditCard.expiryMonth,
+        expiryYear: params.creditCard.expiryYear,
+        ccv: params.creditCard.ccv,
+      },
+      creditCardHolderInfo: params.creditCardHolderInfo,
+      remoteIp: params.remoteIp,
+    }),
+  })
+}
+
+/**
+ * Cobra no cartão usando token previamente salvo.
+ */
+export async function createCreditCardPaymentWithToken(params: {
+  customerId: string
+  value: number
+  creditCardToken: string
+  installmentCount?: number
+  description?: string
+  externalReference?: string
+  dueDate?: string
+}): Promise<AsaasPayment> {
+  const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
+  const installmentCount = params.installmentCount ?? 1
+  const installmentValue = Number((params.value / installmentCount).toFixed(2))
+
+  return request<AsaasPayment>('/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: params.customerId,
+      billingType: 'CREDIT_CARD',
+      value: params.value,
+      dueDate,
+      installmentCount: installmentCount > 1 ? installmentCount : undefined,
+      installmentValue: installmentCount > 1 ? installmentValue : undefined,
+      description: params.description ?? 'Qomanda — Pagamento de mesa',
+      externalReference: params.externalReference,
+      creditCardToken: params.creditCardToken,
     }),
   })
 }

@@ -21,7 +21,7 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
     if (DEV_BYPASS) { router.push('/'); return }
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/login?perfil=admin')
   }
 
   return (
@@ -62,7 +62,7 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
             )
           })}
 
-          <div className="mt-auto pt-4 border-t border-outline-variant">
+          <div className="mt-auto pt-4 border-t border-outline-variant space-y-1">
             <Link
               href="/dashboard/settings"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
@@ -74,14 +74,16 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
               <span className="material-symbols-outlined text-[22px]">settings</span>
               <span className="text-sm font-medium font-mono">Settings</span>
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 text-on-surface-variant hover:text-red-400 hover:bg-red-500/10"
+            >
+              <span className="material-symbols-outlined text-[22px]">logout</span>
+              <span className="text-sm font-medium font-mono">Sair</span>
+            </button>
           </div>
         </nav>
-
-        {/* New Order button */}
-        <button className="mt-4 w-full py-3 bg-primary text-on-primary font-bold rounded-lg flex items-center justify-center gap-2 hover:brightness-110 transition-all text-sm font-mono">
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          New Order
-        </button>
       </aside>
 
       {/* Mobile bottom nav */}

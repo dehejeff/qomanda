@@ -135,10 +135,39 @@ function orderPayInfo(
   return { ...info, display: info.status }
 }
 
-function startOfTodayIso() {
+function todayDateStr() {
   const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function dateRangeForDay(dateStr: string) {
+  const start = new Date(`${dateStr}T00:00:00`)
+  const end = new Date(`${dateStr}T23:59:59.999`)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+function shiftDateStr(dateStr: string, days: number) {
+  const d = new Date(`${dateStr}T12:00:00`)
+  d.setDate(d.getDate() + days)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function formatDateLabel(dateStr: string) {
+  const today = todayDateStr()
+  const yesterday = shiftDateStr(today, -1)
+  if (dateStr === today) return 'Hoje'
+  if (dateStr === yesterday) return 'Ontem'
+  return new Date(`${dateStr}T12:00:00`).toLocaleDateString('pt-BR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
 }
 
 function orderTotal(order: DashboardOrder) {
@@ -157,8 +186,12 @@ export default function OrdersPage() {
   const [payments, setPayments] = useState<DashboardPaymentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [selectedDate, setSelectedDate] = useState(todayDateStr)
+  const [restaurantId, setRestaurantId] = useState<string | null>(null)
 
-  async function loadOrders(restaurantId: string) {
+  async function loadOrders(rid: string, dateStr: string) {
+    setLoading(true)
+    const { start, end } = dateRangeForDay(dateStr)
     const supabase = createClient()
     const { data } = await supabase
       .from('orders')
@@ -168,8 +201,9 @@ export default function OrdersPage() {
         session:sessions(table:tables(number)),
         customer:customers(first_name, last_name)
       `)
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', startOfTodayIso())
+      .eq('restaurant_id', rid)
+      .gte('created_at', start)
+      .lte('created_at', end)
       .order('created_at', { ascending: false })
 
     const loaded = (data ?? []) as DashboardOrder[]
@@ -185,7 +219,7 @@ export default function OrdersPage() {
     const { data: payData } = await supabase
       .from('payments')
       .select('session_id, customer_id, amount, service_fee_included')
-      .eq('restaurant_id', restaurantId)
+      .eq('restaurant_id', rid)
       .eq('status', 'paid')
       .in('session_id', sessionIds)
 
@@ -211,23 +245,26 @@ export default function OrdersPage() {
       const { data: r } = await supabase.from('restaurants').select('id').eq('owner_id', user.id).single()
       if (!r || cancelled) return
 
-      const restaurantId = r.id
-      await loadOrders(restaurantId)
+      setRestaurantId(r.id)
+      await loadOrders(r.id, selectedDate)
       if (cancelled) return
 
-      channel = supabase
-        .channel(`dashboard-orders-${restaurantId}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` },
-          () => { if (!cancelled) loadOrders(restaurantId) },
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${restaurantId}` },
-          () => { if (!cancelled) loadOrders(restaurantId) },
-        )
-        .subscribe()
+      const isToday = selectedDate === todayDateStr()
+      if (isToday) {
+        channel = supabase
+          .channel(`dashboard-orders-${r.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${r.id}` },
+            () => { if (!cancelled) loadOrders(r.id, selectedDate) },
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${r.id}` },
+            () => { if (!cancelled) loadOrders(r.id, selectedDate) },
+          )
+          .subscribe()
+      }
     }
 
     init()
@@ -236,7 +273,7 @@ export default function OrdersPage() {
       cancelled = true
       if (channel) supabase.removeChannel(channel)
     }
-  }, [])
+  }, [selectedDate])
 
   const filteredOrders = useMemo(
     () => (statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)),
@@ -293,7 +330,9 @@ export default function OrdersPage() {
     toast.success(`Pedido → ${STATUS_LABEL[next] ?? next}`)
   }
 
-  if (loading) {
+  const isToday = selectedDate === todayDateStr()
+
+  if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-primary-container" />
@@ -309,9 +348,9 @@ export default function OrdersPage() {
             Pedidos
           </h2>
           <p className="text-sm text-on-surface-variant mt-1">
-            {orders.length} pedido{orders.length !== 1 ? 's' : ''} hoje
-            {openCount > 0 && ` · ${openCount} em aberto`}
-            {(paySummary.paid + paySummary.partial + paySummary.pending) > 0 && (
+            {orders.length} pedido{orders.length !== 1 ? 's' : ''} em {formatDateLabel(selectedDate).toLowerCase()}
+            {openCount > 0 && isToday && ` · ${openCount} em aberto`}
+            {isToday && (paySummary.paid + paySummary.partial + paySummary.pending) > 0 && (
               <>
                 {' · '}
                 <span className="text-emerald-400">{paySummary.paid} quitado{paySummary.paid !== 1 ? 's' : ''}</span>
@@ -323,12 +362,54 @@ export default function OrdersPage() {
                 )}
               </>
             )}
-            {' — atualização em tempo real.'}
+            {isToday ? ' — atualização em tempo real.' : ' — histórico do dia selecionado.'}
           </p>
         </div>
-        <p className="text-[11px] font-mono text-on-surface-variant">
-          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
+
+        {/* Filtro de data */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedDate(todayDateStr())}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono transition-colors ${
+              isToday
+                ? 'bg-primary-container text-on-primary-container border border-primary/30'
+                : 'bg-surface-container-high text-on-surface-variant border border-outline-variant hover:border-primary/40'
+            }`}
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedDate(shiftDateStr(todayDateStr(), -1))}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono transition-colors ${
+              selectedDate === shiftDateStr(todayDateStr(), -1)
+                ? 'bg-primary-container text-on-primary-container border border-primary/30'
+                : 'bg-surface-container-high text-on-surface-variant border border-outline-variant hover:border-primary/40'
+            }`}
+          >
+            Ontem
+          </button>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant">
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">calendar_today</span>
+            <input
+              type="date"
+              value={selectedDate}
+              max={todayDateStr()}
+              onChange={e => e.target.value && setSelectedDate(e.target.value)}
+              className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
+            />
+          </div>
+          {!isToday && restaurantId && (
+            <button
+              type="button"
+              onClick={() => loadOrders(restaurantId, selectedDate)}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-mono bg-surface-container-high text-on-surface-variant border border-outline-variant hover:border-primary/40"
+            >
+              Atualizar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -378,7 +459,9 @@ export default function OrdersPage() {
                   <td colSpan={8} className="px-4 py-16 text-center">
                     <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-30 mb-2 block">receipt_long</span>
                     <p className="text-sm font-mono text-on-surface-variant">
-                      {orders.length === 0 ? 'Nenhum pedido registrado hoje' : 'Nenhum pedido com este status'}
+                      {orders.length === 0
+                        ? `Nenhum pedido em ${formatDateLabel(selectedDate).toLowerCase()}`
+                        : 'Nenhum pedido com este status'}
                     </p>
                   </td>
                 </tr>

@@ -59,6 +59,9 @@ export default function CheckInPage() {
   const [docType, setDocType]     = useState<'cpf' | 'passport'>('cpf')
   const [cpf, setCpf]             = useState('')
   const [passport, setPassport]   = useState('')
+  const [savedCustomerId, setSavedCustomerId] = useState<string | null>(null)
+  const [savedCustomerName, setSavedCustomerName] = useState('')
+  const [showFullForm, setShowFullForm] = useState(false)
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -67,6 +70,12 @@ export default function CheckInPage() {
 
   useEffect(() => {
     setTableNumber(new URLSearchParams(window.location.search).get('mesa') ?? '1')
+    const cid = localStorage.getItem('qomanda_customer_id')
+    const cname = localStorage.getItem('qomanda_customer_name') ?? ''
+    if (cid) {
+      setSavedCustomerId(cid)
+      setSavedCustomerName(cname)
+    }
   }, [])
 
   useEffect(() => {
@@ -133,8 +142,38 @@ export default function CheckInPage() {
     setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
   }
 
+  async function handleQuickCheckIn() {
+    if (!restaurant || !savedCustomerId) return
+    setCheckingIn(true)
+    const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
+
+    const res = await fetch('/api/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: params.slug, mesa, customerId: savedCustomerId }),
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro no check-in rápido. Preencha seus dados.')
+      setShowFullForm(true)
+      setCheckingIn(false)
+      return
+    }
+
+    const { sessionId, customerId } = (await res.json()) as CheckInResponse
+    localStorage.setItem('qomanda_session_id', sessionId)
+    localStorage.setItem('qomanda_customer_id', customerId)
+    setCheckedIn(true)
+    setCheckingIn(false)
+    const first = savedCustomerName.split(' ')[0] || 'Cliente'
+    toast.success(`Bem-vindo de volta, ${first}!`)
+    setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
+  }
+
   const tableLabel = tableNumber.padStart(2, '0')
   const formValid  = firstName.trim() && lastName.trim() && whatsapp.replace(/\D/g, '').length >= 10
+  const canQuickCheckIn = savedCustomerId && !showFullForm
 
   // ── Loading ──────────────────────────────────────────────
   if (loading) {
@@ -183,7 +222,7 @@ export default function CheckInPage() {
               <span className="font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
-              Confirme seus dados para começar
+              {canQuickCheckIn ? 'Entre na mesa com um toque' : 'Confirme seus dados para começar'}
             </p>
           </div>
         </header>
@@ -218,7 +257,42 @@ export default function CheckInPage() {
           </div>
         </div>
 
+        {/* Check-in rápido */}
+        {canQuickCheckIn && (
+          <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
+            style={{ background: 'linear-gradient(145deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.35)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold shrink-0"
+                style={{ background: 'rgba(249,115,22,0.15)', color: '#ffb690' }}>
+                {savedCustomerName.trim()
+                  ? savedCustomerName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+                  : '?'}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{savedCustomerName || 'Cliente'}</p>
+                <p className="text-xs" style={{ color: '#a78b7d' }}>Conta salva neste aparelho</p>
+              </div>
+            </div>
+            <button onClick={handleQuickCheckIn} disabled={checkingIn || checkedIn}
+              className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ background: '#f97316', color: '#582200', boxShadow: '0 12px 28px rgba(249,115,22,0.2)' }}>
+              {checkingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                <>
+                  <span className="material-symbols-outlined">bolt</span>
+                  Entrar na Mesa {tableLabel}
+                </>
+              )}
+            </button>
+            <button type="button" onClick={() => setShowFullForm(true)}
+              className="text-xs font-mono underline underline-offset-2 self-center"
+              style={{ color: '#a78b7d' }}>
+              Usar outra conta
+            </button>
+          </div>
+        )}
+
         {/* Form */}
+        {!canQuickCheckIn && (
         <div className="rounded-xl p-5 flex flex-col gap-4 mb-6"
           style={{ background: '#1e293b', border: '1px solid #334155' }}>
 
@@ -334,8 +408,10 @@ export default function CheckInPage() {
             Dados usados para emissão de nota fiscal e manutenção do seu histórico de fidelidade. Não compartilhamos com terceiros.
           </p>
         </div>
+        )}
 
         {/* CTA */}
+        {!canQuickCheckIn && (
         <button onClick={handleCheckIn} disabled={checkingIn || checkedIn || !formValid}
           className="w-full py-5 rounded-xl text-xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.97] disabled:opacity-50"
           style={{
@@ -355,11 +431,14 @@ export default function CheckInPage() {
             <>Fazer Check-in <span className="material-symbols-outlined">login</span></>
           )}
         </button>
+        )}
 
+        {!canQuickCheckIn && (
         <p className="text-center text-xs font-mono uppercase tracking-widest mt-4"
           style={{ color: 'rgba(218,226,253,0.35)' }}>
           Toque para iniciar o pedido
         </p>
+        )}
 
         {/* Footer */}
         <div className="mt-10 text-center">

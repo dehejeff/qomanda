@@ -218,7 +218,7 @@ export default function RoadmapPage() {
         </Link>
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>← Voltar ao site</Link>
-          <Link href="/login" className="hidden md:block text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>Entrar</Link>
+          <Link href="/login?perfil=admin" className="hidden md:block text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>Entrar</Link>
           <Link href="/cadastro"
             className="text-sm font-bold px-4 py-2 rounded-xl transition-all"
             style={{ background: C.primary, color: '#582200' }}>

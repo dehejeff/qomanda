@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { QomandaLogo } from '@/components/qomanda-logo'
+import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 
 type ScanStatus = 'starting' | 'scanning' | 'detected' | 'no-support' | 'denied'
 
@@ -132,10 +134,14 @@ export default function ScanPage() {
       {/* Header */}
       <header className="relative z-10 flex justify-between items-center px-6 h-16 shrink-0"
         style={{ background: 'rgba(23,31,51,0.85)', borderBottom: '1px solid rgba(88,66,55,0.4)' }}>
+        <Link href="/hub" className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+          <span className="material-symbols-outlined">arrow_back</span>
+        </Link>
         <div className="flex items-center gap-2">
           <QomandaLogo size={28} />
           <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', color: '#ffffff', letterSpacing: '-0.02em' }}>Qomanda</span>
         </div>
+        <div className="w-8" />
       </header>
 
       {/* Scanner area */}
@@ -200,22 +206,7 @@ export default function ScanPage() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="relative z-10 flex justify-around items-center h-20 px-4 shrink-0"
-        style={{ background: '#171f33', borderTop: '1px solid rgba(88,66,55,0.4)' }}>
-        <a href="#" className="flex flex-col items-center gap-0.5 p-2 rounded-xl" style={{ color: '#e0c0b1' }}>
-          <span className="material-symbols-outlined">menu_book</span>
-          <span className="text-[11px] font-mono">Menu</span>
-        </a>
-        <a href="/scan" className="flex flex-col items-center gap-0.5 rounded-full px-5 py-2"
-          style={{ background: '#f97316', color: '#582200' }}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>qr_code_scanner</span>
-          <span className="text-[11px] font-mono">Scan</span>
-        </a>
-        <a href="#" className="flex flex-col items-center gap-0.5 p-2 rounded-xl" style={{ color: '#e0c0b1' }}>
-          <span className="material-symbols-outlined">receipt_long</span>
-          <span className="text-[11px] font-mono">Pedidos</span>
-        </a>
-      </nav>
+      <HubBottomNav active="scan" />
 
       {/* ── Modal de entrada manual ─────────────────────── */}
       {showModal && (

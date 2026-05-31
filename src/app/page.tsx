@@ -158,7 +158,11 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+            <Link href="/login?perfil=cliente" className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+              style={{ color: C.muted }}>
+              Área do cliente
+            </Link>
+            <Link href="/login?perfil=admin" className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
               style={{ color: C.muted }}>
               Entrar
             </Link>
@@ -194,7 +198,12 @@ export default function LandingPage() {
                 {item}
               </a>
             ))}
-            <Link href="/login" onClick={() => setMobileMenu(false)}
+            <Link href="/login?perfil=cliente" onClick={() => setMobileMenu(false)}
+              className="py-3 text-sm font-semibold transition-colors"
+              style={{ color: C.primary }}>
+              Área do cliente
+            </Link>
+            <Link href="/login?perfil=admin" onClick={() => setMobileMenu(false)}
               className="py-3 text-sm font-semibold transition-colors"
               style={{ color: C.primary }}>
               Já tenho conta — Entrar

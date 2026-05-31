@@ -45,7 +45,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
 
-    fetch(`/api/customer/profile?session=${sessionId}`)
+    const customerId = typeof window !== 'undefined' ? localStorage.getItem('qomanda_customer_id') : null
+    const profileUrl = customerId
+      ? `/api/customer/profile?session=${sessionId}&customer=${customerId}`
+      : `/api/customer/profile?session=${sessionId}`
+
+    fetch(profileUrl)
       .then(r => r.json())
       .then((profile: ProfileData) => {
         setData(profile)
@@ -201,11 +206,8 @@ export default function ProfilePage() {
         </Link>
 
         {/* Loyalty */}
-        <div className="rounded-xl p-5 relative overflow-hidden"
+        <div className="rounded-xl p-5"
           style={{ background: 'linear-gradient(145deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
-          <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-            <span className="material-symbols-outlined text-[120px]" style={{ color: '#f97316' }}>workspace_premium</span>
-          </div>
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Programa de Fidelidade</p>
@@ -213,7 +215,7 @@ export default function ProfilePage() {
                 {data?.visits ?? 0} {(data?.visits ?? 0) === 1 ? 'visita' : 'visitas'}
               </p>
             </div>
-            <span className="material-symbols-outlined text-[28px]"
+            <span className="material-symbols-outlined text-[28px] shrink-0"
               style={{ color: '#f97316', fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
           </div>
           {data?.nextReward ? (
@@ -264,7 +266,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Logout */}
-        <button onClick={() => { localStorage.clear(); router.push('/') }}
+        <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push('/login?perfil=cliente') }}
           className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
           style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}>
           <span className="material-symbols-outlined text-[18px]">logout</span>

@@ -26,19 +26,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Sessão inválida.' }, { status: 404 })
     }
 
-    // Busca dados do cliente — sem expor CPF (nem hash nem encrypted)
+    // Cliente logado (localStorage) — importante em mesas compartilhadas
+    const customerParam = req.nextUrl.searchParams.get('customer')
+    let customerId = session.customer_id
+    if (customerParam) {
+      const { data: participant } = await supabase
+        .from('session_participants')
+        .select('customer_id')
+        .eq('session_id', sessionId)
+        .eq('customer_id', customerParam)
+        .maybeSingle()
+      if (participant) customerId = customerParam
+    }
+
+    // Garante registro do participante (sessões criadas antes da tabela)
+    await supabase
+      .from('session_participants')
+      .upsert(
+        { session_id: sessionId, customer_id: customerId },
+        { onConflict: 'session_id,customer_id' },
+      )
+
+    // Contagem: sessões distintas em que participou neste restaurante
+    const { data: participations } = await supabase
+      .from('session_participants')
+      .select('session_id, sessions!inner(restaurant_id)')
+      .eq('customer_id', customerId)
+
+    const visitCount = (participations ?? []).filter(p => {
+      const sess = p.sessions as { restaurant_id: string } | { restaurant_id: string }[] | null
+      const restaurantId = Array.isArray(sess) ? sess[0]?.restaurant_id : sess?.restaurant_id
+      return restaurantId === session.restaurant_id
+    }).length
+
+    // Mantém customer_visits sincronizado (fidelidade / relatórios)
+    await supabase
+      .from('customer_visits')
+      .upsert(
+        {
+          customer_id: customerId,
+          restaurant_id: session.restaurant_id,
+          session_id: sessionId,
+        },
+        { onConflict: 'session_id' },
+      )
+
     const { data: customer } = await supabase
       .from('customers')
       .select('first_name, last_name, whatsapp, document_type')
-      .eq('id', session.customer_id)
+      .eq('id', customerId)
       .single()
-
-    // Contagem de visitas para fidelidade
-    const { count: visitCount } = await supabase
-      .from('customer_visits')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', session.customer_id)
-      .eq('restaurant_id', session.restaurant_id)
 
     // Próxima recompensa
     const { data: rules } = await supabase

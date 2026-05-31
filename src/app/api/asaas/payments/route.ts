@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { decryptCPF } from '@/lib/crypto'
 import {
-  upsertCustomer,
   createPixPayment,
   createCreditCardPayment,
+  createCreditCardPaymentWithToken,
+  tokenizeCreditCard,
   getPixQrCode,
   isPaymentConfirmed,
   type AsaasCreditCard,
   type AsaasCreditCardHolderInfo,
 } from '@/lib/asaas'
+import { buildHolderInfoFromCustomer, resolveAsaasCustomerId } from '@/lib/asaas-customer'
+import {
+  clientIp,
+  getPaymentMethodToken,
+  savePaymentMethod,
+} from '@/lib/payment-methods'
 import { generateConfirmationCode } from '@/lib/utils'
 import { isPaymentBypassEnabled } from '@/lib/payment-bypass'
 import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
@@ -30,9 +36,11 @@ export type AsaasPaymentRequest = {
   /** true = inclui 10% de taxa de serviço; false = cliente recusou a taxa */
   serviceFeeIncluded?: boolean
   installmentCount?: number
-  // Somente para crédito
+  // Crédito — cartão novo ou salvo
   creditCard?: AsaasCreditCard
   creditCardHolderInfo?: AsaasCreditCardHolderInfo
+  paymentMethodId?: string
+  saveCard?: boolean
 }
 
 export type AsaasPaymentResponse = {
@@ -52,7 +60,7 @@ export type AsaasPaymentResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: AsaasPaymentRequest = await req.json()
-    const { sessionId, amount: rawAmount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId, serviceFeeIncluded = true } = body
+    const { sessionId, amount: rawAmount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId, serviceFeeIncluded = true, paymentMethodId, saveCard = false } = body
 
     const amount = normalizePaymentAmount(rawAmount)
     if (!sessionId || !amount || !method) {
@@ -131,46 +139,20 @@ export async function POST(req: NextRequest) {
 
     const restaurantName = (session.restaurant as any)?.name ?? 'Restaurante'
 
-    // ── Busca dados do cliente ─────────────────────────────
+    // ── Cliente Asaas (pagador) ────────────────────────────
     let asaasCustomerId: string
+    let payerCustomerRow: Awaited<ReturnType<typeof resolveAsaasCustomerId>>['customer'] | null = null
 
-    if (session.customer_id) {
-      const { data: customer } = await supabase
-        .from('customers')
-        .select('first_name, last_name, whatsapp, cpf_encrypted, document_type')
-        .eq('id', session.customer_id)
-        .single()
-
-      let cpfCnpj = '00000000000' // fallback — Asaas requer CPF
-
-      if (customer?.document_type === 'cpf' && customer.cpf_encrypted) {
-        try {
-          cpfCnpj = decryptCPF(customer.cpf_encrypted)
-        } catch {
-          // mantém fallback se chave não configurada em dev
-        }
-      }
-
-      const name = customer
-        ? `${customer.first_name} ${customer.last_name}`
-        : 'Cliente Qomanda'
-
-      const asaasCustomer = await upsertCustomer({
-        name,
-        cpfCnpj,
-        mobilePhone: customer?.whatsapp,
-        externalReference: session.customer_id,
-      })
-
-      asaasCustomerId = asaasCustomer.id
+    if (payerCustomerId) {
+      const resolved = await resolveAsaasCustomerId(supabase, payerCustomerId)
+      asaasCustomerId = resolved.asaasCustomerId
+      payerCustomerRow = resolved.customer
+    } else if (session.customer_id) {
+      const resolved = await resolveAsaasCustomerId(supabase, session.customer_id)
+      asaasCustomerId = resolved.asaasCustomerId
+      payerCustomerRow = resolved.customer
     } else {
-      // Sessão sem cliente identificado (raro) — cria cliente genérico
-      const generic = await upsertCustomer({
-        name: 'Cliente Qomanda',
-        cpfCnpj: '00000000000',
-        externalReference: sessionId,
-      })
-      asaasCustomerId = generic.id
+      return NextResponse.json({ error: 'Cliente não identificado para pagamento.' }, { status: 400 })
     }
 
     // ── Cria o registro interno de pagamento ──────────────
@@ -227,19 +209,71 @@ export async function POST(req: NextRequest) {
 
     // ── Cartão de Crédito ──────────────────────────────────
     if (method === 'credit') {
-      if (!body.creditCard || !body.creditCardHolderInfo) {
-        return NextResponse.json({ error: 'Dados do cartão são obrigatórios.' }, { status: 400 })
-      }
+      let asaasPayment
 
-      const asaasPayment = await createCreditCardPayment({
-        customerId: asaasCustomerId,
-        value: amount,
-        installmentCount,
-        description,
-        externalReference: payment.id,
-        creditCard: body.creditCard,
-        creditCardHolderInfo: body.creditCardHolderInfo,
-      })
+      if (paymentMethodId && payerCustomerId) {
+        const token = await getPaymentMethodToken(supabase, payerCustomerId, paymentMethodId)
+        if (!token) {
+          return NextResponse.json({ error: 'Cartão salvo não encontrado.' }, { status: 404 })
+        }
+
+        asaasPayment = await createCreditCardPaymentWithToken({
+          customerId: asaasCustomerId,
+          value: amount,
+          creditCardToken: token,
+          installmentCount,
+          description,
+          externalReference: payment.id,
+        })
+      } else {
+        if (!body.creditCard) {
+          return NextResponse.json({ error: 'Dados do cartão são obrigatórios.' }, { status: 400 })
+        }
+
+        const baseHolder = payerCustomerRow
+          ? buildHolderInfoFromCustomer(payerCustomerRow)
+          : { name: body.creditCard.holderName, email: '', cpfCnpj: '00000000000', phone: '', mobilePhone: '' }
+
+        const holderInfo: AsaasCreditCardHolderInfo = {
+          name: body.creditCardHolderInfo?.name ?? body.creditCard.holderName ?? baseHolder.name,
+          email: body.creditCardHolderInfo?.email || baseHolder.email,
+          cpfCnpj: body.creditCardHolderInfo?.cpfCnpj || baseHolder.cpfCnpj,
+          phone: body.creditCardHolderInfo?.phone ?? baseHolder.phone,
+          mobilePhone: baseHolder.mobilePhone || baseHolder.phone,
+          postalCode: body.creditCardHolderInfo?.postalCode,
+          addressNumber: body.creditCardHolderInfo?.addressNumber,
+        }
+
+        asaasPayment = await createCreditCardPayment({
+          customerId: asaasCustomerId,
+          value: amount,
+          installmentCount,
+          description,
+          externalReference: payment.id,
+          creditCard: body.creditCard,
+          creditCardHolderInfo: holderInfo,
+        })
+
+        if (saveCard && payerCustomerId) {
+          try {
+            const tokenized = await tokenizeCreditCard({
+              customerId: asaasCustomerId,
+              creditCard: body.creditCard,
+              creditCardHolderInfo: holderInfo,
+              remoteIp: clientIp(req),
+            })
+            await savePaymentMethod(supabase, {
+              customerId: payerCustomerId,
+              creditCardToken: tokenized.creditCardToken,
+              brand: tokenized.creditCardBrand,
+              lastFour: tokenized.creditCardNumber,
+              holderName: body.creditCard.holderName,
+            })
+          } catch (saveErr) {
+            console.warn('[Payment] Falha ao salvar cartão:', saveErr)
+          }
+        }
+      }
 
       const confirmed = isPaymentConfirmed(asaasPayment.status)
       const confirmationCode = confirmed ? generateConfirmationCode() : ''

@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { hashCPF, encryptCPF } from '@/lib/crypto'
+import { upsertCustomerRecord } from '@/lib/customer-upsert'
 
 export type CheckInRequest = {
   slug: string
   mesa: string
-  firstName: string
-  lastName: string
-  whatsapp: string        // dígitos apenas
+  firstName?: string
+  lastName?: string
+  whatsapp?: string        // dígitos apenas
   documentType?: 'cpf' | 'passport' | null
   cpf?: string | null     // 11 dígitos, sem formatação
   passport?: string | null
+  customerId?: string     // check-in rápido para clientes recorrentes
 }
 
 export type CheckInResponse = {
@@ -22,13 +23,35 @@ export type CheckInResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: CheckInRequest = await req.json()
-    const { slug, mesa, firstName, lastName, whatsapp, documentType, cpf, passport } = body
+    const { slug, mesa, documentType, cpf, passport, customerId: quickCustomerId } = body
+    let { firstName, lastName, whatsapp } = body
 
-    if (!slug || !mesa || !firstName || !lastName || !whatsapp) {
+    if (!slug || !mesa) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
+
+    // ── Check-in rápido (cliente já cadastrado) ───────────────
+    let customerId: string | null = quickCustomerId ?? null
+
+    if (customerId) {
+      const { data: existing } = await supabase
+        .from('customers')
+        .select('id, first_name, last_name, whatsapp')
+        .eq('id', customerId)
+        .single()
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
+      }
+
+      firstName = existing.first_name
+      lastName  = existing.last_name
+      whatsapp  = existing.whatsapp
+    } else if (!firstName || !lastName || !whatsapp) {
+      return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    }
 
     // ── 1. Resolver restaurante ───────────────────────────────
     const { data: restaurant } = await supabase
@@ -43,90 +66,19 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Upsert do cliente ──────────────────────────────────
-    let customerId: string | null = null
-
-    // Tenta criptografar o CPF — falha silenciosa se colunas não existirem
-    let cpfHash: string | null = null
-    let cpfEncrypted: string | null = null
-
-    if (documentType === 'cpf' && cpf && cpf.length === 11) {
-      try {
-        cpfHash      = hashCPF(cpf)
-        cpfEncrypted = encryptCPF(cpf)
-      } catch (cryptoErr) {
-        console.warn('[CheckIn] Falha na criptografia do CPF:', cryptoErr)
-        // Continua sem CPF — não bloqueia o check-in
-      }
-
-      // Busca cliente existente pelo hash do CPF
-      if (cpfHash) {
-        try {
-          const { data: byCpf } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('cpf_hash', cpfHash)
-            .maybeSingle()
-
-          if (byCpf) {
-            await supabase
-              .from('customers')
-              .update({ first_name: firstName, last_name: lastName, whatsapp })
-              .eq('id', byCpf.id)
-            customerId = byCpf.id
-          }
-        } catch (lookupErr) {
-          console.warn('[CheckIn] Busca por CPF falhou (coluna pode não existir):', lookupErr)
-        }
-      }
+    if (!customerId) {
+      customerId = await upsertCustomerRecord(supabase, {
+        firstName: firstName!,
+        lastName: lastName!,
+        whatsapp: whatsapp!,
+        documentType,
+        cpf: cpf ?? null,
+        passport: passport ?? null,
+      })
     }
 
     if (!customerId) {
-      // Monta payload base (sempre presente)
-      const payload: Record<string, unknown> = {
-        first_name: firstName,
-        last_name:  lastName,
-        whatsapp,
-      }
-
-      // Adiciona CPF criptografado somente se disponível
-      if (cpfHash && cpfEncrypted) {
-        payload.document_type = 'cpf'
-        payload.cpf_hash      = cpfHash
-        payload.cpf_encrypted = cpfEncrypted
-      } else if (documentType === 'cpf' && cpf) {
-        // CPF informado mas crypto falhou — salva só o tipo de documento
-        payload.document_type = 'cpf'
-      }
-
-      if (documentType === 'passport' && passport) {
-        payload.document_type = 'passport'
-        payload.passport      = passport
-      }
-
-      const { data: customer, error: upsertErr } = await supabase
-        .from('customers')
-        .upsert(payload, { onConflict: 'whatsapp' })
-        .select('id')
-        .single()
-
-      if (upsertErr) {
-        console.error('[CheckIn] Erro ao salvar cliente:', upsertErr)
-
-        // Último fallback: tenta sem CPF (pode ser coluna inexistente)
-        const { data: fallback, error: fallbackErr } = await supabase
-          .from('customers')
-          .upsert({ first_name: firstName, last_name: lastName, whatsapp }, { onConflict: 'whatsapp' })
-          .select('id')
-          .single()
-
-        if (fallbackErr || !fallback) {
-          console.error('[CheckIn] Fallback também falhou:', fallbackErr)
-          return NextResponse.json({ error: 'Erro ao salvar dados do cliente.' }, { status: 500 })
-        }
-        customerId = fallback.id
-      } else {
-        customerId = customer?.id ?? null
-      }
+      return NextResponse.json({ error: 'Erro ao identificar cliente.' }, { status: 500 })
     }
 
     // ── 3. Resolver mesa ─────────────────────────────────────
@@ -186,7 +138,7 @@ export async function POST(req: NextRequest) {
       .from('customer_visits')
       .upsert(
         { customer_id: customerId, restaurant_id: restaurant.id, session_id: sessionId },
-        { onConflict: 'session_id' }
+        { onConflict: 'session_id' },
       )
 
     return NextResponse.json({ sessionId, customerId: customerId!, isJoining } satisfies CheckInResponse)

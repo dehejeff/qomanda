@@ -20,6 +20,7 @@ import {
 } from '@/lib/session-billing'
 import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
+import { CardPaymentScreen, type CardPaymentPayload } from '@/components/customer/card-payment-screen'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -28,14 +29,6 @@ type SessionPaymentRow = PaymentReceiptRecord & { customer_id: string | null }
 type CloseMode = 'individual' | 'table'
 type SplitType = 'equal' | 'custom'
 type Step      = 'mode' | 'pix' | 'card' | 'confirmed'
-
-function maskCard(v: string) {
-  return v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-}
-function maskExpiry(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 4)
-  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d
-}
 
 // ── PIX Screen ───────────────────────────────────────────────
 // ── PIX Screen ── Mostra QR Code real gerado pelo Asaas ─────
@@ -209,190 +202,6 @@ function PixScreen({
       <p className="text-center text-[10px] font-mono" style={{ color: '#584237' }}>
         A confirmação automática chega via webhook do Asaas em instantes.
       </p>
-    </div>
-  )
-}
-
-// ── Card Screen ──────────────────────────────────────────────
-function CardScreen({
-  method, suggestedAmount, fixedAmount, onConfirm, onBack, loading,
-}: {
-  method: 'debit' | 'credit'
-  suggestedAmount: number
-  fixedAmount: boolean
-  onConfirm: (amount: number, cardData?: {
-    creditCard: AsaasPaymentRequest['creditCard']
-    creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
-    installmentCount?: number
-  }) => void
-  onBack: () => void
-  loading: boolean
-}) {
-  const [cardNumber, setCardNumber]     = useState('')
-  const [cardName, setCardName]         = useState('')
-  const [expiry, setExpiry]             = useState('')
-  const [cvv, setCvv]                   = useState('')
-  const [showCvv, setShowCvv]           = useState(false)
-  const [installments, setInstallments] = useState(1)
-  const [amount, setAmount]             = useState(suggestedAmount.toFixed(2))
-
-  const isCredit   = method === 'credit'
-  const parsedAmt  = fixedAmount ? suggestedAmount : (parseFloat(amount.replace(',', '.')) || 0)
-  const extraAmt   = parsedAmt - suggestedAmount
-  const formValid  = cardNumber.replace(/\s/g, '').length === 16 && cardName.trim()
-    && expiry.length === 5 && cvv.length >= 3
-    && (fixedAmount || parsedAmt >= suggestedAmount)
-  const brand = cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Master' : null
-
-  const inputSt: React.CSSProperties = {
-    background: '#0b1326', border: '1px solid #334155', color: '#dae2fd',
-    outline: 'none', width: '100%', height: 44, borderRadius: 12, padding: '0 12px', fontSize: 14,
-  }
-  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#f97316' }
-  const onBlur  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#334155' }
-
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
-          {isCredit ? 'Cartão de Crédito' : 'Cartão de Débito'}
-        </h2>
-      </div>
-
-      {/* Card preview */}
-      <div className="rounded-xl p-5 h-36 flex flex-col justify-between relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,#1e3a5f,#0f2027)', border: '1px solid #334155' }}>
-        <div className="flex justify-between">
-          <span className="text-xs font-mono uppercase tracking-widest" style={{ color: 'rgba(218,226,253,0.5)' }}>
-            {isCredit ? 'Crédito' : 'Débito'}
-          </span>
-          {brand && <span className="text-xs font-bold" style={{ color: 'rgba(218,226,253,0.6)' }}>{brand}</span>}
-        </div>
-        <div>
-          <p className="text-lg font-mono tracking-widest" style={{ color: cardNumber ? '#dae2fd' : 'rgba(218,226,253,0.2)' }}>
-            {cardNumber || '•••• •••• •••• ••••'}
-          </p>
-          <div className="flex justify-between mt-1">
-            <p className="text-xs font-mono uppercase" style={{ color: cardName ? '#dae2fd' : 'rgba(218,226,253,0.2)' }}>
-              {cardName || 'NOME DO TITULAR'}
-            </p>
-            <p className="text-xs font-mono" style={{ color: expiry ? '#dae2fd' : 'rgba(218,226,253,0.2)' }}>
-              {expiry || 'MM/AA'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Form */}
-      <div className="space-y-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Número do Cartão</label>
-          <input type="text" inputMode="numeric" value={cardNumber}
-            onChange={e => setCardNumber(maskCard(e.target.value))}
-            placeholder="0000 0000 0000 0000" maxLength={19}
-            style={inputSt} onFocus={onFocus} onBlur={onBlur} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Nome do Titular</label>
-          <input type="text" value={cardName} onChange={e => setCardName(e.target.value.toUpperCase())}
-            placeholder="COMO NO CARTÃO" style={inputSt} onFocus={onFocus} onBlur={onBlur} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Validade</label>
-            <input type="text" inputMode="numeric" value={expiry}
-              onChange={e => setExpiry(maskExpiry(e.target.value))}
-              placeholder="MM/AA" maxLength={5} style={inputSt} onFocus={onFocus} onBlur={onBlur} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>CVV</label>
-            <div className="relative">
-              <input type={showCvv ? 'text' : 'password'} inputMode="numeric" value={cvv}
-                onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="•••" style={{ ...inputSt, paddingRight: 40 }} onFocus={onFocus} onBlur={onBlur} />
-              <button type="button" onClick={() => setShowCvv(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#584237' }}>
-                <span className="material-symbols-outlined text-[18px]">{showCvv ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        {isCredit && (
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Parcelas</label>
-            <select value={installments} onChange={e => setInstallments(Number(e.target.value))}
-              style={{ ...inputSt, appearance: 'none' } as React.CSSProperties}
-              onFocus={onFocus} onBlur={onBlur}>
-              {[1,2,3,6,12].map(n => (
-                <option key={n} value={n}>{n}x de {formatCurrency(parsedAmt / n)}{n === 1 ? ' (sem juros)' : ''}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Amount */}
-        <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-          <div className="flex justify-between">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
-              {fixedAmount ? 'Valor definido' : 'Valor a pagar'}
-            </label>
-            {!fixedAmount && (
-              <span className="text-[10px] font-mono" style={{ color: '#584237' }}>Mínimo: {formatCurrency(suggestedAmount)}</span>
-            )}
-          </div>
-          {fixedAmount ? (
-            <div className="flex items-center gap-2 h-11 px-3 rounded-lg"
-              style={{ background: '#0b1326', border: '1px solid #584237' }}>
-              <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
-              <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
-                {suggestedAmount.toFixed(2).replace('.', ',')}
-              </span>
-              <span className="material-symbols-outlined text-[16px] ml-auto" style={{ color: '#584237' }}>lock</span>
-            </div>
-          ) : (
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
-              <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="w-full h-11 pl-9 pr-3 rounded-lg font-bold font-mono outline-none text-base"
-                style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }} />
-            </div>
-          )}
-          {!fixedAmount && extraAmt > 0.01 && (
-            <p className="text-xs" style={{ color: '#34d399' }}>
-              +{formatCurrency(extraAmt)} virará saldo da mesa 💛
-            </p>
-          )}
-        </div>
-      </div>
-
-      <button
-        onClick={() => onConfirm(parsedAmt, {
-          creditCard: {
-            holderName: cardName,
-            number: cardNumber.replace(/\s/g, ''),
-            expiryMonth: expiry.split('/')[0] ?? '',
-            expiryYear: `20${expiry.split('/')[1] ?? ''}`,
-            ccv: cvv,
-          },
-          creditCardHolderInfo: {
-            name: cardName,
-            email: '',   // preenchido pelo cliente se necessário
-            cpfCnpj: '', // descriptografado server-side via session
-            phone: '',
-          },
-          installmentCount: installments,
-        })}
-        disabled={loading || !formValid}
-        className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-        style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
-        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
-          <><span className="material-symbols-outlined">lock</span> Confirmar Pagamento</>
-        )}
-      </button>
     </div>
   )
 }
@@ -699,11 +508,7 @@ export default function CheckoutPage() {
   async function submitPayment(
     amount: number,
     splitType: 'food' | 'alcohol' | 'combined',
-    cardData?: {
-      creditCard: AsaasPaymentRequest['creditCard']
-      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
-      installmentCount?: number
-    },
+    cardPayload?: CardPaymentPayload,
   ): Promise<AsaasPaymentResponse> {
     const payload: AsaasPaymentRequest = {
       sessionId: sessionId!,
@@ -712,7 +517,7 @@ export default function CheckoutPage() {
       splitType,
       customerId: myCustomerId,
       serviceFeeIncluded: includeServiceFee,
-      ...(cardData ?? {}),
+      ...(cardPayload ?? {}),
     }
 
     const res = await fetch('/api/asaas/payments', {
@@ -737,18 +542,12 @@ export default function CheckoutPage() {
     )
   }
 
-  async function processSplitPayments(
-    cardData?: {
-      creditCard: AsaasPaymentRequest['creditCard']
-      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
-      installmentCount?: number
-    },
-  ): Promise<boolean> {
+  async function processSplitPayments(cardPayload?: CardPaymentPayload): Promise<boolean> {
     const { food, alcohol } = alcoholPaymentAmounts()
     const mustSplit = alcoholSplit.hasAlcohol && food >= 0.01 && alcohol >= 0.01
 
     if (mustSplit) {
-      const foodRes = await submitPayment(food, 'food', cardData)
+      const foodRes = await submitPayment(food, 'food', cardPayload)
       const alcoholRes = await submitPayment(alcohol, 'alcohol')
 
       setConfirmationCode(foodRes.confirmationCode)
@@ -765,7 +564,7 @@ export default function CheckoutPage() {
     const singleType = food >= 0.01 ? 'food' as const : 'alcohol' as const
     if (singleAmount < 0.01) return false
 
-    const data = await submitPayment(singleAmount, singleType, cardData)
+    const data = await submitPayment(singleAmount, singleType, cardPayload)
     setConfirmationCode(data.confirmationCode)
     if (customerWhatsapp) {
       await sendReceiptWhatsApp(singleAmount, data.confirmationCode, singleType)
@@ -775,18 +574,14 @@ export default function CheckoutPage() {
 
   async function processPayment(
     paidAmount: number,
-    cardData?: {
-      creditCard: AsaasPaymentRequest['creditCard']
-      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
-      installmentCount?: number
-    },
+    cardPayload?: CardPaymentPayload,
   ): Promise<boolean> {
     setPaying(true)
 
     try {
       // Split alcoólico: 2 pagamentos (alimentação + bebidas)
       if (splitAlcohol && closeMode === 'individual') {
-        const done = await processSplitPayments(cardData)
+        const done = await processSplitPayments(cardPayload)
         if (!done) {
           toast.error('Nenhum valor a pagar.')
           return false
@@ -795,7 +590,7 @@ export default function CheckoutPage() {
         return true
       }
 
-      const data = await submitPayment(paidAmount, 'combined', cardData)
+      const data = await submitPayment(paidAmount, 'combined', cardPayload)
 
       if ((method === 'pix' || method === 'debit') && data.status === 'pending') {
         setPixQrCodeImage(data.pixQrCodeImage ?? '')
@@ -1051,16 +846,16 @@ export default function CheckoutPage() {
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
-            Pagamento · {method === 'credit' ? 'Crédito' : 'Débito'}
+            Pagamento · Crédito
           </h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
-          <CardScreen
-            method={method as 'debit' | 'credit'}
+          <CardPaymentScreen
+            customerId={myCustomerId}
             suggestedAmount={getAmountToPay()}
             fixedAmount={isTableMode}
-            onConfirm={async (amount, cardData) => {
-              const confirmed = await processPayment(amount, cardData)
+            onConfirm={async (amount, payload) => {
+              const confirmed = await processPayment(amount, payload)
               if (confirmed) setStep('confirmed')
             }}
             onBack={() => setStep('mode')}
