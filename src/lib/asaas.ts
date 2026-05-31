@@ -101,6 +101,19 @@ export interface AsaasCreditCardTokenResponse {
   creditCardToken: string
 }
 
+/** Entrada do split do marketplace: parte enviada à subconta do restaurante. */
+export interface AsaasSplitEntry {
+  walletId: string
+  fixedValue: number
+}
+
+export interface AsaasSubAccount {
+  id: string
+  walletId: string
+  apiKey?: string
+  accountNumber?: { agency: string; account: string; accountDigit: string }
+}
+
 // ── Customers ────────────────────────────────────────────────
 
 /**
@@ -154,6 +167,7 @@ export async function createPixPayment(params: {
   description?: string
   externalReference?: string
   dueDate?: string // YYYY-MM-DD, default = hoje
+  split?: AsaasSplitEntry[]
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   return request<AsaasPayment>('/payments', {
@@ -165,6 +179,7 @@ export async function createPixPayment(params: {
       dueDate,
       description: params.description ?? 'Qomanda — Pagamento de mesa',
       externalReference: params.externalReference,
+      ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
   })
 }
@@ -182,6 +197,7 @@ export async function createCreditCardPayment(params: {
   creditCard: AsaasCreditCard
   creditCardHolderInfo: AsaasCreditCardHolderInfo
   dueDate?: string
+  split?: AsaasSplitEntry[]
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   const installmentCount = params.installmentCount ?? 1
@@ -206,6 +222,7 @@ export async function createCreditCardPayment(params: {
         ccv: params.creditCard.ccv,
       },
       creditCardHolderInfo: params.creditCardHolderInfo,
+      ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
   })
 }
@@ -247,6 +264,7 @@ export async function createCreditCardPaymentWithToken(params: {
   description?: string
   externalReference?: string
   dueDate?: string
+  split?: AsaasSplitEntry[]
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   const installmentCount = params.installmentCount ?? 1
@@ -264,6 +282,7 @@ export async function createCreditCardPaymentWithToken(params: {
       description: params.description ?? 'Qomanda — Pagamento de mesa',
       externalReference: params.externalReference,
       creditCardToken: params.creditCardToken,
+      ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
   })
 }
@@ -287,4 +306,42 @@ export async function getPaymentStatus(paymentId: string): Promise<AsaasPayment>
  */
 export function isPaymentConfirmed(status: AsaasPaymentStatus): boolean {
   return ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)
+}
+
+// ── Subcontas (marketplace) ──────────────────────────────────
+
+/**
+ * Cria uma subconta Asaas para um restaurante (onboarding do marketplace).
+ * Retorna o walletId (destino do split) e a apiKey da subconta.
+ * Doc: https://docs.asaas.com/reference/criar-subconta
+ */
+export async function createSubAccount(params: {
+  name: string
+  email: string
+  cpfCnpj: string
+  mobilePhone: string
+  incomeValue: number            // faturamento/renda mensal estimada
+  address: string
+  addressNumber: string
+  province: string               // bairro
+  postalCode: string
+  companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION'
+  externalReference?: string
+}): Promise<AsaasSubAccount> {
+  return request<AsaasSubAccount>('/accounts', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: params.name,
+      email: params.email,
+      cpfCnpj: params.cpfCnpj.replace(/\D/g, ''),
+      mobilePhone: params.mobilePhone.replace(/\D/g, ''),
+      incomeValue: params.incomeValue,
+      address: params.address,
+      addressNumber: params.addressNumber,
+      province: params.province,
+      postalCode: params.postalCode.replace(/\D/g, ''),
+      companyType: params.companyType,
+      externalReference: params.externalReference,
+    }),
+  })
 }
