@@ -583,8 +583,8 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-6 text-sm" style={{ ...mono, color: C.faint }}>
             <Link href="/roadmap" className="hover:opacity-80 transition-opacity">Roadmap</Link>
-            <a href="#" className="hover:opacity-80 transition-opacity">Termos de uso</a>
-            <a href="#" className="hover:opacity-80 transition-opacity">Privacidade</a>
+            <Link href="/termos" className="hover:opacity-80 transition-opacity">Termos de uso</Link>
+            <Link href="/privacidade" className="hover:opacity-80 transition-opacity">Privacidade</Link>
             <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80 transition-opacity">contato@qomanda.com.br</a>
           </div>
           <p className="text-xs" style={{ ...mono, color: C.faint }}>

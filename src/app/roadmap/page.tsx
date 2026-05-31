@@ -23,28 +23,32 @@ const PHASES = [
         title: 'Plataforma Cliente (PWA)',
         items: [
           'Scanner de QR Code com fallback manual',
-          'Check-in com captura de nome, sobrenome e WhatsApp',
-          'Home hub pós check-in com status de pedido em tempo real',
-          'Cardápio digital com categorias, fotos e filtros',
-          'Pedidos direto do celular com carrinho',
-          'Acompanhamento de pedidos com barra de progresso animada',
-          'Checkout com divisão de conta automática',
-          'Telas de pagamento: PIX, Débito, Crédito',
-          'Tela de confirmação com código de validação',
-          'Perfil do cliente com edição de dados e preferências',
-          'Programa de fidelidade (contagem de visitas)',
+          'Check-in + QR por mesa com token único anti-fraude',
+          'PIN de 4 dígitos; setup para contas legadas',
+          'Home com status de pedido em tempo real',
+          'Cardápio com fotos, promoções e sugestão do chef',
+          'Pedidos, checkout e divisão de conta',
+          'Pagamento PIX, débito e crédito (Asaas)',
+          'Perfil — encerrar mesa e acesso ao Hub',
+          'Hub do cliente: visitas, recibos, cartões, fidelidade',
         ],
       },
       {
         title: 'Painel Administrativo',
         items: [
           'Overview em tempo real (mesas, pedidos, receita)',
-          'Mapa de mesas com status e gestão',
-          'Geração de QR Code por mesa',
-          'Gestão de cardápio com toggle de disponibilidade',
+          'QR Code por mesa — download e impressão com número visível',
+          'Cardápio — criar/editar, foto, promo, sugestão do chef',
           'Fila de pedidos em tempo real (kanban)',
-          'Settings: Pagamentos com histórico de transações',
-          'Settings: Fidelidade com configuração de regras',
+          'Settings: Pagamentos e Fidelidade',
+          'Segurança: senha de cartão, sessão idle 15 min',
+        ],
+      },
+      {
+        title: 'Institucional',
+        items: [
+          'Landing page e roadmap público',
+          'Termos de Uso e Política de Privacidade (LGPD)',
         ],
       },
     ],
@@ -55,33 +59,29 @@ const PHASES = [
     title: 'Fechamento do Projeto',
     status: 'next',
     color: C.red,
-    period: 'Próximo · Maio 2026',
+    period: 'Próximo · Junho 2026',
     groups: [
       {
-        title: '1 · Método de pagamento',
+        title: '1 · Pagamento self-service',
         items: [
           'Settings → Pagamentos: conectar credenciais Asaas (sandbox/produção)',
           'Validação de integração e status no painel',
-          'Habilitar PIX, crédito e débito conforme conta Asaas',
           'Desligar modo teste (bypass) em produção',
         ],
       },
       {
-        title: '2 · QR Codes e notas fiscais',
+        title: '2 · Notas fiscais',
         items: [
-          'QR Code das mesas — geração, download e impressão no painel',
           'NF-e automática após pagamento confirmado (SEFAZ / emissor)',
           'Envio da nota ao cliente via WhatsApp',
           'Histórico pagamento ↔ nota fiscal (cliente e dashboard)',
         ],
       },
       {
-        title: '3 · Fotos do cardápio',
+        title: '3 · Operação',
         items: [
-          'Corrigir modal de edição de produto (hoje não funciona)',
-          'Upload de imagem via Supabase Storage',
-          'Preview e remoção de foto no formulário',
-          'Exibir fotos no cardápio do cliente',
+          'Webhook Asaas robusto (retry, idempotência, logs)',
+          'Botão "Chamar Garçom" — notificação no dashboard',
         ],
       },
     ],
@@ -95,15 +95,6 @@ const PHASES = [
     period: 'Q3 2026',
     groups: [
       {
-        title: 'Pagamentos (melhorias)',
-        items: [
-          'Asaas PIX, crédito, webhook — base implementada ✓',
-          'Recibos, códigos e histórico de pagamentos ✓',
-          'Conta paga por outro cliente + WhatsApp ✓',
-          'Webhook robusto com retry e idempotência',
-        ],
-      },
-      {
         title: 'Onboarding do Restaurante',
         items: [
           'Fluxo de cadastro público para novos clientes',
@@ -112,11 +103,10 @@ const PHASES = [
         ],
       },
       {
-        title: 'Funcionalidades Críticas',
+        title: 'Fidelidade',
         items: [
-          'Fidelidade: salvar regras no Supabase (atualmente UI only)',
-          'Alerta no dashboard quando cliente atinge meta de fidelidade',
-          'Botão "Chamar Garçom" — notificação no dashboard',
+          'Salvar regras no Supabase (atualmente UI only)',
+          'Alerta no dashboard quando cliente atinge meta',
         ],
       },
     ],
@@ -193,16 +183,16 @@ const PHASES = [
 ]
 
 const STATUS_SUMMARY = [
-  { label: 'Cliente — Fluxo principal',   pct: 95, color: C.green  },
-  { label: 'Cliente — Pagamento',         pct: 75, color: C.amber  },
-  { label: 'Dashboard — Operação',        pct: 90, color: C.green  },
-  { label: 'Fechamento — Pagamentos Asaas', pct: 65, color: C.amber  },
-  { label: 'Fechamento — NF-e / QR mesas', pct: 15, color: C.red    },
-  { label: 'Fechamento — Fotos cardápio', pct: 10, color: C.red    },
-  { label: 'Dashboard — Analytics',       pct: 10, color: C.red    },
-  { label: 'Fidelidade',                  pct: 70, color: C.amber  },
-  { label: 'WhatsApp',                    pct: 40, color: C.amber  },
-  { label: 'Onboarding restaurante',      pct: 20, color: C.red    },
+  { label: 'Cliente — Fluxo principal',     pct: 98, color: C.green  },
+  { label: 'Cliente — Pagamento',           pct: 80, color: C.amber  },
+  { label: 'Cliente — Hub & segurança',     pct: 90, color: C.green  },
+  { label: 'Dashboard — Operação',          pct: 95, color: C.green  },
+  { label: 'Dashboard — Cardápio & QR',     pct: 92, color: C.green  },
+  { label: 'Pagamentos Asaas (self-service)', pct: 55, color: C.amber  },
+  { label: 'NF-e',                          pct: 0,  color: C.red    },
+  { label: 'Fidelidade',                    pct: 75, color: C.amber  },
+  { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
+  { label: 'Onboarding restaurante',        pct: 20, color: C.red    },
 ]
 
 export default function RoadmapPage() {
@@ -347,8 +337,13 @@ export default function RoadmapPage() {
 
       {/* Footer */}
       <footer className="py-8 px-6 text-center" style={{ borderTop: `1px solid ${C.border}` }}>
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs mb-3" style={{ ...mono, color: C.faint }}>
+          <Link href="/termos" className="hover:opacity-80">Termos de uso</Link>
+          <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
+          <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
+        </div>
         <p className="text-xs" style={{ ...mono, color: C.faint }}>
-          © 2025 Qomanda · <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
+          © 2026 Qomanda · <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
         </p>
       </footer>
     </div>

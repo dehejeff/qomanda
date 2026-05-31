@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-05-30
+> Última atualização: 2026-05-31
 
 ---
 
@@ -9,72 +9,73 @@
 ### Plataforma Cliente (PWA)
 - [x] Scanner de QR Code (BarcodeDetector API + fallback manual)
 - [x] Check-in com captura de nome, sobrenome e WhatsApp
+- [x] QR Code por mesa com token único (`?mesa=&t=`) — anti-fraude entre restaurantes
 - [x] Identificação única de cliente por WhatsApp (upsert)
+- [x] PIN de 4 dígitos no login e check-in; setup automático para contas legadas
 - [x] Home hub pós check-in com status de pedido em tempo real
-- [x] Cardápio digital com categorias, fotos e filtros
+- [x] Cardápio digital com categorias, fotos, promoções e sugestão do chef
 - [x] Pedidos direto do celular com carrinho e stepper de quantidade
 - [x] Acompanhamento de pedidos com barra de progresso animada
 - [x] Checkout com divisão de conta automática
-- [x] Telas de pagamento: PIX (UI + countdown), Débito, Crédito (formulário + parcelas)
+- [x] Telas de pagamento: PIX, Débito, Crédito (formulário + parcelas)
 - [x] Tela de confirmação com código de validação
-- [x] Perfil do cliente com edição de dados e preferências
-- [x] Programa de fidelidade (contagem de visitas + próxima recompensa)
+- [x] Perfil do cliente — editar dados, encerrar mesa (sem consumo em aberto), ir ao Hub
+- [x] Área Hub do cliente (visitas, recibos, cartões, fidelidade)
+- [x] Programa de fidelidade (contagem de visitas + recompensas automáticas)
 - [x] Bottom nav com 5 tabs (Início, Cardápio, Pedidos, Pagamento, Perfil)
 
 ### Painel Administrativo (Dashboard)
 - [x] Login com autenticação Supabase
 - [x] Overview em tempo real (mesas ocupadas, pedidos abertos, receita do dia)
 - [x] Mapa de mesas com status (livre/ocupada/reservada)
-- [x] Geração de QR Code por mesa
-- [x] Gestão de cardápio (categorias + itens + toggle de disponibilidade)
+- [x] QR Code por mesa — download e impressão com número visível (Mesa X / T-XX)
+- [x] Gestão de cardápio — criar/editar itens, foto (upload ou URL), preço promocional, sugestão do chef
 - [x] Fila de pedidos (kanban: pendente → confirmado → preparando → pronto → entregue)
 - [x] Settings: aba Pagamentos com histórico de transações
 - [x] Settings: aba Fidelidade (configurar regras visitas → benefício)
 - [x] Sidebar com navegação e logo
 
+### Segurança & Pagamentos
+- [x] Integração Asaas — PIX, crédito, webhook e modo bypass para testes
+- [x] Recibos, códigos de confirmação e histórico de pagamentos
+- [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
+- [x] Senha de 6 dígitos para cartões salvos no Hub; sessão com idle 15 min / TTL 24 h
+- [x] CPF criptografado + hash; WhatsApp como identidade única
+
 ### Infraestrutura
-- [x] Schema Supabase completo (11 tabelas com RLS e triggers)
-- [x] Realtime subscriptions (orders, sessions)
-- [x] Stripe webhook (payment_intent.succeeded)
+- [x] Schema Supabase completo (tabelas com RLS e triggers)
+- [x] Realtime subscriptions (orders, sessions, tables)
 - [x] Modo dev com mock data (DEV_BYPASS)
 - [x] Tipagem TypeScript completa
 - [x] Landing page de marketing com pricing e comparativo de mercado
+- [x] Roadmap público, Termos de Uso e Política de Privacidade
 
 ---
 
 ## 🔴 Fase 1 — Fechamento do Projeto (Prioridade Máxima)
 
-> Três entregas para ir a produção com clientes reais. **Maio 2026**
+> Entregas restantes para operação comercial plena. **Junho 2026**
 
-### 1. Configurar método de pagamento
+### 1. Configurar método de pagamento (self-service)
 - [ ] **Painel Settings → Pagamentos** — fluxo para o restaurante conectar credenciais Asaas (API key, ambiente sandbox/produção)
 - [ ] Validação de credenciais e status de integração visível no dashboard
 - [ ] PIX, crédito e débito habilitados conforme configuração da conta Asaas
 - [ ] Modo teste (bypass) desligável em produção
 
-### 2. QR Codes e notas fiscais
-- [ ] **QR Code das mesas** — geração e impressão/download no painel (revisar fluxo atual e garantir produção)
+### 2. Notas fiscais
 - [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / emissor configurável)
 - [ ] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
 - [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
 
-### 3. Imagens do cardápio
-- [ ] **Upload de foto do produto** — corrigir modal de edição de item (hoje não abre / não funciona)
-- [ ] Armazenamento via Supabase Storage (bucket + políticas RLS)
-- [ ] Preview e remoção de imagem no formulário de edição
-- [ ] Exibição das fotos no cardápio do cliente
+### 3. Melhorias operacionais pós-lançamento
+- [ ] Webhook Asaas robusto — retry, idempotência e logs de erro
+- [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
 
 ---
 
 ## 🟠 Fase 1 — Lançamento (demais itens)
 
 > Itens complementares pós-fechamento.
-
-### Pagamentos (melhorias)
-- [x] Integração Asaas — PIX, crédito, webhook e modo bypass para testes
-- [x] Recibos, códigos de confirmação e histórico de pagamentos
-- [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
-- [ ] Webhook robusto — retry, idempotência e logs de erro
 
 ### Onboarding do Restaurante
 - [ ] **Fluxo de cadastro do restaurante** — tela de sign-up pública para novos clientes
@@ -84,9 +85,6 @@
 ### Fidelidade (Persistência)
 - [ ] **Salvar regras de fidelidade no Supabase** — settings → loyalty_rules (atualmente UI only)
 - [ ] **Exibir benefício conquistado para o garçom** — alerta no dashboard quando cliente atinge meta
-
-### Outros
-- [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
 
 ---
 
@@ -137,7 +135,7 @@
 - [ ] **PWA instalável** — ícone na tela inicial do cliente (manifest + service worker)
 - [ ] Multi-cardápio por turno (almoço / jantar / happy hour)
 - [ ] Modo Quiosque para tablets nas mesas
-- [ ] Reembolsos e disputas no painel (Stripe Refunds API)
+- [ ] Reembolsos e disputas no painel
 - [ ] Liquidação/reconciliação financeira mensal
 
 ---
@@ -146,17 +144,19 @@
 
 | Área | Status | % Completo |
 |---|---|---|
-| Cliente — Fluxo principal | ✅ Completo | 95% |
-| Cliente — Pagamento | ⚠️ Parcial | 60% |
-| Dashboard — Operação | ✅ Completo | 90% |
+| Cliente — Fluxo principal | ✅ Completo | 98% |
+| Cliente — Pagamento | ⚠️ Parcial | 80% |
+| Cliente — Hub & segurança | ✅ Completo | 90% |
+| Dashboard — Operação | ✅ Completo | 95% |
+| Dashboard — Cardápio & QR mesas | ✅ Completo | 92% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
-| Pagamentos (Asaas) | ⚠️ Parcial | 65% |
-| NF-e / QR Code mesas | 🔴 Faltando | 15% |
-| Cardápio — fotos | 🔴 Faltando | 10% |
-| Fidelidade | ⚠️ Parcial | 70% |
+| Pagamentos (Asaas self-service) | ⚠️ Parcial | 55% |
+| NF-e | 🔴 Faltando | 0% |
+| Fidelidade | ⚠️ Parcial | 75% |
 | WhatsApp | ⚠️ Parcial | 40% |
 | Onboarding restaurante | 🔴 Faltando | 20% |
+| Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Multi-unidades | 🔴 Faltando | 0% |
 
 ---
