@@ -224,101 +224,102 @@ export default function CustomersPage() {
           </p>
         </div>
       ) : (
-        <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
-          <div className="hidden md:grid grid-cols-[1.2fr_0.8fr_1fr_0.8fr_1.2fr_auto] gap-3 px-6 py-3 border-b border-outline-variant text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-            <span>Cliente</span>
-            <span>Visitas</span>
-            <span>Última visita</span>
-            <span>Sem voltar</span>
-            <span>Fidelidade</span>
-            <span className="text-right">Ações</span>
-          </div>
-          <div className="divide-y divide-outline-variant">
-            {filtered.map(customer => {
-              const badge = SEGMENT_BADGE[customer.segment]
-              return (
-                <div
-                  key={customer.id}
-                  className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr_1fr_0.8fr_1.2fr_auto] gap-3 md:gap-3 px-6 py-4 md:items-center hover:bg-surface-container-highest/30 transition-colors"
-                >
-                  {/* Coluna 1: Cliente */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-sm font-black text-primary shrink-0">
-                      {customer.firstName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-on-surface truncate">
-                          {customer.firstName} {customer.lastName}
-                        </p>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${badge.className}`}>
-                          {badge.label}
-                        </span>
+        <div className="tonal-layer-1 ghost-border rounded-xl overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-outline-variant">
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Cliente</th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Visitas</th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Última visita</th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Sem voltar</th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Fidelidade</th>
+                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {filtered.map(customer => {
+                const badge = SEGMENT_BADGE[customer.segment]
+                return (
+                  <tr key={customer.id} className="hover:bg-surface-container-highest/30 transition-colors">
+                    {/* Coluna 1: Cliente */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-sm font-black text-primary shrink-0">
+                          {customer.firstName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-on-surface truncate">
+                              {customer.firstName} {customer.lastName}
+                            </p>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${badge.className}`}>
+                              {badge.label}
+                            </span>
+                          </div>
+                          <p className="text-xs font-mono text-on-surface-variant mt-0.5">
+                            WhatsApp {maskWhatsApp(customer.whatsapp)}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs font-mono text-on-surface-variant mt-0.5">
-                        WhatsApp {maskWhatsApp(customer.whatsapp)}
+                    </td>
+
+                    {/* Coluna 2: Visitas */}
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-mono font-bold text-on-surface">
+                        {customer.visitCount}
                       </p>
-                    </div>
-                  </div>
+                    </td>
 
-                  {/* Coluna 2: Visitas */}
-                  <div className="flex items-center">
-                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Visitas</span>
-                    <p className="text-sm font-mono font-bold text-on-surface">
-                      {customer.visitCount}
-                    </p>
-                  </div>
+                    {/* Coluna 3: Última visita */}
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-mono text-on-surface-variant">
+                        {formatLastVisit(customer.lastVisitAt)}
+                      </p>
+                    </td>
 
-                  {/* Coluna 3: Última visita */}
-                  <div className="flex items-center">
-                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Última</span>
-                    <p className="text-sm font-mono text-on-surface-variant">
-                      {formatLastVisit(customer.lastVisitAt)}
-                    </p>
-                  </div>
+                    {/* Coluna 4: Sem voltar */}
+                    <td className="px-6 py-4">
+                      <p className={`text-sm font-mono ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
+                        {daysLabel(customer.daysSinceLastVisit)}
+                      </p>
+                    </td>
 
-                  {/* Coluna 4: Sem voltar */}
-                  <div className="flex items-center">
-                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Ausente</span>
-                    <p className={`text-sm font-mono ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
-                      {daysLabel(customer.daysSinceLastVisit)}
-                    </p>
-                  </div>
+                    {/* Coluna 5: Fidelidade */}
+                    <td className="px-6 py-4">
+                      <p className="text-xs font-mono text-on-surface-variant">
+                        {customer.visitsUntilNextReward != null && customer.visitsUntilNextReward > 0
+                          ? `Faltam ${customer.visitsUntilNextReward}`
+                          : customer.nextRewardLabel
+                            ? '✓ Benefício'
+                            : '—'}
+                      </p>
+                    </td>
 
-                  {/* Coluna 5: Fidelidade */}
-                  <div className="flex items-center">
-                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2 block mb-0.5">Fidelidade</span>
-                    <p className="text-xs font-mono text-on-surface-variant">
-                      {customer.visitsUntilNextReward != null && customer.visitsUntilNextReward > 0
-                        ? `Faltam ${customer.visitsUntilNextReward}`
-                        : customer.nextRewardLabel
-                          ? '✓ Benefício'
-                          : '—'}
-                    </p>
-                  </div>
-
-                  {/* Coluna 6: Ações */}
-                  <div className="flex gap-2 md:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setOfferCustomer(customer)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-bold bg-emerald-600/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-600/25 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">redeem</span>
-                      Oferecer
-                    </button>
-                    <Link
-                      href={`/dashboard/orders/customer/${customer.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                      Pedidos
-                    </Link>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                    {/* Coluna 6: Ações */}
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setOfferCustomer(customer)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-bold bg-emerald-600/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-600/25 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">redeem</span>
+                          Oferecer
+                        </button>
+                        <Link
+                          href={`/dashboard/orders/customer/${customer.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                          Pedidos
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
