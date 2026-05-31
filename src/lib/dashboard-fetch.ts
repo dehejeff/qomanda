@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { RestaurantTable } from '@/types'
 import { sortTablesByNumber } from '@/lib/sort-tables'
+import { startOfTodayIso } from '@/lib/date-tz'
 import type { OverviewOrder } from '@/components/dashboard/overview-orders-panel'
 
 export type DashboardOverviewStats = {
@@ -14,10 +15,6 @@ export type DashboardOverviewData = {
   stats: DashboardOverviewStats
   tables: RestaurantTable[]
   orders: OverviewOrder[]
-}
-
-function startOfTodayIso() {
-  return new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
 }
 
 export async function fetchDashboardOverview(

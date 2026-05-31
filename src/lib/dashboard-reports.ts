@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { startOfBrDay, startOfBrMonth, brDayKey } from '@/lib/date-tz'
 
 export type ReportPeriod = 'today' | 'week' | 'fortnight' | 'month' | 'last_month'
 
@@ -16,40 +17,26 @@ export type ReportRange = {
   label: string
 }
 
-/** Calcula o intervalo [start, end) para o período escolhido, com base na data atual. */
+/** Calcula o intervalo [start, end) para o período, no fuso do restaurante (Brasil). */
 export function resolvePeriodRange(period: ReportPeriod, now = new Date()): ReportRange {
-  const startOfToday = new Date(now)
-  startOfToday.setHours(0, 0, 0, 0)
-
-  const endOfToday = new Date(startOfToday)
-  endOfToday.setDate(endOfToday.getDate() + 1)
+  const startOfToday = startOfBrDay(0, now)
+  const endOfToday = startOfBrDay(-1, now) // amanhã à meia-noite (Brasil)
 
   switch (period) {
     case 'today':
       return { start: startOfToday, end: endOfToday, label: 'Hoje' }
 
-    case 'week': {
-      const start = new Date(startOfToday)
-      start.setDate(start.getDate() - 6) // últimos 7 dias (inclui hoje)
-      return { start, end: endOfToday, label: 'Últimos 7 dias' }
-    }
+    case 'week':
+      return { start: startOfBrDay(6, now), end: endOfToday, label: 'Últimos 7 dias' }
 
-    case 'fortnight': {
-      const start = new Date(startOfToday)
-      start.setDate(start.getDate() - 14) // últimos 15 dias
-      return { start, end: endOfToday, label: 'Últimos 15 dias' }
-    }
+    case 'fortnight':
+      return { start: startOfBrDay(14, now), end: endOfToday, label: 'Últimos 15 dias' }
 
-    case 'month': {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-      return { start, end: endOfToday, label: 'Mês atual' }
-    }
+    case 'month':
+      return { start: startOfBrMonth(0, now), end: endOfToday, label: 'Mês atual' }
 
-    case 'last_month': {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
-      const end = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-      return { start, end, label: 'Mês anterior' }
-    }
+    case 'last_month':
+      return { start: startOfBrMonth(1, now), end: startOfBrMonth(0, now), label: 'Mês anterior' }
   }
 }
 
@@ -70,30 +57,26 @@ export type ReportData = {
 type PaymentRow = { amount: number; paid_at: string | null; created_at: string }
 type OrderRow = { id: string; status: string; created_at: string }
 
-function dayKey(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-CA') // YYYY-MM-DD no fuso local
-}
-
 function buildDailySeries(range: ReportRange, payments: PaymentRow[], orders: OrderRow[]): DailyPoint[] {
   const byDay = new Map<string, DailyPoint>()
 
-  // Inicializa todos os dias do intervalo com zero (eixo contínuo).
-  const cursor = new Date(range.start)
-  while (cursor < range.end) {
-    const key = cursor.toLocaleDateString('en-CA')
+  // Inicializa todos os dias do intervalo com zero (eixo contínuo), no fuso do Brasil.
+  let cursorMs = range.start.getTime()
+  while (cursorMs < range.end.getTime()) {
+    const key = brDayKey(new Date(cursorMs).toISOString())
     byDay.set(key, { date: key, revenue: 0, orders: 0 })
-    cursor.setDate(cursor.getDate() + 1)
+    cursorMs += 86_400_000
   }
 
   for (const p of payments) {
-    const key = dayKey(p.paid_at ?? p.created_at)
+    const key = brDayKey(p.paid_at ?? p.created_at)
     const point = byDay.get(key)
     if (point) point.revenue += Number(p.amount)
   }
 
   for (const o of orders) {
     if (o.status === 'cancelled') continue
-    const key = dayKey(o.created_at)
+    const key = brDayKey(o.created_at)
     const point = byDay.get(key)
     if (point) point.orders += 1
   }

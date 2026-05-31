@@ -41,27 +41,28 @@ export default function ReportsPage() {
 
   const load = useCallback(async (p: ReportPeriod) => {
     setLoading(true)
-    if (DEV_BYPASS) {
-      setData(buildMockData(p))
+    try {
+      if (DEV_BYPASS) {
+        setData(buildMockData(p))
+        return
+      }
+
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setData(EMPTY); return }
+
+      const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (!restaurant) { setData(EMPTY); return }
+
+      setData(await fetchReportData(supabase, restaurant.id, p))
+    } finally {
       setLoading(false)
-      return
     }
-
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data: restaurant } = await supabase
-      .from('restaurants')
-      .select('id')
-      .eq('owner_id', user.id)
-      .single()
-
-    if (!restaurant) return
-
-    const result = await fetchReportData(supabase, restaurant.id, p)
-    setData(result)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function ReportsPage() {
 
   const range = useMemo(() => resolvePeriodRange(period), [period])
   const maxRevenue = useMemo(() => Math.max(...data.daily.map(d => d.revenue), 1), [data.daily])
+  const hasActivity = data.revenue > 0 || data.orderCount > 0
 
   return (
     <div className="space-y-stack-lg">
@@ -137,10 +139,10 @@ export default function ReportsPage() {
               </span>
             </div>
 
-            {data.revenue === 0 ? (
+            {!hasActivity ? (
               <div className="py-16 text-center">
                 <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-30 mb-3 block">bar_chart</span>
-                <p className="text-sm font-mono text-on-surface-variant">Nenhum faturamento neste período.</p>
+                <p className="text-sm font-mono text-on-surface-variant">Nenhuma atividade neste período.</p>
               </div>
             ) : (
               <div className="flex items-end gap-1.5 h-48 overflow-x-auto">
