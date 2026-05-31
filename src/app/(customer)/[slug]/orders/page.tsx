@@ -290,7 +290,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen pb-36" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-52" style={{ background: '#0b1326', color: '#dae2fd' }}>
       <div className="pointer-events-none fixed top-0 right-0 w-[40%] h-[30%] rounded-full"
         style={{ background: 'rgba(249,115,22,0.05)', filter: 'blur(80px)' }} />
 
@@ -802,6 +802,9 @@ export default function OrdersPage() {
             )}
           </>
         )}
+
+        {/* Espaço para barra de ação + nav inferior */}
+        {allOrders.length > 0 && <div className="h-4" aria-hidden="true" />}
       </main>
 
       {/* Bottom action bar */}
