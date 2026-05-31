@@ -507,6 +507,7 @@ export default function CheckoutPage() {
   const myIndividualBase  = Math.min(myOpen.openTotal, Math.max(0, remaining))
   const myIndividualTotal = myIndividualBase + (parseFloat(extraAmount) || 0)
   const hasPaidMyShare    = mySubtotal > 0.01 && myOpen.openSubtotal <= 0.02
+  const sessionFullySettled = subTotal > 0.01 && remaining <= 0.02
   const tableCreditForMe  = Math.max(0, myOpen.openTotal - myIndividualBase)
 
   function getAmountToPay() {
@@ -573,8 +574,14 @@ export default function CheckoutPage() {
 
       const myPayRows = allPayments.filter((p: any) => p.customer_id === myCustomerId)
       const myOpenAfterLoad = computeOpenBalance(mySub, myPayRows, true)
+      const sessionRemAfterLoad = computeOpenBalance(sub, allPayments, true).openTotal
 
-      if (myOpenAfterLoad.openSubtotal <= 0.02 && mySub > 0.01) {
+      if (sessionRemAfterLoad <= 0.02 && sub > 0.01) {
+        setCloseMode('individual')
+        setSplitAlcohol(false)
+        setAlcoholSplitDismissed(true)
+        if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+      } else if (myOpenAfterLoad.openSubtotal <= 0.02 && mySub > 0.01) {
         setCloseMode('table')
         setSplitAlcohol(false)
         setAlcoholSplitDismissed(true)
@@ -1070,7 +1077,14 @@ export default function CheckoutPage() {
     ? (!hasPaidMyShare && getAmountToPay() >= 0.01)
     : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
 
-  const showPaymentFlow = !(closeMode === 'individual' && hasPaidMyShare)
+  const showPaymentFlow = !(closeMode === 'individual' && hasPaidMyShare) && !sessionFullySettled
+
+  const closeModeOptions = [
+    { mode: 'individual' as CloseMode, icon: 'person', title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
+    ...(sessionFullySettled
+      ? []
+      : [{ mode: 'table' as CloseMode, icon: 'groups', title: 'Fechar mesa toda', desc: 'Inicia fechamento coletivo' }]),
+  ]
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -1089,27 +1103,32 @@ export default function CheckoutPage() {
         {/* ── Saldo já pago ───────────────────────────── */}
         {sessionPaidTotal > 0 && (
           <div className="rounded-xl px-4 py-3 flex items-center gap-3"
-            style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>savings</span>
+            style={{
+              background: sessionFullySettled ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.08)',
+              border: `1px solid ${sessionFullySettled ? 'rgba(52,211,153,0.35)' : 'rgba(52,211,153,0.2)'}`,
+            }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399', fontVariationSettings: sessionFullySettled ? "'FILL' 1" : "'FILL' 0" }}>
+              {sessionFullySettled ? 'check_circle' : 'savings'}
+            </span>
             <div>
               <p className="text-xs font-semibold" style={{ color: '#34d399' }}>
-                Saldo já pago: {formatCurrency(sessionPaidTotal)}
+                {sessionFullySettled ? 'Mesa quitada!' : `Saldo já pago: ${formatCurrency(sessionPaidTotal)}`}
               </p>
               <p className="text-[10px]" style={{ color: '#a78b7d' }}>
-                Total da mesa: {formatCurrency(sessionGrandTotal)} → Restante: {formatCurrency(remaining)}
+                {sessionFullySettled
+                  ? `${formatCurrency(sessionPaidTotal)} recebidos — nada mais a pagar na mesa.`
+                  : `Total da mesa: ${formatCurrency(sessionGrandTotal)} → Restante: ${formatCurrency(remaining)}`}
               </p>
             </div>
           </div>
         )}
 
         {/* ── Modo de fechamento ──────────────────────── */}
+        {!sessionFullySettled && closeModeOptions.length > 0 && (
         <section className="space-y-3">
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Como você quer pagar?</p>
-          <div className="grid grid-cols-2 gap-3">
-            {([
-              { mode: 'individual' as CloseMode, icon: 'person',  title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
-              { mode: 'table'      as CloseMode, icon: 'groups',  title: 'Fechar mesa toda',  desc: 'Inicia fechamento coletivo' },
-            ]).map(opt => {
+          <div className={`grid gap-3 ${closeModeOptions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {closeModeOptions.map(opt => {
               const individualDone = opt.mode === 'individual' && hasPaidMyShare
               return (
               <button
@@ -1142,20 +1161,31 @@ export default function CheckoutPage() {
             )})}
           </div>
         </section>
+        )}
 
         {/* ── Parte quitada + recibos ── */}
-        {hasPaidMyShare && (
+        {(hasPaidMyShare || sessionFullySettled) && (
           <section className="space-y-3">
             <div className="rounded-xl px-5 py-4 flex items-start gap-3"
               style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.35)' }}>
               <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: '#34d399' }}>Sua parte já está quitada!</p>
+                <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                  {sessionFullySettled && !hasPaidMyShare
+                    ? 'A mesa está totalmente paga!'
+                    : 'Sua parte já está quitada!'}
+                </p>
                 <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                  Você pagou {formatCurrency(myAlreadyPaid)} do seu consumo de {formatCurrency(myConsumptionFull)}.
-                  {remaining > 0.01
-                    ? ` Falta ${formatCurrency(remaining)} para fechar a mesa — aguarde os outros ou use "Fechar mesa toda".`
-                    : ' A mesa está totalmente paga!'}
+                  {sessionFullySettled && !hasPaidMyShare
+                    ? 'Todos os pagamentos da mesa foram recebidos. Você não precisa pagar nada.'
+                    : (
+                      <>
+                        Você pagou {formatCurrency(myAlreadyPaid)} do seu consumo de {formatCurrency(myConsumptionFull)}.
+                        {remaining > 0.01
+                          ? ` Falta ${formatCurrency(remaining)} para fechar a mesa.`
+                          : ' A mesa está totalmente paga!'}
+                      </>
+                    )}
                 </p>
               </div>
             </div>
@@ -1549,6 +1579,16 @@ export default function CheckoutPage() {
       </main>
 
       {/* CTA */}
+      {sessionFullySettled && !showPaymentFlow && (
+        <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
+          style={{ background: 'rgba(11,19,38,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
+          <div className="w-full h-14 rounded-xl flex items-center justify-center gap-2"
+            style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <span className="text-sm font-semibold" style={{ color: '#34d399' }}>Mesa quitada — obrigado!</span>
+          </div>
+        </div>
+      )}
       {showPaymentFlow && (
       <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
         style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
