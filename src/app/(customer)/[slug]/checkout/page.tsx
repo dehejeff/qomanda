@@ -914,6 +914,52 @@ export default function CheckoutPage() {
 
       <main className="flex-1 px-6 py-6 pb-56 space-y-5">
 
+        {/* ── View simplificada: pessoa já pagou sua parte ── */}
+        {hasPaidMyShare && (
+          <div className="flex flex-col items-center justify-center py-20 space-y-6">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)' }}>
+              <span className="material-symbols-outlined text-[40px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-2xl font-black" style={{ fontFamily: 'Geist, sans-serif', color: '#34d399' }}>Sua parte quitada</p>
+              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
+              {remaining > 0.01 && (
+                <p className="text-xs" style={{ color: '#a78b7d' }}>
+                  Falta {formatCurrency(remaining)} para fechar a mesa
+                </p>
+              )}
+              {remaining <= 0.01 && (
+                <p className="text-xs" style={{ color: '#34d399' }}>
+                  A mesa está totalmente paga!
+                </p>
+              )}
+            </div>
+            {myPaymentRows.length > 0 && (
+              <Link
+                href={`/${params.slug}/receipts?session=${sessionId}`}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
+                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}
+              >
+                <span className="material-symbols-outlined text-[16px]">history</span>
+                Ver seus recibos
+              </Link>
+            )}
+            <button
+              onClick={() => router.back()}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{ background: '#f97316', color: '#582200' }}
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+              Voltar
+            </button>
+          </div>
+        )}
+
+        {/* ── Content normal (quando não pagou ainda) ── */}
+        {!hasPaidMyShare && (
+        <>
+
         {/* ── Saldo já pago ───────────────────────────── */}
         {sessionPaidTotal > 0 && (
           <div className="rounded-xl px-4 py-3 flex items-center gap-3"
@@ -1389,6 +1435,8 @@ export default function CheckoutPage() {
             ))}
           </div>
         </section>
+        )}
+        </>
         )}
       </main>
 
