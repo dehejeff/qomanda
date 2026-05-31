@@ -3,8 +3,13 @@ import { createHmac, timingSafeEqual } from 'crypto'
 const TTL_MS = 5 * 60 * 1000
 
 function secret(): string {
-  const s = process.env.CUSTOMER_LOGIN_SECRET ?? process.env.CPF_HASH_SALT
-  if (!s) throw new Error('CUSTOMER_LOGIN_SECRET ou CPF_HASH_SALT não configurada.')
+  const s =
+    process.env.CUSTOMER_LOGIN_SECRET ??
+    process.env.CPF_HASH_SALT ??
+    process.env.CPF_ENCRYPTION_KEY
+  if (!s) {
+    throw new Error('CUSTOMER_LOGIN_SECRET, CPF_HASH_SALT ou CPF_ENCRYPTION_KEY não configurada.')
+  }
   return s
 }
 

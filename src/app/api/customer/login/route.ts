@@ -61,9 +61,21 @@ export async function POST(req: NextRequest) {
       } satisfies CustomerLoginResponse)
     }
 
+    let challengeToken: string
+    try {
+      challengeToken = createLoginChallenge(customer.id, 'setup')
+    } catch (challengeErr) {
+      const msg = challengeErr instanceof Error ? challengeErr.message : String(challengeErr)
+      console.error('[Customer Login] challenge setup failed:', msg)
+      if (msg.includes('não configurada')) {
+        return NextResponse.json({ error: 'Login temporariamente indisponível. Contate o suporte.' }, { status: 503 })
+      }
+      throw challengeErr
+    }
+
     return NextResponse.json({
       requiresPinSetup: true,
-      challengeToken: createLoginChallenge(customer.id, 'setup'),
+      challengeToken,
       firstName: customer.first_name,
     } satisfies CustomerLoginResponse)
   } catch (err) {

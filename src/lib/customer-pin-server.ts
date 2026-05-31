@@ -5,7 +5,13 @@ import { listPaymentMethods } from '@/lib/payment-methods'
 export function isPinColumnMissing(error: { message?: string; code?: string } | null): boolean {
   if (!error) return false
   const msg = error.message?.toLowerCase() ?? ''
-  return error.code === '42703' || msg.includes('pin_hash') && msg.includes('does not exist')
+  if (error.code === '42703' || error.code === 'PGRST204') return true
+  if (!msg.includes('pin_hash')) return false
+  return (
+    msg.includes('does not exist') ||
+    msg.includes('could not find') ||
+    msg.includes('schema cache')
+  )
 }
 
 export async function getCustomerPinHash(
