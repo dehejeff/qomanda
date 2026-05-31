@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
+import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
 
 type ScanStatus = 'starting' | 'scanning' | 'detected' | 'no-support' | 'denied'
 
@@ -15,12 +16,7 @@ export default function ScanPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scannedRef = useRef(false)
 
-  const [status, setStatus]       = useState<ScanStatus>('starting')
-  const [showModal, setShowModal] = useState(false)
-  const [slug, setSlug]           = useState('')
-  const [mesa, setMesa]           = useState('')
-  const [slugError, setSlugError] = useState(false)
-  const [mesaError, setMesaError] = useState(false)
+  const [status, setStatus] = useState<ScanStatus>('starting')
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -40,9 +36,16 @@ export default function ScanPage() {
     setTimeout(() => {
       try {
         const url = new URL(rawValue)
+        const hasToken = url.searchParams.has('t')
+        const hasMesa = url.searchParams.has('mesa')
+        if (!hasToken || !hasMesa) {
+          scannedRef.current = false
+          setStatus('scanning')
+          return
+        }
         router.push(url.pathname + url.search)
       } catch {
-        if (rawValue.startsWith('/')) {
+        if (rawValue.startsWith('/') && rawValue.includes('t=') && rawValue.includes('mesa=')) {
           router.push(rawValue)
         } else {
           scannedRef.current = false
@@ -87,39 +90,8 @@ export default function ScanPage() {
     return stopCamera
   }, [handleDetected, stopCamera])
 
-  function handleConfirmManual() {
-    const s = slug.trim().toLowerCase().replace(/\//g, '').replace(/\s/g, '-')
-    const m = mesa.trim()
-    let valid = true
-
-    if (!s) { setSlugError(true); valid = false }
-    else setSlugError(false)
-
-    if (!m) { setMesaError(true); valid = false }
-    else setMesaError(false)
-
-    if (!valid) return
-
-    setShowModal(false)
-    router.push(`/${s}?mesa=${m}`)
-  }
-
   const isDetected = status === 'detected'
   const hasError   = status === 'no-support' || status === 'denied'
-
-  const inputStyle: React.CSSProperties = {
-    background: '#0b1326',
-    border: '1px solid #584237',
-    color: '#dae2fd',
-    outline: 'none',
-    width: '100%',
-    height: 48,
-    borderRadius: 12,
-    padding: '0 16px',
-    fontSize: 15,
-    fontFamily: 'Geist, sans-serif',
-    transition: 'border-color 0.15s',
-  }
 
   return (
     <div className="relative h-screen w-full flex flex-col overflow-hidden"
@@ -149,7 +121,7 @@ export default function ScanPage() {
         <div className="text-center mb-10">
           <h1 className="text-2xl font-semibold mb-2">Escaneie a Mesa</h1>
           <p className="text-sm max-w-[280px] mx-auto leading-relaxed" style={{ color: '#e0c0b1' }}>
-            Posicione o QR Code da mesa no quadro abaixo para começar
+            Posicione o QR Code fixado na mesa do restaurante para fazer check-in com segurança
           </p>
         </div>
 
@@ -178,29 +150,27 @@ export default function ScanPage() {
           </p>
         )}
         {hasError && (
-          <p className="mt-6 text-sm text-center max-w-[260px] leading-relaxed" style={{ color: '#e0c0b1' }}>
-            {status === 'no-support'
-              ? 'Seu navegador não suporta scanner. Digite o código manualmente.'
-              : 'Câmera não disponível. Digite o código manualmente.'}
-          </p>
+          <div className="mt-6 text-center max-w-[280px] space-y-3">
+            <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
+              {status === 'no-support'
+                ? 'Seu navegador não suporta scanner de QR Code.'
+                : 'Permita o acesso à câmera para escanear o QR da mesa.'}
+            </p>
+            <p className="text-xs font-mono leading-relaxed px-4 py-3 rounded-xl"
+              style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}>
+              Por segurança, não é possível entrar digitando apenas o número da mesa. Use o QR fixado no restaurante.
+            </p>
+          </div>
         )}
 
-        {/* Um único botão de entrada manual */}
-        {!isDetected && (
-          <div className="mt-10 w-full max-w-xs flex flex-col items-center gap-4">
-            <div className="flex items-center gap-4 w-full">
-              <div className="h-px flex-1" style={{ background: '#584237' }} />
-              <span className="text-[11px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Ou</span>
-              <div className="h-px flex-1" style={{ background: '#584237' }} />
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="w-full h-12 flex items-center justify-center gap-2 text-sm font-mono rounded-xl active:scale-95 transition-all"
-              style={{ background: '#f97316', color: '#582200', fontWeight: 700 }}
-            >
-              <span className="material-symbols-outlined text-[18px]">keyboard</span>
-              DIGITAR CÓDIGO DA MESA
-            </button>
+        {!isDetected && !hasError && (
+          <div className="mt-10">
+            <TestTableCheckInLink />
+          </div>
+        )}
+        {hasError && (
+          <div className="mt-6">
+            <TestTableCheckInLink />
           </div>
         )}
       </main>
@@ -209,113 +179,6 @@ export default function ScanPage() {
       <Suspense fallback={null}>
         <HubBottomNav active="scan" />
       </Suspense>
-
-      {/* ── Modal de entrada manual ─────────────────────── */}
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-          style={{ background: 'rgba(6,14,32,0.85)', backdropFilter: 'blur(8px)' }}
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 flex flex-col gap-5"
-            style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.5)' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[22px]" style={{ color: '#f97316' }}>table_restaurant</span>
-                <div>
-                  <p className="text-base font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>Código da Mesa</p>
-                  <p className="text-xs" style={{ color: '#a78b7d' }}>Digite o restaurante e número da mesa</p>
-                </div>
-              </div>
-              <button onClick={() => setShowModal(false)}
-                className="p-2 rounded-full transition-colors" style={{ color: '#584237' }}>
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            {/* Inputs */}
-            <div className="space-y-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
-                  Restaurante (slug)
-                </label>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={e => { setSlug(e.target.value); setSlugError(false) }}
-                  placeholder="ex: tasca-do-porto"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  style={{
-                    ...inputStyle,
-                    borderColor: slugError ? '#f87171' : '#584237',
-                  }}
-                  onFocus={e => { if (!slugError) e.target.style.borderColor = '#f97316' }}
-                  onBlur={e => { if (!slugError) e.target.style.borderColor = '#584237' }}
-                />
-                {slugError && (
-                  <p className="text-[11px] font-mono" style={{ color: '#f87171' }}>Informe o restaurante.</p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
-                  Número da Mesa
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={mesa}
-                  onChange={e => { setMesa(e.target.value); setMesaError(false) }}
-                  placeholder="ex: 4"
-                  style={{
-                    ...inputStyle,
-                    borderColor: mesaError ? '#f87171' : '#584237',
-                  }}
-                  onFocus={e => { if (!mesaError) e.target.style.borderColor = '#f97316' }}
-                  onBlur={e => { if (!mesaError) e.target.style.borderColor = '#584237' }}
-                  onKeyDown={e => e.key === 'Enter' && handleConfirmManual()}
-                />
-                {mesaError && (
-                  <p className="text-[11px] font-mono" style={{ color: '#f87171' }}>Informe o número da mesa.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Preview URL */}
-            {slug && mesa && (
-              <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                <p className="text-[11px] font-mono truncate" style={{ color: '#ffb690' }}>
-                  /{slug.trim().toLowerCase()}?mesa={mesa.trim()}
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 h-12 rounded-xl text-sm font-mono transition-all active:scale-95"
-                style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmManual}
-                className="flex-[2] h-12 rounded-xl text-sm font-mono font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
-                style={{ background: '#f97316', color: '#582200' }}
-              >
-                <span className="material-symbols-outlined text-[18px]">login</span>
-                Ir para a Mesa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style>{`
         @keyframes scan-line {

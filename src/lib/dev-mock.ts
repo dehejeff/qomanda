@@ -20,12 +20,12 @@ export const mockRestaurant: Restaurant = {
 }
 
 export const mockTables: RestaurantTable[] = [
-  { id: 'table-1', restaurant_id: 'mock-restaurant-id', number: '1', qr_code_url: null, status: 'occupied', created_at: new Date().toISOString() },
-  { id: 'table-2', restaurant_id: 'mock-restaurant-id', number: '2', qr_code_url: null, status: 'free', created_at: new Date().toISOString() },
-  { id: 'table-3', restaurant_id: 'mock-restaurant-id', number: '3', qr_code_url: null, status: 'free', created_at: new Date().toISOString() },
-  { id: 'table-4', restaurant_id: 'mock-restaurant-id', number: '4', qr_code_url: null, status: 'occupied', created_at: new Date().toISOString() },
-  { id: 'table-5', restaurant_id: 'mock-restaurant-id', number: '5', qr_code_url: null, status: 'reserved', created_at: new Date().toISOString() },
-  { id: 'table-6', restaurant_id: 'mock-restaurant-id', number: '6', qr_code_url: null, status: 'free', created_at: new Date().toISOString() },
+  { id: 'table-1', restaurant_id: 'mock-restaurant-id', number: '1', qr_code_url: null, status: 'occupied', check_in_token: '11111111-1111-4111-8111-111111111111', created_at: new Date().toISOString() },
+  { id: 'table-2', restaurant_id: 'mock-restaurant-id', number: '2', qr_code_url: null, status: 'free', check_in_token: '22222222-2222-4222-8222-222222222222', created_at: new Date().toISOString() },
+  { id: 'table-3', restaurant_id: 'mock-restaurant-id', number: '3', qr_code_url: null, status: 'free', check_in_token: '33333333-3333-4333-8333-333333333333', created_at: new Date().toISOString() },
+  { id: 'table-4', restaurant_id: 'mock-restaurant-id', number: '4', qr_code_url: null, status: 'occupied', check_in_token: '44444444-4444-4444-8444-444444444444', created_at: new Date().toISOString() },
+  { id: 'table-5', restaurant_id: 'mock-restaurant-id', number: '5', qr_code_url: null, status: 'reserved', check_in_token: '55555555-5555-4555-8555-555555555555', created_at: new Date().toISOString() },
+  { id: 'table-6', restaurant_id: 'mock-restaurant-id', number: '6', qr_code_url: null, status: 'free', check_in_token: '66666666-6666-4666-8666-666666666666', created_at: new Date().toISOString() },
 ]
 
 export const mockCategories: MenuCategory[] = [

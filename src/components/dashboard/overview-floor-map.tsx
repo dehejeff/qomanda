@@ -5,6 +5,7 @@ import type { RestaurantTable } from '@/types'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 import { sortTablesByNumber } from '@/lib/sort-tables'
+import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 
 type Props = {
   tables: RestaurantTable[]
@@ -87,7 +88,12 @@ export function OverviewFloorMap({ tables, restaurantSlug, restaurantId }: Props
       {qrTable && (
         <TableQrModal
           table={qrTable}
-          url={`${typeof window !== 'undefined' ? window.location.origin : ''}/${restaurantSlug}?mesa=${qrTable.number}`}
+          url={buildTableCheckInUrl(
+            typeof window !== 'undefined' ? window.location.origin : '',
+            restaurantSlug,
+            qrTable.number,
+            qrTable.check_in_token ?? '',
+          )}
           onClose={() => setQrTable(null)}
         />
       )}

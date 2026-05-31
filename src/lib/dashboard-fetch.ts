@@ -27,7 +27,7 @@ export async function fetchDashboardOverview(
   const [tablesRes, ordersRes, paymentsRes, recentRes] = await Promise.all([
     supabase
       .from('tables')
-      .select('id, number, status, restaurant_id, qr_code_url, created_at')
+      .select('id, number, status, restaurant_id, qr_code_url, check_in_token, created_at')
       .eq('restaurant_id', restaurantId)
       .order('number'),
     supabase

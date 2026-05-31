@@ -6,6 +6,7 @@ import { whatsappForStorage } from '@/lib/customer-lookup'
 export type CheckInRequest = {
   slug: string
   mesa: string
+  tableToken: string
   firstName?: string
   lastName?: string
   whatsapp?: string        // dígitos apenas
@@ -24,11 +25,11 @@ export type CheckInResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: CheckInRequest = await req.json()
-    const { slug, mesa, documentType, cpf, passport, customerId: quickCustomerId } = body
+    const { slug, mesa, tableToken, documentType, cpf, passport, customerId: quickCustomerId } = body
     let { firstName, lastName, whatsapp } = body
 
-    if (!slug || !mesa) {
-      return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    if (!slug || !mesa || !tableToken) {
+      return NextResponse.json({ error: 'Check-in requer QR Code válido da mesa.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
@@ -82,16 +83,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao identificar cliente.' }, { status: 500 })
     }
 
-    // ── 3. Resolver mesa ─────────────────────────────────────
-    const { data: table } = await supabase
+    // ── 3. Resolver mesa (token do QR) ───────────────────────
+    const { data: table, error: tableError } = await supabase
       .from('tables')
-      .select('id')
+      .select('id, check_in_token')
       .eq('restaurant_id', restaurant.id)
       .eq('number', mesa)
       .maybeSingle()
 
-    if (!table) {
-      return NextResponse.json({ error: 'Mesa não encontrada.' }, { status: 404 })
+    if (tableError?.message?.includes('check_in_token')) {
+      return NextResponse.json({ error: 'Migração de tokens pendente no servidor.' }, { status: 503 })
+    }
+
+    if (!table || table.check_in_token !== tableToken) {
+      return NextResponse.json({ error: 'QR Code inválido. Escaneie o código na mesa.' }, { status: 403 })
     }
 
     // ── 4. Sessão: entrar na existente ou criar nova ──────────

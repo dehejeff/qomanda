@@ -13,6 +13,10 @@ import { PinInput } from '@/components/customer/pin-input'
 import { isValidPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
 import { persistCustomerAuth } from '@/lib/customer-auth'
+import { parseTableCheckInSearchParams } from '@/lib/table-checkin-url'
+import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
+import Link from 'next/link'
+import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -48,7 +52,11 @@ export default function CheckInPage() {
   const [loading, setLoading]       = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
   const [checkedIn, setCheckedIn]   = useState(false)
-  const [tableNumber, setTableNumber] = useState('1')
+  const [tableNumber, setTableNumber] = useState('')
+  const [tableToken, setTableToken] = useState<string | null>(null)
+  const [tableStatus, setTableStatus] = useState<string | null>(null)
+  const [verifyLoading, setVerifyLoading] = useState(true)
+  const [verifyError, setVerifyError] = useState<string | null>(null)
 
   // Form fields
   const [firstName, setFirstName] = useState('')
@@ -71,14 +79,44 @@ export default function CheckInPage() {
   const cpfValid    = cpfComplete && validateCPF(cpf)
 
   useEffect(() => {
-    setTableNumber(new URLSearchParams(window.location.search).get('mesa') ?? '1')
+    const { mesa, token } = parseTableCheckInSearchParams(window.location.search)
     const cid = localStorage.getItem('qomanda_customer_id')
     const cname = localStorage.getItem('qomanda_customer_name') ?? ''
     if (cid) {
       setSavedCustomerId(cid)
       setSavedCustomerName(cname)
     }
-  }, [])
+
+    async function verifyTable() {
+      if (!mesa || !token) {
+        setVerifyError('Escaneie o QR Code na mesa para fazer check-in.')
+        setVerifyLoading(false)
+        return
+      }
+
+      setTableNumber(mesa)
+      setTableToken(token)
+
+      try {
+        const qs = new URLSearchParams({ slug: params.slug, mesa, t: token })
+        const res = await fetch(`/api/checkin/verify?${qs}`)
+        const data = (await res.json()) as CheckInVerifyResponse
+        if (!data.valid) {
+          setVerifyError(data.error ?? 'QR Code inválido.')
+          setVerifyLoading(false)
+          return
+        }
+        setTableStatus(data.tableStatus ?? 'free')
+        setVerifyError(null)
+      } catch {
+        setVerifyError('Não foi possível validar a mesa. Tente escanear novamente.')
+      } finally {
+        setVerifyLoading(false)
+      }
+    }
+
+    verifyTable()
+  }, [params.slug])
 
   useEffect(() => {
     async function loadRestaurant() {
@@ -95,7 +133,7 @@ export default function CheckInPage() {
   }, [params.slug])
 
   async function handleCheckIn() {
-    if (!restaurant) return
+    if (!restaurant || !tableToken) return
     const name    = firstName.trim()
     const surname = lastName.trim()
     const phone   = whatsapp.replace(/\D/g, '')
@@ -107,16 +145,14 @@ export default function CheckInPage() {
     }
 
     setCheckingIn(true)
-    const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
 
-    // Toda a lógica sensível (upsert de cliente, sessão, fidelidade)
-    // roda server-side com service role — sem exposição da tabela customers
     const res = await fetch('/api/checkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         slug: params.slug,
-        mesa,
+        mesa: tableNumber,
+        tableToken,
         firstName: name,
         lastName: surname,
         whatsapp: phone,
@@ -220,14 +256,13 @@ export default function CheckInPage() {
   }
 
   async function handleQuickCheckIn() {
-    if (!restaurant || !savedCustomerId) return
+    if (!restaurant || !savedCustomerId || !tableToken) return
     setCheckingIn(true)
-    const mesa = new URLSearchParams(window.location.search).get('mesa') ?? '1'
 
     const res = await fetch('/api/checkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: params.slug, mesa, customerId: savedCustomerId }),
+      body: JSON.stringify({ slug: params.slug, mesa: tableNumber, tableToken, customerId: savedCustomerId }),
     })
 
     if (!res.ok) {
@@ -248,12 +283,15 @@ export default function CheckInPage() {
     setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
   }
 
-  const tableLabel = tableNumber.padStart(2, '0')
+  const tableLabel = tableNumber ? tableNumber.padStart(2, '0') : '—'
   const formValid  = firstName.trim() && lastName.trim() && whatsapp.replace(/\D/g, '').length >= 10
-  const canQuickCheckIn = savedCustomerId && !showFullForm
+  const canQuickCheckIn = savedCustomerId && !showFullForm && Boolean(tableToken) && !verifyError
+  const tableVerified = Boolean(tableToken) && !verifyError && !verifyLoading
+  const statusLabel = tableStatus === 'occupied' ? 'EM USO' : tableStatus === 'reserved' ? 'RESERVADA' : 'DISPONÍVEL'
+  const statusColor = tableStatus === 'occupied' ? '#f97316' : tableStatus === 'reserved' ? '#a78b7d' : '#34d399'
 
   // ── Loading ──────────────────────────────────────────────
-  if (loading) {
+  if (loading || verifyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
@@ -269,6 +307,45 @@ export default function CheckInPage() {
         <span className="material-symbols-outlined mb-4" style={{ fontSize: 64, color: '#584237' }}>no_meals</span>
         <h1 className="text-xl font-semibold">Restaurante não encontrado</h1>
         <p className="mt-2 text-sm" style={{ color: '#e0c0b1' }}>Verifique o QR Code e tente novamente.</p>
+      </div>
+    )
+  }
+
+  // ── QR obrigatório ─────────────────────────────────────────
+  if (!tableVerified) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center relative"
+        style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
+          style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+        <div className="relative z-10 max-w-sm space-y-6">
+          <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>qr_code_scanner</span>
+          <div>
+            <h1 className="text-xl font-bold mb-2" style={{ fontFamily: 'Geist, sans-serif' }}>
+              {restaurant.name}
+            </h1>
+            <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
+              {verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.'}
+            </p>
+          </div>
+          <div className="rounded-xl p-4 text-left text-xs leading-relaxed font-mono"
+            style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
+            <span className="material-symbols-outlined text-[16px] align-middle mr-1" style={{ color: '#7bd0ff' }}>shield</span>
+            Isso evita que alguém ocupe uma mesa remotamente sem estar no local.
+          </div>
+          <Link href="/scan"
+            className="inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+            style={{ background: '#f97316', color: '#582200' }}>
+            <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+            Escanear QR da mesa
+          </Link>
+          <TestTableCheckInLink />
+          {savedCustomerId && (
+            <Link href="/hub" className="block text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>
+              Ir para o Hub da minha conta
+            </Link>
+          )}
+        </div>
       </div>
     )
   }
@@ -299,7 +376,7 @@ export default function CheckInPage() {
               <span className="font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
-              {canQuickCheckIn ? 'Entre na mesa com um toque' : 'Confirme seus dados para começar'}
+              {canQuickCheckIn ? 'Confirme a mesa escaneada no QR' : 'Confirme seus dados para começar'}
             </p>
           </div>
         </header>
@@ -315,9 +392,15 @@ export default function CheckInPage() {
             </div>
             <div className="relative z-10 flex flex-col items-end gap-2">
               <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#ffb690' }}>table_restaurant</span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: '#34d399', background: 'rgba(52,211,153,0.12)' }}>DISPONÍVEL</span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: statusColor, background: `${statusColor}20` }}>{statusLabel}</span>
             </div>
           </div>
+          <Link href="/scan"
+            className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono transition-colors"
+            style={{ background: '#131b2e', border: '1px dashed #584237', color: '#a78b7d' }}>
+            <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
+            Está em outra mesa? Escaneie o QR correto
+          </Link>
           <div className="p-4 rounded-xl flex flex-col justify-between" style={{ background: '#1e293b', border: '1px solid #334155' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e0c0b1' }}>timer</span>
             <div className="mt-2">

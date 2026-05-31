@@ -90,6 +90,7 @@ export interface RestaurantTable {
   restaurant_id: string
   number: string
   qr_code_url: string | null
+  check_in_token?: string
   status: TableStatus
   created_at: string
 }

@@ -8,6 +8,7 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
+import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
 
 const STATUS_CONFIG: Record<string, { label: string; cardClass: string; labelClass: string; icon: string }> = {
@@ -110,8 +111,12 @@ export default function TablesPage() {
   }
 
   function getQrUrl(table: RestaurantTable) {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    return `${base}/${restaurantSlug}?mesa=${table.number}`
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+    const token = table.check_in_token
+    if (!token) {
+      return `${base.replace(/\/$/, '')}/${restaurantSlug}?mesa=${table.number}`
+    }
+    return buildTableCheckInUrl(base, restaurantSlug, table.number, token)
   }
 
   function handleTableUpdated(tableId: string, status: RestaurantTable['status']) {

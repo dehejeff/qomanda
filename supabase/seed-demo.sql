@@ -32,19 +32,19 @@ BEGIN
   ON CONFLICT (slug) DO NOTHING;
 
   -- ── 2. MESAS ──────────────────────────────────────────
-  INSERT INTO tables (restaurant_id, number, status) VALUES
-    (v_rest_id, '1',  'free'),
-    (v_rest_id, '2',  'free'),
-    (v_rest_id, '3',  'free'),
-    (v_rest_id, '4',  'free'),
-    (v_rest_id, '5',  'free'),
-    (v_rest_id, '6',  'free'),
-    (v_rest_id, '7',  'free'),
-    (v_rest_id, '8',  'free'),
-    (v_rest_id, '9',  'free'),
-    (v_rest_id, '10', 'free'),
-    (v_rest_id, 'B1', 'free'),
-    (v_rest_id, 'B2', 'free')
+  INSERT INTO tables (restaurant_id, number, status, check_in_token) VALUES
+    (v_rest_id, '1',  'free', '00000001-0000-4000-8000-000000000001'::uuid),
+    (v_rest_id, '2',  'free', gen_random_uuid()),
+    (v_rest_id, '3',  'free', gen_random_uuid()),
+    (v_rest_id, '4',  'free', gen_random_uuid()),
+    (v_rest_id, '5',  'free', gen_random_uuid()),
+    (v_rest_id, '6',  'free', gen_random_uuid()),
+    (v_rest_id, '7',  'free', gen_random_uuid()),
+    (v_rest_id, '8',  'free', gen_random_uuid()),
+    (v_rest_id, '9',  'free', gen_random_uuid()),
+    (v_rest_id, '10', 'free', gen_random_uuid()),
+    (v_rest_id, 'B1', 'free', gen_random_uuid()),
+    (v_rest_id, 'B2', 'free', gen_random_uuid())
   ON CONFLICT (restaurant_id, number) DO NOTHING;
 
   -- ── 3. CATEGORIAS ─────────────────────────────────────
@@ -189,7 +189,7 @@ BEGIN
 
   RAISE NOTICE '✓ Tasca do Porto criada com sucesso!';
   RAISE NOTICE '  Owner: %', v_owner_id;
-  RAISE NOTICE '  URL de teste: http://localhost:3000/tasca-do-porto?mesa=1';
+  RAISE NOTICE '  URL de teste (Mesa 1): http://localhost:3000/tasca-do-porto?mesa=1&t=00000001-0000-4000-8000-000000000001';
 
 END;
 $$;
