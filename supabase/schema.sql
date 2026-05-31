@@ -298,7 +298,8 @@ create table if not exists customer_offers (
   expires_at          timestamptz,
   created_at          timestamptz not null default now(),
   redeemed_at         timestamptz,
-  redeemed_session_id uuid        references sessions(id) on delete set null
+  redeemed_session_id uuid        references sessions(id) on delete set null,
+  source_rule_id      uuid        references loyalty_rules(id) on delete set null
 );
 
 -- ============================================================

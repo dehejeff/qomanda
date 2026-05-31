@@ -5,6 +5,7 @@ import { generateConfirmationCode } from '@/lib/utils'
 import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
+import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
 
 /**
  * POST /api/asaas/webhook
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Busca o pagamento interno pelo asaas_payment_id
     const { data: internalPayment } = await supabase
       .from('payments')
-      .select('id, status, session_id, customer_id, amount, service_fee_included')
+      .select('id, status, session_id, customer_id, restaurant_id, amount, service_fee_included')
       .eq('asaas_payment_id', payment.id)
       .maybeSingle()
 
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
       )
 
       await closeSessionIfSettled(supabase, internalPayment.session_id)
+      await grantEarnedLoyaltyOffers(supabase, internalPayment.customer_id, internalPayment.restaurant_id)
 
       console.log(`[Asaas Webhook] Pagamento confirmado: ${internalPayment.id} → código ${confirmationCode}`)
     }

@@ -14,6 +14,7 @@ export type CustomerOffer = {
   created_at: string
   redeemed_at: string | null
   redeemed_session_id: string | null
+  source_rule_id: string | null
 }
 
 /** Presets oferecidos no painel. Cada um carrega o tipo estruturado para aplicação. */

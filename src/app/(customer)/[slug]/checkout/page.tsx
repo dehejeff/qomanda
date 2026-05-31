@@ -1306,10 +1306,6 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>redeem</span>
                   <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Seus benefícios</p>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(249,115,22,0.15)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.3)' }}>
-                    CORTESIA
-                  </span>
                 </div>
 
                 {appliedOffers.map(o => (
@@ -1330,7 +1326,15 @@ export default function CheckoutPage() {
                     <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
                       style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.label}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.label}</p>
+                          <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full shrink-0"
+                            style={o.source_rule_id
+                              ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
+                              : { background: 'rgba(249,115,22,0.15)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.3)' }}>
+                            {o.source_rule_id ? 'FIDELIDADE' : 'CORTESIA'}
+                          </span>
+                        </div>
                         <p className="text-[10px] font-mono" style={{ color: noValue ? '#a78b7d' : '#34d399' }}>
                           {noValue ? 'Sem valor em aberto' : `Desconto de ${formatCurrency(est.discountTotal)}`}
                           {est.freeItemName ? ` · ${est.freeItemName}` : ''}

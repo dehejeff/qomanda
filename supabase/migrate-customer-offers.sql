@@ -25,6 +25,10 @@ create table if not exists customer_offers (
   redeemed_session_id uuid        references sessions(id) on delete set null
 );
 
+-- Origem da oferta: null = cortesia (manual); preenchido = conquistada por regra de fidelidade
+alter table customer_offers
+  add column if not exists source_rule_id uuid references loyalty_rules(id) on delete set null;
+
 create index if not exists idx_customer_offers_lookup
   on customer_offers(customer_id, restaurant_id, status);
 

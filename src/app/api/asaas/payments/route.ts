@@ -26,6 +26,7 @@ import {
 } from '@/lib/payment-db'
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
+import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest) {
         payment.id,
       )
       const settlement = await closeSessionIfSettled(supabase, sessionId)
+      await grantEarnedLoyaltyOffers(supabase, payerCustomerId, session.restaurant_id)
 
       return NextResponse.json({
         paymentId: payment.id,
@@ -308,6 +310,10 @@ export async function POST(req: NextRequest) {
       const settlement = confirmed
         ? await closeSessionIfSettled(supabase, sessionId)
         : { closed: false }
+
+      if (confirmed) {
+        await grantEarnedLoyaltyOffers(supabase, payerCustomerId, session.restaurant_id)
+      }
 
       return NextResponse.json({
         paymentId:        payment.id,
