@@ -11,12 +11,14 @@ import {
   type AsaasCreditCardHolderInfo,
 } from '@/lib/asaas'
 import { generateConfirmationCode } from '@/lib/utils'
+import { isPaymentBypassEnabled } from '@/lib/payment-bypass'
 
 export type AsaasPaymentRequest = {
   sessionId: string
   amount: number
   method: 'pix' | 'credit' | 'debit'
   splitType?: 'food' | 'alcohol' | 'combined'
+  customerId?: string | null
   installmentCount?: number
   // Somente para crédito
   creditCard?: AsaasCreditCard
@@ -38,7 +40,7 @@ export type AsaasPaymentResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: AsaasPaymentRequest = await req.json()
-    const { sessionId, amount, method, splitType = 'combined', installmentCount = 1 } = body
+    const { sessionId, amount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId } = body
 
     if (!sessionId || !amount || !method) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
@@ -55,6 +57,42 @@ export async function POST(req: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: 'Sessão inválida.' }, { status: 404 })
+    }
+
+    const payerCustomerId = bodyCustomerId ?? session.customer_id
+
+    // ── Modo teste: confirma pagamento sem gateway ────────
+    if (isPaymentBypassEnabled()) {
+      const confirmationCode = generateConfirmationCode()
+      const methodDb = method === 'debit' ? 'debit' : method === 'credit' ? 'credit' : 'pix'
+
+      const { data: payment, error: pmtError } = await supabase
+        .from('payments')
+        .insert({
+          session_id:    sessionId,
+          restaurant_id: session.restaurant_id,
+          customer_id:   payerCustomerId,
+          amount,
+          method:        methodDb,
+          split_type:    splitType,
+          status:        'paid',
+          confirmation_code: confirmationCode,
+          paid_at:       new Date().toISOString(),
+          asaas_payment_id: `mock_${crypto.randomUUID()}`,
+        })
+        .select('id')
+        .single()
+
+      if (pmtError || !payment) {
+        return NextResponse.json({ error: 'Erro ao registrar pagamento.' }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        paymentId: payment.id,
+        asaasPaymentId: `mock_${payment.id}`,
+        confirmationCode,
+        status: 'paid',
+      } satisfies AsaasPaymentResponse)
     }
 
     const restaurantName = (session.restaurant as any)?.name ?? 'Restaurante'
@@ -107,7 +145,7 @@ export async function POST(req: NextRequest) {
       .insert({
         session_id:    sessionId,
         restaurant_id: session.restaurant_id,
-        customer_id:   session.customer_id,
+        customer_id:   payerCustomerId,
         amount,
         method:        method === 'debit' ? 'debit' : method === 'credit' ? 'credit' : 'pix',
         split_type:    splitType,

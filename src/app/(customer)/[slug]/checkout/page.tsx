@@ -414,6 +414,7 @@ export default function CheckoutPage() {
   const [tableNumber, setTableNumber] = useState('')
   const [alcoholSplit, setAlcoholSplit] = useState<AlcoholSplit>({ food: 0, alcohol: 0, hasAlcohol: false })
   const [splitAlcohol, setSplitAlcohol] = useState(false)       // customer opted in to split
+  const [alcoholSplitDismissed, setAlcoholSplitDismissed] = useState(false)
   const [restaurantId, setRestaurantId] = useState('')
   const [customerWhatsapp, setCustomerWhatsapp] = useState('')
   const [restaurantName, setRestaurantName] = useState('')
@@ -603,88 +604,118 @@ export default function CheckoutPage() {
   }
 
   /**
-   * Inicia o pagamento via Asaas.
-   * Para PIX: cria a cobrança e exibe o QR Code real.
-   * Para crédito: processa na hora e redireciona para tela de confirmação.
+   * Inicia o pagamento via Asaas (ou modo teste sem gateway).
+   * Retorna true se foi direto para a tela de confirmação.
    */
-  async function processPayment(paidAmount: number, cardData?: {
-    creditCard: AsaasPaymentRequest['creditCard']
-    creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
-    installmentCount?: number
-  }) {
+  async function submitPayment(
+    amount: number,
+    splitType: 'food' | 'alcohol' | 'combined',
+    cardData?: {
+      creditCard: AsaasPaymentRequest['creditCard']
+      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
+      installmentCount?: number
+    },
+  ): Promise<AsaasPaymentResponse> {
+    const payload: AsaasPaymentRequest = {
+      sessionId: sessionId!,
+      amount,
+      method,
+      splitType,
+      customerId: myCustomerId,
+      ...(cardData ?? {}),
+    }
+
+    const res = await fetch('/api/asaas/payments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    const data: AsaasPaymentResponse = await res.json()
+    if (!res.ok) throw new Error((data as any).error ?? 'Erro ao processar pagamento.')
+    return data
+  }
+
+  function alcoholPaymentAmounts() {
+    const scale = myConsumption > 0 ? Math.min(1, Math.max(0, remaining) / myConsumption) : 1
+    const extra = parseFloat(extraAmount) || 0
+    return {
+      food: alcoholSplit.food * scale + extra,
+      alcohol: alcoholSplit.alcohol * scale,
+    }
+  }
+
+  async function processPayment(
+    paidAmount: number,
+    cardData?: {
+      creditCard: AsaasPaymentRequest['creditCard']
+      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
+      installmentCount?: number
+    },
+  ): Promise<boolean> {
     setPaying(true)
 
     try {
-      const currentSplitType = splitAlcohol
-        ? (method === 'pix' ? 'food' : 'combined')
-        : 'combined'
+      // Dois pagamentos quando separa alimentação e bebidas
+      if (splitAlcohol && closeMode === 'individual') {
+        const { food, alcohol } = alcoholPaymentAmounts()
 
-      const payload: AsaasPaymentRequest = {
-        sessionId: sessionId!,
-        amount: paidAmount,
-        method,
-        splitType: currentSplitType,
-        ...(cardData ?? {}),
+        const [foodRes, alcoholRes] = await Promise.all([
+          submitPayment(food, 'food', cardData),
+          submitPayment(alcohol, 'alcohol'),
+        ])
+
+        setConfirmationCode(foodRes.confirmationCode)
+        setConfirmationCode2(alcoholRes.confirmationCode)
+
+        if (customerWhatsapp) {
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], food, foodRes.confirmationCode, '🍽️ Alimentação'))
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcohol, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
+        }
+
+        setStep('confirmed')
+        return true
       }
 
-      const res = await fetch('/api/asaas/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      const data: AsaasPaymentResponse = await res.json()
-      if (!res.ok) throw new Error((data as any).error ?? 'Erro ao processar pagamento.')
+      const data = await submitPayment(paidAmount, 'combined', cardData)
 
       if ((method === 'pix' || method === 'debit') && data.status === 'pending') {
-        // PIX: mostra QR Code real — aguarda confirmação via webhook
         setPixQrCodeImage(data.pixQrCodeImage ?? '')
         setPixPayload(data.pixPayload ?? '')
         setPixExpiration(data.pixExpiration ?? '')
         setPixPaymentId(data.paymentId)
-        // Não avança para 'confirmed' ainda — webhook faz isso
 
-        // Envia WhatsApp com instrução de pagamento
         if (customerWhatsapp) {
           await sendWhatsApp(
             customerWhatsapp,
-            buildReceiptMessage([], paidAmount, 'PIX GERADO',
-              splitAlcohol ? '🍽️ Alimentação (Reembolsável)' : undefined
-            )
+            buildReceiptMessage([], paidAmount, 'PIX GERADO'),
           )
         }
-        // Mantém step 'pix' — aguarda usuário confirmar ou webhook
-        return
+        return false
       }
 
-      // Crédito ou PIX já confirmado
       if (data.confirmationCode) {
-        if (splitAlcohol && method === 'pix') {
-          // Segundo recibo (bebidas) enviado via WhatsApp
-          const code2 = generateConfirmationCode()
-          setConfirmationCode2(code2)
-          if (customerWhatsapp) {
-            await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcoholSplit.alcohol, code2, '🍷 Bebidas Alcoólicas (Pessoal)'))
-          }
-        }
         setConfirmationCode(data.confirmationCode)
         if (customerWhatsapp) {
           await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], paidAmount, data.confirmationCode))
         }
         setStep('confirmed')
+        return true
       }
+
+      return false
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao processar pagamento.')
+      return false
     } finally {
       setPaying(false)
     }
   }
 
-  /** Confirmação manual do PIX (usuário clicou "já paguei") */
+  /** Confirmação manual do PIX (produção com gateway) */
   async function confirmPixManually(paidAmount: number) {
     setPaying(true)
     try {
-      // Consulta status no Asaas via nossa API
       const res = await fetch(`/api/asaas/payments?id=${pixPaymentId}`)
       const data = await res.json()
 
@@ -695,7 +726,6 @@ export default function CheckoutPage() {
       }
       setStep('confirmed')
     } catch {
-      // Mesmo sem confirmação do webhook, gera código e avança
       const code = generateConfirmationCode()
       setConfirmationCode(code)
       setStep('confirmed')
@@ -711,9 +741,8 @@ export default function CheckoutPage() {
     }
     await createCloseRequest()
     if (method === 'pix' || method === 'debit') {
-      // Já inicia o pagamento PIX para gerar o QR Code
-      await processPayment(getAmountToPay())
-      setStep('pix')
+      const confirmed = await processPayment(getAmountToPay())
+      if (!confirmed) setStep('pix')
     } else {
       setStep('card')
     }
@@ -872,7 +901,10 @@ export default function CheckoutPage() {
             method={method as 'debit' | 'credit'}
             suggestedAmount={getAmountToPay()}
             fixedAmount={isTableMode}
-            onConfirm={(amount, cardData) => processPayment(amount, cardData)}
+            onConfirm={async (amount, cardData) => {
+              const confirmed = await processPayment(amount, cardData)
+              if (confirmed) setStep('confirmed')
+            }}
             onBack={() => setStep('mode')}
             loading={paying}
           />
@@ -967,7 +999,7 @@ export default function CheckoutPage() {
             )}
 
             {/* Alcohol split option */}
-            {alcoholSplit.hasAlcohol && !splitAlcohol && (
+            {alcoholSplit.hasAlcohol && !splitAlcohol && !alcoholSplitDismissed && (
               <div className="rounded-xl p-4 flex items-start gap-3"
                 style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
                 <span className="text-xl shrink-0 mt-0.5">🍷</span>
@@ -976,7 +1008,7 @@ export default function CheckoutPage() {
                     Você tem bebidas alcoólicas na conta
                   </p>
                   <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Separar em dois recibos? A empresa aceita o de alimentação para reembolso.
+                    Deseja separar alimentação e bebidas em recibos diferentes?
                   </p>
                   <div className="flex gap-2 mt-3">
                     <button onClick={() => setSplitAlcohol(true)}
@@ -984,7 +1016,10 @@ export default function CheckoutPage() {
                       style={{ background: '#f97316', color: '#582200' }}>
                       Sim, separar recibos
                     </button>
-                    <button className="text-xs font-mono px-4 py-2 rounded-lg transition-all"
+                    <button
+                      type="button"
+                      onClick={() => setAlcoholSplitDismissed(true)}
+                      className="text-xs font-mono px-4 py-2 rounded-lg transition-all active:scale-95"
                       style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}>
                       Não, pagar tudo junto
                     </button>
@@ -1001,7 +1036,7 @@ export default function CheckoutPage() {
                   <span className="text-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#34d399' }}>
                     Recibos separados ativado
                   </span>
-                  <button onClick={() => setSplitAlcohol(false)}
+                  <button onClick={() => { setSplitAlcohol(false); setAlcoholSplitDismissed(false) }}
                     className="ml-auto text-[10px] font-mono" style={{ color: '#584237' }}>
                     Desfazer
                   </button>
@@ -1010,7 +1045,6 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍽️ Alimentação</p>
-                      <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>Reembolsável pela empresa</p>
                     </div>
                     <p className="text-base font-black font-mono" style={{ color: '#34d399' }}>
                       {formatCurrency(alcoholSplit.food)}

@@ -5,7 +5,8 @@ import type { RestaurantTable } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { toast } from 'sonner'
-import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send, ListOrdered } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface Props {
@@ -34,6 +35,7 @@ interface SessionInfo {
 }
 
 export function TableManageModal({ table, freeTables, onClose, onTableUpdated, onTableSwitched }: Props) {
+  const router = useRouter()
   const [view, setView] = useState<View>('detail')
   const [session, setSession] = useState<SessionInfo | null>(null)
   const [loadingSession, setLoadingSession] = useState(table.status === 'occupied')
@@ -282,6 +284,17 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
               <div className="space-y-2 pt-1">
                 {table.status === 'occupied' && (
                   <>
+                    <button
+                      onClick={() => {
+                        onClose()
+                        router.push(`/dashboard/orders/table/${table.id}`)
+                      }}
+                      disabled={!session}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-surface-container-high border border-outline-variant text-on-surface font-mono text-sm rounded-lg hover:bg-surface-variant transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <ListOrdered className="h-4 w-4" />
+                      Ir para pedidos
+                    </button>
                     <button
                       onClick={() => setView('switch')}
                       disabled={freeTables.length === 0}

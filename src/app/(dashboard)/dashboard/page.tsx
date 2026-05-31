@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
-import { DEV_BYPASS, mockTables, mockOrders } from '@/lib/dev-mock'
+import { DEV_BYPASS, mockTables, mockOrders, mockRestaurant } from '@/lib/dev-mock'
 import { OverviewOrdersPanel } from '@/components/dashboard/overview-orders-panel'
+import { OverviewFloorMap } from '@/components/dashboard/overview-floor-map'
 
 export default async function DashboardPage() {
   if (DEV_BYPASS) {
@@ -12,6 +13,7 @@ export default async function DashboardPage() {
         stats={{ occupied, total: mockTables.length, openOrders: mockOrders.length, revenue: 0 }}
         tables={mockTables as any}
         orders={mockOrders as any}
+        restaurantSlug={mockRestaurant.slug}
       />
     )
   }
@@ -20,11 +22,11 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: restaurant } = await supabase.from('restaurants').select('id').eq('owner_id', user.id).single()
+  const { data: restaurant } = await supabase.from('restaurants').select('id, slug').eq('owner_id', user.id).single()
   if (!restaurant) redirect('/login')
 
   const [tablesRes, ordersRes, paymentsRes, recentRes] = await Promise.all([
-    supabase.from('tables').select('id, number, status').eq('restaurant_id', restaurant.id).order('number'),
+    supabase.from('tables').select('id, number, status, restaurant_id, qr_code_url, created_at').eq('restaurant_id', restaurant.id).order('number'),
     supabase.from('orders').select('id').eq('restaurant_id', restaurant.id).in('status', ['pending', 'confirmed', 'preparing', 'ready']),
     supabase.from('payments').select('amount').eq('restaurant_id', restaurant.id).eq('status', 'paid').gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
     supabase
@@ -44,14 +46,16 @@ export default async function DashboardPage() {
       stats={{ occupied, total: tables.length, openOrders: (ordersRes.data ?? []).length, revenue }}
       tables={tables}
       orders={recentRes.data ?? []}
+      restaurantSlug={restaurant.slug}
     />
   )
 }
 
-function OverviewView({ stats, tables, orders }: {
+function OverviewView({ stats, tables, orders, restaurantSlug }: {
   stats: { occupied: number; total: number; openOrders: number; revenue: number }
   tables: any[]
   orders: any[]
+  restaurantSlug: string
 }) {
   const capacityPct = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
 
@@ -130,42 +134,7 @@ function OverviewView({ stats, tables, orders }: {
               ))}
             </div>
           </div>
-          <div className="tonal-layer-1 ghost-border rounded-xl p-6">
-            {tables.length === 0 ? (
-              <p className="text-center text-on-surface-variant text-sm py-8 font-mono">Nenhuma mesa cadastrada</p>
-            ) : (
-              <div className="grid grid-cols-5 sm:grid-cols-6 gap-3">
-                {tables.map((t) => {
-                  const occupied = t.status === 'occupied'
-                  const reserved = t.status === 'reserved'
-                  return (
-                    <div
-                      key={t.id}
-                      className={`aspect-square rounded-lg flex flex-col items-center justify-center border transition-colors cursor-pointer ${
-                        occupied
-                          ? 'bg-primary-container border-primary/20 shadow-lg'
-                          : reserved
-                          ? 'bg-surface-container-highest/50 border-outline-variant opacity-60'
-                          : 'border-outline-variant hover:border-primary'
-                      }`}
-                    >
-                      <span className={`text-xs font-bold font-mono ${occupied ? 'text-on-primary-container' : 'text-on-surface-variant'}`}>
-                        T-{t.number.padStart(2, '0')}
-                      </span>
-                      {occupied && <span className="material-symbols-outlined text-on-primary-container text-sm">person</span>}
-                      {reserved && <span className="material-symbols-outlined text-on-surface-variant text-sm">event_busy</span>}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            <div className="mt-6 flex justify-center">
-              <div className="px-8 py-3 bg-surface-container-highest/30 border border-outline-variant border-dashed rounded-xl flex items-center gap-3 text-on-surface-variant">
-                <span className="material-symbols-outlined text-sm">countertops</span>
-                <span className="text-xs font-mono">Área do Balcão e Cozinha</span>
-              </div>
-            </div>
-          </div>
+          <OverviewFloorMap tables={tables} restaurantSlug={restaurantSlug} />
         </div>
 
         {/* Orders */}

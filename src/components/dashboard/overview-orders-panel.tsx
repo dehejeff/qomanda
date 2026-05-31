@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 
 const STATUS_BADGE: Record<string, string> = {
@@ -58,6 +59,7 @@ function orderTotal(order: OverviewOrder) {
 }
 
 export function OverviewOrdersPanel({ orders }: { orders: OverviewOrder[] }) {
+  const router = useRouter()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   const filteredOrders = useMemo(
@@ -139,7 +141,11 @@ export function OverviewOrdersPanel({ orders }: { orders: OverviewOrder[] }) {
                   const name = customerName(order)
 
                   return (
-                    <tr key={order.id} className="hover:bg-surface-container-highest transition-colors">
+                    <tr
+                      key={order.id}
+                      onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                      className="hover:bg-surface-container-highest transition-colors cursor-pointer"
+                    >
                       <td className="px-4 py-4">
                         <span className="text-sm font-mono text-on-surface">
                           #{order.id.slice(-4).toUpperCase()}
