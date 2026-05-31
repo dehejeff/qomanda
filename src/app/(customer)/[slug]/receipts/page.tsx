@@ -93,9 +93,9 @@ export default function ReceiptsPage() {
             <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: '#584237' }}>
               receipt_long
             </span>
-            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Nenhum recibo ainda</p>
+            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Você não realizou pagamentos</p>
             <p className="text-xs mt-2 max-w-[240px] mx-auto leading-relaxed" style={{ color: '#a78b7d' }}>
-              Após confirmar um pagamento, seus códigos e recibos aparecerão aqui.
+              Seus recibos e códigos de confirmação aparecerão aqui após o pagamento.
             </p>
             <Link
               href={`/${params.slug}/checkout?session=${sessionId}`}
