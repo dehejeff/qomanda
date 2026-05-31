@@ -1306,6 +1306,10 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>redeem</span>
                   <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Seus benefícios</p>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(249,115,22,0.15)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.3)' }}>
+                    CORTESIA
+                  </span>
                 </div>
 
                 {appliedOffers.map(o => (

@@ -265,7 +265,10 @@ create table if not exists close_request_participants (
 create table if not exists loyalty_rules (
   id            uuid        primary key default uuid_generate_v4(),
   restaurant_id uuid        not null references restaurants(id) on delete cascade,
-  visit_count   int         not null check (visit_count > 0),
+  rule_type     text        not null default 'visits'
+                            check (rule_type in ('visits','spend')),
+  visit_count   int,                              -- usado quando rule_type = 'visits'
+  min_spend     numeric(10,2),                    -- usado quando rule_type = 'spend' (R$)
   benefit_type  text        not null
                             check (benefit_type in ('free_drink','free_item','discount_pct','custom')),
   benefit_value text        not null,

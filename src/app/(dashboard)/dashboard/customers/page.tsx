@@ -108,10 +108,10 @@ export default function CustomersPage() {
         .order('created_at', { ascending: false }),
       supabase
         .from('loyalty_rules')
-        .select('id, visit_count, benefit_type, benefit_value, active')
+        .select('id, rule_type, visit_count, min_spend, benefit_type, benefit_value, active')
         .eq('restaurant_id', restaurant.id)
         .eq('active', true)
-        .order('visit_count'),
+        .order('created_at'),
     ])
 
     if (visitsRes.error) {
@@ -120,9 +120,11 @@ export default function CustomersPage() {
       return
     }
 
-    const rules = (rulesRes.data ?? []) as Pick<LoyaltyRule, 'visit_count' | 'benefit_value' | 'active'>[]
-    setCustomers(aggregateRestaurantCustomers(visitsRes.data ?? [], rules))
-    setLoyaltyRules((rulesRes.data ?? []) as LoyaltyRuleInput[])
+    const allRules = (rulesRes.data ?? []) as (LoyaltyRule & { rule_type?: string })[]
+    // Progresso de visitas considera apenas regras por visita.
+    const visitRules = allRules.filter(r => (r.rule_type ?? 'visits') === 'visits') as Pick<LoyaltyRule, 'visit_count' | 'benefit_value' | 'active'>[]
+    setCustomers(aggregateRestaurantCustomers(visitsRes.data ?? [], visitRules))
+    setLoyaltyRules(allRules as LoyaltyRuleInput[])
     setLoading(false)
   }, [])
 

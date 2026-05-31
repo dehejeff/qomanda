@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { toast } from 'sonner'
-import type { LoyaltyBenefitType } from '@/types'
+import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 
 type Tab = 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
@@ -33,15 +33,17 @@ const BENEFIT_OPTIONS: { value: LoyaltyBenefitType; label: string; icon: string 
 
 type LoyaltyRule = {
   id: string
-  visit_count: number
+  rule_type: LoyaltyRuleType
+  visit_count: number | null
+  min_spend: number | null
   benefit_type: LoyaltyBenefitType
   benefit_value: string
   active: boolean
 }
 
 const INITIAL_RULES: LoyaltyRule[] = [
-  { id: '1', visit_count: 5,  benefit_type: 'free_drink',   benefit_value: 'Chope ou refrigerante grátis', active: true },
-  { id: '2', visit_count: 10, benefit_type: 'discount_pct', benefit_value: '10% de desconto na conta',    active: true },
+  { id: '1', rule_type: 'visits', visit_count: 5,  min_spend: null, benefit_type: 'free_drink',   benefit_value: 'Chope ou refrigerante grátis', active: true },
+  { id: '2', rule_type: 'visits', visit_count: 10, min_spend: null, benefit_type: 'discount_pct', benefit_value: '10% de desconto na conta',    active: true },
 ]
 
 export default function SettingsPage() {
@@ -49,7 +51,9 @@ export default function SettingsPage() {
   const [rules, setRules] = useState<LoyaltyRule[]>([])
   const [restaurantId, setRestaurantId] = useState('')
   const [addingRule, setAddingRule] = useState(false)
+  const [newRuleType, setNewRuleType] = useState<LoyaltyRuleType>('visits')
   const [newVisits, setNewVisits] = useState('5')
+  const [newMinSpend, setNewMinSpend] = useState('100')
   const [newBenefitType, setNewBenefitType] = useState<LoyaltyBenefitType>('free_drink')
   const [newBenefitValue, setNewBenefitValue] = useState('')
 
@@ -67,9 +71,9 @@ export default function SettingsPage() {
     setRestaurantId(restaurant.id)
     const { data } = await supabase
       .from('loyalty_rules')
-      .select('id, visit_count, benefit_type, benefit_value, active')
+      .select('id, rule_type, visit_count, min_spend, benefit_type, benefit_value, active')
       .eq('restaurant_id', restaurant.id)
-      .order('visit_count')
+      .order('created_at')
     setRules((data ?? []) as LoyaltyRule[])
   }, [])
 
@@ -95,35 +99,40 @@ export default function SettingsPage() {
     if (error) { toast.error('Erro ao remover regra.'); loadRules() }
   }
 
+  function resetRuleForm() {
+    setNewBenefitValue(''); setNewVisits('5'); setNewMinSpend('100')
+    setNewRuleType('visits'); setNewBenefitType('free_drink'); setAddingRule(false)
+  }
+
   async function addRule() {
-    if (!newBenefitValue.trim() || !newVisits) return
+    const thresholdOk = newRuleType === 'visits' ? !!newVisits : !!newMinSpend
+    if (!newBenefitValue.trim() || !thresholdOk) return
+
+    const payload = {
+      rule_type: newRuleType,
+      visit_count: newRuleType === 'visits' ? parseInt(newVisits) : null,
+      min_spend: newRuleType === 'spend' ? parseFloat(newMinSpend.replace(',', '.')) : null,
+      benefit_type: newBenefitType,
+      benefit_value: newBenefitValue.trim(),
+      active: true,
+    }
 
     if (DEV_BYPASS) {
-      const rule: LoyaltyRule = {
-        id: Date.now().toString(),
-        visit_count: parseInt(newVisits),
-        benefit_type: newBenefitType,
-        benefit_value: newBenefitValue.trim(),
-        active: true,
-      }
-      setRules(prev => [...prev, rule].sort((a, b) => a.visit_count - b.visit_count))
-      setNewBenefitValue(''); setNewVisits('5'); setNewBenefitType('free_drink'); setAddingRule(false)
+      setRules(prev => [...prev, { id: Date.now().toString(), ...payload } as LoyaltyRule])
+      resetRuleForm()
       return
     }
 
     const supabase = createClient()
-    const { data, error } = await supabase.from('loyalty_rules').insert({
-      restaurant_id: restaurantId,
-      visit_count: parseInt(newVisits),
-      benefit_type: newBenefitType,
-      benefit_value: newBenefitValue.trim(),
-      active: true,
-    }).select('id, visit_count, benefit_type, benefit_value, active').single()
+    const { data, error } = await supabase.from('loyalty_rules')
+      .insert({ restaurant_id: restaurantId, ...payload })
+      .select('id, rule_type, visit_count, min_spend, benefit_type, benefit_value, active')
+      .single()
 
     if (error || !data) { toast.error('Erro ao criar regra.'); return }
 
-    setRules(prev => [...prev, data as LoyaltyRule].sort((a, b) => a.visit_count - b.visit_count))
-    setNewBenefitValue(''); setNewVisits('5'); setNewBenefitType('free_drink'); setAddingRule(false)
+    setRules(prev => [...prev, data as LoyaltyRule])
+    resetRuleForm()
     toast.success('Regra de fidelidade criada!')
   }
 
@@ -432,11 +441,11 @@ export default function SettingsPage() {
                       ? 'bg-primary/10 border-primary/20'
                       : 'bg-surface-container-high border-outline-variant'
                   }`}>
-                    <span className={`text-xl font-bold leading-none ${rule.active ? 'text-primary-container' : 'text-on-surface-variant opacity-40'}`}>
-                      {rule.visit_count}
+                    <span className={`text-base font-bold leading-none ${rule.active ? 'text-primary-container' : 'text-on-surface-variant opacity-40'}`}>
+                      {rule.rule_type === 'spend' ? formatCurrency(rule.min_spend ?? 0) : rule.visit_count}
                     </span>
-                    <span className={`text-[9px] font-mono uppercase ${rule.active ? 'text-primary' : 'text-on-surface-variant opacity-30'}`}>
-                      visitas
+                    <span className={`text-[9px] font-mono uppercase mt-0.5 ${rule.active ? 'text-primary' : 'text-on-surface-variant opacity-30'}`}>
+                      {rule.rule_type === 'spend' ? 'gastos' : 'visitas'}
                     </span>
                   </div>
 
@@ -483,16 +492,56 @@ export default function SettingsPage() {
               {addingRule && (
                 <div className="px-6 py-5 bg-surface-container-low">
                   <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">Nova regra de fidelidade</p>
+
+                  {/* Critério da regra: visitas ou valor gasto */}
+                  <div className="flex flex-col gap-1.5 mb-4">
+                    <label className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Critério</label>
+                    <div className="flex gap-2">
+                      {([
+                        { id: 'visits' as const, label: 'Por nº de visitas', icon: 'event_repeat' },
+                        { id: 'spend' as const, label: 'Por valor gasto (R$)', icon: 'payments' },
+                      ]).map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setNewRuleType(opt.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border transition-colors ${
+                            newRuleType === opt.id
+                              ? 'bg-primary-container text-on-primary-container border-primary/30'
+                              : 'border-outline-variant text-on-surface-variant hover:border-primary/40'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Nº de visitas</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={newVisits}
-                        onChange={e => setNewVisits(e.target.value)}
-                        className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
-                      />
+                      <label className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+                        {newRuleType === 'spend' ? 'Valor gasto (R$)' : 'Nº de visitas'}
+                      </label>
+                      {newRuleType === 'spend' ? (
+                        <input
+                          type="number"
+                          min={1}
+                          step="0.01"
+                          value={newMinSpend}
+                          onChange={e => setNewMinSpend(e.target.value)}
+                          placeholder="Ex: 200"
+                          className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          min={1}
+                          value={newVisits}
+                          onChange={e => setNewVisits(e.target.value)}
+                          className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
+                        />
+                      )}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Tipo de benefício</label>
@@ -520,7 +569,7 @@ export default function SettingsPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={addRule}
-                      disabled={!newBenefitValue.trim() || !newVisits}
+                      disabled={!newBenefitValue.trim() || (newRuleType === 'visits' ? !newVisits : !newMinSpend)}
                       className="h-9 px-5 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-40"
                     >
                       Salvar regra

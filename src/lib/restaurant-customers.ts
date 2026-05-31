@@ -62,7 +62,11 @@ function nextRewardFor(
   visitCount: number,
   rules: Pick<LoyaltyRule, 'visit_count' | 'benefit_value' | 'active'>[],
 ): { visitsUntil: number; label: string } | null {
-  const active = rules.filter(r => r.active).sort((a, b) => a.visit_count - b.visit_count)
+  // Apenas regras com nº de visitas definido (ignora regras por valor gasto).
+  const active = rules
+    .filter(r => r.active && typeof r.visit_count === 'number' && r.visit_count > 0)
+    .map(r => ({ ...r, visit_count: r.visit_count as number }))
+    .sort((a, b) => a.visit_count - b.visit_count)
   const upcoming = active.find(r => r.visit_count > visitCount)
   if (upcoming) {
     return { visitsUntil: upcoming.visit_count - visitCount, label: upcoming.benefit_value }

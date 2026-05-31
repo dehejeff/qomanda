@@ -13,11 +13,14 @@ export interface Customer {
 }
 
 export type LoyaltyBenefitType = 'free_drink' | 'free_item' | 'discount_pct' | 'custom'
+export type LoyaltyRuleType = 'visits' | 'spend'
 
 export interface LoyaltyRule {
   id: string
   restaurant_id: string
-  visit_count: number
+  rule_type: LoyaltyRuleType
+  visit_count: number | null
+  min_spend: number | null
   benefit_type: LoyaltyBenefitType
   benefit_value: string
   active: boolean
