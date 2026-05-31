@@ -34,17 +34,41 @@ export default function TablesPage() {
       setLoading(false)
       return
     }
+
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    let ch: ReturnType<typeof supabase.channel> | undefined
+
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
       const { data: r } = await supabase.from('restaurants').select('id, slug').eq('owner_id', user.id).single()
       if (!r) return
+
       setRestaurantSlug(r.slug)
       setRestaurantId(r.id)
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
       setTables((data ?? []) as RestaurantTable[])
       setLoading(false)
-    })
+
+      ch = supabase.channel('tables-status')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tables',
+          filter: `restaurant_id=eq.${r.id}`,
+        }, (payload) => {
+          const updated = payload.new as RestaurantTable
+          setTables(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t))
+          if (updated.status === 'free') {
+            toast.success(`Mesa ${updated.number} liberada`)
+          }
+        })
+        .subscribe()
+    }
+
+    init()
+    return () => { if (ch) supabase.removeChannel(ch) }
   }, [])
 
   async function addTable() {

@@ -14,6 +14,7 @@ export default async function DashboardPage() {
         tables={mockTables as any}
         orders={mockOrders as any}
         restaurantSlug={mockRestaurant.slug}
+        restaurantId={mockRestaurant.id}
       />
     )
   }
@@ -47,15 +48,17 @@ export default async function DashboardPage() {
       tables={tables}
       orders={recentRes.data ?? []}
       restaurantSlug={restaurant.slug}
+      restaurantId={restaurant.id}
     />
   )
 }
 
-function OverviewView({ stats, tables, orders, restaurantSlug }: {
+function OverviewView({ stats, tables, orders, restaurantSlug, restaurantId }: {
   stats: { occupied: number; total: number; openOrders: number; revenue: number }
   tables: any[]
   orders: any[]
   restaurantSlug: string
+  restaurantId: string
 }) {
   const capacityPct = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
 
@@ -134,7 +137,7 @@ function OverviewView({ stats, tables, orders, restaurantSlug }: {
               ))}
             </div>
           </div>
-          <OverviewFloorMap tables={tables} restaurantSlug={restaurantSlug} />
+          <OverviewFloorMap tables={tables} restaurantSlug={restaurantSlug} restaurantId={restaurantId} />
         </div>
 
         {/* Orders */}

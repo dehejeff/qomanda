@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import type { RestaurantTable } from '@/types'
+import { createClient } from '@/lib/supabase/client'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 
 type Props = {
   tables: RestaurantTable[]
   restaurantSlug: string
+  restaurantId?: string
 }
 
-export function OverviewFloorMap({ tables, restaurantSlug }: Props) {
+export function OverviewFloorMap({ tables, restaurantSlug, restaurantId }: Props) {
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null)
   const [manageTable, setManageTable] = useState<RestaurantTable | null>(null)
   const [localTables, setLocalTables] = useState(tables)
@@ -18,6 +20,23 @@ export function OverviewFloorMap({ tables, restaurantSlug }: Props) {
   useEffect(() => {
     setLocalTables(tables)
   }, [tables])
+
+  useEffect(() => {
+    if (!restaurantId) return
+    const supabase = createClient()
+    const ch = supabase.channel('overview-tables')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'tables',
+        filter: `restaurant_id=eq.${restaurantId}`,
+      }, (payload) => {
+        const updated = payload.new as RestaurantTable
+        setLocalTables(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restaurantId])
 
   function handleTableClick(table: RestaurantTable) {
     if (table.status === 'free') setQrTable(table)

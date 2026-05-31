@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
 import { generateConfirmationCode } from '@/lib/utils'
 import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
+import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 
 /**
  * POST /api/asaas/webhook
@@ -70,6 +71,8 @@ export async function POST(req: NextRequest) {
         internalPayment.id,
         Number(internalPayment.amount),
       )
+
+      await closeSessionIfSettled(supabase, internalPayment.session_id)
 
       console.log(`[Asaas Webhook] Pagamento confirmado: ${internalPayment.id} → código ${confirmationCode}`)
     }

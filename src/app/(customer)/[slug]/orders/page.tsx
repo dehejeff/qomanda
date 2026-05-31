@@ -206,7 +206,12 @@ export default function OrdersPage() {
 
     const ch2 = supabase.channel('session-watch')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` }, (p) => {
-        if ((p.new as any)?.status === 'closing') setSessionClosing(true)
+        const status = (p.new as any)?.status
+        if (status === 'closing') setSessionClosing(true)
+        if (status === 'closed') {
+          localStorage.removeItem('qomanda_session_id')
+          router.replace(`/${params.slug}`)
+        }
       })
       .subscribe()
 

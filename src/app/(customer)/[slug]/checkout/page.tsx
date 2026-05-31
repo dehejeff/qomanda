@@ -419,6 +419,7 @@ export default function CheckoutPage() {
   const [restaurantId, setRestaurantId] = useState('')
   const [customerWhatsapp, setCustomerWhatsapp] = useState('')
   const [restaurantName, setRestaurantName] = useState('')
+  const [tableSettled, setTableSettled] = useState(false)
 
   // Amounts
   const [subTotal, setSubTotal]     = useState(0)   // subtotal sem taxa
@@ -659,6 +660,7 @@ export default function CheckoutPage() {
 
     const data: AsaasPaymentResponse = await res.json()
     if (!res.ok) throw new Error((data as any).error ?? 'Erro ao processar pagamento.')
+    if (data.sessionClosed) setTableSettled(true)
     return data
   }
 
@@ -844,6 +846,11 @@ export default function CheckoutPage() {
 
   // ── CONFIRMED ──────────────────────────────────────────────
   if (step === 'confirmed') {
+    if (tableSettled && sessionId) {
+      localStorage.removeItem('qomanda_session_id')
+      sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+    }
+
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
@@ -862,6 +869,18 @@ export default function CheckoutPage() {
             <h2 className="text-[28px] font-black" style={{ fontFamily: 'Geist, sans-serif' }}>Obrigado!</h2>
             <p className="text-sm mt-1" style={{ color: '#e0c0b1' }}>Pagamento processado com sucesso.</p>
           </div>
+          {tableSettled && (
+            <div className="w-full rounded-xl px-5 py-4 flex items-start gap-3"
+              style={{ background: 'rgba(123,208,255,0.1)', border: '1px solid rgba(123,208,255,0.3)' }}>
+              <span className="material-symbols-outlined text-[22px] shrink-0" style={{ color: '#7bd0ff', fontVariationSettings: "'FILL' 1" }}>table_restaurant</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Mesa quitada!</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  A conta da mesa {tableNumber} foi paga por completo. A mesa já está liberada para novos clientes no restaurante.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="w-full rounded-xl p-5 flex justify-between items-center"
             style={{ background: '#171f33', border: '1px solid #334155' }}>
             <div>
@@ -1442,6 +1461,8 @@ export default function CheckoutPage() {
         </button>
       </div>
       )}
+
+      <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
     </div>
   )
 }

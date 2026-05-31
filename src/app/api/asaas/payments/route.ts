@@ -18,6 +18,7 @@ import {
   paymentInsertErrorMessage,
   resolvePaymentCustomerId,
 } from '@/lib/payment-db'
+import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -41,6 +42,8 @@ export type AsaasPaymentResponse = {
   pixExpiration?: string
   // Status
   status: 'pending' | 'paid'
+  /** true quando este pagamento quitou a mesa e a sessão foi fechada */
+  sessionClosed?: boolean
 }
 
 export async function POST(req: NextRequest) {
@@ -99,12 +102,14 @@ export async function POST(req: NextRequest) {
       }
 
       await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
+      const settlement = await closeSessionIfSettled(supabase, sessionId)
 
       return NextResponse.json({
         paymentId: payment.id,
         asaasPaymentId: `mock_${payment.id}`,
         confirmationCode,
         status: 'paid',
+        sessionClosed: settlement.closed,
       } satisfies AsaasPaymentResponse)
     }
 
@@ -236,11 +241,16 @@ export async function POST(req: NextRequest) {
         await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
       }
 
+      const settlement = confirmed
+        ? await closeSessionIfSettled(supabase, sessionId)
+        : { closed: false }
+
       return NextResponse.json({
         paymentId:        payment.id,
         asaasPaymentId:   asaasPayment.id,
         confirmationCode,
         status:           confirmed ? 'paid' : 'pending',
+        sessionClosed:    settlement.closed,
       } satisfies AsaasPaymentResponse)
     }
 
