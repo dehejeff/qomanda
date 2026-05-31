@@ -227,12 +227,12 @@ export default function CustomersPage() {
         <div className="tonal-layer-1 ghost-border rounded-xl overflow-x-auto">
           <table className="w-full table-fixed">
             <colgroup>
-              <col className="w-[35%]" />
-              <col className="w-[10%]" />
-              <col className="w-[20%]" />
-              <col className="w-[12%]" />
-              <col className="w-[15%]" />
+              <col className="w-[26%]" />
               <col className="w-[8%]" />
+              <col className="w-[15%]" />
+              <col className="w-[11%]" />
+              <col className="w-[13%]" />
+              <col className="w-[27%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-outline-variant">
@@ -241,7 +241,7 @@ export default function CustomersPage() {
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Última visita</th>
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Sem voltar</th>
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Fidelidade</th>
-                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Ações</th>
+                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
@@ -304,19 +304,19 @@ export default function CustomersPage() {
                     </td>
 
                     {/* Coluna 6: Ações */}
-                    <td className="px-3 py-4">
-                      <div className="flex gap-2">
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2 justify-end">
                         <button
                           type="button"
                           onClick={() => setOfferCustomer(customer)}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-bold bg-emerald-600/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-600/25 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-bold bg-emerald-600/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-600/25 transition-colors whitespace-nowrap"
                         >
                           <span className="material-symbols-outlined text-[16px]">redeem</span>
                           Oferecer
                         </button>
                         <Link
                           href={`/dashboard/orders/customer/${customer.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-colors whitespace-nowrap"
                         >
                           <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                           Pedidos
