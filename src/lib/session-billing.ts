@@ -47,6 +47,81 @@ export function amountWithServiceFee(subtotal: number, includeFee: boolean) {
   return roundMoney(subtotal * (includeFee ? 1 + SERVICE_FEE_RATE : 1))
 }
 
+/** Converte pagamentos em crédito sobre o subtotal (desconta taxa se incluída). */
+export function paymentSubtotalCredit(payments: PaymentRow[]): number {
+  return roundMoney(
+    payments.reduce((sum, p) => {
+      const incl = p.service_fee_included !== false
+      const amt = Number(p.amount)
+      return sum + (incl ? amt / (1 + SERVICE_FEE_RATE) : amt)
+    }, 0),
+  )
+}
+
+export function computeOpenBalance(
+  consumptionSubtotal: number,
+  payments: PaymentRow[],
+  includeServiceFee: boolean,
+) {
+  const credited = paymentSubtotalCredit(payments)
+  const openSubtotal = Math.max(0, roundMoney(consumptionSubtotal - credited))
+  const openTotal = amountWithServiceFee(openSubtotal, includeServiceFee)
+  return { openSubtotal, openTotal, credited }
+}
+
+type OrderLineItem = {
+  unit_price: number
+  quantity: number
+  menu_item?: {
+    name?: string
+    contains_alcohol?: boolean
+    category?: { name?: string } | null
+  } | null
+}
+
+/** Itens ainda não cobertos pelos pagamentos (FIFO). */
+export function unpaidOrderLineItems(
+  orders: Order[],
+  payments: PaymentRow[],
+): OrderLineItem[] {
+  const sorted = [...orders]
+    .filter(isBillableOrder)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+  let creditLeft = paymentSubtotalCredit(payments)
+  const unpaid: OrderLineItem[] = []
+
+  for (const order of sorted) {
+    for (const item of order.items ?? []) {
+      const lineTotal = item.unit_price * item.quantity
+
+      if (creditLeft >= lineTotal - SETTLE_TOLERANCE) {
+        creditLeft = roundMoney(creditLeft - lineTotal)
+        continue
+      }
+
+      if (creditLeft > 0.01) {
+        const remaining = roundMoney(lineTotal - creditLeft)
+        creditLeft = 0
+        unpaid.push({
+          unit_price: roundMoney(remaining / item.quantity),
+          quantity: item.quantity,
+          menu_item: item.menu_item as OrderLineItem['menu_item'],
+        })
+        continue
+      }
+
+      unpaid.push({
+        unit_price: item.unit_price,
+        quantity: item.quantity,
+        menu_item: item.menu_item as OrderLineItem['menu_item'],
+      })
+    }
+  }
+
+  return unpaid
+}
+
 /** Infere opt-in de taxa a partir de pagamentos explícitos ou do valor pago. */
 export function resolveServiceFeeIncluded(
   subtotal: number,

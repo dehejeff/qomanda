@@ -1,13 +1,21 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { PaymentMethod } from '@/types'
 import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { splitConsumptionByAlcohol, splitPaymentAmounts } from '@/lib/alcohol-split'
-import { SERVICE_FEE_RATE } from '@/lib/session-billing'
+import {
+  SERVICE_FEE_RATE,
+  computeOpenBalance,
+  paymentSubtotalCredit,
+  amountWithServiceFee,
+  unpaidOrderLineItems,
+  roundMoney,
+} from '@/lib/session-billing'
+import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -414,8 +422,7 @@ export default function CheckoutPage() {
   const [pixExpiration, setPixExpiration]   = useState('')
   const [pixPaymentId, setPixPaymentId]     = useState('')  // ID interno para polling
   const [tableNumber, setTableNumber] = useState('')
-  const [alcoholSplit, setAlcoholSplit] = useState<AlcoholSplit>({ food: 0, alcohol: 0, hasAlcohol: false })
-  const [splitAlcohol, setSplitAlcohol] = useState(false)       // customer opted in to split
+  const [splitAlcohol, setSplitAlcohol] = useState(false)
   const [alcoholSplitDismissed, setAlcoholSplitDismissed] = useState(false)
   const [restaurantId, setRestaurantId] = useState('')
   const [customerWhatsapp, setCustomerWhatsapp] = useState('')
@@ -423,12 +430,11 @@ export default function CheckoutPage() {
   const [tableSettled, setTableSettled] = useState(false)
 
   // Amounts
-  const [subTotal, setSubTotal]     = useState(0)   // subtotal sem taxa
-  const [grandTotal, setGrandTotal] = useState(0)   // subtotal + taxa (quando aplicável)
-  const [alreadyPaid, setAlreadyPaid] = useState(0) // total pago na mesa
-  const [myAlreadyPaid, setMyAlreadyPaid] = useState(0) // total pago por este cliente
-  const [myConsumption, setMyConsumption] = useState(0) // my portion
-  const [remaining, setRemaining]   = useState(0)   // grandTotal - alreadyPaid
+  const [subTotal, setSubTotal]             = useState(0)
+  const [mySubtotal, setMySubtotal]         = useState(0)
+  const [myOrders, setMyOrders]             = useState<Order[]>([])
+  const [sessionPayments, setSessionPayments] = useState<{ amount: number; customer_id: string | null; service_fee_included?: boolean | null }[]>([])
+  const [myAlreadyPaid, setMyAlreadyPaid]   = useState(0)
 
   // Participants for Mesa Toda
   const [participants, setParticipants]   = useState<Participant[]>([])
@@ -437,6 +443,39 @@ export default function CheckoutPage() {
 
   // Individual extra
   const [extraAmount, setExtraAmount] = useState('')
+
+  const myPaymentRows = useMemo(
+    () => sessionPayments.filter(p => p.customer_id === myCustomerId),
+    [sessionPayments, myCustomerId],
+  )
+
+  const myOpen = useMemo(
+    () => computeOpenBalance(mySubtotal, myPaymentRows, includeServiceFee),
+    [mySubtotal, myPaymentRows, includeServiceFee],
+  )
+
+  const sessionOpen = useMemo(
+    () => computeOpenBalance(subTotal, sessionPayments, includeServiceFee),
+    [subTotal, sessionPayments, includeServiceFee],
+  )
+
+  const remaining = sessionOpen.openTotal
+  const sessionGrandTotal = useMemo(
+    () => amountWithServiceFee(subTotal, includeServiceFee),
+    [subTotal, includeServiceFee],
+  )
+
+  const unpaidItems = useMemo(
+    () => unpaidOrderLineItems(myOrders, myPaymentRows),
+    [myOrders, myPaymentRows],
+  )
+
+  const alcoholSplit = useMemo(() => {
+    const feeMult = includeServiceFee ? 1 + SERVICE_FEE_RATE : 1
+    return splitConsumptionByAlcohol(unpaidItems, feeMult, splitAlcohol && includeServiceFee)
+  }, [unpaidItems, includeServiceFee, splitAlcohol])
+
+  const myConsumptionFull = amountWithServiceFee(mySubtotal, includeServiceFee)
 
   function toggleParticipant(id: string) {
     if (id === myCustomerId) return
@@ -455,27 +494,26 @@ export default function CheckoutPage() {
     .reduce((s, [, v]) => s + (parseFloat(v) || 0), 0)
   const customSumOk       = Math.abs(customSum - remaining) < 0.02
   const myDefinedAmount   = splitType === 'equal' ? equalShare : (parseFloat(customAmounts[myCustomerId ?? ''] ?? '0') || 0)
-  const myPersonalOwed    = Math.max(0, myConsumption - myAlreadyPaid)
-  const myIndividualBase  = Math.min(myPersonalOwed, Math.max(0, remaining))
+  const myIndividualBase  = Math.min(myOpen.openTotal, Math.max(0, remaining))
   const myIndividualTotal = myIndividualBase + (parseFloat(extraAmount) || 0)
-  const hasPaidMyShare    = myConsumption > 0.01 && myAlreadyPaid >= myConsumption - 0.02
-  const tableCreditForMe  = Math.max(0, myPersonalOwed - myIndividualBase)
+  const hasPaidMyShare    = mySubtotal > 0.01 && myOpen.openSubtotal <= 0.02
+  const tableCreditForMe  = Math.max(0, myOpen.openTotal - myIndividualBase)
 
   function getAmountToPay() {
     if (closeMode === 'individual') return myIndividualTotal
     return myDefinedAmount
   }
 
-  /** Base em aberto para calcular a taxa: individual = sua conta; mesa = saldo da mesa */
-  const serviceFeeOpenBase = closeMode === 'individual' ? myIndividualBase : remaining
+  const serviceFeeOpenBase = closeMode === 'individual' ? myOpen.openSubtotal : sessionOpen.openSubtotal
 
-  const serviceFeeDisplay = (() => {
-    if (serviceFeeOpenBase <= 0.01) return 0
-    if (includeServiceFee) {
-      return Math.round((serviceFeeOpenBase - serviceFeeOpenBase / (1 + SERVICE_FEE_RATE)) * 100) / 100
-    }
-    return Math.round(serviceFeeOpenBase * SERVICE_FEE_RATE * 100) / 100
-  })()
+  const serviceFeeDisplay = serviceFeeOpenBase <= 0.01
+    ? 0
+    : roundMoney(serviceFeeOpenBase * SERVICE_FEE_RATE)
+
+  const sessionPaidTotal = useMemo(
+    () => roundMoney(sessionPayments.reduce((s, p) => s + Number(p.amount), 0)),
+    [sessionPayments],
+  )
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -486,8 +524,8 @@ export default function CheckoutPage() {
       const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
-        supabase.from('orders').select('customer_id, status, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
-        supabase.from('payments').select('amount, customer_id').eq('session_id', sessionId).eq('status', 'paid'),
+        supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
+        supabase.from('payments').select('amount, customer_id, service_fee_included').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
       const restaurant = (sessionRes.data as any)?.restaurant
@@ -508,56 +546,54 @@ export default function CheckoutPage() {
       const billableOrders = (ordersRes.data ?? []).filter((o: any) => o.status !== 'cancelled')
       const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
       const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-      const gt         = sub * 1.1
       const allPayments = paymentsRes.data ?? []
-      const paid       = allPayments.reduce((s, p) => s + Number(p.amount), 0)
       const myPaid     = myCustomerId
-        ? allPayments.filter(p => p.customer_id === myCustomerId).reduce((s, p) => s + Number(p.amount), 0)
+        ? allPayments.filter((p: any) => p.customer_id === myCustomerId).reduce((s, p) => s + Number(p.amount), 0)
         : 0
-      const rem        = Math.max(0, gt - paid)
+
       setSubTotal(sub)
-      setGrandTotal(gt)
-      setAlreadyPaid(paid)
+      setSessionPayments(allPayments)
       setMyAlreadyPaid(myPaid)
-      setRemaining(rem)
 
-      // My consumption + alcohol detection
-      const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId)
+      const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId) as unknown as Order[]
       const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
-      const feeMult = includeServiceFee ? 1.1 : 1
       const mySub = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-      setMyConsumption(mySub * feeMult)
+      setMySubtotal(mySub)
+      setMyOrders(myOrdersData)
 
-      const split = splitConsumptionByAlcohol(myAllItems, feeMult)
-      setAlcoholSplit(split)
+      const myPayRows = allPayments.filter((p: any) => p.customer_id === myCustomerId)
+      const myOpenAfterLoad = computeOpenBalance(mySub, myPayRows, true)
 
-      const myConsumptionCalc = mySub * feeMult
-      if (myPaid >= myConsumptionCalc - 0.02) {
+      if (myOpenAfterLoad.openSubtotal <= 0.02 && mySub > 0.01) {
         setCloseMode('table')
         setSplitAlcohol(false)
         setAlcoholSplitDismissed(true)
         if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
       } else {
         const savedSplit = sessionStorage.getItem(`qomanda_split_alcohol_${sessionId}`)
-        if (savedSplit === 'true' && split.hasAlcohol) setSplitAlcohol(true)
+        const unpaid = unpaidOrderLineItems(myOrdersData, myPayRows)
+        const hasAlc = unpaid.some(i => splitConsumptionByAlcohol([i], 1).hasAlcohol)
+        if (savedSplit === 'true' && hasAlc) setSplitAlcohol(true)
       }
 
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
         const pOrders = billableOrders.filter((o: any) => o.customer_id === p.customer_id)
         const pSub    = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+        const pPay    = allPayments.filter((pay: any) => pay.customer_id === p.customer_id)
+        const pOpen   = computeOpenBalance(pSub, pPay, true)
         return {
           id: p.customer_id,
           name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
-          myConsumption: pSub * 1.1,
+          myConsumption: pOpen.openTotal,
           isMe: p.customer_id === myCustomerId,
         }
       })
       setParticipants(parts)
 
       if (myCustomerId) setSelectedIds(new Set([myCustomerId]))
-      // Init equal amounts
-      const equalAmt = parts.length > 0 ? (rem / parts.length).toFixed(2) : '0'
+      const sessionRem = computeOpenBalance(sub, allPayments, true).openTotal
+      const equalAmt = parts.length > 0 ? (sessionRem / parts.length).toFixed(2) : '0'
       setCustomAmounts(Object.fromEntries(parts.map(p => [p.id, equalAmt])))
       setLoading(false)
     }
@@ -569,15 +605,7 @@ export default function CheckoutPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
-  }, [sessionId, params.slug, router, myCustomerId, includeServiceFee])
-
-  // Recalcula grandTotal e remaining quando a taxa de serviço muda
-  useEffect(() => {
-    const gt  = includeServiceFee ? subTotal * 1.1 : subTotal
-    const rem = Math.max(0, gt - alreadyPaid)
-    setGrandTotal(gt)
-    setRemaining(rem)
-  }, [includeServiceFee, subTotal, alreadyPaid])
+  }, [sessionId, params.slug, router, myCustomerId])
 
   // Recalculate equal amounts when selection changes or remaining changes
   useEffect(() => {
@@ -956,12 +984,12 @@ export default function CheckoutPage() {
               </p>
             </div>
           )}
-          {closeMode === 'individual' && (myIndividualTotal - myConsumption) > 0.01 && (
+          {closeMode === 'individual' && (myIndividualTotal - myOpen.openTotal) > 0.01 && (
             <div className="w-full rounded-xl p-4 flex items-start gap-3"
               style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
               <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#34d399' }}>savings</span>
               <p className="text-xs leading-relaxed" style={{ color: '#34d399' }}>
-                <strong>+{formatCurrency(myIndividualTotal - myConsumption)}</strong> ficaram como saldo na mesa. Os outros pagantes vão se beneficiar. 💛
+                <strong>+{formatCurrency(myIndividualTotal - myOpen.openTotal)}</strong> ficaram como saldo na mesa. Os outros pagantes vão se beneficiar. 💛
               </p>
             </div>
           )}
@@ -1048,16 +1076,16 @@ export default function CheckoutPage() {
       <main className="flex-1 px-6 py-6 pb-56 space-y-5">
 
         {/* ── Saldo já pago ───────────────────────────── */}
-        {alreadyPaid > 0 && (
+        {sessionPaidTotal > 0 && (
           <div className="rounded-xl px-4 py-3 flex items-center gap-3"
             style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
             <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>savings</span>
             <div>
               <p className="text-xs font-semibold" style={{ color: '#34d399' }}>
-                Saldo já pago: {formatCurrency(alreadyPaid)}
+                Saldo já pago: {formatCurrency(sessionPaidTotal)}
               </p>
               <p className="text-[10px]" style={{ color: '#a78b7d' }}>
-                Total da mesa: {formatCurrency(grandTotal)} → Restante: {formatCurrency(remaining)}
+                Total da mesa: {formatCurrency(sessionGrandTotal)} → Restante: {formatCurrency(remaining)}
               </p>
             </div>
           </div>
@@ -1113,7 +1141,7 @@ export default function CheckoutPage() {
               <div>
                 <p className="text-sm font-bold" style={{ color: '#34d399' }}>Sua parte já está quitada!</p>
                 <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                  Você pagou {formatCurrency(myAlreadyPaid)} do seu consumo de {formatCurrency(myConsumption)}.
+                  Você pagou {formatCurrency(myAlreadyPaid)} do seu consumo de {formatCurrency(myConsumptionFull)}.
                   {remaining > 0.01
                     ? ` Falta ${formatCurrency(remaining)} para fechar a mesa — aguarde os outros ou use "Fechar mesa toda".`
                     : ' A mesa está totalmente paga!'}
@@ -1135,8 +1163,8 @@ export default function CheckoutPage() {
                     Saldo da mesa reduziu o seu valor!
                   </p>
                   <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Seu consumo é {formatCurrency(myConsumption)}
-                    {myAlreadyPaid > 0.01 && ` e você já pagou ${formatCurrency(myAlreadyPaid)}`}.
+                    Seu saldo em aberto é {formatCurrency(myOpen.openTotal)}
+                    {myAlreadyPaid > 0.01 && ` (já pagou ${formatCurrency(myAlreadyPaid)})`}.
                     {' '}Pagamentos na mesa cobrem {formatCurrency(tableCreditForMe)} — você paga apenas {formatCurrency(myIndividualBase)}.
                   </p>
                 </div>
@@ -1178,6 +1206,7 @@ export default function CheckoutPage() {
 
             {splitAlcohol && (() => {
               const { food, alcohol } = alcoholPaymentAmounts()
+              const feeOnFood = includeServiceFee && (alcoholSplit.serviceFeeOnFood ?? 0) > 0.01
               return (
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
                 <div className="px-4 py-3 flex items-center gap-2"
@@ -1199,6 +1228,11 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍽️ Alimentação</p>
+                      {feeOnFood && (
+                        <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                          inclui taxa de serviço ({formatCurrency(alcoholSplit.serviceFeeOnFood!)})
+                        </p>
+                      )}
                     </div>
                     <p className="text-base font-black font-mono" style={{ color: '#34d399' }}>
                       {formatCurrency(food)}
@@ -1207,7 +1241,9 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍷 Bebidas Alcoólicas</p>
-                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Conta pessoal</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>
+                        Conta pessoal{feeOnFood ? ' · sem taxa' : ''}
+                      </p>
                     </div>
                     <p className="text-base font-black font-mono" style={{ color: '#ffb690' }}>
                       {formatCurrency(alcohol)}
@@ -1216,7 +1252,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', background: 'rgba(30,41,59,0.5)' }}>
                   <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Você receberá <strong style={{ color: '#dae2fd' }}>2 recibos</strong> no seu WhatsApp — um de alimentação para o RH e um de bebidas para controle pessoal.
+                    Você receberá <strong style={{ color: '#dae2fd' }}>2 recibos</strong> no WhatsApp — alimentação (RH{feeOnFood ? ', com taxa de serviço' : ''}) e bebidas (pessoal, sem taxa).
                   </p>
                 </div>
               </div>
@@ -1237,15 +1273,16 @@ export default function CheckoutPage() {
               style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', backdropFilter: 'blur(12px)' }}>
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Meu consumo</span>
+                  <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Saldo em aberto</span>
                   {myAlreadyPaid > 0.01 && (
                     <p className="text-[10px] font-mono mt-0.5" style={{ color: '#34d399' }}>
                       Já pago: {formatCurrency(myAlreadyPaid)}
                     </p>
                   )}
-                  {myPersonalOwed > myIndividualBase + 0.01 && (
+                  {myOpen.openSubtotal < mySubtotal - 0.01 && (
                     <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
-                      (consumo: {formatCurrency(myConsumption)})
+                      Subtotal pendente: {formatCurrency(myOpen.openSubtotal)}
+                      {!includeServiceFee && ' (sem taxa)'}
                     </p>
                   )}
                 </div>
@@ -1423,9 +1460,11 @@ export default function CheckoutPage() {
               <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
                 {includeServiceFee
                   ? serviceFeeOpenBase > 0.01
-                    ? `+ ${formatCurrency(serviceFeeDisplay)} incluídos no pagamento (sobre os ${formatCurrency(serviceFeeOpenBase)} em aberto ${closeMode === 'individual' ? 'da sua conta' : 'da mesa'})`
+                    ? `+ ${formatCurrency(serviceFeeDisplay)} incluídos (sobre ${formatCurrency(serviceFeeOpenBase)} em aberto ${closeMode === 'individual' ? 'da sua conta' : 'da mesa'})`
                     : 'Nada em aberto para aplicar taxa'
-                  : 'Você optou por não incluir — paga só o consumo'}
+                  : serviceFeeOpenBase > 0.01
+                    ? `Sem taxa — você paga ${formatCurrency(closeMode === 'individual' ? myOpen.openSubtotal : sessionOpen.openSubtotal)} de consumo`
+                    : 'Você optou por não incluir a taxa de serviço'}
               </p>
               {!includeServiceFee && (
                 <p className="text-[10px] font-mono mt-1" style={{ color: '#584237' }}>
