@@ -3,11 +3,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertCustomerRecord } from '@/lib/customer-upsert'
 import { whatsappForStorage } from '@/lib/customer-lookup'
 import { isValidWhatsApp } from '@/lib/whatsapp-normalize'
+import { isValidLoginPin } from '@/lib/customer-pin-shared'
 
 export type CustomerRegisterRequest = {
   firstName: string
   lastName: string
   whatsapp: string
+  pin: string
   documentType?: 'cpf' | 'passport' | null
   cpf?: string | null
   passport?: string | null
@@ -26,10 +28,14 @@ export type CustomerRegisterResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: CustomerRegisterRequest = await req.json()
-    const { firstName, lastName, whatsapp, documentType, cpf, passport } = body
+    const { firstName, lastName, whatsapp, pin, documentType, cpf, passport } = body
 
     if (!firstName?.trim() || !lastName?.trim() || !whatsapp) {
       return NextResponse.json({ error: 'Nome, sobrenome e WhatsApp são obrigatórios.' }, { status: 400 })
+    }
+
+    if (!pin || !isValidLoginPin(pin)) {
+      return NextResponse.json({ error: 'Informe um PIN de 4 dígitos.' }, { status: 400 })
     }
 
     const phone = whatsappForStorage(whatsapp.replace(/\D/g, ''))
@@ -45,6 +51,7 @@ export async function POST(req: NextRequest) {
       documentType,
       cpf: cpf?.replace(/\D/g, '') || null,
       passport: passport?.trim() || null,
+      pin,
     })
 
     return NextResponse.json({

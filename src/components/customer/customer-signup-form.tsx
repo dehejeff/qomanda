@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPhoneInput, formatWhatsApp, maskCPF, validateCPF } from '@/lib/customer-form'
+import { PinInput } from '@/components/customer/pin-input'
+import { isValidLoginPin } from '@/lib/customer-pin-shared'
 import type { CustomerRegisterResponse } from '@/app/api/customer/register/route'
 
 type Props = {
@@ -13,6 +15,7 @@ type Props = {
     firstName: string
     lastName: string
     whatsapp: string
+    pin: string
     documentType: 'cpf' | 'passport'
     cpf: string | null
     passport: string | null
@@ -23,6 +26,8 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName]   = useState('')
   const [whatsapp, setWhatsapp]   = useState('')
+  const [pin, setPin]             = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
   const [docType, setDocType]     = useState<'cpf' | 'passport'>('cpf')
   const [cpf, setCpf]             = useState('')
   const [passport, setPassport]   = useState('')
@@ -50,6 +55,8 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
 
     if (!name || !surname) { toast.error('Informe nome e sobrenome.'); return }
     if (phone.length < 10) { toast.error('Informe um WhatsApp válido.'); return }
+    if (!isValidLoginPin(pin)) { toast.error('Informe um PIN de 4 dígitos.'); return }
+    if (pin !== pinConfirm) { toast.error('A confirmação do PIN não confere.'); return }
     if (docType === 'cpf' && cpf && !cpfValid) { toast.error('CPF inválido.'); return }
 
     setSubmitting(true)
@@ -58,6 +65,7 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
         firstName: name,
         lastName: surname,
         whatsapp: phone,
+        pin,
         documentType: docType,
         cpf: cpfDigits.length === 11 ? cpfDigits : null,
         passport: passport.trim() || null,
@@ -90,6 +98,16 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
           onChange={e => setWhatsapp(docType === 'passport' ? formatPhoneInput(e.target.value) : formatWhatsApp(e.target.value))}
           placeholder={docType === 'passport' ? '+351 912 345 678' : '(11) 99999-9999'} required autoComplete="tel"
           style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>PIN de 4 dígitos</label>
+        <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+          Obrigatório para acessar sua conta no Hub.
+        </p>
+        <PinInput value={pin} onChange={setPin} length={4} />
+        <label className="text-[11px] font-mono uppercase tracking-wider pt-1 block" style={{ color: '#a78b7d' }}>Confirmar PIN</label>
+        <PinInput value={pinConfirm} onChange={setPinConfirm} length={4} />
       </div>
 
       <div className="flex items-center gap-3">
@@ -134,7 +152,7 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
 
       <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
         <span className="material-symbols-outlined text-[13px] align-middle mr-1">lock</span>
-        Dados usados para NF-e, fidelidade e histórico. Seu WhatsApp é sua chave de acesso.
+        Dados usados para NF-e, fidelidade e histórico. Seu WhatsApp + PIN protegem sua conta.
       </p>
 
       <button type="submit" disabled={loading}

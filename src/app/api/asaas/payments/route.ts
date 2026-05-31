@@ -27,7 +27,10 @@ import {
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
-import { requireCustomerSession } from '@/lib/customer-session'
+import {
+  applySessionRenewal,
+  authenticateCustomerSession,
+} from '@/lib/customer-session'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -70,14 +73,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Pagar com cartão salvo exige sessão autenticada por senha (prova de identidade).
+    let sessionRenewal: string | undefined
     if (paymentMethodId) {
-      if (!bodyCustomerId || !requireCustomerSession(req, bodyCustomerId)) {
+      if (!bodyCustomerId) {
         return NextResponse.json(
           { error: 'Sessão não autenticada. Faça login com sua senha de 6 dígitos para usar o cartão salvo.' },
           { status: 401 },
         )
       }
+      const auth = authenticateCustomerSession(req, bodyCustomerId)
+      if (!auth.ok) {
+        return NextResponse.json(
+          { error: 'Sessão não autenticada. Faça login com sua senha de 6 dígitos para usar o cartão salvo.' },
+          { status: 401 },
+        )
+      }
+      sessionRenewal = auth.renewedToken
     }
+
+    const paymentOk = (body: AsaasPaymentResponse) =>
+      applySessionRenewal(NextResponse.json(body), sessionRenewal)
 
     const supabase = createAdminClient()
 
@@ -141,13 +156,13 @@ export async function POST(req: NextRequest) {
       const settlement = await closeSessionIfSettled(supabase, sessionId)
       await grantEarnedLoyaltyOffers(supabase, payerCustomerId, session.restaurant_id)
 
-      return NextResponse.json({
+      return paymentOk({
         paymentId: payment.id,
         asaasPaymentId: `mock_${payment.id}`,
         confirmationCode,
         status: 'paid',
         sessionClosed: settlement.closed,
-      } satisfies AsaasPaymentResponse)
+      })
     }
 
     const restaurantName = (session.restaurant as any)?.name ?? 'Restaurante'
@@ -326,13 +341,13 @@ export async function POST(req: NextRequest) {
         await grantEarnedLoyaltyOffers(supabase, payerCustomerId, session.restaurant_id)
       }
 
-      return NextResponse.json({
+      return paymentOk({
         paymentId:        payment.id,
         asaasPaymentId:   asaasPayment.id,
         confirmationCode,
         status:           confirmed ? 'paid' : 'pending',
         sessionClosed:    settlement.closed,
-      } satisfies AsaasPaymentResponse)
+      })
     }
 
     return NextResponse.json({ error: 'Método de pagamento inválido.' }, { status: 400 })

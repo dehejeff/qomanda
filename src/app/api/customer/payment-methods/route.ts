@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { tokenizeCreditCard, type AsaasCreditCard, type AsaasCreditCardHolderInfo } from '@/lib/asaas'
 import { buildHolderInfoFromCustomer, resolveAsaasCustomerId } from '@/lib/asaas-customer'
-import { requireCustomerSession } from '@/lib/customer-session'
+import {
+  applySessionRenewal,
+  authenticateCustomerSession,
+} from '@/lib/customer-session'
 import {
   clientIp,
   listPaymentMethods,
@@ -28,7 +31,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'customer obrigatório.' }, { status: 400 })
   }
 
-  if (!requireCustomerSession(req, customerId)) {
+  const auth = authenticateCustomerSession(req, customerId)
+  if (!auth.ok) {
     return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
@@ -46,7 +50,10 @@ export async function GET(req: NextRequest) {
     }
 
     const methods = await listPaymentMethods(supabase, customerId)
-    return NextResponse.json({ methods })
+    return applySessionRenewal(
+      NextResponse.json({ methods }),
+      auth.renewedToken,
+    )
   } catch (err) {
     console.error('[Payment Methods GET]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
@@ -71,7 +78,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Dados do cartão incompletos.' }, { status: 400 })
   }
 
-  if (!requireCustomerSession(req, customerId)) {
+  const auth = authenticateCustomerSession(req, customerId)
+  if (!auth.ok) {
     return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
@@ -105,7 +113,10 @@ export async function POST(req: NextRequest) {
       setDefault,
     })
 
-    return NextResponse.json({ method: saved })
+    return applySessionRenewal(
+      NextResponse.json({ method: saved }),
+      auth.renewedToken,
+    )
   } catch (err) {
     console.error('[Payment Methods POST]', err)
     const msg = err instanceof Error ? err.message : 'Erro ao salvar cartão.'
@@ -124,7 +135,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 })
   }
 
-  if (!requireCustomerSession(req, customerId)) {
+  const auth = authenticateCustomerSession(req, customerId)
+  if (!auth.ok) {
     return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
@@ -145,7 +157,10 @@ export async function DELETE(req: NextRequest) {
         .eq('id', remaining[0].id)
     }
 
-    return NextResponse.json({ success: true })
+    return applySessionRenewal(
+      NextResponse.json({ success: true }),
+      auth.renewedToken,
+    )
   } catch (err) {
     console.error('[Payment Methods DELETE]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
@@ -163,7 +178,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
   }
 
-  if (!requireCustomerSession(req, customerId)) {
+  const auth = authenticateCustomerSession(req, customerId)
+  if (!auth.ok) {
     return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
@@ -181,7 +197,10 @@ export async function PATCH(req: NextRequest) {
       .eq('id', methodId)
       .eq('customer_id', customerId)
 
-    return NextResponse.json({ success: true })
+    return applySessionRenewal(
+      NextResponse.json({ success: true }),
+      auth.renewedToken,
+    )
   } catch (err) {
     console.error('[Payment Methods PATCH]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

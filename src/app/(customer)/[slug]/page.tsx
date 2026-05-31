@@ -10,9 +10,9 @@ import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { formatPhoneInput, formatWhatsApp } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
-import { isValidPin } from '@/lib/customer-pin-shared'
+import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
-import { persistCustomerAuth } from '@/lib/customer-auth'
+import { persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
 import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
 import Link from 'next/link'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
@@ -67,13 +67,15 @@ export default function CheckInPage() {
   const [docType, setDocType]     = useState<'cpf' | 'passport'>('cpf')
   const [cpf, setCpf]             = useState('')
   const [passport, setPassport]   = useState('')
+  const [checkInPin, setCheckInPin] = useState('')
+  const [checkInPinConfirm, setCheckInPinConfirm] = useState('')
   const [savedCustomerId, setSavedCustomerId] = useState<string | null>(null)
   const [savedCustomerName, setSavedCustomerName] = useState('')
   const [showFullForm, setShowFullForm] = useState(false)
   const [loginWhatsapp, setLoginWhatsapp] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
   const [loginPin, setLoginPin] = useState('')
-  const [pinStep, setPinStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
+  const [pinStep, setPinStep] = useState<{ challengeToken: string; firstName: string; pinLength: 4 | 6 } | null>(null)
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -147,6 +149,14 @@ export default function CheckInPage() {
 
     if (!name || !surname) { toast.error('Informe seu nome e sobrenome.'); return }
     if (phone.length < 10)  { toast.error('Informe um WhatsApp válido.'); return }
+    if (!isValidLoginPin(checkInPin)) {
+      toast.error('Informe um PIN de 4 dígitos.')
+      return
+    }
+    if (checkInPin !== checkInPinConfirm) {
+      toast.error('A confirmação do PIN não confere.')
+      return
+    }
     if (docType === 'cpf' && cpf && !cpfValid) {
       toast.error('CPF inválido. Verifique os números.'); return
     }
@@ -166,6 +176,7 @@ export default function CheckInPage() {
         documentType: docType,
         cpf: cpfDigits.length === 11 ? cpfDigits : null,
         passport: passport.trim() || null,
+        pin: checkInPin,
       }),
     })
 
@@ -189,8 +200,11 @@ export default function CheckInPage() {
 
   async function handleWhatsAppLogin() {
     if (pinStep) {
-      if (!isValidPin(loginPin)) {
-        toast.error('PIN deve ter 4 dígitos.')
+      const pinValid = pinStep.pinLength === 6
+        ? isValidCardPassword(loginPin)
+        : isValidLoginPin(loginPin)
+      if (!pinValid) {
+        toast.error(pinStep.pinLength === 6 ? 'A senha deve ter 6 dígitos.' : 'PIN deve ter 4 dígitos.')
         return
       }
       setLoggingIn(true)
@@ -201,6 +215,7 @@ export default function CheckInPage() {
           return
         }
         persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+        if (data.sessionToken) setCustomerSessionToken(data.sessionToken)
         setSavedCustomerId(data.customerId)
         setSavedCustomerName(`${data.firstName} ${data.lastName}`)
         setShowFullForm(false)
@@ -237,13 +252,19 @@ export default function CheckInPage() {
       }
 
       if ('requiresPin' in data && data.requiresPin) {
-        setPinStep({ challengeToken: data.challengeToken, firstName: data.firstName })
+        setPinStep({
+          challengeToken: data.challengeToken,
+          firstName: data.firstName,
+          pinLength: data.pinLength,
+        })
         setLoginPin('')
-        toast.message(`Digite seu PIN, ${data.firstName}.`)
+        const label = data.pinLength === 6 ? 'senha' : 'PIN'
+        toast.message(`Digite sua ${label}, ${data.firstName}.`)
         return
       }
 
       persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+      if ('sessionToken' in data && data.sessionToken) setCustomerSessionToken(data.sessionToken)
       setSavedCustomerId(data.customerId)
       setSavedCustomerName(`${data.firstName} ${data.lastName}`)
       setShowFullForm(false)
@@ -291,7 +312,11 @@ export default function CheckInPage() {
   }
 
   const tableLabel = tableNumber ? tableNumber.padStart(2, '0') : '—'
-  const formValid  = firstName.trim() && lastName.trim() && whatsapp.replace(/\D/g, '').length >= 10
+  const formValid  = firstName.trim()
+    && lastName.trim()
+    && whatsapp.replace(/\D/g, '').length >= 10
+    && isValidLoginPin(checkInPin)
+    && checkInPin === checkInPinConfirm
   const canQuickCheckIn = savedCustomerId && !showFullForm && Boolean(tableToken) && !verifyError
   const tableVerified = Boolean(tableToken) && !verifyError && !verifyLoading
   const statusLabel = tableStatus === 'occupied' ? 'EM USO' : tableStatus === 'reserved' ? 'RESERVADA' : 'DISPONÍVEL'
@@ -449,8 +474,10 @@ export default function CheckInPage() {
             </div>
             {pinStep && (
               <div className="space-y-2">
-                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>PIN de {pinStep.firstName}</p>
-                <PinInput value={loginPin} onChange={setLoginPin} autoFocus disabled={loggingIn} />
+                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
+                  {pinStep.pinLength === 6 ? `Senha de ${pinStep.firstName}` : `PIN de ${pinStep.firstName}`}
+                </p>
+                <PinInput value={loginPin} onChange={setLoginPin} length={pinStep.pinLength} autoFocus disabled={loggingIn} />
               </div>
             )}
             <button type="button" onClick={handleWhatsAppLogin} disabled={loggingIn || checkingIn}
@@ -459,7 +486,7 @@ export default function CheckInPage() {
               {loggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <>
                   <span className="material-symbols-outlined">{pinStep ? 'pin' : 'login'}</span>
-                  {pinStep ? 'Confirmar PIN' : 'Entrar com WhatsApp'}
+                  {pinStep ? (pinStep.pinLength === 6 ? 'Confirmar senha' : 'Confirmar PIN') : 'Entrar com WhatsApp'}
                 </>
               )}
             </button>
@@ -541,6 +568,21 @@ export default function CheckInPage() {
                 onFocus={e => (e.target.style.borderColor = '#f97316')}
                 onBlur={e => (e.target.style.borderColor = '#584237')} />
             </div>
+          </div>
+
+          {/* PIN de acesso */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>
+              PIN de 4 dígitos
+            </label>
+            <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+              Use para entrar no Hub e acessar sua conta remotamente.
+            </p>
+            <PinInput value={checkInPin} onChange={setCheckInPin} length={4} />
+            <label className="text-[11px] font-mono uppercase tracking-wider mt-1" style={{ color: '#e0c0b1' }}>
+              Confirmar PIN
+            </label>
+            <PinInput value={checkInPinConfirm} onChange={setCheckInPinConfirm} length={4} />
           </div>
 
           {/* Divider */}

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
-import { customerHasPin } from '@/lib/customer-pin-server'
+import { customerHasPin, customerHasSavedCards } from '@/lib/customer-pin-server'
+import {
+  applySessionRenewal,
+  authenticateCustomerSession,
+} from '@/lib/customer-session'
 import {
   fetchCustomerReceipts,
   groupReceiptsByRestaurant,
@@ -54,6 +58,19 @@ export async function GET(req: NextRequest) {
 
     if (!customer) {
       return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
+    }
+
+    const hasSavedCards = await customerHasSavedCards(supabase, customerId)
+    let sessionRenewal: string | undefined
+    if (hasSavedCards) {
+      const auth = authenticateCustomerSession(req, customerId)
+      if (!auth.ok) {
+        return NextResponse.json({
+          error: 'Senha de 6 dígitos necessária para acessar o Hub.',
+          requiresSession: true,
+        }, { status: 401 })
+      }
+      sessionRenewal = auth.renewedToken
     }
 
     const { data: participations } = await supabase
@@ -185,18 +202,21 @@ export async function GET(req: NextRequest) {
 
     const hasPin = await customerHasPin(supabase, customerId)
 
-    return NextResponse.json({
-      customer: {
-        firstName: customer.first_name,
-        lastName:  customer.last_name,
-        whatsapp:  customer.whatsapp,
-      },
-      visits,
-      favorites: favoriteRestaurants,
-      receiptSummary,
-      hasPin,
-      activeSession,
-    })
+    return applySessionRenewal(
+      NextResponse.json({
+        customer: {
+          firstName: customer.first_name,
+          lastName:  customer.last_name,
+          whatsapp:  customer.whatsapp,
+        },
+        visits,
+        favorites: favoriteRestaurants,
+        receiptSummary,
+        hasPin,
+        activeSession,
+      }),
+      sessionRenewal,
+    )
   } catch (err) {
     console.error('[Customer Hub API Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

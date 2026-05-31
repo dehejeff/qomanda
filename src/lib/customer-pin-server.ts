@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { listPaymentMethods } from '@/lib/payment-methods'
 
 /** pin_hash ainda não migrado no Supabase de produção. */
 export function isPinColumnMissing(error: { message?: string; code?: string } | null): boolean {
@@ -31,4 +32,22 @@ export async function customerHasPin(
 ): Promise<boolean> {
   const hash = await getCustomerPinHash(supabase, customerId)
   return Boolean(hash)
+}
+
+export async function customerHasSavedCards(
+  supabase: SupabaseClient,
+  customerId: string,
+): Promise<boolean> {
+  const methods = await listPaymentMethods(supabase, customerId)
+  return methods.length > 0
+}
+
+/** 6 dígitos se tem cartão; 4 se só tem PIN de login; null se sem PIN. */
+export async function requiredLoginPinLength(
+  supabase: SupabaseClient,
+  customerId: string,
+): Promise<4 | 6 | null> {
+  if (await customerHasSavedCards(supabase, customerId)) return 6
+  if (await customerHasPin(supabase, customerId)) return 4
+  return null
 }

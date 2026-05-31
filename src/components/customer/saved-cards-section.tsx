@@ -5,7 +5,13 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { SavedPaymentMethodDto } from '@/app/api/customer/payment-methods/route'
 import { formatCardBrand } from '@/lib/payment-methods'
-import { authHeaders, getCustomerSessionToken, setCustomerSessionToken } from '@/lib/customer-auth'
+import {
+  customerAuthFetch,
+  ensureActiveCustomerSession,
+  getCustomerSessionToken,
+  setCustomerSessionToken,
+  startCustomerSessionIdleWatch,
+} from '@/lib/customer-auth'
 
 function maskCard(v: string) {
   return v.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ').trim()
@@ -38,9 +44,7 @@ export function SavedCardsSection({ customerId }: Props) {
   const [authing, setAuthing] = useState(false)
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/customer/payment-methods?customer=${customerId}`, {
-      headers: authHeaders(),
-    })
+    const res = await customerAuthFetch(`/api/customer/payment-methods?customer=${customerId}`)
     if (res.status === 401) { setGate('enter_password'); setLoading(false); return }
     const data = await res.json()
     setCards(data.methods ?? [])
@@ -55,7 +59,7 @@ export function SavedCardsSection({ customerId }: Props) {
       const res = await fetch(`/api/customer/pin?customer=${customerId}`)
       const data = await res.json()
       if (!data.hasPin) { setGate('create_password'); setLoading(false); return }
-      if (!getCustomerSessionToken()) { setGate('enter_password'); setLoading(false); return }
+      if (!getCustomerSessionToken() || !ensureActiveCustomerSession()) { setGate('enter_password'); setLoading(false); return }
       await load()
     } catch {
       setGate('enter_password')
@@ -64,6 +68,14 @@ export function SavedCardsSection({ customerId }: Props) {
   }, [customerId, load])
 
   useEffect(() => { initGate().catch(() => setLoading(false)) }, [initGate])
+
+  useEffect(() => {
+    if (gate !== 'unlocked') return
+    return startCustomerSessionIdleWatch(() => {
+      toast.message('Sessão expirada por inatividade. Digite sua senha novamente.')
+      setGate('enter_password')
+    })
+  }, [gate])
 
   async function handleCreatePassword() {
     if (pwd.length !== 6 || pwd !== pwd2) {
@@ -75,7 +87,7 @@ export function SavedCardsSection({ customerId }: Props) {
       const res = await fetch('/api/customer/pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId, pin: pwd, mode: 'set' }),
+        body: JSON.stringify({ customerId, pin: pwd, mode: 'set', pinKind: 'card' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erro ao criar senha.')
@@ -97,7 +109,7 @@ export function SavedCardsSection({ customerId }: Props) {
       const res = await fetch('/api/customer/pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId, pin: pwd, mode: 'verify' }),
+        body: JSON.stringify({ customerId, pin: pwd, mode: 'verify', pinKind: 'card' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Senha incorreta.')
@@ -119,9 +131,9 @@ export function SavedCardsSection({ customerId }: Props) {
 
     setSaving(true)
     try {
-      const res = await fetch('/api/customer/payment-methods', {
+      const res = await customerAuthFetch('/api/customer/payment-methods', {
         method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId,
           creditCard: {
@@ -153,10 +165,10 @@ export function SavedCardsSection({ customerId }: Props) {
 
   async function handleRemove(id: string) {
     try {
-      await fetch(`/api/customer/payment-methods?customer=${customerId}&id=${id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      })
+      const res = await customerAuthFetch(
+        `/api/customer/payment-methods?customer=${customerId}&id=${id}`,
+        { method: 'DELETE' },
+      )
       toast.success('Cartão removido.')
       await load()
     } catch {

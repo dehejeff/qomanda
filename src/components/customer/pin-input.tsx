@@ -7,16 +7,21 @@ type Props = {
   onChange: (value: string) => void
   disabled?: boolean
   autoFocus?: boolean
+  length?: 4 | 6
 }
 
-export function PinInput({ value, onChange, disabled, autoFocus }: Props) {
+export function PinInput({ value, onChange, disabled, autoFocus, length = 4 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const digits = value.replace(/\D/g, '').slice(0, 4).split('')
-  while (digits.length < 4) digits.push('')
+  const digits = value.replace(/\D/g, '').slice(0, length).split('')
+  while (digits.length < length) digits.push('')
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus()
   }, [autoFocus])
+
+  const boxClass = length === 6
+    ? 'w-10 h-12 rounded-xl flex items-center justify-center text-lg font-bold font-mono transition-colors'
+    : 'w-12 h-14 rounded-xl flex items-center justify-center text-xl font-bold font-mono transition-colors'
 
   return (
     <div className="relative">
@@ -25,19 +30,19 @@ export function PinInput({ value, onChange, disabled, autoFocus }: Props) {
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
-        maxLength={4}
-        value={value.replace(/\D/g, '').slice(0, 4)}
-        onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, 4))}
+        maxLength={length}
+        value={value.replace(/\D/g, '').slice(0, length)}
+        onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, length))}
         disabled={disabled}
         autoComplete="one-time-code"
         className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-        aria-label="PIN de 4 dígitos"
+        aria-label={length === 6 ? 'Senha de 6 dígitos' : 'PIN de 4 dígitos'}
       />
-      <div className="flex justify-center gap-3">
+      <div className={`flex justify-center gap-2 ${length === 6 ? 'flex-wrap max-w-[280px] mx-auto' : 'gap-3'}`}>
         {digits.map((d, i) => (
           <div
             key={i}
-            className="w-12 h-14 rounded-xl flex items-center justify-center text-xl font-bold font-mono transition-colors"
+            className={boxClass}
             style={{
               background: '#0b1326',
               border: `2px solid ${d ? '#f97316' : '#584237'}`,

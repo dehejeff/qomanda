@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertCustomerRecord } from '@/lib/customer-upsert'
 import { whatsappForStorage } from '@/lib/customer-lookup'
+import { isValidLoginPin } from '@/lib/customer-pin-shared'
 
 export type CheckInRequest = {
   slug: string
@@ -13,6 +14,7 @@ export type CheckInRequest = {
   documentType?: 'cpf' | 'passport' | null
   cpf?: string | null     // 11 dígitos, sem formatação
   passport?: string | null
+  pin?: string        // 4 dígitos — obrigatório no cadastro na mesa
   customerId?: string     // check-in rápido para clientes recorrentes
 }
 
@@ -25,7 +27,7 @@ export type CheckInResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: CheckInRequest = await req.json()
-    const { slug, mesa, tableToken, documentType, cpf, passport, customerId: quickCustomerId } = body
+    const { slug, mesa, tableToken, documentType, cpf, passport, pin, customerId: quickCustomerId } = body
     let { firstName, lastName, whatsapp } = body
 
     if (!slug || !mesa || !tableToken) {
@@ -53,6 +55,8 @@ export async function POST(req: NextRequest) {
       whatsapp  = existing.whatsapp
     } else if (!firstName || !lastName || !whatsapp) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    } else if (!pin || !isValidLoginPin(pin)) {
+      return NextResponse.json({ error: 'Informe um PIN de 4 dígitos.' }, { status: 400 })
     }
 
     // ── 1. Resolver restaurante ───────────────────────────────
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
         documentType,
         cpf: cpf ?? null,
         passport: passport ?? null,
+        pin: pin!,
       })
     }
 

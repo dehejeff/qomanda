@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { formatPhoneInput } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
-import { isValidPin } from '@/lib/customer-pin-shared'
+import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin, finishCustomerLogin } from '@/lib/customer-login-client'
 import type { CustomerLoginResponse } from '@/lib/customer-login-types'
 
@@ -29,12 +29,18 @@ type Props = {
   onBlur: (e: React.FocusEvent<HTMLInputElement>) => void
 }
 
+type PinStep = {
+  challengeToken: string
+  firstName: string
+  pinLength: 4 | 6
+}
+
 export function CustomerLoginForm({ onFocus, onBlur }: Props) {
   const router = useRouter()
   const [whatsapp, setWhatsapp] = useState('')
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pinStep, setPinStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
+  const [pinStep, setPinStep] = useState<PinStep | null>(null)
 
   async function handleWhatsAppSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,9 +59,14 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
       }
 
       if ('requiresPin' in data && data.requiresPin) {
-        setPinStep({ challengeToken: data.challengeToken, firstName: data.firstName })
+        setPinStep({
+          challengeToken: data.challengeToken,
+          firstName: data.firstName,
+          pinLength: data.pinLength,
+        })
         setPin('')
-        toast.message(`Olá, ${data.firstName}! Digite seu PIN.`)
+        const label = data.pinLength === 6 ? 'senha de 6 dígitos' : 'PIN de 4 dígitos'
+        toast.message(`Olá, ${data.firstName}! Digite sua ${label}.`)
         return
       }
 
@@ -70,8 +81,14 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
 
   async function handlePinSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!pinStep || !isValidPin(pin)) {
-      toast.error('PIN deve ter 4 dígitos.')
+    if (!pinStep) return
+
+    const pinValid = pinStep.pinLength === 6
+      ? isValidCardPassword(pin)
+      : isValidLoginPin(pin)
+
+    if (!pinValid) {
+      toast.error(pinStep.pinLength === 6 ? 'A senha deve ter 6 dígitos.' : 'PIN deve ter 4 dígitos.')
       return
     }
 
@@ -85,25 +102,32 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
       toast.success(`Olá, ${data.firstName}!`)
       finishCustomerLogin(data, router)
     } catch {
-      toast.error('Erro ao verificar PIN.')
+      toast.error('Erro ao verificar.')
     } finally {
       setLoading(false)
     }
   }
 
   if (pinStep) {
+    const isSix = pinStep.pinLength === 6
+    const pinValid = isSix ? isValidCardPassword(pin) : isValidLoginPin(pin)
+
     return (
       <div className="space-y-3">
         <form onSubmit={handlePinSubmit} className="space-y-4">
           <div className="text-center space-y-1">
             <p className="text-sm font-semibold">Olá, {pinStep.firstName}</p>
-            <p className="text-xs" style={{ color: '#a78b7d' }}>Digite seu PIN de 4 dígitos</p>
+            <p className="text-xs" style={{ color: '#a78b7d' }}>
+              {isSix
+                ? 'Digite sua senha de 6 dígitos (cartão salvo na conta)'
+                : 'Digite seu PIN de 4 dígitos'}
+            </p>
           </div>
-          <PinInput value={pin} onChange={setPin} autoFocus disabled={loading} />
-          <button type="submit" disabled={loading || !isValidPin(pin)}
+          <PinInput value={pin} onChange={setPin} length={pinStep.pinLength} autoFocus disabled={loading} />
+          <button type="submit" disabled={loading || !pinValid}
             className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
             style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Confirmar PIN'}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : isSix ? 'Confirmar senha' : 'Confirmar PIN'}
           </button>
         </form>
         <button type="button" onClick={() => { setPinStep(null); setPin('') }}

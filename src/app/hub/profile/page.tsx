@@ -11,6 +11,8 @@ import type { HubActiveSession } from '@/app/api/customer/hub/route'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatWhatsAppDisplay } from '@/lib/customer-form'
+import { HubSessionGate } from '@/components/customer/hub-session-gate'
+import { clearCustomerAuth, customerAuthFetch } from '@/lib/customer-auth'
 
 function HubProfileContent() {
   const router = useRouter()
@@ -33,7 +35,7 @@ function HubProfileContent() {
     const qs = new URLSearchParams({ customer: cid })
     if (sessionId) qs.set('session', sessionId)
 
-    fetch(`/api/customer/hub?${qs}`)
+    customerAuthFetch(`/api/customer/hub?${qs}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error)
@@ -53,9 +55,7 @@ function HubProfileContent() {
   }, [router])
 
   function handleLogout() {
-    localStorage.removeItem('qomanda_customer_id')
-    localStorage.removeItem('qomanda_customer_name')
-    localStorage.removeItem('qomanda_session_id')
+    clearCustomerAuth()
     sessionStorage.clear()
     toast.success('Sessão encerrada.')
     router.push('/login?perfil=cliente')
@@ -70,6 +70,7 @@ function HubProfileContent() {
   }
 
   return (
+    <HubSessionGate customerId={customerId}>
     <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
       <HubPageHeader title="Perfil" backHref="/hub" />
       <main className="px-5 pt-6 space-y-5 max-w-lg mx-auto">
@@ -109,6 +110,7 @@ function HubProfileContent() {
       </main>
       <Suspense fallback={null}><HubBottomNav active="profile" /></Suspense>
     </div>
+    </HubSessionGate>
   )
 }
 

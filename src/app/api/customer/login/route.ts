@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { findCustomerActiveSession } from '@/lib/customer-auth-server'
 import { findCustomerByWhatsApp } from '@/lib/customer-lookup'
-import { getCustomerPinHash } from '@/lib/customer-pin-server'
+import {
+  customerHasSavedCards,
+  getCustomerPinHash,
+} from '@/lib/customer-pin-server'
 import { createLoginChallenge } from '@/lib/login-challenge'
 import { isValidWhatsApp, normalizeWhatsApp } from '@/lib/whatsapp-normalize'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
 
 export type { CustomerAuthPayload, CustomerLoginResponse }
 
-async function buildAuthPayload(
-  supabase: ReturnType<typeof createAdminClient>,
-  customer: { id: string; first_name: string; last_name: string },
-): Promise<CustomerAuthPayload> {
-  const activeSession = await findCustomerActiveSession(supabase, customer.id)
-  return {
-    customerId: customer.id,
-    firstName: customer.first_name,
-    lastName: customer.last_name,
-    activeSession,
-  }
-}
-
 /**
  * POST /api/customer/login
- * Identifica cliente pelo WhatsApp. Se tiver PIN, exige verificação.
+ * WhatsApp + PIN de 4 dígitos (sem cartão) ou senha de 6 dígitos (com cartão salvo).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -45,24 +34,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Unifica formato legado no banco (ex.: sem 9º dígito ou com 55)
     const canonical = normalizeWhatsApp(phone).e164
     if (customer.whatsapp !== canonical) {
       await supabase.from('customers').update({ whatsapp: canonical }).eq('id', customer.id)
     }
 
+    const hasSavedCards = await customerHasSavedCards(supabase, customer.id)
     const pinHash = await getCustomerPinHash(supabase, customer.id)
 
-    if (pinHash) {
+    if (hasSavedCards) {
       return NextResponse.json({
         requiresPin: true,
-        challengeToken: createLoginChallenge(customer.id),
+        pinLength: 6,
+        requiresSession: true,
+        challengeToken: createLoginChallenge(customer.id, 6),
         firstName: customer.first_name,
       } satisfies CustomerLoginResponse)
     }
 
-    const payload = await buildAuthPayload(supabase, customer)
-    return NextResponse.json({ requiresPin: false, ...payload } satisfies CustomerLoginResponse)
+    if (pinHash) {
+      return NextResponse.json({
+        requiresPin: true,
+        pinLength: 4,
+        challengeToken: createLoginChallenge(customer.id, 4),
+        firstName: customer.first_name,
+      } satisfies CustomerLoginResponse)
+    }
+
+    return NextResponse.json({
+      error: 'Conta sem PIN. Faça check-in na mesa do restaurante para concluir seu cadastro.',
+    }, { status: 403 })
   } catch (err) {
     console.error('[Customer Login Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

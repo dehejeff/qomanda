@@ -9,6 +9,7 @@ import type { ReceiptRestaurantSummary } from '@/lib/customer-receipts-server'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { HubSessionGate } from '@/components/customer/hub-session-gate'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -16,6 +17,7 @@ function formatDate(iso: string) {
 
 function HubReceiptsContent() {
   const router = useRouter()
+  const [customerId, setCustomerId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [restaurants, setRestaurants] = useState<ReceiptRestaurantSummary[]>([])
   const [totalReceipts, setTotalReceipts] = useState(0)
@@ -26,6 +28,7 @@ function HubReceiptsContent() {
       router.replace('/login?perfil=cliente')
       return
     }
+    setCustomerId(cid)
 
     fetch(`/api/customer/receipts?customer=${cid}`)
       .then(r => r.json())
@@ -41,7 +44,7 @@ function HubReceiptsContent() {
       })
   }, [router])
 
-  if (loading) {
+  if (loading || !customerId) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
@@ -50,6 +53,7 @@ function HubReceiptsContent() {
   }
 
   return (
+    <HubSessionGate customerId={customerId}>
     <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
       <HubPageHeader title="Recibos" backHref="/hub" />
       <main className="px-5 pt-6 space-y-4 max-w-lg mx-auto">
@@ -89,6 +93,7 @@ function HubReceiptsContent() {
       </main>
       <Suspense fallback={null}><HubBottomNav active="receipts" /></Suspense>
     </div>
+    </HubSessionGate>
   )
 }
 

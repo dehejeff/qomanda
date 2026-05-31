@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { hashCPF, encryptCPF } from '@/lib/crypto'
 import { whatsappForStorage } from '@/lib/customer-lookup'
+import { hashLoginPin } from '@/lib/customer-pin'
+import { isValidLoginPin } from '@/lib/customer-pin-shared'
+import { getCustomerPinHash, isPinColumnMissing } from '@/lib/customer-pin-server'
 
 export type UpsertCustomerInput = {
   firstName: string
@@ -9,6 +12,36 @@ export type UpsertCustomerInput = {
   documentType?: 'cpf' | 'passport' | null
   cpf?: string | null
   passport?: string | null
+  /** PIN de 4 dígitos — gravado se o cliente ainda não tiver PIN. */
+  pin?: string | null
+}
+
+/**
+ * Define PIN de login (4 dígitos) se o cliente ainda não tiver.
+ */
+export async function ensureCustomerLoginPin(
+  supabase: SupabaseClient,
+  customerId: string,
+  pin: string,
+): Promise<void> {
+  if (!isValidLoginPin(pin)) {
+    throw new Error('PIN deve ter 4 dígitos.')
+  }
+
+  const existing = await getCustomerPinHash(supabase, customerId)
+  if (existing) return
+
+  const { error } = await supabase
+    .from('customers')
+    .update({ pin_hash: hashLoginPin(pin) })
+    .eq('id', customerId)
+
+  if (error) {
+    if (isPinColumnMissing(error)) {
+      throw new Error('Recurso de PIN indisponível no servidor.')
+    }
+    throw new Error('Erro ao salvar PIN.')
+  }
 }
 
 /**
@@ -18,7 +51,7 @@ export async function upsertCustomerRecord(
   supabase: SupabaseClient,
   input: UpsertCustomerInput,
 ): Promise<string> {
-  const { firstName, lastName, whatsapp: rawWhatsapp, documentType, cpf, passport } = input
+  const { firstName, lastName, whatsapp: rawWhatsapp, documentType, cpf, passport, pin } = input
   const whatsapp = whatsappForStorage(rawWhatsapp)
   let customerId: string | null = null
 
@@ -98,6 +131,10 @@ export async function upsertCustomerRecord(
 
   if (!customerId) {
     throw new Error('Erro ao identificar cliente.')
+  }
+
+  if (pin) {
+    await ensureCustomerLoginPin(supabase, customerId, pin)
   }
 
   return customerId

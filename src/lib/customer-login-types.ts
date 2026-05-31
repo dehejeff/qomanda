@@ -9,4 +9,11 @@ export type CustomerAuthPayload = {
 
 export type CustomerLoginResponse =
   | ({ requiresPin: false } & CustomerAuthPayload & { sessionToken?: string })
-  | { requiresPin: true; challengeToken: string; firstName: string }
+  | {
+      requiresPin: true
+      challengeToken: string
+      firstName: string
+      pinLength: 4 | 6
+      /** Emite sessionToken após verificação (clientes com cartão salvo). */
+      requiresSession?: boolean
+    }
