@@ -1,18 +1,5 @@
--- Bucket público para fotos do cardápio.
--- Caminho: menu-images/{restaurant_id}/{filename}
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'menu-images',
-  'menu-images',
-  true,
-  5242880,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
+-- Corrige políticas RLS do bucket menu-images (upload direto pelo cliente Supabase).
+-- Se preferir, o upload também funciona via POST /api/dashboard/menu-image (service role).
 
 drop policy if exists "menu_images_public_read" on storage.objects;
 create policy "menu_images_public_read"
