@@ -262,7 +262,7 @@ export default function CustomersPage() {
                   </div>
 
                   {/* Coluna 2: Visitas */}
-                  <div className="flex md:justify-center items-center">
+                  <div className="flex items-center">
                     <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Visitas</span>
                     <p className="text-sm font-mono font-bold text-on-surface">
                       {customer.visitCount}
@@ -270,7 +270,7 @@ export default function CustomersPage() {
                   </div>
 
                   {/* Coluna 3: Última visita */}
-                  <div className="flex md:justify-center items-center">
+                  <div className="flex items-center">
                     <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Última</span>
                     <p className="text-sm font-mono text-on-surface-variant">
                       {formatLastVisit(customer.lastVisitAt)}
@@ -278,7 +278,7 @@ export default function CustomersPage() {
                   </div>
 
                   {/* Coluna 4: Sem voltar */}
-                  <div className="flex md:justify-center items-center">
+                  <div className="flex items-center">
                     <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Ausente</span>
                     <p className={`text-sm font-mono ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
                       {daysLabel(customer.daysSinceLastVisit)}
@@ -286,7 +286,7 @@ export default function CustomersPage() {
                   </div>
 
                   {/* Coluna 5: Fidelidade */}
-                  <div className="flex md:justify-center items-center">
+                  <div className="flex items-center">
                     <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2 block mb-0.5">Fidelidade</span>
                     <p className="text-xs font-mono text-on-surface-variant">
                       {customer.visitsUntilNextReward != null && customer.visitsUntilNextReward > 0
