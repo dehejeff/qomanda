@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -39,10 +39,18 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, onC
   const offerText = isCustom ? customOffer.trim() : (selectedPreset?.offerText ?? customOffer.trim())
   const label = isCustom ? customOffer.trim() : (selectedPreset?.label ?? customOffer.trim())
 
-  const message = useMemo(
+  const generatedMessage = useMemo(
     () => buildWinBackMessage(customer, restaurantName, offerText),
     [customer, restaurantName, offerText],
   )
+
+  // Mensagem editável: sincroniza com a gerada até o usuário editar manualmente.
+  const [message, setMessage] = useState(generatedMessage)
+  const [messageEdited, setMessageEdited] = useState(false)
+
+  useEffect(() => {
+    if (!messageEdited) setMessage(generatedMessage)
+  }, [generatedMessage, messageEdited])
 
   function handlePresetChange(id: string) {
     setPresetId(id)
@@ -180,10 +188,27 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, onC
           </div>
 
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-1.5">Prévia da mensagem</p>
-            <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-xl p-4 bg-surface-container-low border border-outline-variant text-on-surface-variant font-mono max-h-40 overflow-y-auto">
-              {message}
-            </pre>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Mensagem (editável)</p>
+              {messageEdited && (
+                <button
+                  type="button"
+                  onClick={() => { setMessageEdited(false); setMessage(generatedMessage) }}
+                  className="text-[10px] font-mono text-primary hover:underline"
+                >
+                  Restaurar padrão
+                </button>
+              )}
+            </div>
+            <textarea
+              value={message}
+              onChange={e => { setMessage(e.target.value); setMessageEdited(true) }}
+              rows={7}
+              className="w-full text-xs leading-relaxed whitespace-pre-wrap rounded-xl p-4 bg-surface-container-low border border-outline-variant text-on-surface font-mono max-h-48 resize-y focus:outline-none focus:ring-1 focus:ring-primary-container"
+            />
+            <p className="text-[10px] font-mono text-on-surface-variant mt-1.5">
+              Edite livremente. Emojis funcionam no WhatsApp 👍
+            </p>
           </div>
         </div>
 
