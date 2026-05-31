@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
 import { verifyLoginChallenge } from '@/lib/login-challenge'
 import { verifyPin, isValidPin } from '@/lib/customer-pin'
+import { getCustomerPinHash } from '@/lib/customer-pin-server'
 import type { CustomerAuthPayload } from '@/lib/customer-login-types'
 
 /**
@@ -30,11 +31,17 @@ export async function POST(req: NextRequest) {
     const supabase = createAdminClient()
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, first_name, last_name, pin_hash')
+      .select('id, first_name, last_name')
       .eq('id', challenge.customerId)
       .single()
 
-    if (!customer?.pin_hash || !verifyPin(pin, customer.pin_hash)) {
+    if (!customer) {
+      return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
+    }
+
+    const pinHash = await getCustomerPinHash(supabase, customer.id)
+
+    if (!pinHash || !verifyPin(pin, pinHash)) {
       return NextResponse.json({ error: 'PIN incorreto.' }, { status: 401 })
     }
 

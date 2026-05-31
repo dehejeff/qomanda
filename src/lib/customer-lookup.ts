@@ -6,7 +6,6 @@ export type CustomerRow = {
   first_name: string
   last_name: string
   whatsapp: string
-  pin_hash?: string | null
 }
 
 /**
@@ -19,11 +18,16 @@ export async function findCustomerByWhatsApp(
   const variants = whatsappLookupVariants(phone)
   if (variants.length === 0) return null
 
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from('customers')
-    .select('id, first_name, last_name, whatsapp, pin_hash')
+    .select('id, first_name, last_name, whatsapp')
     .in('whatsapp', variants)
     .limit(5)
+
+  if (error) {
+    console.error('[findCustomerByWhatsApp]', error.message)
+    throw error
+  }
 
   if (!rows?.length) return null
 

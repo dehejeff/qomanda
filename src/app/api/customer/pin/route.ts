@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { hashPin, verifyPin, isValidPin } from '@/lib/customer-pin'
+import { getCustomerPinHash, isPinColumnMissing } from '@/lib/customer-pin-server'
+
+const PIN_MIGRATION_HINT =
+  'Recurso de PIN indisponível. Execute supabase/migrate-customer-pin.sql no Supabase SQL Editor.'
 
 /**
  * GET /api/customer/pin?customer=UUID
@@ -12,17 +16,18 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient()
-  const { data } = await supabase
+  const { data: customer } = await supabase
     .from('customers')
-    .select('pin_hash')
+    .select('id')
     .eq('id', customerId)
     .single()
 
-  if (!data) {
+  if (!customer) {
     return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
   }
 
-  return NextResponse.json({ hasPin: Boolean(data.pin_hash) })
+  const pinHash = await getCustomerPinHash(supabase, customerId)
+  return NextResponse.json({ hasPin: Boolean(pinHash) })
 }
 
 /**
@@ -45,7 +50,7 @@ export async function POST(req: NextRequest) {
     const supabase = createAdminClient()
     const { data: customer } = await supabase
       .from('customers')
-      .select('pin_hash')
+      .select('id')
       .eq('id', customerId)
       .single()
 
@@ -53,8 +58,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
     }
 
-    if (customer.pin_hash) {
-      if (!currentPin || !verifyPin(currentPin, customer.pin_hash)) {
+    const existingPin = await getCustomerPinHash(supabase, customerId)
+
+    if (existingPin) {
+      if (!currentPin || !verifyPin(currentPin, existingPin)) {
         return NextResponse.json({ error: 'PIN atual incorreto.' }, { status: 401 })
       }
     }
@@ -65,6 +72,9 @@ export async function POST(req: NextRequest) {
       .eq('id', customerId)
 
     if (error) {
+      if (isPinColumnMissing(error)) {
+        return NextResponse.json({ error: PIN_MIGRATION_HINT }, { status: 503 })
+      }
       return NextResponse.json({ error: 'Erro ao salvar PIN.' }, { status: 500 })
     }
 
@@ -85,17 +95,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     const supabase = createAdminClient()
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('pin_hash')
-      .eq('id', customerId)
-      .single()
+    const existingPin = await getCustomerPinHash(supabase, customerId)
 
-    if (!customer?.pin_hash) {
+    if (!existingPin) {
       return NextResponse.json({ success: true, hasPin: false })
     }
 
-    if (!verifyPin(pin, customer.pin_hash)) {
+    if (!verifyPin(pin, existingPin)) {
       return NextResponse.json({ error: 'PIN incorreto.' }, { status: 401 })
     }
 
@@ -105,6 +111,9 @@ export async function DELETE(req: NextRequest) {
       .eq('id', customerId)
 
     if (error) {
+      if (isPinColumnMissing(error)) {
+        return NextResponse.json({ error: PIN_MIGRATION_HINT }, { status: 503 })
+      }
       return NextResponse.json({ error: 'Erro ao remover PIN.' }, { status: 500 })
     }
 

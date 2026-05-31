@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
+import { customerHasPin } from '@/lib/customer-pin-server'
 import {
   fetchCustomerReceipts,
   groupReceiptsByRestaurant,
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, first_name, last_name, whatsapp, pin_hash')
+      .select('id, first_name, last_name, whatsapp')
       .eq('id', customerId)
       .single()
 
@@ -182,6 +183,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const hasPin = await customerHasPin(supabase, customerId)
+
     return NextResponse.json({
       customer: {
         firstName: customer.first_name,
@@ -191,7 +194,7 @@ export async function GET(req: NextRequest) {
       visits,
       favorites: favoriteRestaurants,
       receiptSummary,
-      hasPin: Boolean(customer.pin_hash),
+      hasPin,
       activeSession,
     })
   } catch (err) {

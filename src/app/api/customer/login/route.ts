@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
 import { findCustomerByWhatsApp } from '@/lib/customer-lookup'
+import { getCustomerPinHash } from '@/lib/customer-pin-server'
 import { createLoginChallenge } from '@/lib/login-challenge'
 import { isValidWhatsApp, normalizeWhatsApp } from '@/lib/whatsapp-normalize'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
@@ -50,7 +51,9 @@ export async function POST(req: NextRequest) {
       await supabase.from('customers').update({ whatsapp: canonical }).eq('id', customer.id)
     }
 
-    if (customer.pin_hash) {
+    const pinHash = await getCustomerPinHash(supabase, customer.id)
+
+    if (pinHash) {
       return NextResponse.json({
         requiresPin: true,
         challengeToken: createLoginChallenge(customer.id),
