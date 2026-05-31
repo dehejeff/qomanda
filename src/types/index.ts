@@ -157,6 +157,7 @@ export interface Payment {
   amount: number
   method: PaymentMethod
   split_type: 'food' | 'alcohol' | 'combined'
+  service_fee_included?: boolean
   status: PaymentStatus
   confirmation_code: string | null
   created_at: string

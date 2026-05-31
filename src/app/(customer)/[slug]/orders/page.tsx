@@ -7,6 +7,12 @@ import type { Order, SessionParticipant } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { CancelOrderModal } from '@/components/customer/cancel-order-modal'
 import { formatCurrency } from '@/lib/utils'
+import {
+  buildSessionBilling,
+  amountWithServiceFee,
+  type CustomerBilling,
+} from '@/lib/session-billing'
+import { ParticipantPaymentRow } from '@/components/customer/participant-payment-row'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -41,6 +47,63 @@ function orderItemsTotal(order: Order) {
   return (order.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
 }
 
+function consumptionWithFee(subtotal: number) {
+  return amountWithServiceFee(subtotal, true)
+}
+
+type PayStatus = 'paid' | 'partial' | 'pending' | 'none'
+
+function paymentStatus(owed: number, paid: number): PayStatus {
+  if (owed <= 0.01) return 'none'
+  if (paid >= owed - 0.02) return 'paid'
+  if (paid > 0.01) return 'partial'
+  return 'pending'
+}
+
+function ItemTag({ variant }: { variant: 'cancelled' | 'paid' }) {
+  if (variant === 'cancelled') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
+        style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
+        <span className="material-symbols-outlined text-[11px]">cancel</span>
+        Cancelado
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', border: '1px solid rgba(52,211,153,0.25)' }}>
+      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+      Pago
+    </span>
+  )
+}
+
+function CustomerPayBadge({ status, paid, owed }: { status: PayStatus; paid: number; owed: number }) {
+  if (status === 'none') return null
+  if (status === 'paid') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full"
+        style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+        <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+        Quitado
+      </span>
+    )
+  }
+  if (status === 'partial') {
+    return (
+      <span className="text-[10px] font-mono" style={{ color: '#f59e0b' }}>
+        Pago {formatCurrency(paid)} · Falta {formatCurrency(Math.max(0, owed - paid))}
+      </span>
+    )
+  }
+  return (
+    <span className="text-[10px] font-mono uppercase tracking-wide" style={{ color: '#a78b7d' }}>
+      A pagar · taxa opcional
+    </span>
+  )
+}
+
 export default function OrdersPage() {
   const params      = useParams<{ slug: string }>()
   const searchParams = useSearchParams()
@@ -51,8 +114,7 @@ export default function OrdersPage() {
     participantId: string
     name: string
     isMe: boolean
-    amountOwed: number
-    amountPaid: number | null
+    billing: CustomerBilling
     status: string
   }
 
@@ -65,8 +127,7 @@ export default function OrdersPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
   const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
-  const [grandTotal, setGrandTotal]   = useState(0)
-  const [sessionPaid, setSessionPaid] = useState(0)
+  const [sessionBilling, setSessionBilling] = useState<ReturnType<typeof buildSessionBilling> | null>(null)
   const [closeRequestActive, setCloseRequestActive] = useState(false)
 
   const customerId = typeof window !== 'undefined'
@@ -127,7 +188,7 @@ export default function OrdersPage() {
           .single(),
         supabase
           .from('payments')
-          .select('customer_id, amount')
+          .select('customer_id, amount, service_fee_included')
           .eq('session_id', sessionId)
           .eq('status', 'paid'),
         supabase
@@ -145,17 +206,12 @@ export default function OrdersPage() {
       setParticipants(parts)
       if (sessionRes.data?.status === 'closing') setSessionClosing(true)
 
-      const gt = totalOf(orders) * 1.1
-      setGrandTotal(gt)
-
-      const payments = paymentsRes.data ?? []
-      const paidByCustomer = new Map<string, number>()
-      for (const p of payments) {
-        if (!p.customer_id) continue
-        paidByCustomer.set(p.customer_id, (paidByCustomer.get(p.customer_id) ?? 0) + Number(p.amount))
-      }
-      const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0)
-      setSessionPaid(totalPaid)
+      const gt = buildSessionBilling(
+        orders,
+        paymentsRes.data ?? [],
+        parts.map(p => p.customer_id),
+      )
+      setSessionBilling(gt)
 
       let crParticipants: any[] = []
       if (closeReqRes.data) {
@@ -167,30 +223,15 @@ export default function OrdersPage() {
       }
       setCloseRequestActive(crParticipants.length > 0)
 
-      const progressSource = crParticipants.length > 0
-        ? crParticipants.map((p: any) => ({
-            participantId: p.customer_id as string,
-            name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
-            amountOwed: Number(p.amount_owed),
-            crStatus: p.status as string,
-          }))
-        : parts.map(p => ({
-            participantId: p.customer_id,
-            name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
-            amountOwed: totalOf(orders.filter(o => o.customer_id === p.customer_id)) * 1.1,
-            crStatus: 'pending' as string,
-          }))
-
-      setPaymentProgress(progressSource.map(p => {
-        const paid = paidByCustomer.get(p.participantId) ?? 0
-        const fullyPaid = paid >= p.amountOwed - 0.02
+      setPaymentProgress(parts.map(p => {
+        const billing = gt.billings.find(b => b.customerId === p.customer_id)
+          ?? buildSessionBilling(orders, paymentsRes.data ?? [], [p.customer_id]).billings[0]
         return {
-          participantId: p.participantId,
-          name: p.name,
-          isMe: p.participantId === customerId,
-          amountOwed: p.amountOwed,
-          amountPaid: paid > 0 ? paid : null,
-          status: fullyPaid ? 'paid' : paid > 0 ? 'confirmed' : p.crStatus,
+          participantId: p.customer_id,
+          name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
+          isMe: p.customer_id === customerId,
+          billing,
+          status: billing.status === 'paid' ? 'paid' : billing.status === 'partial' ? 'partial' : 'pending',
         }
       }))
 
@@ -227,6 +268,22 @@ export default function OrdersPage() {
   const myTotal       = totalOf(myOrders)
   const tableTotal    = totalOf(allOrders)
   const serviceFee    = (tab === 'mine' ? myTotal : tableTotal) * 0.1
+  const myBilling     = paymentProgress.find(p => p.isMe)?.billing
+  const myOwed        = myBilling?.amountDue ?? consumptionWithFee(myTotal)
+  const myPaid        = myBilling?.paid ?? 0
+  const myPayStatus   = paymentStatus(myOwed, myPaid)
+  const grandTotal    = sessionBilling?.grandTotal ?? consumptionWithFee(tableTotal)
+  const sessionPaid   = sessionBilling?.totalPaid ?? 0
+  const sessionRemaining = sessionBilling?.remaining ?? Math.max(0, grandTotal - sessionPaid)
+  const sessionFullyPaid = grandTotal > 0 && sessionPaid >= grandTotal - 0.02
+
+  function paidForCustomer(customerId: string) {
+    return paymentProgress.find(p => p.participantId === customerId)?.billing.paid ?? 0
+  }
+
+  function billingForCustomer(customerId: string): CustomerBilling | undefined {
+    return paymentProgress.find(p => p.participantId === customerId)?.billing
+  }
 
   // Group all orders by customer for Mesa Toda view
   const byCustomer = participants.map(p => ({
@@ -332,6 +389,18 @@ export default function OrdersPage() {
         {/* ── MINHA CONTA ──────────────────────────────────────── */}
         {tab === 'mine' && (
           <>
+            {myPayStatus === 'paid' && myOwed > 0 && (
+              <div className="rounded-xl px-4 py-3 flex items-start gap-3"
+                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                <span className="material-symbols-outlined text-[20px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="text-sm leading-relaxed" style={{ color: '#34d399' }}>
+                  <strong>Sua parte está quitada</strong> ({formatCurrency(myPaid)}).
+                  {sessionRemaining > 0.01
+                    ? ` Falta ${formatCurrency(sessionRemaining)} para fechar a mesa.`
+                    : ' A mesa está totalmente paga!'}
+                </p>
+              </div>
+            )}
             {myOrders.length === 0 ? (
               <div className="py-12 text-center">
                 <span className="material-symbols-outlined text-[48px] block mb-2" style={{ color: '#584237' }}>receipt_long</span>
@@ -347,15 +416,20 @@ export default function OrdersPage() {
                   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
                   const ot  = isBillable(order) ? orderItemsTotal(order) : 0
                   const cancelled = order.status === 'cancelled'
+                  const orderIncludedInPayment = !cancelled && myPayStatus === 'paid'
                   return (
                     <div key={order.id} className="rounded-xl overflow-hidden"
                       style={{
                         background: 'linear-gradient(145deg,#1e293b,#131b2e)',
-                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.25)' : '#334155'}`,
-                        opacity: cancelled ? 0.75 : 1,
+                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.25)' : orderIncludedInPayment ? 'rgba(52,211,153,0.25)' : '#334155'}`,
+                        opacity: cancelled ? 0.7 : 1,
                       }}>
                       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
-                        <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
+                          {cancelled && <ItemTag variant="cancelled" />}
+                          {orderIncludedInPayment && <ItemTag variant="paid" />}
+                        </div>
                         <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                           style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}30` }}>
                           {cfg.label}
@@ -419,10 +493,20 @@ export default function OrdersPage() {
         {/* ── MESA TODA ────────────────────────────────────────── */}
         {tab === 'table' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-3">
               <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
                 {participants.length} {participants.length === 1 ? 'pessoa' : 'pessoas'} nesta mesa
               </p>
+              <div className="flex flex-wrap gap-2 ml-auto">
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#34d399' }}>
+                  <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  Pago
+                </span>
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#f87171' }}>
+                  <span className="material-symbols-outlined text-[12px]">cancel</span>
+                  Cancelado
+                </span>
+              </div>
             </div>
 
             {byCustomer.map(({ participant, orders, total }) => {
@@ -432,52 +516,90 @@ export default function OrdersPage() {
                 : 'Cliente'
               const activeOrder = orders.find(o => !['delivered','cancelled'].includes(o.status))
               const cfg = activeOrder ? STATUS_CONFIG[activeOrder.status] : null
+              const billing = billingForCustomer(participant.customer_id)
+              const owed = billing?.amountDue ?? consumptionWithFee(total)
+              const paid = billing?.paid ?? paidForCustomer(participant.customer_id)
+              const paySt = billing?.status ?? paymentStatus(owed, paid)
+              const customerFullyPaid = paySt === 'paid'
 
               return (
                 <div key={participant.id} className="rounded-xl overflow-hidden"
                   style={{
-                    background: isMe ? 'linear-gradient(145deg,#1e3a1e,#131b2e)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
-                    border: `1px solid ${isMe ? 'rgba(52,211,153,0.3)' : '#334155'}`,
+                    background: customerFullyPaid
+                      ? 'linear-gradient(145deg,#1a2e1a,#131b2e)'
+                      : isMe ? 'linear-gradient(145deg,#1e3a1e,#131b2e)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
+                    border: `1px solid ${customerFullyPaid ? 'rgba(52,211,153,0.35)' : isMe ? 'rgba(52,211,153,0.3)' : '#334155'}`,
                   }}>
                   {/* Customer header */}
                   <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0"
                         style={{
-                          background: isMe ? 'rgba(52,211,153,0.2)' : 'rgba(249,115,22,0.15)',
-                          color: isMe ? '#34d399' : '#ffb690',
+                          background: customerFullyPaid ? 'rgba(52,211,153,0.2)' : isMe ? 'rgba(52,211,153,0.2)' : 'rgba(249,115,22,0.15)',
+                          color: customerFullyPaid || isMe ? '#34d399' : '#ffb690',
                         }}>
-                        {participant.customer?.first_name?.charAt(0) ?? '?'}
+                        {customerFullyPaid
+                          ? <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                          : (participant.customer?.first_name?.charAt(0) ?? '?')}
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold leading-tight">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold leading-tight truncate">
                           {name} {isMe && <span className="text-[10px] font-mono" style={{ color: '#34d399' }}>(você)</span>}
                         </p>
-                        {cfg && (
-                          <p className="text-[10px] font-mono" style={{ color: cfg.color }}>{cfg.label}</p>
+                        <div className="mt-0.5">
+                          <CustomerPayBadge status={paySt} paid={paid} owed={owed} />
+                        </div>
+                        {cfg && paySt !== 'paid' && (
+                          <p className="text-[10px] font-mono mt-0.5" style={{ color: cfg.color }}>{cfg.label}</p>
                         )}
                       </div>
                     </div>
-                    <p className="text-sm font-semibold font-mono" style={{ color: total > 0 ? '#ffb690' : '#584237' }}>
-                      {total > 0 ? formatCurrency(total) : '—'}
-                    </p>
+                    <div className="text-right shrink-0 ml-2">
+                      {customerFullyPaid ? (
+                        <>
+                          <p className="text-sm font-bold font-mono" style={{ color: '#34d399' }}>{formatCurrency(paid)}</p>
+                          <p className="text-[10px] font-mono line-through" style={{ color: '#584237' }}>{formatCurrency(owed)}</p>
+                        </>
+                      ) : paySt === 'partial' ? (
+                        <>
+                          <p className="text-sm font-semibold font-mono" style={{ color: '#ffb690' }}>{formatCurrency(owed)}</p>
+                          <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>−{formatCurrency(paid)} pago</p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold font-mono" style={{ color: total > 0 ? '#ffb690' : '#584237' }}>
+                          {total > 0 ? formatCurrency(owed) : '—'}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Orders summary */}
                   {orders.length > 0 && (
-                    <div className="px-4 py-3 space-y-1.5">
-                      {orders.flatMap(order => {
+                    <div className="px-4 py-3 space-y-3">
+                      {orders.map(order => {
                         const cancelled = order.status === 'cancelled'
-                        return (order.items ?? []).map((item, i) => (
-                          <div
-                            key={`${order.id}-${item.id ?? i}`}
-                            className={`flex justify-between text-xs ${cancelled ? 'line-through' : ''}`}
-                            style={{ color: cancelled ? '#584237' : '#e0c0b1' }}
-                          >
-                            <span>{item.quantity}x {item.menu_item?.name}</span>
-                            <span className="font-mono">{formatCurrency(item.unit_price * item.quantity)}</span>
+                        const showPaid = !cancelled && (billing?.status === 'paid')
+                        return (
+                          <div key={order.id} className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+                                #{order.id.slice(-4).toUpperCase()}
+                              </span>
+                              {cancelled && <ItemTag variant="cancelled" />}
+                              {showPaid && <ItemTag variant="paid" />}
+                            </div>
+                            {(order.items ?? []).map((item, i) => (
+                              <div
+                                key={`${order.id}-${item.id ?? i}`}
+                                className={`flex justify-between items-start gap-2 text-xs ${cancelled ? 'line-through opacity-60' : showPaid ? 'opacity-70' : ''}`}
+                                style={{ color: cancelled ? '#584237' : showPaid ? '#a78b7d' : '#e0c0b1' }}
+                              >
+                                <span>{item.quantity}x {item.menu_item?.name}</span>
+                                <span className="font-mono shrink-0">{formatCurrency(item.unit_price * item.quantity)}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))
+                        )
                       })}
                     </div>
                   )}
@@ -519,20 +641,12 @@ export default function OrdersPage() {
                       </div>
                       <div className="space-y-2">
                         {paymentProgress.map(p => (
-                          <div key={p.participantId} className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-[16px]"
-                              style={{ color: p.status === 'paid' ? '#34d399' : p.status === 'declined' ? '#f87171' : '#f59e0b', fontVariationSettings: p.status === 'paid' ? "'FILL' 1" : "'FILL' 0" }}>
-                              {p.status === 'paid' ? 'check_circle' : p.status === 'declined' ? 'cancel' : 'pending'}
-                            </span>
-                            <span className="flex-1 text-sm" style={{ color: '#dae2fd' }}>
-                              {p.name}{p.isMe && <span className="text-[10px] font-mono ml-1" style={{ color: '#34d399' }}>(você)</span>}
-                            </span>
-                            <span className="text-sm font-mono" style={{ color: (p.amountPaid ?? 0) > 0 ? '#34d399' : '#a78b7d' }}>
-                              {p.amountPaid
-                                ? formatCurrency(p.amountPaid)
-                                : formatCurrency(p.amountOwed)}
-                            </span>
-                          </div>
+                          <ParticipantPaymentRow
+                            key={p.participantId}
+                            name={p.name}
+                            isMe={p.isMe}
+                            billing={p.billing}
+                          />
                         ))}
                       </div>
                     </div>
@@ -542,32 +656,35 @@ export default function OrdersPage() {
             )}
 
             {/* Table total */}
-            {allOrders.length > 0 && (
+            {allOrders.length > 0 && sessionBilling && (
               <div className="rounded-xl p-4" style={{ background: '#171f33', border: '1px solid #334155' }}>
                 <div className="flex justify-between text-sm mb-2" style={{ color: '#a78b7d' }}>
                   <span>Subtotal da mesa</span>
                   <span className="font-mono">{formatCurrency(tableTotal)}</span>
                 </div>
-                <div className="flex justify-between text-sm mb-3" style={{ color: '#a78b7d' }}>
-                  <span>Taxa de serviço (10%)</span>
+                <div className="flex justify-between text-sm mb-1" style={{ color: '#a78b7d' }}>
+                  <span>Taxa de serviço (10% — opcional)</span>
                   <span className="font-mono">{formatCurrency(tableTotal * 0.1)}</span>
                 </div>
+                <p className="text-[10px] font-mono mb-3" style={{ color: '#584237' }}>
+                  Cada pessoa escolhe no checkout. Mínimo sem taxa: {formatCurrency(sessionBilling.grandTotalMinimum)}.
+                </p>
                 {sessionPaid > 0 && (
                   <>
                     <div className="flex justify-between text-sm mb-2" style={{ color: '#34d399' }}>
                       <span>Já pago</span>
                       <span className="font-mono">− {formatCurrency(sessionPaid)}</span>
                     </div>
-                    <div className="flex justify-between text-sm mb-3" style={{ color: sessionPaid >= tableTotal * 1.1 - 0.02 ? '#34d399' : '#f87171' }}>
+                    <div className="flex justify-between text-sm mb-3" style={{ color: sessionRemaining <= 0.02 ? '#34d399' : '#f87171' }}>
                       <span>Restante</span>
-                      <span className="font-mono font-bold">{formatCurrency(Math.max(0, tableTotal * 1.1 - sessionPaid))}</span>
+                      <span className="font-mono font-bold">{formatCurrency(sessionRemaining)}</span>
                     </div>
                   </>
                 )}
                 <div className="flex justify-between items-center pt-3" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
                   <span className="font-semibold">Total da Mesa</span>
                   <span className="text-xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
-                    {formatCurrency(tableTotal * 1.1)}
+                    {formatCurrency(grandTotal)}
                   </span>
                 </div>
               </div>
@@ -604,17 +721,29 @@ export default function OrdersPage() {
       {allOrders.length > 0 && (
         <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
           style={{ background: 'rgba(11,19,38,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
-          <button onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
-            className="w-full h-14 rounded-xl font-semibold text-base flex items-center justify-center gap-3 active:scale-95 transition-all"
-            style={{
-              background: sessionClosing ? '#ef4444' : '#f97316',
-              color: '#582200',
-              boxShadow: '0 8px 30px rgba(249,115,22,0.3)',
-              fontFamily: 'Geist, sans-serif',
-            }}>
-            <span className="material-symbols-outlined">payments</span>
-            {sessionClosing ? 'Pagar Agora!' : 'Fechar Conta'}
-          </button>
+          {sessionFullyPaid ? (
+            <div className="w-full h-14 rounded-xl flex items-center justify-center gap-2"
+              style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <span className="text-sm font-semibold" style={{ color: '#34d399' }}>Mesa quitada — obrigado!</span>
+            </div>
+          ) : (
+            <button onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
+              className="w-full h-14 rounded-xl font-semibold text-base flex items-center justify-center gap-3 active:scale-95 transition-all"
+              style={{
+                background: sessionClosing ? '#ef4444' : myPayStatus === 'paid' ? '#334155' : '#f97316',
+                color: myPayStatus === 'paid' ? '#dae2fd' : '#582200',
+                boxShadow: myPayStatus === 'paid' ? 'none' : '0 8px 30px rgba(249,115,22,0.3)',
+                fontFamily: 'Geist, sans-serif',
+              }}>
+              <span className="material-symbols-outlined">payments</span>
+              {sessionClosing
+                ? 'Pagar Agora!'
+                : myPayStatus === 'paid'
+                  ? 'Ver fechamento da mesa'
+                  : 'Fechar Conta'}
+            </button>
+          )}
         </div>
       )}
 

@@ -649,6 +649,7 @@ export default function CheckoutPage() {
       method,
       splitType,
       customerId: myCustomerId,
+      serviceFeeIncluded: includeServiceFee,
       ...(cardData ?? {}),
     }
 
@@ -1407,11 +1408,16 @@ export default function CheckoutPage() {
             style={{ background: '#1e293b', border: '1px solid #334155' }}>
             <div>
               <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Taxa de serviço (10%)</p>
-              <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
                 {includeServiceFee
-                  ? `+ ${formatCurrency(subTotal * 0.1)} incluídos`
-                  : 'Não incluída — opcional'}
+                  ? `+ ${formatCurrency(subTotal * 0.1)} incluídos no seu pagamento`
+                  : 'Você optou por não incluir — paga só o consumo'}
               </p>
+              {!includeServiceFee && (
+                <p className="text-[10px] font-mono mt-1" style={{ color: '#584237' }}>
+                  A taxa é individual; outros da mesa podem incluir normalmente.
+                </p>
+              )}
             </div>
             <button
               onClick={() => setIncludeServiceFee(v => !v)}

@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-const SERVICE_FEE = 1.1
-const SETTLE_TOLERANCE = 0.02
+import { buildSessionBilling, SETTLE_TOLERANCE } from '@/lib/session-billing'
+import type { Order } from '@/types'
 
 export type SessionSettlement = {
   closed: boolean
@@ -11,44 +10,7 @@ export type SessionSettlement = {
   tableId?: string
 }
 
-/** Soma pedidos não cancelados + taxa de serviço (10%). */
-export async function sessionBalance(
-  supabase: SupabaseClient,
-  sessionId: string,
-): Promise<{ grandTotal: number; totalPaid: number; remaining: number }> {
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('status, items:order_items(unit_price, quantity)')
-    .eq('session_id', sessionId)
-
-  const subtotal = (orders ?? [])
-    .filter(o => o.status !== 'cancelled')
-    .flatMap(o => o.items ?? [])
-    .reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0)
-
-  const grandTotal = Math.round(subtotal * SERVICE_FEE * 100) / 100
-
-  const { data: payments } = await supabase
-    .from('payments')
-    .select('amount')
-    .eq('session_id', sessionId)
-    .eq('status', 'paid')
-
-  const totalPaid = Math.round(
-    (payments ?? []).reduce((s, p) => s + Number(p.amount), 0) * 100,
-  ) / 100
-
-  return {
-    grandTotal,
-    totalPaid,
-    remaining: Math.max(0, Math.round((grandTotal - totalPaid) * 100) / 100),
-  }
-}
-
-/**
- * Fecha a sessão quando o total pago cobre a conta da mesa.
- * O trigger fn_session_table_status libera a mesa (status → free).
- */
+/** Fecha a sessão quando o total pago cobre as obrigações individuais (taxa opcional por pessoa). */
 export async function closeSessionIfSettled(
   supabase: SupabaseClient,
   sessionId: string,
@@ -59,12 +21,11 @@ export async function closeSessionIfSettled(
     .eq('id', sessionId)
     .maybeSingle()
 
+  const balance = await sessionBalance(supabase, sessionId)
+
   if (!session || session.status === 'closed') {
-    const balance = await sessionBalance(supabase, sessionId)
     return { closed: false, ...balance, tableId: session?.table_id }
   }
-
-  const balance = await sessionBalance(supabase, sessionId)
 
   if (balance.totalPaid < balance.grandTotal - SETTLE_TOLERANCE) {
     return { closed: false, ...balance, tableId: session.table_id }
@@ -98,4 +59,40 @@ export async function closeSessionIfSettled(
   console.log(`[closeSessionIfSettled] Sessão ${sessionId} fechada — mesa liberada`)
 
   return { closed: true, ...balance, remaining: 0, tableId: session.table_id }
+}
+
+export async function sessionBalance(
+  supabase: SupabaseClient,
+  sessionId: string,
+): Promise<{ grandTotal: number; totalPaid: number; remaining: number }> {
+  const [ordersRes, paymentsRes, participantsRes] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('customer_id, status, items:order_items(unit_price, quantity)')
+      .eq('session_id', sessionId),
+    supabase
+      .from('payments')
+      .select('customer_id, amount, service_fee_included')
+      .eq('session_id', sessionId)
+      .eq('status', 'paid'),
+    supabase
+      .from('session_participants')
+      .select('customer_id')
+      .eq('session_id', sessionId),
+  ])
+
+  const orders = (ordersRes.data ?? []) as Order[]
+  const participantIds = (participantsRes.data ?? []).map(p => p.customer_id)
+
+  const billing = buildSessionBilling(
+    orders,
+    paymentsRes.data ?? [],
+    participantIds,
+  )
+
+  return {
+    grandTotal: billing.grandTotal,
+    totalPaid: billing.totalPaid,
+    remaining: billing.remaining,
+  }
 }

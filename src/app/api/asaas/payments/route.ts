@@ -26,6 +26,8 @@ export type AsaasPaymentRequest = {
   method: 'pix' | 'credit' | 'debit'
   splitType?: 'food' | 'alcohol' | 'combined'
   customerId?: string | null
+  /** true = inclui 10% de taxa de serviço; false = cliente recusou a taxa */
+  serviceFeeIncluded?: boolean
   installmentCount?: number
   // Somente para crédito
   creditCard?: AsaasCreditCard
@@ -49,7 +51,7 @@ export type AsaasPaymentResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: AsaasPaymentRequest = await req.json()
-    const { sessionId, amount: rawAmount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId } = body
+    const { sessionId, amount: rawAmount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId, serviceFeeIncluded = true } = body
 
     const amount = normalizePaymentAmount(rawAmount)
     if (!sessionId || !amount || !method) {
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
           amount,
           method:        methodDb,
           split_type:    splitType,
+          service_fee_included: serviceFeeIncluded,
           status:        'paid',
           confirmation_code: confirmationCode,
           paid_at:       new Date().toISOString(),
@@ -167,6 +170,7 @@ export async function POST(req: NextRequest) {
         amount,
         method:        method === 'debit' ? 'debit' : method === 'credit' ? 'credit' : 'pix',
         split_type:    splitType,
+        service_fee_included: serviceFeeIncluded,
         status:        'pending',
       })
       .select('id')

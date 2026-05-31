@@ -39,5 +39,9 @@ alter table payments drop column if exists stripe_payment_intent_id;
 -- Índice para consultas por sessão
 create index if not exists idx_payments_session_status on payments(session_id, status);
 
+-- Taxa de serviço opcional por pagamento (10% incluída ou recusada pelo cliente)
+alter table payments
+  add column if not exists service_fee_included boolean not null default true;
+
 -- Recarrega cache do PostgREST (Supabase API)
 notify pgrst, 'reload schema';

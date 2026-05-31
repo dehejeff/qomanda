@@ -8,6 +8,12 @@ import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DEV_BYPASS, mockOrders } from '@/lib/dev-mock'
+import {
+  buildSessionBilling,
+  amountWithServiceFee,
+  isBillableOrder,
+  type PaymentRow as BillingPaymentRow,
+} from '@/lib/session-billing'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -47,9 +53,126 @@ const STATUS_FILTERS = [
 
 type StatusFilter = (typeof STATUS_FILTERS)[number]['value']
 
+type PayDisplay = 'cancelled' | 'paid' | 'partial' | 'pending'
+
+type SessionPayment = {
+  grandTotal: number
+  totalPaid: number
+  remaining: number
+}
+
+type CustomerPayment = {
+  owed: number
+  paid: number
+  status: PayDisplay
+}
+
+type DashboardPaymentRow = BillingPaymentRow & { session_id: string }
+
 type DashboardOrder = Order & {
   session?: { table?: { number?: string } | null } | null
   customer?: { first_name?: string; last_name?: string } | null
+}
+
+function buildPaymentLookups(orders: DashboardOrder[], payments: DashboardPaymentRow[]) {
+  const sessionOrders = new Map<string, DashboardOrder[]>()
+  for (const order of orders) {
+    const list = sessionOrders.get(order.session_id) ?? []
+    list.push(order)
+    sessionOrders.set(order.session_id, list)
+  }
+
+  const sessionById = new Map<string, SessionPayment>()
+  const customerByKey = new Map<string, CustomerPayment>()
+
+  for (const [sessionId, sessionOrderList] of sessionOrders) {
+    const sessionPayments = payments.filter(p => p.session_id === sessionId)
+    const participantIds = [...new Set(
+      sessionOrderList.map(o => o.customer_id).filter(Boolean) as string[],
+    )]
+    const billing = buildSessionBilling(sessionOrderList, sessionPayments, participantIds)
+    sessionById.set(sessionId, {
+      grandTotal: billing.grandTotal,
+      totalPaid: billing.totalPaid,
+      remaining: billing.remaining,
+    })
+    for (const b of billing.billings) {
+      customerByKey.set(`${sessionId}:${b.customerId}`, {
+        owed: b.amountDue,
+        paid: b.paid,
+        status: b.status,
+      })
+    }
+  }
+
+  return { sessionById, customerByKey }
+}
+
+function isBillable(order: DashboardOrder) {
+  return isBillableOrder(order)
+}
+
+function orderPayInfo(
+  order: DashboardOrder,
+  sessionById: Map<string, SessionPayment>,
+  customerByKey: Map<string, CustomerPayment>,
+): CustomerPayment & { display: PayDisplay } {
+  if (order.status === 'cancelled') {
+    return { owed: 0, paid: 0, status: 'cancelled', display: 'cancelled' }
+  }
+
+  const session = sessionById.get(order.session_id)
+  if (session && session.grandTotal > 0 && session.remaining <= 0.02) {
+    return { owed: session.grandTotal, paid: session.totalPaid, status: 'paid', display: 'paid' }
+  }
+
+  if (!order.customer_id) {
+    return { owed: 0, paid: 0, status: 'pending', display: 'pending' }
+  }
+
+  const key = `${order.session_id}:${order.customer_id}`
+  const info = customerByKey.get(key) ?? { owed: 0, paid: 0, status: 'pending' as PayDisplay }
+  return { ...info, display: info.status }
+}
+
+function PayBadge({ display, paid, owed }: { display: PayDisplay; paid: number; owed: number }) {
+  if (display === 'cancelled') {
+    return <span className="text-[10px] font-mono text-on-surface-variant">—</span>
+  }
+  if (display === 'paid') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+        Pago
+      </span>
+    )
+  }
+  if (display === 'partial') {
+    const remaining = Math.max(0, owed - paid)
+    return (
+      <div className="space-y-0.5">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
+          Parcial
+        </span>
+        <p className="text-[10px] font-mono text-emerald-400">{formatCurrency(paid)} pago</p>
+        <p className="text-[10px] font-mono text-red-400">Falta {formatCurrency(remaining)}</p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-0.5">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-red-500/10 text-red-400 border border-red-500/20">
+        <span className="material-symbols-outlined text-[12px]">pending</span>
+        Pendente
+      </span>
+      {owed > 0 && (
+        <p className="text-[10px] font-mono text-on-surface-variant">
+          até {formatCurrency(owed)} · taxa opcional
+        </p>
+      )}
+    </div>
+  )
 }
 
 function startOfTodayIso() {
@@ -71,6 +194,7 @@ function customerName(order: DashboardOrder) {
 export default function OrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<DashboardOrder[]>([])
+  const [payments, setPayments] = useState<DashboardPaymentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
@@ -88,7 +212,24 @@ export default function OrdersPage() {
       .gte('created_at', startOfTodayIso())
       .order('created_at', { ascending: false })
 
-    setOrders((data ?? []) as DashboardOrder[])
+    const loaded = (data ?? []) as DashboardOrder[]
+    setOrders(loaded)
+
+    const sessionIds = [...new Set(loaded.map(o => o.session_id))]
+    if (sessionIds.length === 0) {
+      setPayments([])
+      setLoading(false)
+      return
+    }
+
+    const { data: payData } = await supabase
+      .from('payments')
+      .select('session_id, customer_id, amount, service_fee_included')
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'paid')
+      .in('session_id', sessionIds)
+
+    setPayments((payData ?? []) as DashboardPaymentRow[])
     setLoading(false)
   }
 
@@ -121,6 +262,11 @@ export default function OrdersPage() {
           { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` },
           () => { if (!cancelled) loadOrders(restaurantId) },
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${restaurantId}` },
+          () => { if (!cancelled) loadOrders(restaurantId) },
+        )
         .subscribe()
     }
 
@@ -136,6 +282,29 @@ export default function OrdersPage() {
     () => (statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)),
     [orders, statusFilter],
   )
+
+  const { sessionById, customerByKey } = useMemo(
+    () => buildPaymentLookups(orders, payments),
+    [orders, payments],
+  )
+
+  const paySummary = useMemo(() => {
+    let paid = 0
+    let pending = 0
+    let partial = 0
+    const seen = new Set<string>()
+    for (const order of orders) {
+      if (!isBillable(order)) continue
+      const key = `${order.session_id}:${order.customer_id ?? 'anon'}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      const info = orderPayInfo(order, sessionById, customerByKey)
+      if (info.display === 'paid') paid++
+      else if (info.display === 'partial') partial++
+      else pending++
+    }
+    return { paid, pending, partial }
+  }, [orders, sessionById, customerByKey])
 
   const openCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length
 
@@ -182,6 +351,18 @@ export default function OrdersPage() {
           <p className="text-sm text-on-surface-variant mt-1">
             {orders.length} pedido{orders.length !== 1 ? 's' : ''} hoje
             {openCount > 0 && ` · ${openCount} em aberto`}
+            {(paySummary.paid + paySummary.partial + paySummary.pending) > 0 && (
+              <>
+                {' · '}
+                <span className="text-emerald-400">{paySummary.paid} quitado{paySummary.paid !== 1 ? 's' : ''}</span>
+                {paySummary.partial > 0 && (
+                  <span className="text-amber-400"> · {paySummary.partial} parcial{paySummary.partial !== 1 ? 'ais' : ''}</span>
+                )}
+                {paySummary.pending > 0 && (
+                  <span className="text-red-400"> · {paySummary.pending} pendente{paySummary.pending !== 1 ? 's' : ''}</span>
+                )}
+              </>
+            )}
             {' — atualização em tempo real.'}
           </p>
         </div>
@@ -221,7 +402,7 @@ export default function OrdersPage() {
           <table className="w-full text-left border-collapse min-w-[720px]">
             <thead className="bg-surface-container-high sticky top-0 z-10">
               <tr>
-                {['Pedido', 'Cliente', 'Mesa', 'Itens', 'Total', 'Status', ''].map(h => (
+                {['Pedido', 'Cliente', 'Mesa', 'Itens', 'Total', 'Pagamento', 'Status', ''].map(h => (
                   <th
                     key={h || 'action'}
                     className="px-4 py-3 text-[10px] font-mono text-on-surface-variant uppercase tracking-wider"
@@ -234,7 +415,7 @@ export default function OrdersPage() {
             <tbody className="divide-y divide-outline-variant">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center">
+                  <td colSpan={8} className="px-4 py-16 text-center">
                     <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-30 mb-2 block">receipt_long</span>
                     <p className="text-sm font-mono text-on-surface-variant">
                       {orders.length === 0 ? 'Nenhum pedido registrado hoje' : 'Nenhum pedido com este status'}
@@ -256,6 +437,8 @@ export default function OrdersPage() {
                     .map(i => `${i.quantity}× ${i.menu_item?.name ?? 'Item'}`)
                     .join(', ')
                   const nextAction = STATUS_NEXT[order.status]
+                  const payInfo = orderPayInfo(order, sessionById, customerByKey)
+                  const sessionPay = sessionById.get(order.session_id)
 
                   return (
                     <tr
@@ -272,12 +455,25 @@ export default function OrdersPage() {
                       <td className="px-4 py-4 text-sm text-on-surface max-w-[140px] truncate" title={name}>
                         {name}
                       </td>
-                      <td className="px-4 py-4 text-sm font-bold font-mono text-primary">{mesa}</td>
+                      <td className="px-4 py-4 text-sm font-bold font-mono text-primary">
+                        <span>{mesa}</span>
+                        {sessionPay && sessionPay.grandTotal > 0 && payInfo.display !== 'cancelled' && (
+                          <p className="text-[10px] font-normal mt-0.5 whitespace-nowrap"
+                            style={{ color: sessionPay.remaining <= 0.02 ? '#34d399' : '#f87171' }}>
+                            {sessionPay.remaining <= 0.02
+                              ? 'Mesa quitada'
+                              : `${formatCurrency(sessionPay.totalPaid)} / ${formatCurrency(sessionPay.grandTotal)}`}
+                          </p>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-xs text-on-surface-variant max-w-[200px] truncate" title={itemSummary}>
                         {itemSummary || '—'}
                       </td>
                       <td className="px-4 py-4 text-sm font-mono text-on-surface whitespace-nowrap">
                         {formatCurrency(total)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <PayBadge display={payInfo.display} paid={payInfo.paid} owed={payInfo.owed} />
                       </td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap ${badge}`}>
