@@ -11,26 +11,31 @@ import {
   whatsAppLink,
 } from '@/lib/restaurant-customers'
 import {
-  OFFER_PRESETS,
   VALIDITY_OPTIONS,
   DEFAULT_VALIDITY_DAYS,
+  loyaltyRuleToOfferDraft,
   type OfferBenefitType,
+  type LoyaltyRuleInput,
 } from '@/lib/customer-offers'
 
 type Props = {
   customer: RestaurantCustomerStats
   restaurantId: string
   restaurantName: string
+  loyaltyRules: LoyaltyRuleInput[]
   onClose: () => void
 }
 
-export function CustomerOfferModal({ customer, restaurantId, restaurantName, onClose }: Props) {
-  const [presetId, setPresetId] = useState<string>(OFFER_PRESETS[0].id)
-  const [customOffer, setCustomOffer] = useState(OFFER_PRESETS[0].offerText)
+export function CustomerOfferModal({ customer, restaurantId, restaurantName, loyaltyRules, onClose }: Props) {
+  // Opções de benefício vêm das regras de fidelidade configuradas em Settings.
+  const presets = loyaltyRules.map(loyaltyRuleToOfferDraft)
+
+  const [presetId, setPresetId] = useState<string>(presets[0]?.id ?? 'custom')
+  const [customOffer, setCustomOffer] = useState(presets[0]?.offerText ?? '')
   const [validityDays, setValidityDays] = useState<number>(DEFAULT_VALIDITY_DAYS)
   const [sending, setSending] = useState(false)
 
-  const selectedPreset = OFFER_PRESETS.find(p => p.id === presetId)
+  const selectedPreset = presets.find(p => p.id === presetId)
   const isCustom = presetId === 'custom'
 
   // Tipo/valor estruturado do benefício a ser gravado.
@@ -54,7 +59,7 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, onC
 
   function handlePresetChange(id: string) {
     setPresetId(id)
-    const preset = OFFER_PRESETS.find(p => p.id === id)
+    const preset = presets.find(p => p.id === id)
     if (preset) setCustomOffer(preset.offerText)
   }
 
@@ -121,8 +126,13 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, onC
         <div className="p-5 space-y-4">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-2">Tipo de benefício</p>
+            {presets.length === 0 && (
+              <p className="text-[11px] font-mono text-amber-400 mb-2">
+                Nenhuma regra de fidelidade configurada. Crie regras em Configurações · Fidelidade ou use um benefício personalizado.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
-              {OFFER_PRESETS.map(p => (
+              {presets.map(p => (
                 <button
                   key={p.id}
                   type="button"

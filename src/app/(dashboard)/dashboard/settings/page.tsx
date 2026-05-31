@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { DEV_BYPASS } from '@/lib/dev-mock'
+import { toast } from 'sonner'
 import type { LoyaltyBenefitType } from '@/types'
 
 type Tab = 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
@@ -43,34 +46,85 @@ const INITIAL_RULES: LoyaltyRule[] = [
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('pagamentos')
-  const [rules, setRules] = useState<LoyaltyRule[]>(INITIAL_RULES)
+  const [rules, setRules] = useState<LoyaltyRule[]>([])
+  const [restaurantId, setRestaurantId] = useState('')
   const [addingRule, setAddingRule] = useState(false)
   const [newVisits, setNewVisits] = useState('5')
   const [newBenefitType, setNewBenefitType] = useState<LoyaltyBenefitType>('free_drink')
   const [newBenefitValue, setNewBenefitValue] = useState('')
 
-  function toggleRule(id: string) {
+  const loadRules = useCallback(async () => {
+    if (DEV_BYPASS) {
+      setRules(INITIAL_RULES)
+      return
+    }
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: restaurant } = await supabase
+      .from('restaurants').select('id').eq('owner_id', user.id).single()
+    if (!restaurant) return
+    setRestaurantId(restaurant.id)
+    const { data } = await supabase
+      .from('loyalty_rules')
+      .select('id, visit_count, benefit_type, benefit_value, active')
+      .eq('restaurant_id', restaurant.id)
+      .order('visit_count')
+    setRules((data ?? []) as LoyaltyRule[])
+  }, [])
+
+  useEffect(() => {
+    loadRules().catch(() => {})
+  }, [loadRules])
+
+  async function toggleRule(id: string) {
+    const rule = rules.find(r => r.id === id)
+    if (!rule) return
     setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r))
+    if (DEV_BYPASS) return
+    const supabase = createClient()
+    const { error } = await supabase.from('loyalty_rules').update({ active: !rule.active }).eq('id', id)
+    if (error) { toast.error('Erro ao atualizar regra.'); loadRules() }
   }
 
-  function deleteRule(id: string) {
+  async function deleteRule(id: string) {
     setRules(prev => prev.filter(r => r.id !== id))
+    if (DEV_BYPASS) return
+    const supabase = createClient()
+    const { error } = await supabase.from('loyalty_rules').delete().eq('id', id)
+    if (error) { toast.error('Erro ao remover regra.'); loadRules() }
   }
 
-  function addRule() {
+  async function addRule() {
     if (!newBenefitValue.trim() || !newVisits) return
-    const rule: LoyaltyRule = {
-      id: Date.now().toString(),
+
+    if (DEV_BYPASS) {
+      const rule: LoyaltyRule = {
+        id: Date.now().toString(),
+        visit_count: parseInt(newVisits),
+        benefit_type: newBenefitType,
+        benefit_value: newBenefitValue.trim(),
+        active: true,
+      }
+      setRules(prev => [...prev, rule].sort((a, b) => a.visit_count - b.visit_count))
+      setNewBenefitValue(''); setNewVisits('5'); setNewBenefitType('free_drink'); setAddingRule(false)
+      return
+    }
+
+    const supabase = createClient()
+    const { data, error } = await supabase.from('loyalty_rules').insert({
+      restaurant_id: restaurantId,
       visit_count: parseInt(newVisits),
       benefit_type: newBenefitType,
       benefit_value: newBenefitValue.trim(),
       active: true,
-    }
-    setRules(prev => [...prev, rule].sort((a, b) => a.visit_count - b.visit_count))
-    setNewBenefitValue('')
-    setNewVisits('5')
-    setNewBenefitType('free_drink')
-    setAddingRule(false)
+    }).select('id, visit_count, benefit_type, benefit_value, active').single()
+
+    if (error || !data) { toast.error('Erro ao criar regra.'); return }
+
+    setRules(prev => [...prev, data as LoyaltyRule].sort((a, b) => a.visit_count - b.visit_count))
+    setNewBenefitValue(''); setNewVisits('5'); setNewBenefitType('free_drink'); setAddingRule(false)
+    toast.success('Regra de fidelidade criada!')
   }
 
   const benefitIcon = (type: LoyaltyBenefitType) =>

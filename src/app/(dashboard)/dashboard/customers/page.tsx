@@ -12,6 +12,7 @@ import {
   type RestaurantCustomerStats,
 } from '@/lib/restaurant-customers'
 import { CustomerOfferModal } from '@/components/dashboard/customer-offer-modal'
+import type { LoyaltyRuleInput } from '@/lib/customer-offers'
 import type { LoyaltyRule } from '@/types'
 
 type Filter = 'all' | 'at_risk' | 'loyal' | 'new'
@@ -65,6 +66,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<RestaurantCustomerStats[]>([])
   const [restaurantName, setRestaurantName] = useState('')
   const [restaurantId, setRestaurantId] = useState('')
+  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRuleInput[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -75,6 +77,10 @@ export default function CustomersPage() {
       setRestaurantName(mockRestaurant.name)
       setRestaurantId(mockRestaurant.id)
       setCustomers(MOCK_CUSTOMERS)
+      setLoyaltyRules([
+        { id: 'r1', benefit_type: 'free_drink', benefit_value: 'Chope ou refrigerante grátis' },
+        { id: 'r2', benefit_type: 'discount_pct', benefit_value: '10% de desconto na conta' },
+      ])
       setLoading(false)
       return
     }
@@ -102,7 +108,7 @@ export default function CustomersPage() {
         .order('created_at', { ascending: false }),
       supabase
         .from('loyalty_rules')
-        .select('visit_count, benefit_value, active')
+        .select('id, visit_count, benefit_type, benefit_value, active')
         .eq('restaurant_id', restaurant.id)
         .eq('active', true)
         .order('visit_count'),
@@ -116,6 +122,7 @@ export default function CustomersPage() {
 
     const rules = (rulesRes.data ?? []) as Pick<LoyaltyRule, 'visit_count' | 'benefit_value' | 'active'>[]
     setCustomers(aggregateRestaurantCustomers(visitsRes.data ?? [], rules))
+    setLoyaltyRules((rulesRes.data ?? []) as LoyaltyRuleInput[])
     setLoading(false)
   }, [])
 
@@ -339,6 +346,7 @@ export default function CustomersPage() {
           customer={offerCustomer}
           restaurantId={restaurantId}
           restaurantName={restaurantName}
+          loyaltyRules={loyaltyRules}
           onClose={() => setOfferCustomer(null)}
         />
       )}

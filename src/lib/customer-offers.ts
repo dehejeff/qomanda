@@ -34,6 +34,44 @@ export const OFFER_PRESETS: OfferPreset[] = [
   { id: 'discount_20rs', label: 'R$ 20 de desconto', offerText: 'R$ 20 de desconto na conta', benefitType: 'discount_fixed', benefitValue: '20' },
 ]
 
+/** Regra de fidelidade (subset) usada para gerar opções de benefício. */
+export type LoyaltyRuleInput = {
+  id: string
+  benefit_type: 'free_drink' | 'free_item' | 'discount_pct' | 'custom'
+  benefit_value: string
+}
+
+/** Extrai o percentual de um texto livre ("10% de desconto" → 10). */
+function extractPercent(text: string): string {
+  const match = text.match(/(\d+(?:[.,]\d+)?)\s*%?/)
+  return match ? match[1].replace(',', '.') : '10'
+}
+
+/**
+ * Converte uma regra de fidelidade em um rascunho de oferta aplicável.
+ * É a ponte entre as regras configuradas em Settings e o desconto no checkout.
+ */
+export function loyaltyRuleToOfferDraft(rule: LoyaltyRuleInput): {
+  id: string
+  label: string
+  offerText: string
+  benefitType: OfferBenefitType
+  benefitValue: string
+} {
+  const label = rule.benefit_value
+  switch (rule.benefit_type) {
+    case 'discount_pct':
+      return { id: rule.id, label, offerText: rule.benefit_value, benefitType: 'discount_pct', benefitValue: extractPercent(rule.benefit_value) }
+    case 'free_drink':
+      return { id: rule.id, label, offerText: rule.benefit_value, benefitType: 'free_item', benefitValue: 'bebida' }
+    case 'free_item':
+      return { id: rule.id, label, offerText: rule.benefit_value, benefitType: 'free_item', benefitValue: '' }
+    case 'custom':
+    default:
+      return { id: rule.id, label, offerText: rule.benefit_value, benefitType: 'custom', benefitValue: rule.benefit_value }
+  }
+}
+
 export const VALIDITY_OPTIONS: { days: number; label: string }[] = [
   { days: 7, label: '7 dias' },
   { days: 15, label: '15 dias' },
