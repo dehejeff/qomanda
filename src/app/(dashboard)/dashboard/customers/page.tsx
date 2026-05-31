@@ -226,12 +226,12 @@ export default function CustomersPage() {
       ) : (
         <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-[1.4fr_0.7fr_0.9fr_0.9fr_1fr_auto] gap-4 px-5 py-3 border-b border-outline-variant text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-            <span>Cliente</span>
-            <span>Visitas</span>
-            <span>Última visita</span>
-            <span>Sem voltar</span>
-            <span>Fidelidade</span>
-            <span>Ações</span>
+            <span className="text-left">Cliente</span>
+            <span className="text-center">Visitas</span>
+            <span className="text-center">Última visita</span>
+            <span className="text-center">Sem voltar</span>
+            <span className="text-center">Fidelidade</span>
+            <span className="text-right">Ações</span>
           </div>
           <div className="divide-y divide-outline-variant">
             {filtered.map(customer => {
@@ -261,19 +261,19 @@ export default function CustomersPage() {
                   </div>
 
                   <div className="md:contents">
-                    <p className="text-sm font-mono font-bold text-on-surface">
+                    <p className="text-sm font-mono font-bold text-on-surface md:text-center">
                       <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Visitas</span>
                       {customer.visitCount}
                     </p>
-                    <p className="text-sm font-mono text-on-surface-variant">
+                    <p className="text-sm font-mono text-on-surface-variant md:text-center">
                       <span className="md:hidden text-[10px] uppercase mr-2">Última</span>
                       {formatLastVisit(customer.lastVisitAt)}
                     </p>
-                    <p className={`text-sm font-mono ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
+                    <p className={`text-sm font-mono md:text-center ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
                       <span className="md:hidden text-[10px] uppercase mr-2">Ausente</span>
                       {daysLabel(customer.daysSinceLastVisit)}
                     </p>
-                    <p className="text-xs font-mono text-on-surface-variant">
+                    <p className="text-xs font-mono text-on-surface-variant md:text-center">
                       <span className="md:hidden text-[10px] uppercase mr-2 block mb-0.5">Fidelidade</span>
                       {customer.visitsUntilNextReward != null && customer.visitsUntilNextReward > 0
                         ? `Faltam ${customer.visitsUntilNextReward} para: ${customer.nextRewardLabel}`

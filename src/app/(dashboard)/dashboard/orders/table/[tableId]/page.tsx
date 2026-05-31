@@ -130,12 +130,13 @@ export default function TableOrdersPage() {
   return (
     <div className="space-y-stack-lg max-w-3xl">
       <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="p-2 rounded-lg border border-outline-variant hover:bg-surface-container-highest transition-colors"
         >
           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">arrow_back</span>
-        </Link>
+        </button>
         <div>
           <h2
             className="text-2xl font-semibold text-on-surface"

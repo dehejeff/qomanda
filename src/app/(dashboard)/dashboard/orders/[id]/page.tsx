@@ -135,9 +135,13 @@ export default function OrderDetailPage() {
       <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
         <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-30">receipt_long</span>
         <p className="text-sm font-mono text-on-surface-variant">Pedido não encontrado</p>
-        <Link href="/dashboard" className="text-xs font-mono text-primary hover:underline">
-          ← Voltar ao Overview
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-xs font-mono text-primary hover:underline"
+        >
+          ← Voltar
+        </button>
       </div>
     )
   }
@@ -154,12 +158,13 @@ export default function OrderDetailPage() {
   return (
     <div className="space-y-stack-lg max-w-2xl">
       <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="p-2 rounded-lg border border-outline-variant hover:bg-surface-container-highest transition-colors"
         >
           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">arrow_back</span>
-        </Link>
+        </button>
         <div className="flex-1">
           <h2
             className="text-2xl font-semibold text-on-surface"

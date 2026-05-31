@@ -134,15 +134,16 @@ export default function CustomerPaymentDetailPage() {
   return (
     <div className="space-y-stack-lg max-w-4xl">
       <div>
-        <Link
-          href="/dashboard/orders"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="inline-flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-primary transition-colors mb-4"
         >
           <span className="material-symbols-outlined text-[16px]">
             arrow_back
           </span>
-          Voltar aos pedidos
-        </Link>
+          Voltar
+        </button>
         <h2
           className="text-3xl font-semibold text-on-surface"
           style={{ fontFamily: "Geist, sans-serif", letterSpacing: "-0.02em" }}
