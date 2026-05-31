@@ -29,9 +29,21 @@ type VisitRow = {
   }[] | null
 }
 
-function unwrapCustomer(raw: VisitRow['customers']) {
+function unwrapCustomer(raw: VisitRow['customers']): {
+  id: string
+  first_name: string
+  last_name: string
+  whatsapp: string
+} | null {
   if (!raw) return null
-  return Array.isArray(raw) ? raw[0] ?? null : raw
+  if (Array.isArray(raw)) {
+    const customer = raw[0]
+    if (!customer) return null
+    if (customer.id && customer.first_name && customer.whatsapp) return customer
+    return null
+  }
+  if (raw.id && raw.first_name && raw.whatsapp) return raw
+  return null
 }
 
 function daysSince(iso: string): number {
@@ -69,6 +81,9 @@ export function aggregateRestaurantCustomers(
   for (const row of visits) {
     const customer = unwrapCustomer(row.customers)
     if (!customer) continue
+
+    // Ensure customer_id matches the customer.id from the relation
+    if (customer.id !== row.customer_id) continue
 
     const entry = byCustomer.get(row.customer_id) ?? { customer, dates: [] }
     entry.dates.push(row.created_at)
