@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
 import type { CheckInResponse } from '@/app/api/checkin/route'
@@ -13,7 +13,6 @@ import { PinInput } from '@/components/customer/pin-input'
 import { isValidPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
 import { persistCustomerAuth } from '@/lib/customer-auth'
-import { parseTableCheckInSearchParams } from '@/lib/table-checkin-url'
 import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
 import Link from 'next/link'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
@@ -47,6 +46,9 @@ function validateCPF(cpf: string): boolean {
 export default function CheckInPage() {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const mesaParam = searchParams.get('mesa')
+  const tokenParam = searchParams.get('t')
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [loading, setLoading]       = useState(true)
@@ -79,7 +81,6 @@ export default function CheckInPage() {
   const cpfValid    = cpfComplete && validateCPF(cpf)
 
   useEffect(() => {
-    const { mesa, token } = parseTableCheckInSearchParams(window.location.search)
     const cid = localStorage.getItem('qomanda_customer_id')
     const cname = localStorage.getItem('qomanda_customer_name') ?? ''
     if (cid) {
@@ -88,17 +89,23 @@ export default function CheckInPage() {
     }
 
     async function verifyTable() {
-      if (!mesa || !token) {
+      setVerifyLoading(true)
+      setVerifyError(null)
+      setTableToken(null)
+      setTableNumber('')
+      setTableStatus(null)
+
+      if (!mesaParam || !tokenParam) {
         setVerifyError('Escaneie o QR Code na mesa para fazer check-in.')
         setVerifyLoading(false)
         return
       }
 
-      setTableNumber(mesa)
-      setTableToken(token)
+      setTableNumber(mesaParam)
+      setTableToken(tokenParam)
 
       try {
-        const qs = new URLSearchParams({ slug: params.slug, mesa, t: token })
+        const qs = new URLSearchParams({ slug: params.slug, mesa: mesaParam, t: tokenParam })
         const res = await fetch(`/api/checkin/verify?${qs}`)
         const data = (await res.json()) as CheckInVerifyResponse
         if (!data.valid) {
@@ -116,7 +123,7 @@ export default function CheckInPage() {
     }
 
     verifyTable()
-  }, [params.slug])
+  }, [params.slug, mesaParam, tokenParam])
 
   useEffect(() => {
     async function loadRestaurant() {
@@ -318,9 +325,9 @@ export default function CheckInPage() {
         style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
           style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
-        <div className="relative z-10 max-w-sm space-y-6">
+        <div className="relative z-10 max-w-sm w-full space-y-6 flex flex-col items-center">
           <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>qr_code_scanner</span>
-          <div>
+          <div className="w-full text-center">
             <h1 className="text-xl font-bold mb-2" style={{ fontFamily: 'Geist, sans-serif' }}>
               {restaurant.name}
             </h1>
@@ -328,20 +335,22 @@ export default function CheckInPage() {
               {verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.'}
             </p>
           </div>
-          <div className="rounded-xl p-4 text-left text-xs leading-relaxed font-mono"
-            style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
-            <span className="material-symbols-outlined text-[16px] align-middle mr-1" style={{ color: '#7bd0ff' }}>shield</span>
-            Isso evita que alguém ocupe uma mesa remotamente sem estar no local.
-          </div>
+          {!verifyError && (
+            <div className="rounded-xl p-4 w-full text-center text-xs leading-relaxed"
+              style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
+              <span className="material-symbols-outlined block mx-auto mb-2 text-[20px]" style={{ color: '#7bd0ff' }}>info</span>
+              O QR Code fica na sua mesa. Com ele você acessa o cardápio, faz pedidos e acompanha a conta.
+            </div>
+          )}
           <Link href="/scan"
-            className="inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
             style={{ background: '#f97316', color: '#582200' }}>
             <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
             Escanear QR da mesa
           </Link>
           <TestTableCheckInLink />
           {savedCustomerId && (
-            <Link href="/hub" className="block text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>
+            <Link href="/hub" className="block w-full text-center text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>
               Ir para o Hub da minha conta
             </Link>
           )}
