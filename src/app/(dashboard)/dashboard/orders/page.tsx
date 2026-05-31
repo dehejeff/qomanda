@@ -171,6 +171,15 @@ function formatDateLabel(dateStr: string) {
   })
 }
 
+/** Frase de data gramaticalmente correta: "hoje", "ontem" ou "em 30 de mai". */
+function datePhrase(dateStr: string) {
+  const today = todayDateStr()
+  const yesterday = shiftDateStr(today, -1)
+  if (dateStr === today) return 'hoje'
+  if (dateStr === yesterday) return 'ontem'
+  return `em ${formatDateLabel(dateStr).toLowerCase()}`
+}
+
 function orderTotal(order: DashboardOrder) {
   return (order.items ?? []).reduce((a, i) => a + i.unit_price * i.quantity, 0)
 }
@@ -273,16 +282,13 @@ export default function OrdersPage() {
     [orders, payments],
   )
 
+  // Contagem por pedido individual — consistente com o badge de pagamento de cada linha.
   const paySummary = useMemo(() => {
     let paid = 0
     let pending = 0
     let partial = 0
-    const seen = new Set<string>()
     for (const order of orders) {
       if (!isBillable(order)) continue
-      const key = `${order.session_id}:${order.customer_id ?? 'anon'}`
-      if (seen.has(key)) continue
-      seen.add(key)
       const info = orderPayInfo(order, sessionById, customerByKey)
       if (info.display === 'paid') paid++
       else if (info.display === 'partial') partial++
@@ -334,7 +340,7 @@ export default function OrdersPage() {
             Pedidos
           </h2>
           <p className="text-sm text-on-surface-variant mt-1">
-            {orders.length} pedido{orders.length !== 1 ? 's' : ''} em {formatDateLabel(selectedDate).toLowerCase()}
+            {orders.length} pedido{orders.length !== 1 ? 's' : ''} {datePhrase(selectedDate)}
             {openCount > 0 && isToday && ` · ${openCount} em aberto`}
             {isToday && (paySummary.paid + paySummary.partial + paySummary.pending) > 0 && (
               <>
@@ -451,7 +457,7 @@ export default function OrdersPage() {
                     <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-30 mb-2 block">receipt_long</span>
                     <p className="text-sm font-mono text-on-surface-variant">
                       {orders.length === 0
-                        ? `Nenhum pedido em ${formatDateLabel(selectedDate).toLowerCase()}`
+                        ? `Nenhum pedido ${datePhrase(selectedDate)}`
                         : 'Nenhum pedido com este status'}
                     </p>
                   </td>
