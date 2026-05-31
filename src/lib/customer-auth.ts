@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 export type CustomerActiveSession = {
   sessionId: string
@@ -72,4 +73,18 @@ export function persistCustomerAuth(
   if (activeSession) {
     localStorage.setItem('qomanda_session_id', activeSession.sessionId)
   }
+}
+
+/** Após mesa quitada ou sessão encerrada — hub se logado, senão check-in do restaurante. */
+export function redirectAfterSessionEnd(router: AppRouterInstance, restaurantSlug?: string) {
+  localStorage.removeItem('qomanda_session_id')
+  if (localStorage.getItem('qomanda_customer_id')) {
+    router.replace('/hub')
+    return
+  }
+  if (restaurantSlug) {
+    router.replace(`/${restaurantSlug}`)
+    return
+  }
+  router.replace('/login?perfil=cliente')
 }

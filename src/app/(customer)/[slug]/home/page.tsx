@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { buildSessionBilling } from '@/lib/session-billing'
+import { redirectAfterSessionEnd } from '@/lib/customer-auth'
 import type { Order } from '@/types'
 import { Loader2 } from 'lucide-react'
 
@@ -34,8 +35,7 @@ export default function CustomerHomePage() {
   const [sessionSettled, setSessionSettled] = useState(false)
 
   function exitClosedSession() {
-    localStorage.removeItem('qomanda_session_id')
-    router.replace(`/${params.slug}`)
+    redirectAfterSessionEnd(router, params.slug)
   }
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function CustomerHomePage() {
         .eq('id', sessionId)
         .single()
 
-      if (!session) { router.replace(`/${params.slug}`); return }
+      if (!session) { redirectAfterSessionEnd(router, params.slug); return }
 
       if (session.status === 'closed') {
         exitClosedSession()

@@ -18,6 +18,7 @@ import { ParticipantPaymentRow } from '@/components/customer/participant-payment
 import { ItemStatusIcon } from '@/components/customer/item-status-icon'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { redirectAfterSessionEnd } from '@/lib/customer-auth'
 
 type Tab = 'mine' | 'table'
 
@@ -234,8 +235,7 @@ export default function OrdersPage() {
         const status = (p.new as any)?.status
         if (status === 'closing') setSessionClosing(true)
         if (status === 'closed') {
-          localStorage.removeItem('qomanda_session_id')
-          router.replace(`/${params.slug}`)
+          redirectAfterSessionEnd(router, params.slug)
         }
       })
       .subscribe()

@@ -20,6 +20,7 @@ import {
 } from '@/lib/session-billing'
 import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
+import { redirectAfterSessionEnd } from '@/lib/customer-auth'
 import { CardPaymentScreen, type CardPaymentPayload } from '@/components/customer/card-payment-screen'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -690,6 +691,14 @@ export default function CheckoutPage() {
     { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito'},
   ]
 
+  useEffect(() => {
+    if (step !== 'confirmed' || !tableSettled) return
+    localStorage.removeItem('qomanda_session_id')
+    if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+    const timer = setTimeout(() => redirectAfterSessionEnd(router, params.slug), 4000)
+    return () => clearTimeout(timer)
+  }, [step, tableSettled, sessionId, router, params.slug])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
@@ -700,11 +709,6 @@ export default function CheckoutPage() {
 
   // ── CONFIRMED ──────────────────────────────────────────────
   if (step === 'confirmed') {
-    if (tableSettled && sessionId) {
-      localStorage.removeItem('qomanda_session_id')
-      sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
-    }
-
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
@@ -807,8 +811,24 @@ export default function CheckoutPage() {
             </div>
           )}
           <p className="text-base font-semibold" style={{ color: '#e0c0b1' }}>Volte sempre!</p>
+          {tableSettled && (
+            <>
+              <button
+                type="button"
+                onClick={() => redirectAfterSessionEnd(router, params.slug)}
+                className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}
+              >
+                <span className="material-symbols-outlined text-[20px]">home</span>
+                Ir para o Hub
+              </button>
+              <p className="text-[11px] font-mono text-center" style={{ color: '#584237' }}>
+                Redirecionando automaticamente em alguns segundos…
+              </p>
+            </>
+          )}
         </main>
-        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+        {!tableSettled && <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />}
       </div>
     )
   }
