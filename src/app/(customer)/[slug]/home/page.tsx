@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
+import { buildSessionBilling } from '@/lib/session-billing'
+import type { Order } from '@/types'
 import { Loader2 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; progress: number }> = {
@@ -29,6 +31,12 @@ export default function CustomerHomePage() {
   const [latestOrder, setLatestOrder] = useState<{ status: string; total: number; itemCount: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [closeInvite, setCloseInvite] = useState<{ requestId: string; initiatorName: string; amountOwed: number } | null>(null)
+  const [sessionSettled, setSessionSettled] = useState(false)
+
+  function exitClosedSession() {
+    localStorage.removeItem('qomanda_session_id')
+    router.replace(`/${params.slug}`)
+  }
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -43,17 +51,48 @@ export default function CustomerHomePage() {
       const supabase = createClient()
       const { data: session } = await supabase
         .from('sessions')
-        .select('*, restaurant:restaurants(*), table:tables(*)')
+        .select('status, *, restaurant:restaurants(*), table:tables(*)')
         .eq('id', sessionId)
         .single()
 
       if (!session) { router.replace(`/${params.slug}`); return }
+
+      if (session.status === 'closed') {
+        exitClosedSession()
+        return
+      }
 
       setRestaurantName((session.restaurant as any)?.name ?? '')
       setLogoUrl((session.restaurant as any)?.logo_url ?? null)
       setTableNumber((session.table as any)?.number ?? '')
 
       const customerId = localStorage.getItem('qomanda_customer_id')
+
+      const [ordersRes, paymentsRes, participantsRes] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('customer_id, status, items:order_items(unit_price, quantity)')
+          .eq('session_id', sessionId),
+        supabase
+          .from('payments')
+          .select('customer_id, amount, service_fee_included')
+          .eq('session_id', sessionId)
+          .eq('status', 'paid'),
+        supabase
+          .from('session_participants')
+          .select('customer_id')
+          .eq('session_id', sessionId),
+      ])
+
+      const billing = buildSessionBilling(
+        (ordersRes.data ?? []) as Order[],
+        paymentsRes.data ?? [],
+        (participantsRes.data ?? []).map(p => p.customer_id),
+      )
+      const settled = billing.grandTotal > 0.01 && billing.remaining <= 0.02
+      setSessionSettled(settled)
+      if (settled) setCloseInvite(null)
+
       let ordersQuery = supabase
         .from('orders')
         .select('status, items:order_items(unit_price, quantity)')
@@ -80,8 +119,20 @@ export default function CustomerHomePage() {
     }
     load()
 
-    // Subscribe to close request invites
     const supabase = createClient()
+
+    const sessionCh = supabase.channel('home-session-watch')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` }, (p) => {
+        const status = (p.new as { status?: string })?.status
+        if (status === 'closed') exitClosedSession()
+      })
+      .subscribe()
+
+    const paymentsCh = supabase.channel('home-payments-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `session_id=eq.${sessionId}` }, load)
+      .subscribe()
+
+    // Subscribe to close request invites
     const myCustomerId = localStorage.getItem('qomanda_customer_id')
     if (myCustomerId) {
       const ch = supabase.channel('close-invite')
@@ -104,7 +155,16 @@ export default function CustomerHomePage() {
           })
         })
         .subscribe()
-      return () => { supabase.removeChannel(ch) }
+      return () => {
+        supabase.removeChannel(ch)
+        supabase.removeChannel(sessionCh)
+        supabase.removeChannel(paymentsCh)
+      }
+    }
+
+    return () => {
+      supabase.removeChannel(sessionCh)
+      supabase.removeChannel(paymentsCh)
     }
   }, [sessionId, params.slug, router])
 
@@ -139,16 +199,18 @@ export default function CustomerHomePage() {
             </span>
           )}
         </div>
+        {!sessionSettled && tableNumber && (
         <span
           className="text-xs font-mono px-3 py-1.5 rounded-lg"
           style={{ background: 'rgba(249,115,22,0.12)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.2)' }}
         >
           Mesa {tableNumber}
         </span>
+        )}
       </header>
 
       {/* Close request invite banner */}
-      {closeInvite && (
+      {closeInvite && !sessionSettled && (
         <div className="fixed top-16 left-0 right-0 z-50 px-4 pt-3">
           <div className="rounded-xl p-4 shadow-2xl"
             style={{ background: '#1e3a5f', border: '2px solid rgba(123,208,255,0.4)', backdropFilter: 'blur(12px)' }}>
@@ -192,8 +254,22 @@ export default function CustomerHomePage() {
           </h1>
         </div>
 
+        {/* Mesa quitada — sem reserva ativa */}
+        {sessionSettled && (
+          <div className="rounded-xl px-5 py-4 flex items-start gap-3"
+            style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.35)' }}>
+            <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <div>
+              <p className="text-sm font-bold" style={{ color: '#34d399' }}>Mesa quitada — visita encerrada</p>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                Todos os pagamentos foram recebidos e a mesa foi liberada. Você ainda pode ver pedidos e recibos abaixo.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Active order status card */}
-        {latestOrder && statusCfg ? (
+        {!sessionSettled && latestOrder && statusCfg ? (
           <div
             className="rounded-xl p-5 relative overflow-hidden"
             style={{ background: 'linear-gradient(145deg, #1e293b 0%, #131b2e 100%)', border: '1px solid #334155' }}
@@ -228,7 +304,7 @@ export default function CustomerHomePage() {
               <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
             </Link>
           </div>
-        ) : (
+        ) : !sessionSettled ? (
           <div
             className="rounded-xl p-5 flex items-center gap-4"
             style={{ background: '#131b2e', border: '1px dashed rgba(88,66,55,0.5)' }}
@@ -239,34 +315,40 @@ export default function CustomerHomePage() {
               <p className="text-xs" style={{ color: '#a78b7d' }}>Acesse o cardápio e faça seu pedido</p>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Quick actions */}
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest mb-3" style={{ color: '#a78b7d' }}>Acesso rápido</p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              {
+              ...(!sessionSettled ? [{
                 href: `/${params.slug}/menu?session=${sessionId}`,
                 icon: 'restaurant_menu',
                 label: 'Cardápio',
                 desc: 'Ver todos os pratos',
                 accent: '#f97316',
-              },
+              }] : []),
               {
                 href: `/${params.slug}/orders?session=${sessionId}`,
                 icon: 'list_alt',
                 label: 'Meus Pedidos',
-                desc: 'Acompanhar status',
+                desc: sessionSettled ? 'Ver histórico' : 'Acompanhar status',
                 accent: '#7bd0ff',
               },
-              {
+              ...(sessionSettled ? [{
+                href: `/${params.slug}/receipts?session=${sessionId}`,
+                icon: 'receipt_long',
+                label: 'Meus Recibos',
+                desc: 'Comprovantes de pagamento',
+                accent: '#34d399',
+              }] : [{
                 href: `/${params.slug}/checkout?session=${sessionId}`,
                 icon: 'account_balance_wallet',
                 label: 'Fechar Conta',
                 desc: 'Pagar e encerrar',
                 accent: '#34d399',
-              },
+              }]),
               {
                 href: '#',
                 icon: 'support_agent',
@@ -299,7 +381,8 @@ export default function CustomerHomePage() {
           </div>
         </div>
 
-        {/* Session info */}
+        {/* Session info — só enquanto a mesa está ativa */}
+        {!sessionSettled && (
         <div
           className="rounded-xl px-5 py-4 flex items-center justify-between"
           style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.3)' }}
@@ -317,6 +400,7 @@ export default function CustomerHomePage() {
             ATIVO
           </span>
         </div>
+        )}
       </main>
 
       <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
