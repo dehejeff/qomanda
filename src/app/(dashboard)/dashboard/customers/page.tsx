@@ -56,7 +56,7 @@ function formatLastVisit(iso: string) {
 }
 
 function daysLabel(days: number) {
-  if (days === 0) return 'Hoje'
+  if (days === 0) return '—'
   if (days === 1) return '1 dia'
   return `${days} dias`
 }
@@ -227,12 +227,12 @@ export default function CustomersPage() {
         <div className="tonal-layer-1 ghost-border rounded-xl overflow-x-auto">
           <table className="w-full table-fixed">
             <colgroup>
-              <col className="w-[26%]" />
-              <col className="w-[8%]" />
-              <col className="w-[15%]" />
+              <col className="w-[24%]" />
+              <col className="w-[9%]" />
+              <col className="w-[16%]" />
               <col className="w-[11%]" />
-              <col className="w-[13%]" />
-              <col className="w-[27%]" />
+              <col className="w-[14%]" />
+              <col className="w-[26%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-outline-variant">
@@ -241,7 +241,7 @@ export default function CustomersPage() {
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Última visita</th>
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Sem voltar</th>
                 <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Fidelidade</th>
-                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-6 py-3 font-normal">Ações</th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-on-surface-variant px-3 py-3 font-normal">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
@@ -304,8 +304,8 @@ export default function CustomersPage() {
                     </td>
 
                     {/* Coluna 6: Ações */}
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2 justify-end">
+                    <td className="px-3 py-4">
+                      <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setOfferCustomer(customer)}
