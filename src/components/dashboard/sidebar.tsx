@@ -42,7 +42,9 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
         {/* Nav */}
         <nav className="flex flex-col gap-1 flex-grow">
           {NAV_ITEMS.map(({ href, icon, label }) => {
-            const active = pathname === href
+            const active = href === '/dashboard'
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`)
             return (
               <Link
                 key={href}
@@ -65,6 +67,17 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
           })}
 
           <div className="mt-auto pt-4 border-t border-outline-variant space-y-1">
+            <Link
+              href="/dashboard/support"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
+                pathname === '/dashboard/support' || pathname.startsWith('/dashboard/support/')
+                  ? 'bg-primary-container text-on-primary-container'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[22px]">support_agent</span>
+              <span className="text-sm font-medium font-mono">Suporte</span>
+            </Link>
             <Link
               href="/dashboard/settings"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${

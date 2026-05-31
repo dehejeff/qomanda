@@ -5,6 +5,10 @@ import { formatCurrency } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { toast } from 'sonner'
+import { paymentMethodLabel } from '@/lib/payment-receipt'
+import { BRAZIL_BANKS } from '@/lib/brazil-banks'
+import type { PayoutBankAccountDto } from '@/app/api/dashboard/payout/bank-account/route'
+import type { WhatsAppIntegrationDto } from '@/app/api/dashboard/integrations/whatsapp/route'
 import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 
 type Tab = 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
@@ -18,11 +22,48 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 const MOCK_TRANSACTIONS = [
-  { id: 'TRX-99281-Q', date: '24 Out, 2023', time: '14:20', amount: 450.20,  status: 'paid',    method: 'credit', label: 'Visa •••• 4242' },
-  { id: 'TRX-99275-Q', date: '24 Out, 2023', time: '13:15', amount: 1280.00, status: 'pending', method: 'pix',    label: 'PIX Instantâneo' },
-  { id: 'TRX-99102-Q', date: '23 Out, 2023', time: '21:44', amount: 89.90,   status: 'paid',    method: 'credit', label: 'Master •••• 9012' },
-  { id: 'TRX-99088-Q', date: '23 Out, 2023', time: '19:20', amount: 215.50,  status: 'paid',    method: 'credit', label: 'Visa •••• 4242' },
+  { id: 'TRX-99281-Q', date: '24 Out, 2023', time: '14:20', amount: 450.20,  status: 'paid',    method: 'credit', label: 'Crédito' },
+  { id: 'TRX-99275-Q', date: '24 Out, 2023', time: '13:15', amount: 1280.00, status: 'pending', method: 'pix',    label: 'PIX' },
+  { id: 'TRX-99102-Q', date: '23 Out, 2023', time: '21:44', amount: 89.90,   status: 'paid',    method: 'cash',   label: 'Dinheiro' },
+  { id: 'TRX-99088-Q', date: '23 Out, 2023', time: '19:20', amount: 215.50,  status: 'paid',    method: 'debit',  label: 'Débito' },
 ]
+
+type PaymentTxRow = {
+  id: string
+  amount: number
+  method: string
+  status: string
+  created_at: string
+  paid_at: string | null
+  confirmation_code: string | null
+  customer?: { first_name?: string; last_name?: string } | null
+}
+
+const PAYMENT_STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  paid:       { label: 'Pago',      className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+  pending:    { label: 'Pendente',  className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  processing: { label: 'Processando', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+  failed:     { label: 'Falhou',    className: 'bg-red-500/10 text-red-400 border-red-500/20' },
+  refunded:   { label: 'Estornado', className: 'bg-surface-container-high text-on-surface-variant border-outline-variant' },
+}
+
+function paymentMethodIcon(method: string) {
+  switch (method) {
+    case 'pix': return 'qr_code_2'
+    case 'cash': return 'payments'
+    case 'offer': return 'redeem'
+    case 'debit': return 'credit_card'
+    default: return 'contactless'
+  }
+}
+
+function formatTxDate(iso: string) {
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
 
 const BENEFIT_OPTIONS: { value: LoyaltyBenefitType; label: string; icon: string }[] = [
   { value: 'free_drink',   label: 'Bebida grátis',  icon: 'local_bar' },
@@ -57,9 +98,68 @@ export default function SettingsPage() {
   const [newBenefitType, setNewBenefitType] = useState<LoyaltyBenefitType>('free_drink')
   const [newBenefitValue, setNewBenefitValue] = useState('')
 
+  const [paymentTxs, setPaymentTxs] = useState<PaymentTxRow[]>([])
+  const [paymentsLoading, setPaymentsLoading] = useState(true)
+  const [txSearch, setTxSearch] = useState('')
+  const [paymentStats, setPaymentStats] = useState({
+    todayTotal: 0,
+    todayCount: 0,
+    pendingCash: 0,
+    pendingDigital: 0,
+  })
+
+  const loadPayments = useCallback(async (rid: string) => {
+    if (DEV_BYPASS) {
+      setPaymentTxs([])
+      setPaymentStats({ todayTotal: 14280.5, todayCount: 4, pendingCash: 1, pendingDigital: 1 })
+      setPaymentsLoading(false)
+      return
+    }
+
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('payments')
+      .select('id, amount, method, status, created_at, paid_at, confirmation_code, customer:customers(first_name, last_name)')
+      .eq('restaurant_id', rid)
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    const rows = (data ?? []) as PaymentTxRow[]
+    setPaymentTxs(rows)
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayMs = todayStart.getTime()
+
+    let todayTotal = 0
+    let todayCount = 0
+    let pendingCash = 0
+    let pendingDigital = 0
+
+    for (const p of rows) {
+      if (p.status === 'pending' || p.status === 'processing') {
+        if (p.method === 'cash') pendingCash++
+        else pendingDigital++
+      }
+      if (p.status === 'paid' && p.paid_at && new Date(p.paid_at).getTime() >= todayMs) {
+        todayTotal += Number(p.amount)
+        todayCount++
+      }
+    }
+
+    setPaymentStats({
+      todayTotal: Math.round(todayTotal * 100) / 100,
+      todayCount,
+      pendingCash,
+      pendingDigital,
+    })
+    setPaymentsLoading(false)
+  }, [])
+
   const loadRules = useCallback(async () => {
     if (DEV_BYPASS) {
       setRules(INITIAL_RULES)
+      void loadPayments('mock')
       return
     }
     const supabase = createClient()
@@ -69,13 +169,14 @@ export default function SettingsPage() {
       .from('restaurants').select('id').eq('owner_id', user.id).single()
     if (!restaurant) return
     setRestaurantId(restaurant.id)
+    void loadPayments(restaurant.id)
     const { data } = await supabase
       .from('loyalty_rules')
       .select('id, rule_type, visit_count, min_spend, benefit_type, benefit_value, active')
       .eq('restaurant_id', restaurant.id)
       .order('created_at')
     setRules((data ?? []) as LoyaltyRule[])
-  }, [])
+  }, [loadPayments])
 
   useEffect(() => {
     loadRules().catch(() => {})
@@ -140,77 +241,235 @@ export default function SettingsPage() {
     BENEFIT_OPTIONS.find(o => o.value === type)?.icon ?? 'redeem'
 
   // WhatsApp / Integrações state
-  const [wpPhoneId, setWpPhoneId]       = useState('')
-  const [wpToken, setWpToken]           = useState('')
+  const [wpPhoneId, setWpPhoneId] = useState('')
+  const [wpToken, setWpToken] = useState('')
   const [wpNfeEnabled, setWpNfeEnabled] = useState(false)
-  const [wpSaving, setWpSaving]         = useState(false)
-  const [wpTesting, setWpTesting]       = useState(false)
+  const [wpIntegration, setWpIntegration] = useState<WhatsAppIntegrationDto | null>(null)
+  const [wpLoading, setWpLoading] = useState(true)
+  const [wpSaving, setWpSaving] = useState(false)
+  const [wpTesting, setWpTesting] = useState(false)
+  const [wpTestPhone, setWpTestPhone] = useState('')
 
-  // Asaas (marketplace / recebimento) state
-  const [asaasWalletId, setAsaasWalletId] = useState<string | null>(null)
-  const [asaasStatus, setAsaasStatus]     = useState<string>('pending')
-  const [asaasSaving, setAsaasSaving]     = useState(false)
-  const [asaasForm, setAsaasForm] = useState({
-    email: '', cpfCnpj: '', mobilePhone: '', incomeValue: '',
-    address: '', addressNumber: '', province: '', postalCode: '',
+  // Conta bancária de repasse (Qomanda Pay)
+  const [payoutAccount, setPayoutAccount] = useState<PayoutBankAccountDto | null>(null)
+  const [payoutLoading, setPayoutLoading] = useState(true)
+  const [payoutSaving, setPayoutSaving] = useState(false)
+  const [editingBank, setEditingBank] = useState(false)
+  const [bankForm, setBankForm] = useState({
+    holderName: '',
+    document: '',
+    bankCode: '341',
+    bankName: 'Itaú',
+    agency: '',
+    account: '',
+    accountDigit: '',
+    accountType: 'checking' as 'checking' | 'savings',
   })
 
-  const loadAsaas = useCallback(async () => {
-    if (DEV_BYPASS) return
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from('restaurants')
-      .select('asaas_wallet_id, asaas_onboarding_status')
-      .eq('owner_id', user.id)
-      .single()
-    if (data) {
-      setAsaasWalletId(data.asaas_wallet_id ?? null)
-      setAsaasStatus(data.asaas_onboarding_status ?? 'pending')
+  const loadPayoutAccount = useCallback(async () => {
+    if (DEV_BYPASS) {
+      setPayoutAccount({
+        configured: false,
+        holderName: null,
+        document: null,
+        bankCode: null,
+        bankName: null,
+        bankAgency: null,
+        bankAccountMasked: null,
+        accountType: null,
+        configuredAt: null,
+        digitalStatus: 'inactive',
+        digitalStatusLabel: 'Aguardando cadastro bancário',
+      })
+      setPayoutLoading(false)
+      return
+    }
+    try {
+      const res = await fetch('/api/dashboard/payout/bank-account')
+      const data = await res.json()
+      if (res.ok && data.account) {
+        setPayoutAccount(data.account as PayoutBankAccountDto)
+        if (data.account.configured) {
+          setBankForm(prev => ({
+            ...prev,
+            holderName: data.account.holderName ?? '',
+            document: data.account.document ?? '',
+            bankCode: data.account.bankCode ?? prev.bankCode,
+            bankName: data.account.bankName ?? prev.bankName,
+            agency: data.account.bankAgency ?? '',
+            accountType: data.account.accountType ?? 'checking',
+          }))
+        }
+      }
+    } finally {
+      setPayoutLoading(false)
     }
   }, [])
 
-  useEffect(() => { loadAsaas().catch(() => {}) }, [loadAsaas])
+  useEffect(() => { loadPayoutAccount().catch(() => {}) }, [loadPayoutAccount])
 
-  async function submitAsaasOnboarding() {
-    const f = asaasForm
-    if (!f.email || !f.cpfCnpj || !f.mobilePhone || !f.incomeValue || !f.address || !f.addressNumber || !f.province || !f.postalCode) {
-      toast.error('Preencha todos os campos para criar a conta de recebimento.')
+  const loadWhatsApp = useCallback(async () => {
+    if (DEV_BYPASS) {
+      setWpIntegration({
+        phoneNumberId: null,
+        hasToken: false,
+        tokenMasked: null,
+        nfeAutoSendEnabled: false,
+        status: 'disconnected',
+        statusLabel: 'Pendente',
+      })
+      setWpLoading(false)
       return
     }
-    setAsaasSaving(true)
     try {
-      const res = await fetch('/api/dashboard/asaas/onboard', {
+      const res = await fetch('/api/dashboard/integrations/whatsapp')
+      const data = await res.json()
+      if (res.ok && data.integration) {
+        const integration = data.integration as WhatsAppIntegrationDto
+        setWpIntegration(integration)
+        setWpPhoneId(integration.phoneNumberId ?? '')
+        setWpNfeEnabled(integration.nfeAutoSendEnabled)
+      }
+    } finally {
+      setWpLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadWhatsApp().catch(() => {}) }, [loadWhatsApp])
+
+  async function submitBankAccount() {
+    setPayoutSaving(true)
+    try {
+      const selectedBank = BRAZIL_BANKS.find(b => b.code === bankForm.bankCode)
+      const res = await fetch('/api/dashboard/payout/bank-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...f, incomeValue: Number(f.incomeValue.replace(',', '.')) }),
+        body: JSON.stringify({
+          ...bankForm,
+          bankName: selectedBank?.name ?? bankForm.bankName,
+        }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar conta.')
-      setAsaasWalletId(data.walletId)
-      setAsaasStatus(data.status ?? 'submitted')
-      toast.success('Conta de recebimento criada! Em análise pelo Asaas.')
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar conta.')
+      setPayoutAccount(data.account as PayoutBankAccountDto)
+      setEditingBank(false)
+      toast.success(data.message ?? 'Conta bancária salva!')
+      if (restaurantId) void loadPayments(restaurantId)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar conta.')
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar conta.')
     } finally {
-      setAsaasSaving(false)
+      setPayoutSaving(false)
     }
   }
 
   async function saveWhatsApp() {
     setWpSaving(true)
-    await new Promise(r => setTimeout(r, 800)) // mock save
-    setWpSaving(false)
-    alert('Configurações de WhatsApp salvas! (conecte ao Supabase para persistir)')
+    try {
+      const res = await fetch('/api/dashboard/integrations/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumberId: wpPhoneId,
+          accessToken: wpToken,
+          nfeAutoSendEnabled: wpNfeEnabled,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar WhatsApp.')
+      setWpIntegration(data.integration as WhatsAppIntegrationDto)
+      setWpToken('')
+      toast.success(data.message ?? 'WhatsApp salvo!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar WhatsApp.')
+    } finally {
+      setWpSaving(false)
+    }
   }
 
   async function testWhatsApp() {
     setWpTesting(true)
-    await new Promise(r => setTimeout(r, 1500))
-    setWpTesting(false)
-    alert('Mensagem de teste enviada! Verifique o número cadastrado.')
+    try {
+      const res = await fetch('/api/dashboard/integrations/whatsapp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: wpTestPhone }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao enviar teste.')
+      toast.success(data.mock ? 'Teste simulado (dev). Verifique o console.' : 'Mensagem de teste enviada!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar teste.')
+    } finally {
+      setWpTesting(false)
+    }
   }
+
+  const filteredPaymentTxs = paymentTxs.filter(tx => {
+    if (!txSearch.trim()) return true
+    const q = txSearch.trim().toLowerCase()
+    const name = tx.customer
+      ? `${tx.customer.first_name ?? ''} ${tx.customer.last_name ?? ''}`.trim().toLowerCase()
+      : ''
+    return tx.id.toLowerCase().includes(q)
+      || (tx.confirmation_code ?? '').toLowerCase().includes(q)
+      || name.includes(q)
+  })
+
+  type DisplayTx = {
+    id: string
+    date: string
+    time: string
+    amount: number
+    status: string
+    method: string
+    label: string
+    customerName: string
+  }
+
+  const displayTransactions: DisplayTx[] = DEV_BYPASS && paymentTxs.length === 0
+    ? MOCK_TRANSACTIONS.map(tx => ({ ...tx, customerName: '—' }))
+    : filteredPaymentTxs.map(tx => ({
+        id: tx.id,
+        ...formatTxDate(tx.paid_at ?? tx.created_at),
+        amount: Number(tx.amount),
+        status: tx.status,
+        method: tx.method,
+        label: paymentMethodLabel(tx.method),
+        customerName: tx.customer
+          ? `${tx.customer.first_name ?? ''} ${tx.customer.last_name ?? ''}`.trim() || '—'
+          : '—',
+      }))
+
+  function exportPaymentsCsv() {
+    const rows = DEV_BYPASS && paymentTxs.length === 0
+      ? MOCK_TRANSACTIONS
+      : filteredPaymentTxs.map(tx => ({
+          id: tx.id,
+          date: tx.paid_at ?? tx.created_at,
+          amount: Number(tx.amount),
+          status: tx.status,
+          method: paymentMethodLabel(tx.method),
+        }))
+    if (rows.length === 0) {
+      toast.message('Nenhuma transação para exportar.')
+      return
+    }
+    const header = 'id,data,valor,status,metodo\n'
+    const body = rows.map(r =>
+      `${r.id},${r.date},${r.amount},${r.status},${r.method}`,
+    ).join('\n')
+    const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qomanda-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const digitalActive = payoutAccount?.digitalStatus === 'active'
+  const digitalPending = payoutAccount?.digitalStatus === 'pending'
+  const bankConfigured = payoutAccount?.configured ?? false
 
   return (
     <div className="space-y-stack-lg">
@@ -246,52 +505,213 @@ export default function SettingsPage() {
       {/* ── PAGAMENTOS ─────────────────────────────────── */}
       {tab === 'pagamentos' && (
         <div className="space-y-card-gap">
-          {/* Stripe + Status */}
+          {/* Qomanda Pay + conta bancária */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
-            <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full pointer-events-none bg-primary/5 blur-[60px]" />
-              <div className="w-16 h-16 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-3">
-                <span className="font-bold text-lg text-purple-600">stripe</span>
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                  <h2 className="text-base font-semibold text-on-surface">Stripe Checkout</h2>
-                  <span className="px-2 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    Conectado
-                  </span>
+            <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                  <span className="material-symbols-outlined text-[28px] text-primary">account_balance</span>
                 </div>
-                <p className="text-sm text-on-surface-variant max-w-md">
-                  Sua conta Stripe está ativa e processando pagamentos. Gerencie taxas, reembolsos e extratos no painel oficial.
-                </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h2 className="text-base font-semibold text-on-surface">Qomanda Pay</h2>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider rounded border ${
+                      digitalActive
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : digitalPending || bankConfigured
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : 'bg-surface-container-high text-on-surface-variant border-outline-variant'
+                    }`}>
+                      {payoutLoading ? '…' : (payoutAccount?.digitalStatusLabel ?? 'Aguardando cadastro')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-on-surface-variant leading-relaxed">
+                    Informe a conta bancária do restaurante para receber repasses de PIX, crédito e débito.
+                    Pagamentos em dinheiro na mesa não passam por aqui — são confirmados manualmente.
+                  </p>
+                </div>
               </div>
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-surface-container-high border border-outline-variant rounded-lg text-sm font-mono text-on-surface hover:bg-surface-container-highest transition-colors shrink-0">
-                Gerenciar Stripe
-                <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-              </button>
+
+              {payoutLoading ? (
+                <p className="text-sm font-mono text-on-surface-variant">Carregando...</p>
+              ) : bankConfigured && !editingBank && payoutAccount ? (
+                <div className="rounded-xl border border-outline-variant bg-surface-container-low p-5 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-2">Conta de destino</p>
+                      <p className="text-sm font-semibold text-on-surface">{payoutAccount.bankName}</p>
+                      <p className="text-sm font-mono text-on-surface-variant mt-1">
+                        Ag. {payoutAccount.bankAgency} · {payoutAccount.bankAccountMasked}
+                        {' · '}{payoutAccount.accountType === 'savings' ? 'Poupança' : 'Corrente'}
+                      </p>
+                      <p className="text-xs text-on-surface-variant mt-2">
+                        Titular: {payoutAccount.holderName}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBank(true)}
+                      className="flex items-center gap-1 text-sm font-mono text-on-surface-variant hover:text-on-surface transition-colors shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                      Alterar
+                    </button>
+                  </div>
+                  {digitalPending && (
+                    <p className="text-xs text-amber-400/90 leading-relaxed border-t border-outline-variant pt-3">
+                      Sua conta bancária foi recebida e está em validação. Assim que aprovada, PIX e cartão ficam liberados para os clientes.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+                    {bankConfigured ? 'Alterar conta bancária' : 'Dados bancários e contratuais'}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Titular da conta</label>
+                      <input
+                        value={bankForm.holderName}
+                        onChange={e => setBankForm(p => ({ ...p, holderName: e.target.value }))}
+                        placeholder="Razão social ou nome do titular"
+                        className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">CPF ou CNPJ do titular</label>
+                      <input
+                        value={bankForm.document}
+                        onChange={e => setBankForm(p => ({ ...p, document: e.target.value }))}
+                        placeholder="Mesmo CNPJ/CPF do cadastro da loja"
+                        inputMode="numeric"
+                        className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Banco</label>
+                      <select
+                        value={bankForm.bankCode}
+                        onChange={e => {
+                          const bank = BRAZIL_BANKS.find(b => b.code === e.target.value)
+                          setBankForm(p => ({ ...p, bankCode: e.target.value, bankName: bank?.name ?? p.bankName }))
+                        }}
+                        className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      >
+                        {BRAZIL_BANKS.map(b => (
+                          <option key={b.code} value={b.code}>{b.code} — {b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Agência</label>
+                      <input
+                        value={bankForm.agency}
+                        onChange={e => setBankForm(p => ({ ...p, agency: e.target.value }))}
+                        placeholder="0000"
+                        inputMode="numeric"
+                        className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Conta</label>
+                      <input
+                        value={bankForm.account}
+                        onChange={e => setBankForm(p => ({ ...p, account: e.target.value }))}
+                        placeholder="00000000"
+                        inputMode="numeric"
+                        className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Dígito</label>
+                      <input
+                        value={bankForm.accountDigit}
+                        onChange={e => setBankForm(p => ({ ...p, accountDigit: e.target.value }))}
+                        placeholder="0"
+                        inputMode="numeric"
+                        className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Tipo de conta</label>
+                      <div className="flex gap-2">
+                        {([
+                          { id: 'checking' as const, label: 'Corrente' },
+                          { id: 'savings' as const, label: 'Poupança' },
+                        ]).map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setBankForm(p => ({ ...p, accountType: opt.id }))}
+                            className={`px-4 py-2 rounded-lg text-xs font-mono border transition-colors ${
+                              bankForm.accountType === opt.id
+                                ? 'bg-primary-container text-on-primary-container border-primary/30'
+                                : 'border-outline-variant text-on-surface-variant'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={submitBankAccount}
+                      disabled={payoutSaving}
+                      className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 disabled:opacity-40"
+                    >
+                      {payoutSaving ? 'Salvando...' : 'Salvar conta bancária'}
+                    </button>
+                    {bankConfigured && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingBank(false)}
+                        className="h-10 px-5 rounded-lg text-sm font-mono border border-outline-variant text-on-surface-variant"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-on-surface-variant leading-relaxed">
+                    O repasse só pode ser feito em conta vinculada ao CNPJ (ou CPF do titular, se MEI) cadastrado no restaurante.
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="bg-surface-container border border-outline-variant rounded-xl p-5 flex flex-col justify-between">
+            <div className="bg-surface-container border border-outline-variant rounded-xl p-4 self-start space-y-3">
               <div>
-                <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-2">Status do Terminal</p>
-                <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Operacional
+                <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1.5">Métodos habilitados</p>
+                <h3 className="text-base font-semibold text-on-surface flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${digitalActive || digitalPending ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  {digitalActive || digitalPending ? 'Digital + Dinheiro' : 'Só dinheiro'}
                 </h3>
               </div>
-              <div className="mt-4 pt-4 border-t border-outline-variant">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm text-on-surface-variant">Última sincronização</span>
-                  <span className="text-sm font-mono text-on-surface">Há 2 min</span>
-                </div>
-                <button className="w-full py-2 text-sm font-mono flex items-center justify-center gap-1 text-primary hover:underline transition-colors">
-                  Ver logs técnicos
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
+              <div className="pt-3 border-t border-outline-variant space-y-2">
+                {[
+                  { icon: 'qr_code_2', label: 'PIX', ok: digitalActive || digitalPending },
+                  { icon: 'contactless', label: 'Crédito / Débito', ok: digitalActive || digitalPending },
+                  { icon: 'payments', label: 'Dinheiro (manual)', ok: true },
+                ].map(m => (
+                  <div key={m.label} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-on-surface-variant font-mono">
+                      <span className="material-symbols-outlined text-[16px]">{m.icon}</span>
+                      {m.label}
+                    </span>
+                    <span className={`text-[10px] font-mono uppercase ${m.ok ? 'text-emerald-400' : 'text-on-surface-variant opacity-50'}`}>
+                      {m.ok ? 'Ativo' : 'Cadastre a conta'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Payout + Bank */}
+          {/* Resumo do dia + pendências */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-card-gap">
             <div className="bg-surface-container border border-outline-variant rounded-xl p-6 flex flex-col">
               <div className="flex justify-between items-start mb-6">
@@ -301,50 +721,44 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Próximo Repasse</p>
-                  <p className="text-sm font-mono text-primary">24 Out, 2023</p>
+                  <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Hoje</p>
+                  <p className="text-sm font-mono text-primary">{new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
               <div className="flex-1">
-                <span className="text-xs font-mono text-on-surface-variant">Valor Estimado</span>
+                <span className="text-xs font-mono text-on-surface-variant">Recebido hoje (confirmados)</span>
                 <h3 className="text-3xl font-bold text-on-surface mt-1" style={{ fontFamily: 'Geist, sans-serif' }}>
-                  R$ 14.280,50
+                  {paymentsLoading ? '…' : formatCurrency(paymentStats.todayTotal)}
                 </h3>
               </div>
-              <div className="mt-4 flex items-center gap-2 text-xs font-mono px-3 py-2 rounded-lg w-fit bg-emerald-500/5 text-emerald-400 border border-emerald-500/10">
-                <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +12.4% em relação à semana anterior
+              <div className="mt-4 flex items-center gap-2 text-xs font-mono px-3 py-2 rounded-lg w-fit bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                {paymentsLoading ? '…' : `${paymentStats.todayCount} pagamento${paymentStats.todayCount !== 1 ? 's' : ''} hoje`}
               </div>
             </div>
 
             <div className="bg-surface-container border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div className="p-3 rounded-lg bg-surface-container-highest">
-                  <span className="material-symbols-outlined text-[22px] text-on-surface">account_balance</span>
+                  <span className="material-symbols-outlined text-[22px] text-on-surface">hourglass_top</span>
                 </div>
-                <button className="flex items-center gap-1 text-sm font-mono text-on-surface-variant hover:text-on-surface transition-colors">
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  Editar
-                </button>
               </div>
               <div className="mt-6">
-                <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-2">Conta Bancária de Destino</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center font-bold text-xs text-on-surface">
-                    ITAÚ
+                <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-2">Aguardando confirmação</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-on-surface-variant">Dinheiro na mesa</span>
+                    <span className="text-lg font-bold font-mono text-amber-400">{paymentStats.pendingCash}</span>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-on-surface">•••• 8821</h4>
-                    <p className="text-xs text-on-surface-variant">Banco Itaú Unibanco S.A. · Corrente</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-on-surface-variant">PIX / cartão</span>
+                    <span className="text-lg font-bold font-mono text-on-surface">{paymentStats.pendingDigital}</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="flex-1 h-1 rounded-full overflow-hidden bg-surface-container-highest">
-                  <div className="h-full w-[85%] rounded-full bg-primary-container" />
-                </div>
-                <span className="text-[10px] font-mono text-on-surface-variant whitespace-nowrap">Verificação: 85%</span>
-              </div>
+              <p className="mt-4 text-[10px] font-mono text-on-surface-variant leading-relaxed">
+                Confirme pagamentos em dinheiro no mapa de mesas ou em Pedidos · Mesa.
+              </p>
             </div>
           </div>
 
@@ -353,84 +767,91 @@ export default function SettingsPage() {
             <div className="px-6 py-5 border-b border-outline-variant flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-on-surface">Histórico de Transações</h2>
-                <p className="text-sm text-on-surface-variant">Visualize e exporte o registro de todos os recebimentos.</p>
+                <p className="text-sm text-on-surface-variant">Pagamentos registrados no Qomanda (últimos 100).</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
                   <input
+                    value={txSearch}
+                    onChange={e => setTxSearch(e.target.value)}
                     className="h-9 pl-9 pr-4 rounded-lg text-sm outline-none w-44 bg-surface-container-low border border-outline-variant text-on-surface focus:border-primary transition-colors"
-                    placeholder="Buscar ref..."
+                    placeholder="Buscar..."
                   />
                 </div>
-                <button className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors">
+                <button
+                  type="button"
+                  onClick={exportPaymentsCsv}
+                  className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                >
                   <span className="material-symbols-outlined text-[16px]">download</span>
                   CSV
                 </button>
               </div>
             </div>
             <div className="overflow-x-auto">
+              {paymentsLoading ? (
+                <div className="py-16 text-center text-sm font-mono text-on-surface-variant">Carregando transações...</div>
+              ) : displayTransactions.length === 0 ? (
+                <div className="py-16 text-center">
+                  <span className="material-symbols-outlined text-[40px] text-on-surface-variant opacity-30 mb-2 block">payments</span>
+                  <p className="text-sm font-mono text-on-surface-variant">Nenhum pagamento registrado ainda.</p>
+                </div>
+              ) : (
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-surface-container-low">
-                    {['Data', 'Referência ID', 'Valor', 'Status', 'Método', ''].map((h, i) => (
-                      <th key={i} className="px-6 py-3 text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+                    {['Data', 'Referência', 'Cliente', 'Valor', 'Status', 'Método'].map((h) => (
+                      <th key={h} className="px-6 py-3 text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
-                  {MOCK_TRANSACTIONS.map(tx => (
+                  {displayTransactions.map(tx => {
+                    const statusMeta = PAYMENT_STATUS_LABEL[tx.status] ?? PAYMENT_STATUS_LABEL.pending
+                    return (
                     <tr key={tx.id} className="group hover:bg-surface-container-high transition-colors">
                       <td className="px-6 py-4">
                         <div className="text-sm text-on-surface">{tx.date}</div>
                         <div className="text-xs text-on-surface-variant">{tx.time}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-mono text-primary">#{tx.id}</td>
+                      <td className="px-6 py-4 text-sm font-mono text-primary">#{tx.id.slice(-8).toUpperCase()}</td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {tx.customerName}
+                      </td>
                       <td className="px-6 py-4 text-right text-lg font-semibold text-on-surface">
                         {formatCurrency(tx.amount)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {tx.status === 'paid' ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            Pago
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            Pendente
-                          </span>
-                        )}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono border ${statusMeta.className}`}>
+                          {statusMeta.label}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-sm font-mono text-on-surface-variant">
                           <span className="material-symbols-outlined text-[16px]">
-                            {tx.method === 'pix' ? 'qr_code_2' : 'credit_card'}
+                            {paymentMethodIcon(tx.method)}
                           </span>
                           {tx.label}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-on-surface-variant hover:text-on-surface">
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
-                      </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
+              )}
             </div>
-            <div className="px-6 py-4 bg-surface-container-low flex items-center justify-between">
-              <p className="text-xs font-mono text-on-surface-variant">Mostrando 4 de 2.450 transações</p>
-              <div className="flex gap-2">
-                <button disabled className="h-8 w-8 rounded-lg flex items-center justify-center border border-outline-variant opacity-30 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-                </button>
-                <button className="h-8 w-8 rounded-lg flex items-center justify-center border border-outline-variant text-on-surface-variant hover:bg-surface-container-highest transition-colors">
-                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                </button>
-              </div>
+            {!paymentsLoading && displayTransactions.length > 0 && (
+            <div className="px-6 py-4 bg-surface-container-low">
+              <p className="text-xs font-mono text-on-surface-variant">
+                Mostrando {displayTransactions.length} transação{displayTransactions.length !== 1 ? 'ões' : ''}
+                {txSearch.trim() ? ' (filtradas)' : ''}
+              </p>
             </div>
+            )}
           </div>
         </div>
       )}
@@ -664,86 +1085,6 @@ export default function SettingsPage() {
       {tab === 'integracoes' && (
         <div className="space-y-card-gap">
 
-          {/* Asaas — Conta de recebimento (marketplace/split) */}
-          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-            <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant"
-              style={{ background: 'linear-gradient(135deg, rgba(0,176,255,0.08), transparent)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                style={{ background: 'rgba(0,176,255,0.12)', border: '1px solid rgba(0,176,255,0.2)' }}>
-                🏦
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-on-surface">Conta de Recebimento (Asaas)</h3>
-                <p className="text-sm text-on-surface-variant mt-0.5">
-                  Receba os pagamentos dos clientes direto na sua conta. A Qomanda repassa o valor automaticamente, já descontando a taxa do seu plano.
-                </p>
-              </div>
-              {asaasWalletId ? (
-                <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  {asaasStatus === 'approved' ? 'ATIVA' : 'EM ANÁLISE'}
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  CONFIGURAR
-                </span>
-              )}
-            </div>
-
-            <div className="px-6 py-5">
-              {asaasWalletId ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px] text-emerald-400">check_circle</span>
-                    <div>
-                      <p className="text-sm font-semibold text-on-surface">Conta conectada</p>
-                      <p className="text-xs font-mono text-on-surface-variant">Wallet: {asaasWalletId}</p>
-                    </div>
-                  </div>
-                  {asaasStatus !== 'approved' && (
-                    <div className="px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low">
-                      <p className="text-xs text-on-surface-variant leading-relaxed">
-                        Sua conta está <span className="font-semibold text-on-surface">em análise pelo Asaas</span>. Você já pode receber, mas a liberação dos saques depende da aprovação dos documentos (KYC) no painel do Asaas.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { key: 'email',        label: 'E-mail',            ph: 'contato@restaurante.com', mode: 'email' },
-                      { key: 'cpfCnpj',      label: 'CPF ou CNPJ',       ph: 'Apenas números', mode: 'numeric' },
-                      { key: 'mobilePhone',  label: 'Celular',           ph: '(11) 99999-9999', mode: 'tel' },
-                      { key: 'incomeValue',  label: 'Faturamento mensal estimado (R$)', ph: 'Ex: 50000', mode: 'decimal' },
-                      { key: 'postalCode',   label: 'CEP',               ph: 'Apenas números', mode: 'numeric' },
-                      { key: 'address',      label: 'Endereço',          ph: 'Rua / Avenida', mode: 'text' },
-                      { key: 'addressNumber',label: 'Número',            ph: '123', mode: 'text' },
-                      { key: 'province',     label: 'Bairro',            ph: 'Centro', mode: 'text' },
-                    ].map(f => (
-                      <div key={f.key} className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">{f.label}</label>
-                        <input
-                          value={(asaasForm as Record<string, string>)[f.key]}
-                          onChange={e => setAsaasForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                          placeholder={f.ph}
-                          inputMode={f.mode as React.HTMLAttributes<HTMLInputElement>['inputMode']}
-                          className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors placeholder:text-on-surface-variant/40"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={submitAsaasOnboarding} disabled={asaasSaving}
-                    className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-40">
-                    {asaasSaving ? 'Criando conta...' : 'Criar conta de recebimento'}
-                  </button>
-                  <p className="text-[10px] text-on-surface-variant opacity-60 leading-relaxed">
-                    Ao criar, abrimos uma subconta Asaas vinculada ao seu restaurante. Os documentos para liberação de saque são enviados depois, no painel do Asaas.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* WhatsApp Business */}
           <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
             <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant"
@@ -755,15 +1096,25 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-on-surface">WhatsApp Business API</h3>
                 <p className="text-sm text-on-surface-variant mt-0.5">
-                  Envie automaticamente a nota de pagamento e NF-e para o WhatsApp do cliente após cada transação.
+                  Envie automaticamente a NF-e emitida pelo restaurante para o WhatsApp do cliente após cada pagamento.
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-                CONFIGURAR
+              <span className={`text-[10px] font-mono px-2 py-1 rounded border ${
+                wpIntegration?.status === 'auto_send'
+                  ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+                  : wpIntegration?.status === 'connected'
+                    ? 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+                    : 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+              }`}>
+                {wpLoading ? '…' : (wpIntegration?.statusLabel ?? 'PENDENTE').toUpperCase()}
               </span>
             </div>
 
             <div className="px-6 py-5 space-y-4">
+              {wpLoading ? (
+                <p className="text-sm text-on-surface-variant">Carregando integração…</p>
+              ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
@@ -784,7 +1135,7 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="password" value={wpToken} onChange={e => setWpToken(e.target.value)}
-                    placeholder="EAAxxxxxxxxxxxxx..."
+                    placeholder={wpIntegration?.hasToken ? `Salvo (${wpIntegration.tokenMasked ?? '••••'}) — deixe vazio para manter` : 'EAAxxxxxxxxxxxxx...'}
                     className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
                   />
                   <p className="text-[10px] text-on-surface-variant opacity-60">
@@ -793,15 +1144,27 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1.5 max-w-sm">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                  Número para teste (opcional)
+                </label>
+                <input
+                  value={wpTestPhone} onChange={e => setWpTestPhone(e.target.value)}
+                  placeholder="Usa telefone comercial se vazio"
+                  inputMode="tel"
+                  className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
+                />
+              </div>
+
               {/* Toggle NF-e automática */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low border border-outline-variant">
                 <div>
-                  <p className="text-sm font-semibold text-on-surface">Enviar nota automaticamente após pagamento</p>
+                  <p className="text-sm font-semibold text-on-surface">Enviar NF-e automaticamente após pagamento</p>
                   <p className="text-xs text-on-surface-variant mt-0.5">
-                    O cliente recebe a nota no WhatsApp assim que o pagamento for confirmado
+                    O cliente recebe a nota fiscal no WhatsApp assim que o pagamento for confirmado
                   </p>
                 </div>
-                <button onClick={() => setWpNfeEnabled(v => !v)}
+                <button type="button" onClick={() => setWpNfeEnabled(v => !v)}
                   className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
                   style={{ background: wpNfeEnabled ? '#f97316' : '#2d3449' }}>
                   <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
@@ -809,16 +1172,18 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={saveWhatsApp} disabled={wpSaving || !wpPhoneId || !wpToken}
+              <div className="flex gap-3 flex-wrap">
+                <button type="button" onClick={saveWhatsApp} disabled={wpSaving || !wpPhoneId || (!wpToken && !wpIntegration?.hasToken)}
                   className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-40">
                   {wpSaving ? 'Salvando...' : 'Salvar configuração'}
                 </button>
-                <button onClick={testWhatsApp} disabled={wpTesting || !wpPhoneId || !wpToken}
+                <button type="button" onClick={testWhatsApp} disabled={wpTesting || !wpPhoneId || (!wpToken && !wpIntegration?.hasToken)}
                   className="h-10 px-5 rounded-lg text-sm font-mono border border-outline-variant text-on-surface-variant hover:bg-surface-container-highest transition-colors disabled:opacity-40">
                   {wpTesting ? 'Enviando...' : '📱 Enviar mensagem de teste'}
                 </button>
               </div>
+              </>
+              )}
             </div>
           </div>
 

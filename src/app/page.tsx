@@ -122,15 +122,15 @@ const FAQS = [
   },
   {
     q: 'Como funciona a taxa de transação?',
-    a: 'Cobramos uma pequena porcentagem apenas sobre pagamentos processados pelo Qomanda Pay (PIX, débito e crédito via Asaas). Se o cliente pagar em dinheiro ou na maquininha da casa, não há taxa Qomanda.',
+    a: 'Cobramos uma pequena porcentagem apenas sobre pagamentos processados pelo Qomanda Pay (PIX, débito e crédito). Se o cliente pagar em dinheiro ou na maquininha da casa, não há taxa Qomanda.',
   },
   {
     q: 'Posso usar sem integrar o pagamento?',
-    a: 'Sim. Cardápio digital, pedidos e gestão de mesas funcionam de forma independente. Você ativa o Qomanda Pay quando quiser — nossa equipe ajuda na configuração inicial com o Asaas.',
+    a: 'Sim. Cardápio digital, pedidos e gestão de mesas funcionam de forma independente. Você ativa o Qomanda Pay quando quiser — basta cadastrar a conta bancária de repasse no painel.',
   },
   {
     q: 'Quanto tempo leva para configurar?',
-    a: 'Em cerca de 30 minutos você cadastra o restaurante, monta o cardápio e gera os QR Codes das mesas. Pagamentos online exigem a conta Asaas — o onboarding leva mais um passo, com suporte nosso.',
+    a: 'Em cerca de 30 minutos você cadastra o restaurante, monta o cardápio e gera os QR Codes das mesas. Pagamentos online exigem cadastrar a conta bancária de repasse — leva poucos minutos.',
   },
   {
     q: 'Como funciona a fidelidade?',
@@ -298,7 +298,7 @@ export default function LandingPage() {
           <FeatureCard icon="shopping_cart" title="Pedidos em tempo real"
             desc="O cliente monta o pedido na mesa. A cozinha recebe na fila kanban do painel — pendente, preparando, pronto, entregue." />
           <FeatureCard icon="account_balance_wallet" title="Qomanda Pay"
-            desc="PIX, crédito e débito integrados via Asaas. Cartão salvo com senha de 6 dígitos. Divisão de conta automática por cliente." />
+            desc="PIX, crédito e débito integrados ao Qomanda Pay. Cartão salvo com senha de 6 dígitos. Divisão de conta automática por cliente." />
           <FeatureCard icon="groups" title="Divisão de conta inteligente"
             desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar." />
           <FeatureCard icon="workspace_premium" title="Fidelidade e ofertas"
@@ -468,7 +468,7 @@ export default function LandingPage() {
         <p className="text-center text-sm mt-8 max-w-xl mx-auto leading-relaxed" style={{ ...mono, color: C.faint }}>
           Todos os planos incluem 14 dias grátis · Sem taxa de setup · Cancele quando quiser
           <br />
-          <span style={{ color: C.muted }}>* Qomanda Pay requer conta Asaas — ajudamos na configuração inicial.</span>
+          <span style={{ color: C.muted }}>* Qomanda Pay exige conta bancária cadastrada no painel para repasses.</span>
         </p>
       </section>
 

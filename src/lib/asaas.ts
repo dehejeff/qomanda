@@ -1,31 +1,23 @@
 /**
- * Qomanda — Asaas API Client
+ * Qomanda — Asaas API Client (conta master — configurável no portal interno)
  * Documentação: https://docs.asaas.com
- *
- * Variáveis de ambiente necessárias:
- *   ASAAS_API_KEY       — chave de API (começa com $)
- *   ASAAS_ENVIRONMENT   — 'sandbox' | 'production'
  */
 
-const BASE_URL =
-  process.env.ASAAS_ENVIRONMENT === 'production'
-    ? 'https://www.asaas.com/api/v3'
-    : 'https://sandbox.asaas.com/api/v3'
-
-function apiKey() {
-  const key = process.env.ASAAS_API_KEY
-  if (!key) throw new Error('ASAAS_API_KEY não configurada.')
-  return key
-}
+import { asaasBaseUrl, getAsaasConfig } from '@/lib/asaas-config'
 
 async function request<T = unknown>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const config = await getAsaasConfig()
+  if (!config.apiKey) {
+    throw new Error('Gateway de pagamento não configurado.')
+  }
+
+  const res = await fetch(`${asaasBaseUrl(config.environment)}${path}`, {
     ...options,
     headers: {
-      access_token: apiKey(),
+      access_token: config.apiKey,
       'Content-Type': 'application/json',
       ...(options.headers ?? {}),
     },
@@ -39,6 +31,25 @@ async function request<T = unknown>(
   }
 
   return data as T
+}
+
+/** Testa credenciais sem usar cache — útil no portal interno. */
+export async function testAsaasConnection(): Promise<{ balance: number; environment: string }> {
+  const config = await getAsaasConfig()
+  if (!config.apiKey) throw new Error('API key não configurada.')
+
+  const res = await fetch(`${asaasBaseUrl(config.environment)}/finance/balance`, {
+    headers: { access_token: config.apiKey },
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    const msg = data?.errors?.[0]?.description ?? data?.message ?? 'Falha na conexão.'
+    throw new Error(msg)
+  }
+  return {
+    balance: Number(data.balance ?? 0),
+    environment: config.environment,
+  }
 }
 
 // ── Tipos ────────────────────────────────────────────────────

@@ -206,7 +206,7 @@ function PixScreen({
         )}
       </button>
       <p className="text-center text-[10px] font-mono" style={{ color: '#584237' }}>
-        A confirmação automática chega via webhook do Asaas em instantes.
+        A confirmação automática chega em instantes após o pagamento.
       </p>
     </div>
   )

@@ -60,7 +60,7 @@ export default function PrivacidadePage() {
         <p>Podemos compartilhar dados estritamente necessários com:</p>
         <ul className="list-disc pl-5 space-y-2">
           <li><strong>Supabase</strong> — hospedagem de banco de dados, autenticação e armazenamento de arquivos;</li>
-          <li><strong>Asaas</strong> — processamento de pagamentos (PIX, cartão), quando o restaurante utiliza essa integração;</li>
+          <li><strong>Processadores de pagamento</strong> — PIX, cartão e repasses ao restaurante, quando o Qomanda Pay está ativo;</li>
           <li><strong>Vercel</strong> — hospedagem da aplicação web;</li>
           <li><strong>Restaurante parceiro</strong> — dados de pedidos e visitas vinculados à operação do estabelecimento;</li>
           <li><strong>Autoridades</strong> — quando exigido por lei ou ordem judicial.</li>

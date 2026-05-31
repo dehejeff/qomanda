@@ -65,8 +65,8 @@ const PHASES = [
       {
         title: '1 · Pagamento self-service',
         items: [
-          'Settings → Pagamentos: conectar credenciais Asaas (sandbox/produção)',
-          'Validação de integração e status no painel',
+          'Settings → Pagamentos: cadastrar conta bancária de repasse (Qomanda Pay)',
+          'Validação da conta e status no painel',
           'Desligar modo teste (bypass) em produção',
         ],
       },
@@ -81,7 +81,7 @@ const PHASES = [
       {
         title: '3 · Operação',
         items: [
-          'Webhook Asaas robusto (retry, idempotência, logs)',
+          'Webhook de pagamentos robusto (retry, idempotência, logs)',
           'Botão "Chamar Garçom" — notificação no dashboard',
         ],
       },
@@ -192,7 +192,7 @@ const STATUS_SUMMARY = [
   { label: 'Cliente — Hub & segurança',     pct: 90, color: C.green  },
   { label: 'Dashboard — Operação',          pct: 95, color: C.green  },
   { label: 'Dashboard — Cardápio & QR',     pct: 92, color: C.green  },
-  { label: 'Pagamentos Asaas (self-service)', pct: 55, color: C.amber  },
+  { label: 'Qomanda Pay (self-service)', pct: 75, color: C.amber  },
   { label: 'NF-e',                          pct: 0,  color: C.red    },
   { label: 'Fidelidade',                    pct: 75, color: C.amber  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },

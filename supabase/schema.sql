@@ -36,7 +36,141 @@ create table if not exists restaurants (
   whatsapp_access_token text,
   whatsapp_nfe_enabled  boolean     not null default false,
 
+  -- Qomanda Pay — conta bancária de repasse (visível ao restaurante)
+  payout_holder_name    text,
+  payout_document       text,       -- CPF ou CNPJ do titular
+  bank_code             text,
+  bank_name             text,
+  bank_agency           text,
+  bank_account          text,
+  bank_account_digit    text,
+  bank_account_type     text check (bank_account_type is null or bank_account_type in ('checking', 'savings')),
+  payout_configured_at  timestamptz,
+
+  -- Qomanda Pay — provisionamento interno (não exposto ao restaurante)
+  asaas_account_id          text,
+  asaas_wallet_id           text,
+  asaas_onboarding_status   text not null default 'pending'
+                            check (asaas_onboarding_status in ('pending','submitted','approved','rejected')),
+  platform_fee_percent      numeric(5,2),
+  platform_fee_fixed        numeric(10,2),
+  plan_id                   text,
+
+  -- Perfil comercial / jurídico (cadastro interno)
+  business_type             text,
+  legal_name                text,
+  document_type             text check (document_type is null or document_type in ('cpf', 'cnpj')),
+  document_number           text,
+  company_type              text check (company_type is null or company_type in ('MEI', 'LIMITED', 'INDIVIDUAL', 'ASSOCIATION')),
+  owner_cpf                 text,
+  contact_email             text,
+  address_postal_code       text,
+  address_street            text,
+  address_number            text,
+  address_complement        text,
+  address_neighborhood      text,
+  address_city              text,
+  address_state             text,
+  estimated_monthly_revenue numeric(12,2),
+
+  -- NF-e (portal interno)
+  nfe_enabled              boolean not null default false,
+  nfe_status               text not null default 'disabled'
+                           check (nfe_status in ('disabled', 'pending', 'active', 'error')),
+  nfe_provider             text
+                           check (nfe_provider is null or nfe_provider in ('focusnfe', 'nfe_io', 'nota_simples', 'tecnospeed', 'other')),
+  nfe_environment          text not null default 'homologacao'
+                           check (nfe_environment in ('homologacao', 'producao')),
+  nfe_provider_token_encrypted text,
+  nfe_provider_company_id  text,
+  nfe_state_registration   text,
+  nfe_municipal_registration text,
+  nfe_tax_regime           text
+                           check (nfe_tax_regime is null or nfe_tax_regime in (
+                             'mei', 'simples_nacional', 'simples_excesso', 'lucro_presumido', 'lucro_real'
+                           )),
+  nfe_cnae                 text,
+  nfe_invoice_series       text default '1',
+  nfe_next_invoice_number  int,
+  nfe_auto_emit            boolean not null default false,
+  nfe_split_food_drinks    boolean not null default true,
+  nfe_notes                text,
+  nfe_configured_at        timestamptz,
+
   created_at            timestamptz not null default now()
+);
+
+-- Planos comerciais (portal interno)
+create table if not exists plans (
+  id                    text primary key,
+  name                  text not null,
+  max_tables            int,
+  monthly_fee           numeric(10,2) not null default 0,
+  platform_fee_percent  numeric(5,2)  not null default 0,
+  platform_fee_fixed    numeric(10,2) not null default 0,
+  trial_days            int           not null default 14,
+  active                boolean       not null default true,
+  display_order         int           not null default 0,
+  created_at            timestamptz   not null default now()
+);
+
+-- Funcionários Qomanda
+create table if not exists staff_users (
+  id         uuid primary key default uuid_generate_v4(),
+  user_id    uuid not null unique references auth.users(id) on delete cascade,
+  email      text not null,
+  name       text,
+  role       text not null default 'ops'
+             check (role in ('superadmin', 'ops', 'billing', 'support')),
+  active     boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Assinatura SaaS por restaurante
+create table if not exists restaurant_subscriptions (
+  id                            uuid primary key default uuid_generate_v4(),
+  restaurant_id                 uuid not null unique references restaurants(id) on delete cascade,
+  plan_id                       text not null references plans(id),
+  status                        text not null default 'trialing'
+                                check (status in ('trialing', 'active', 'past_due', 'paused', 'cancelled')),
+  trial_ends_at                 timestamptz,
+  current_period_start          timestamptz,
+  current_period_end            timestamptz,
+  monthly_fee_override          numeric(10,2),
+  platform_fee_percent_override numeric(5,2),
+  platform_fee_fixed_override   numeric(10,2),
+  notes                         text,
+  created_at                    timestamptz not null default now(),
+  updated_at                    timestamptz not null default now()
+);
+
+-- Faturas de mensalidade
+create table if not exists billing_invoices (
+  id              uuid primary key default uuid_generate_v4(),
+  restaurant_id   uuid not null references restaurants(id) on delete cascade,
+  subscription_id uuid references restaurant_subscriptions(id) on delete set null,
+  period_start    date not null,
+  period_end      date not null,
+  amount          numeric(10,2) not null check (amount >= 0),
+  status          text not null default 'draft'
+                  check (status in ('draft', 'sent', 'paid', 'overdue', 'cancelled')),
+  due_date        date,
+  paid_at         timestamptz,
+  notes           text,
+  created_by      uuid references auth.users(id) on delete set null,
+  created_at      timestamptz not null default now()
+);
+
+-- Gateway master (Asaas) — portal interno
+create table if not exists platform_asaas_config (
+  id                      smallint primary key default 1 check (id = 1),
+  environment             text not null default 'sandbox'
+                          check (environment in ('sandbox', 'production')),
+  api_key_encrypted       text,
+  webhook_token_encrypted text,
+  payment_bypass          boolean not null default false,
+  updated_at              timestamptz not null default now(),
+  updated_by              uuid references auth.users(id) on delete set null
 );
 
 -- ============================================================

@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     )
 
     // ── Modo teste: confirma pagamento sem gateway ────────
-    if (isPaymentBypassEnabled()) {
+    if (await isPaymentBypassEnabled()) {
       const confirmationCode = generateConfirmationCode()
       const methodDb = method === 'debit' ? 'debit' : method === 'credit' ? 'credit' : 'pix'
 

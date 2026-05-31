@@ -37,7 +37,7 @@
 - [x] Sidebar com navegação e logo
 
 ### Segurança & Pagamentos
-- [x] Integração Asaas — PIX, crédito, webhook e modo bypass para testes
+- [x] Integração Qomanda Pay — PIX, crédito, webhook e modo bypass para testes
 - [x] Recibos, códigos de confirmação e histórico de pagamentos
 - [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
 - [x] Senha de 6 dígitos para cartões salvos no Hub; sessão com idle 15 min / TTL 24 h
@@ -58,9 +58,9 @@
 > Entregas restantes para operação comercial plena. **Junho 2026**
 
 ### 1. Configurar método de pagamento (self-service)
-- [ ] **Painel Settings → Pagamentos** — fluxo para o restaurante conectar credenciais Asaas (API key, ambiente sandbox/produção)
-- [ ] Validação de credenciais e status de integração visível no dashboard
-- [ ] PIX, crédito e débito habilitados conforme configuração da conta Asaas
+- [x] **Painel Settings → Pagamentos** — restaurante cadastra conta bancária de repasse
+- [x] Status de validação visível no dashboard (pendente / ativo)
+- [ ] PIX, crédito e débito liberados automaticamente após aprovação da conta
 - [ ] Modo teste (bypass) desligável em produção
 
 ### 2. Notas fiscais
@@ -69,7 +69,7 @@
 - [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
 
 ### 3. Melhorias operacionais pós-lançamento
-- [ ] Webhook Asaas robusto — retry, idempotência e logs de erro
+- [ ] Webhook de pagamentos robusto — retry, idempotência e logs de erro
 - [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
 
 ---
@@ -158,7 +158,7 @@
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
 | App Garçom | 🔴 Faltando | 5% |
-| Pagamentos (Asaas self-service) | ⚠️ Parcial | 55% |
+| Pagamentos (Qomanda Pay self-service) | ⚠️ Parcial | 75% |
 | NF-e | 🔴 Faltando | 0% |
 | Fidelidade | ⚠️ Parcial | 75% |
 | WhatsApp | ⚠️ Parcial | 40% |

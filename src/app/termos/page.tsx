@@ -76,7 +76,7 @@ export default function TermosPage() {
           salvo quando indicado de outra forma na interface.
         </p>
         <p>
-          Pagamentos podem ser processados por provedores terceiros (como Asaas). Ao pagar, você também
+          Pagamentos podem ser processados por provedores terceiros parceiros. Ao pagar, você também
           concorda com os termos aplicáveis do processador de pagamento. A Qomanda não é instituição
           financeira e atua como intermediadora tecnológica.
         </p>

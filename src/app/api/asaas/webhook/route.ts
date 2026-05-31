@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
+import { getAsaasConfig } from '@/lib/asaas-config'
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
 
 /**
@@ -17,7 +18,8 @@ export async function POST(req: NextRequest) {
   try {
     // Validação básica do token (opcional mas recomendada)
     const token = req.headers.get('asaas-access-token')
-    const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN
+    const config = await getAsaasConfig()
+    const expectedToken = config.webhookToken
 
     if (expectedToken && token !== expectedToken) {
       console.warn('[Asaas Webhook] Token inválido')

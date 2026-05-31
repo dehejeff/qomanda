@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
@@ -10,6 +11,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/customers': 'Clientes',
   '/dashboard/menu':      'Cardápio',
   '/dashboard/tables':    'Mesas',
+  '/dashboard/support':   'Suporte',
   '/dashboard/settings':  'Settings',
 }
 
@@ -51,9 +53,9 @@ export function DashboardHeader({
           <button type="button" className="hover:text-primary transition-colors">
             <span className="material-symbols-outlined">notifications</span>
           </button>
-          <button type="button" className="hover:text-primary transition-colors">
+          <Link href="/dashboard/support" className="hover:text-primary transition-colors" title="Suporte">
             <span className="material-symbols-outlined">help</span>
-          </button>
+          </Link>
         </div>
         <span className="hidden sm:block h-4 w-px bg-outline-variant" />
         <div className="flex items-center gap-2 md:gap-3">
