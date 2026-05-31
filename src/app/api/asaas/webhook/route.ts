@@ -4,6 +4,7 @@ import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
 import { generateConfirmationCode } from '@/lib/utils'
 import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
+import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 
 /**
  * POST /api/asaas/webhook
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Busca o pagamento interno pelo asaas_payment_id
     const { data: internalPayment } = await supabase
       .from('payments')
-      .select('id, status, session_id, customer_id, amount')
+      .select('id, status, session_id, customer_id, amount, service_fee_included')
       .eq('asaas_payment_id', payment.id)
       .maybeSingle()
 
@@ -70,6 +71,19 @@ export async function POST(req: NextRequest) {
         internalPayment.customer_id,
         internalPayment.id,
         Number(internalPayment.amount),
+      )
+
+      await notifyPaymentCoverage(
+        supabase,
+        internalPayment.session_id,
+        internalPayment.customer_id,
+        {
+          customer_id: internalPayment.customer_id,
+          amount: Number(internalPayment.amount),
+          service_fee_included: internalPayment.service_fee_included,
+          paid_at: new Date().toISOString(),
+        },
+        internalPayment.id,
       )
 
       await closeSessionIfSettled(supabase, internalPayment.session_id)

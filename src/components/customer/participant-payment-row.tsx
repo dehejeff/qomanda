@@ -5,9 +5,10 @@ type Props = {
   name: string
   isMe: boolean
   billing: CustomerBilling
+  payerNames?: Record<string, string>
 }
 
-export function ParticipantPaymentRow({ name, isMe, billing }: Props) {
+export function ParticipantPaymentRow({ name, isMe, billing, payerNames = {} }: Props) {
   const {
     subtotal,
     paid,
@@ -17,7 +18,17 @@ export function ParticipantPaymentRow({ name, isMe, billing }: Props) {
     amountDueWithoutFee,
     serviceFeeIncluded,
     status,
+    paidBySelf,
+    coveredBy,
   } = billing
+
+  const coveredByOthers = (coveredBy ?? []).filter(c => c.amount > 0.01)
+  const fullyPaidByOthers = status === 'paid' && (paidBySelf ?? 0) <= 0.01 && coveredByOthers.length > 0
+  const partiallyCovered = coveredByOthers.length > 0 && !fullyPaidByOthers
+
+  function payerLabel(payerId: string) {
+    return payerNames[payerId] ?? 'outro cliente'
+  }
 
   const icon =
     status === 'paid' ? 'check_circle'
@@ -45,7 +56,21 @@ export function ParticipantPaymentRow({ name, isMe, billing }: Props) {
 
           {status === 'paid' && (
             <p className="text-xs font-mono mt-1" style={{ color: '#34d399' }}>
-              Pago {formatCurrency(paid)}
+              {fullyPaidByOthers ? (
+                <>
+                  Pago por {coveredByOthers.map(c => payerLabel(c.payerId)).join(', ')}
+                  {' '}({formatCurrency(paid)})
+                </>
+              ) : (
+                <>
+                  Pago {formatCurrency(paid)}
+                  {partiallyCovered && (
+                    <span style={{ color: '#a78b7d' }}>
+                      {' '}· incl. {formatCurrency(coveredByOthers.reduce((s, c) => s + c.amount, 0))} de {payerLabel(coveredByOthers[0].payerId)}
+                    </span>
+                  )}
+                </>
+              )}
               {serviceFeeIncluded === false && (
                 <span style={{ color: '#a78b7d' }}> · sem taxa de serviço</span>
               )}
@@ -91,7 +116,7 @@ export function ParticipantPaymentRow({ name, isMe, billing }: Props) {
           {status === 'paid' && (
             <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded"
               style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', border: '1px solid rgba(52,211,153,0.25)' }}>
-              Quitado
+              {fullyPaidByOthers ? 'Pago por outro' : 'Quitado'}
             </span>
           )}
           {status === 'partial' && (

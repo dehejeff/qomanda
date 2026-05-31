@@ -281,6 +281,23 @@ export default function OrdersPage() {
     return allocatePaymentToItemLines(myOrders, b)
   }, [myOrders, paymentProgress, customerId, myTotal, myPaid])
 
+  const payerNames = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const p of paymentProgress) map[p.participantId] = p.name
+    for (const p of participants) {
+      if (p.customer_id && p.customer) {
+        map[p.customer_id] = `${p.customer.first_name} ${p.customer.last_name}`.trim()
+      }
+    }
+    return map
+  }, [paymentProgress, participants])
+
+  function coveredByLabel(billing: CustomerBilling) {
+    const covers = (billing.coveredBy ?? []).filter(c => c.amount > 0.01)
+    if (covers.length === 0) return null
+    return covers.map(c => payerNames[c.payerId] ?? 'outro cliente').join(', ')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
@@ -290,7 +307,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen pb-52" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-56" style={{ background: '#0b1326', color: '#dae2fd' }}>
       <div className="pointer-events-none fixed top-0 right-0 w-[40%] h-[30%] rounded-full"
         style={{ background: 'rgba(249,115,22,0.05)', filter: 'blur(80px)' }} />
 
@@ -384,6 +401,9 @@ export default function OrdersPage() {
                 <span className="material-symbols-outlined text-[20px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                 <p className="text-sm leading-relaxed" style={{ color: '#34d399' }}>
                   <strong>Sua parte está quitada</strong> ({formatCurrency(myPaid)}).
+                  {myBilling && coveredByLabel(myBilling) && (myBilling.paidBySelf ?? 0) <= 0.01 && (
+                    <> Pago por <strong>{coveredByLabel(myBilling)}</strong>.</>
+                  )}
                   {sessionRemaining > 0.01
                     ? ` Falta ${formatCurrency(sessionRemaining)} para fechar a mesa.`
                     : ' A mesa está totalmente paga!'}
@@ -517,6 +537,7 @@ export default function OrdersPage() {
               const paid = billing.paid
               const paySt = billing.status
               const customerFullyPaid = paySt === 'paid'
+              const paidByOther = coveredByLabel(billing)
               const itemLines = allocatePaymentToItemLines(orders, billing)
 
               return (
@@ -546,6 +567,11 @@ export default function OrdersPage() {
                         <div className="mt-0.5">
                           <CustomerPayBadge status={paySt} paid={paid} owed={owed} />
                         </div>
+                        {customerFullyPaid && paidByOther && (
+                          <p className="text-[10px] font-mono mt-1" style={{ color: '#34d399' }}>
+                            Pago por {paidByOther}
+                          </p>
+                        )}
                         {cfg && paySt !== 'paid' && (
                           <p className="text-[10px] font-mono mt-0.5" style={{ color: cfg.color }}>{cfg.label}</p>
                         )}
@@ -641,6 +667,7 @@ export default function OrdersPage() {
                             name={p.name}
                             isMe={p.isMe}
                             billing={p.billing}
+                            payerNames={payerNames}
                           />
                         ))}
                       </div>

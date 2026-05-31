@@ -19,6 +19,7 @@ import {
   resolvePaymentCustomerId,
 } from '@/lib/payment-db'
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
+import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -105,6 +106,18 @@ export async function POST(req: NextRequest) {
       }
 
       await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
+      await notifyPaymentCoverage(
+        supabase,
+        sessionId,
+        payerCustomerId,
+        {
+          customer_id: payerCustomerId,
+          amount,
+          service_fee_included: serviceFeeIncluded,
+          paid_at: new Date().toISOString(),
+        },
+        payment.id,
+      )
       const settlement = await closeSessionIfSettled(supabase, sessionId)
 
       return NextResponse.json({
@@ -242,7 +255,20 @@ export async function POST(req: NextRequest) {
         .eq('id', payment.id)
 
       if (confirmed) {
+        const paidAt = new Date().toISOString()
         await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
+        await notifyPaymentCoverage(
+          supabase,
+          sessionId,
+          payerCustomerId,
+          {
+            customer_id: payerCustomerId,
+            amount,
+            service_fee_included: serviceFeeIncluded,
+            paid_at: paidAt,
+          },
+          payment.id,
+        )
       }
 
       const settlement = confirmed

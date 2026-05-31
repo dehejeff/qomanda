@@ -7,6 +7,13 @@ export type PaymentRow = {
   customer_id: string | null
   amount: number
   service_fee_included?: boolean | null
+  paid_at?: string | null
+  created_at?: string
+}
+
+export type PaymentCoverage = {
+  payerId: string
+  amount: number
 }
 
 export type CustomerBilling = {
@@ -21,6 +28,10 @@ export type CustomerBilling = {
   paid: number
   remaining: number
   status: 'paid' | 'partial' | 'pending'
+  /** Valor pago pelo próprio cliente */
+  paidBySelf: number
+  /** Pagamentos de outras pessoas que cobriram esta conta */
+  coveredBy: PaymentCoverage[]
 }
 
 export function roundMoney(n: number) {
@@ -171,7 +182,113 @@ export function buildCustomerBilling(
     paid: roundMoney(paid),
     remaining,
     status,
+    paidBySelf: roundMoney(paid),
+    coveredBy: [],
   }
+}
+
+function paymentTime(p: PaymentRow) {
+  return new Date(p.paid_at ?? p.created_at ?? 0).getTime()
+}
+
+/** Distribui pagamentos da mesa entre participantes (excedente de um cobre outros). */
+export function allocateSessionPayments(
+  orders: Order[],
+  payments: PaymentRow[],
+  participantIds: string[],
+): {
+  paidBySelf: Map<string, number>
+  coveredBy: Map<string, PaymentCoverage[]>
+  debtsRemaining: Map<string, number>
+} {
+  const ids = participantIds.length > 0
+    ? participantIds
+    : [...new Set(orders.map(o => o.customer_id).filter(Boolean) as string[])]
+
+  const debtsRemaining = new Map<string, number>()
+  for (const id of ids) {
+    const subtotal = customerOrdersSubtotal(orders, id)
+    const selfFlags = payments.filter(p => p.customer_id === id).map(p => p.service_fee_included)
+    const obligation = buildCustomerBilling(id, subtotal, 0, selfFlags)
+    debtsRemaining.set(id, obligation.amountDue)
+  }
+
+  const paidBySelf = new Map<string, number>()
+  const coveredBy = new Map<string, PaymentCoverage[]>()
+  for (const id of ids) {
+    paidBySelf.set(id, 0)
+    coveredBy.set(id, [])
+  }
+
+  const sorted = [...payments].sort((a, b) => paymentTime(a) - paymentTime(b))
+
+  for (const payment of sorted) {
+    const payerId = payment.customer_id
+    if (!payerId) continue
+
+    let left = Number(payment.amount)
+    const applyOrder = [payerId, ...ids.filter(id => id !== payerId)]
+
+    for (const beneficiaryId of applyOrder) {
+      if (left <= 0.01) break
+      const debt = debtsRemaining.get(beneficiaryId) ?? 0
+      if (debt <= 0.01) continue
+
+      const applied = roundMoney(Math.min(left, debt))
+      debtsRemaining.set(beneficiaryId, roundMoney(debt - applied))
+      left = roundMoney(left - applied)
+
+      if (beneficiaryId === payerId) {
+        paidBySelf.set(payerId, roundMoney((paidBySelf.get(payerId) ?? 0) + applied))
+      } else {
+        const list = coveredBy.get(beneficiaryId) ?? []
+        const existing = list.find(c => c.payerId === payerId)
+        if (existing) existing.amount = roundMoney(existing.amount + applied)
+        else list.push({ payerId, amount: applied })
+        coveredBy.set(beneficiaryId, list)
+      }
+    }
+  }
+
+  return { paidBySelf, coveredBy, debtsRemaining }
+}
+
+/** Quanto de um pagamento cobriu contas de outros participantes. */
+export function coverageFromPayment(
+  orders: Order[],
+  paymentsBefore: PaymentRow[],
+  participantIds: string[],
+  newPayment: PaymentRow,
+): { beneficiaryId: string; amount: number }[] {
+  const payerId = newPayment.customer_id
+  if (!payerId) return []
+
+  const ids = participantIds.length > 0
+    ? participantIds
+    : [...new Set(orders.map(o => o.customer_id).filter(Boolean) as string[])]
+
+  const before = allocateSessionPayments(orders, paymentsBefore, ids)
+  const debts = new Map(before.debtsRemaining)
+  const coverage: { beneficiaryId: string; amount: number }[] = []
+
+  let left = Number(newPayment.amount)
+  const applyOrder = [payerId, ...ids.filter(id => id !== payerId)]
+
+  for (const beneficiaryId of applyOrder) {
+    if (left <= 0.01) break
+    const debt = debts.get(beneficiaryId) ?? 0
+    if (debt <= 0.01) continue
+
+    const applied = roundMoney(Math.min(left, debt))
+    debts.set(beneficiaryId, roundMoney(debt - applied))
+    left = roundMoney(left - applied)
+
+    if (beneficiaryId !== payerId && applied > 0.01) {
+      coverage.push({ beneficiaryId, amount: applied })
+    }
+  }
+
+  return coverage
 }
 
 export function buildSessionBilling(
@@ -185,29 +302,24 @@ export function buildSessionBilling(
   totalPaid: number
   remaining: number
 } {
-  const paidByCustomer = new Map<string, number>()
-  const feeFlagsByCustomer = new Map<string, (boolean | null | undefined)[]>()
-
-  for (const p of payments) {
-    if (!p.customer_id) continue
-    paidByCustomer.set(
-      p.customer_id,
-      (paidByCustomer.get(p.customer_id) ?? 0) + Number(p.amount),
-    )
-    const flags = feeFlagsByCustomer.get(p.customer_id) ?? []
-    flags.push(p.service_fee_included)
-    feeFlagsByCustomer.set(p.customer_id, flags)
-  }
-
   const ids = participantIds.length > 0
     ? participantIds
     : [...new Set(orders.map(o => o.customer_id).filter(Boolean) as string[])]
 
+  const { paidBySelf, coveredBy } = allocateSessionPayments(orders, payments, ids)
+
   const billings = ids.map(customerId => {
     const subtotal = customerOrdersSubtotal(orders, customerId)
-    const paid = paidByCustomer.get(customerId) ?? 0
-    const flags = feeFlagsByCustomer.get(customerId) ?? []
-    return buildCustomerBilling(customerId, subtotal, paid, flags)
+    const selfFlags = payments.filter(p => p.customer_id === customerId).map(p => p.service_fee_included)
+    const selfPaid = paidBySelf.get(customerId) ?? 0
+    const othersPaid = (coveredBy.get(customerId) ?? []).reduce((s, c) => s + c.amount, 0)
+    const totalAllocated = roundMoney(selfPaid + othersPaid)
+    const billing = buildCustomerBilling(customerId, subtotal, totalAllocated, selfFlags)
+    return {
+      ...billing,
+      paidBySelf: selfPaid,
+      coveredBy: coveredBy.get(customerId) ?? [],
+    }
   })
 
   const grandTotal = roundMoney(billings.reduce((s, b) => s + b.amountDue, 0))
