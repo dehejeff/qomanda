@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +8,7 @@ import type { Order } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { DEV_BYPASS, mockOrders, mockTables } from '@/lib/dev-mock'
+import { useSessionRealtime } from '@/lib/use-restaurant-realtime'
 
 const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
@@ -46,79 +47,73 @@ export default function TableOrdersPage() {
   const router = useRouter()
   const [tableNumber, setTableNumber] = useState('')
   const [orders, setOrders] = useState<OrderRow[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      if (DEV_BYPASS) {
-        const table = mockTables.find((t) => t.id === params.tableId)
-        setTableNumber(table?.number ?? '?')
-        setOrders(mockOrders as OrderRow[])
-        setLoading(false)
-        return
-      }
-
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/login'); return }
-
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
-
-      if (!restaurant) { router.replace('/login'); return }
-
-      const { data: table } = await supabase
-        .from('tables')
-        .select('id, number')
-        .eq('id', params.tableId)
-        .eq('restaurant_id', restaurant.id)
-        .single()
-
-      if (!table) { setLoading(false); return }
-      setTableNumber(table.number)
-
-      const { data: session } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('table_id', table.id)
-        .eq('status', 'open')
-        .maybeSingle()
-
-      if (!session) {
-        setOrders([])
-        setLoading(false)
-        return
-      }
-
-      const { data } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          items:order_items(*, menu_item:menu_items(name)),
-          customer:customers(first_name, last_name)
-        `)
-        .eq('session_id', session.id)
-        .order('created_at', { ascending: false })
-
-      setOrders((data ?? []) as OrderRow[])
+  const load = useCallback(async () => {
+    if (DEV_BYPASS) {
+      const table = mockTables.find((t) => t.id === params.tableId)
+      setTableNumber(table?.number ?? '?')
+      setOrders(mockOrders as OrderRow[])
       setLoading(false)
+      return
     }
 
-    load()
-
-    if (DEV_BYPASS) return
-
     const supabase = createClient()
-    const channel = supabase
-      .channel(`table-orders-${params.tableId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, load)
-      .subscribe()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.replace('/login'); return }
 
-    return () => { supabase.removeChannel(channel) }
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
+
+    if (!restaurant) { router.replace('/login'); return }
+
+    const { data: table } = await supabase
+      .from('tables')
+      .select('id, number')
+      .eq('id', params.tableId)
+      .eq('restaurant_id', restaurant.id)
+      .single()
+
+    if (!table) { setLoading(false); return }
+    setTableNumber(table.number)
+
+    const { data: session } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('table_id', table.id)
+      .eq('status', 'open')
+      .maybeSingle()
+
+    if (!session) {
+      setSessionId(null)
+      setOrders([])
+      setLoading(false)
+      return
+    }
+
+    setSessionId(session.id)
+
+    const { data } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        items:order_items(*, menu_item:menu_items(name)),
+        customer:customers(first_name, last_name)
+      `)
+      .eq('session_id', session.id)
+      .order('created_at', { ascending: false })
+
+    setOrders((data ?? []) as OrderRow[])
+    setLoading(false)
   }, [params.tableId, router])
+
+  useEffect(() => { void load() }, [load])
+
+  useSessionRealtime(sessionId, load, Boolean(sessionId) && !DEV_BYPASS)
 
   const billableTotal = orders
     .filter((o) => o.status !== 'cancelled')

@@ -14,6 +14,7 @@ import {
   type PaymentRow as BillingPaymentRow,
 } from '@/lib/session-billing'
 import { PayBadge } from '@/components/dashboard/pay-badge'
+import { useRestaurantRealtime } from '@/lib/use-restaurant-realtime'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -189,8 +190,8 @@ export default function OrdersPage() {
   const [selectedDate, setSelectedDate] = useState(todayDateStr)
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
 
-  async function loadOrders(rid: string, dateStr: string) {
-    setLoading(true)
+  async function loadOrders(rid: string, dateStr: string, silent = false) {
+    if (!silent) setLoading(true)
     const { start, end } = dateRangeForDay(dateStr)
     const supabase = createClient()
     const { data } = await supabase
@@ -227,6 +228,14 @@ export default function OrdersPage() {
     setLoading(false)
   }
 
+  const isToday = selectedDate === todayDateStr()
+
+  useRestaurantRealtime(
+    restaurantId,
+    () => { if (restaurantId) void loadOrders(restaurantId, selectedDate, true) },
+    { enabled: isToday && Boolean(restaurantId) },
+  )
+
   useEffect(() => {
     if (DEV_BYPASS) {
       setOrders(mockOrders as DashboardOrder[])
@@ -235,7 +244,6 @@ export default function OrdersPage() {
     }
 
     const supabase = createClient()
-    let channel: ReturnType<typeof supabase.channel> | null = null
     let cancelled = false
 
     async function init() {
@@ -247,32 +255,11 @@ export default function OrdersPage() {
 
       setRestaurantId(r.id)
       await loadOrders(r.id, selectedDate)
-      if (cancelled) return
-
-      const isToday = selectedDate === todayDateStr()
-      if (isToday) {
-        channel = supabase
-          .channel(`dashboard-orders-${r.id}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${r.id}` },
-            () => { if (!cancelled) loadOrders(r.id, selectedDate) },
-          )
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${r.id}` },
-            () => { if (!cancelled) loadOrders(r.id, selectedDate) },
-          )
-          .subscribe()
-      }
     }
 
     init()
 
-    return () => {
-      cancelled = true
-      if (channel) supabase.removeChannel(channel)
-    }
+    return () => { cancelled = true }
   }, [selectedDate])
 
   const filteredOrders = useMemo(
@@ -329,8 +316,6 @@ export default function OrdersPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: next as Order['status'] } : o))
     toast.success(`Pedido → ${STATUS_LABEL[next] ?? next}`)
   }
-
-  const isToday = selectedDate === todayDateStr()
 
   if (loading && orders.length === 0) {
     return (

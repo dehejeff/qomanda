@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DEV_BYPASS, mockOrders } from '@/lib/dev-mock'
+import { useOrderRealtime } from '@/lib/use-restaurant-realtime'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -74,6 +75,26 @@ export default function OrderDetailPage() {
 
     load()
   }, [params.id, router])
+
+  useOrderRealtime(
+    DEV_BYPASS ? null : params.id,
+    () => {
+      if (DEV_BYPASS) return
+      const supabase = createClient()
+      supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*, menu_item:menu_items(name, image_url)),
+          session:sessions(table:tables(number)),
+          customer:customers(first_name, last_name)
+        `)
+        .eq('id', params.id)
+        .single()
+        .then(({ data }) => { if (data) setOrder(data as OrderDetail) })
+    },
+    !DEV_BYPASS,
+  )
 
   async function advanceStatus() {
     if (!order) return

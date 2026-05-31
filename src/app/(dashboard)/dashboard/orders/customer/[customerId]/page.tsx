@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -16,6 +16,7 @@ import {
   buildCustomerBilling,
   orderSubtotal,
 } from '@/lib/session-billing'
+import { useSessionRealtime } from '@/lib/use-restaurant-realtime'
 
 const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
@@ -58,64 +59,67 @@ export default function CustomerPaymentDetailPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
 
+  const load = useCallback(async () => {
+    if (!sessionId) return
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.replace('/login'); return }
+
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('id, name')
+      .eq('owner_id', user.id)
+      .single()
+
+    if (!restaurant) { router.replace('/login'); return }
+
+    const [customerRes, ordersRes, paymentsRes, sessionRes] = await Promise.all([
+      supabase
+        .from('customers')
+        .select('first_name, last_name')
+        .eq('id', params.customerId)
+        .single(),
+      supabase
+        .from('orders')
+        .select('*, items:order_items(quantity, unit_price, menu_item:menu_items(name))')
+        .eq('session_id', sessionId)
+        .eq('customer_id', params.customerId)
+        .eq('restaurant_id', restaurant.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('payments')
+        .select('id, amount, method, split_type, service_fee_included, confirmation_code, paid_at, created_at')
+        .eq('session_id', sessionId)
+        .eq('customer_id', params.customerId)
+        .eq('status', 'paid')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('sessions')
+        .select('table:tables(number)')
+        .eq('id', sessionId)
+        .single(),
+    ])
+
+    if (restaurant?.name) setRestaurantName(restaurant.name)
+
+    const c = customerRes.data
+    setCustomerName(c ? [c.first_name, c.last_name].filter(Boolean).join(' ') : 'Cliente')
+    setTableNumber((sessionRes.data?.table as { number?: string } | null)?.number ?? '—')
+    setOrders((ordersRes.data ?? []) as CustomerOrder[])
+    setPayments((paymentsRes.data ?? []) as PaymentRecord[])
+    setLoading(false)
+  }, [params.customerId, sessionId, router])
+
   useEffect(() => {
     if (!sessionId) {
       router.replace('/dashboard/orders')
       return
     }
+    void load()
+  }, [sessionId, load, router])
 
-    async function load() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/login'); return }
-
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('id, name')
-        .eq('owner_id', user.id)
-        .single()
-
-      if (!restaurant) { router.replace('/login'); return }
-
-      const [customerRes, ordersRes, paymentsRes, sessionRes] = await Promise.all([
-        supabase
-          .from('customers')
-          .select('first_name, last_name')
-          .eq('id', params.customerId)
-          .single(),
-        supabase
-          .from('orders')
-          .select('*, items:order_items(quantity, unit_price, menu_item:menu_items(name))')
-          .eq('session_id', sessionId)
-          .eq('customer_id', params.customerId)
-          .eq('restaurant_id', restaurant.id)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('payments')
-          .select('id, amount, method, split_type, service_fee_included, confirmation_code, paid_at, created_at')
-          .eq('session_id', sessionId)
-          .eq('customer_id', params.customerId)
-          .eq('status', 'paid')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('sessions')
-          .select('table:tables(number)')
-          .eq('id', sessionId)
-          .single(),
-      ])
-
-      if (restaurant?.name) setRestaurantName(restaurant.name)
-
-      const c = customerRes.data
-      setCustomerName(c ? [c.first_name, c.last_name].filter(Boolean).join(' ') : 'Cliente')
-      setTableNumber((sessionRes.data?.table as { number?: string } | null)?.number ?? '—')
-      setOrders((ordersRes.data ?? []) as CustomerOrder[])
-      setPayments((paymentsRes.data ?? []) as PaymentRecord[])
-      setLoading(false)
-    }
-
-    load()
-  }, [params.customerId, sessionId, router])
+  useSessionRealtime(sessionId, load, Boolean(sessionId))
 
   const billing = useMemo(() => {
     const paid = payments.reduce((s, p) => s + Number(p.amount), 0)
