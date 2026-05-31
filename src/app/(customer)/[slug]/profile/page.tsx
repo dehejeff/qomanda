@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { Loader2 } from 'lucide-react'
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName]   = useState('')
   const [prefs, setPrefs]       = useState<Prefs>({ notifications: true, shareHistory: true, newsletter: false })
+  const [receiptCount, setReceiptCount] = useState(0)
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -52,6 +54,11 @@ export default function ProfilePage() {
         setLoading(false)
       })
       .catch(() => { toast.error('Erro ao carregar perfil.'); setLoading(false) })
+
+    fetch(`/api/customer/payments?session=${sessionId}`)
+      .then(r => r.json())
+      .then(d => setReceiptCount((d.payments ?? []).length))
+      .catch(() => {})
   }, [sessionId, params.slug, router])
 
   async function handleSave() {
@@ -170,6 +177,28 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Recibos */}
+        <Link
+          href={`/${params.slug}/receipts?session=${sessionId}`}
+          className="block rounded-xl overflow-hidden transition-all active:scale-[0.98]"
+          style={{ background: '#1e293b', border: '1px solid #334155' }}
+        >
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[22px]" style={{ color: '#34d399' }}>receipt_long</span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: '#dae2fd' }}>Meus recibos</p>
+                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                  {receiptCount > 0
+                    ? `${receiptCount} pagamento${receiptCount !== 1 ? 's' : ''} nesta visita`
+                    : 'Códigos e comprovantes de pagamento'}
+                </p>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#584237' }}>chevron_right</span>
+          </div>
+        </Link>
 
         {/* Loyalty */}
         <div className="rounded-xl p-5 relative overflow-hidden"

@@ -8,6 +8,9 @@ import type { Order } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PayBadge } from '@/components/dashboard/pay-badge'
+import { PaymentReceiptList } from '@/components/payment-receipt-list'
+import type { PaymentReceiptRecord } from '@/lib/payment-receipt'
+import { paymentMethodLabel, splitReceiptMeta } from '@/lib/payment-receipt'
 import {
   allocatePaymentToOrders,
   buildCustomerBilling,
@@ -40,14 +43,7 @@ type CustomerOrder = Order & {
   }>
 }
 
-type PaymentRecord = {
-  id: string
-  amount: number
-  method: string
-  service_fee_included: boolean | null
-  paid_at: string | null
-  created_at: string
-}
+type PaymentRecord = PaymentReceiptRecord
 
 export default function CustomerPaymentDetailPage() {
   const params = useParams<{ customerId: string }>()
@@ -57,6 +53,7 @@ export default function CustomerPaymentDetailPage() {
 
   const [customerName, setCustomerName] = useState('')
   const [tableNumber, setTableNumber] = useState('—')
+  const [restaurantName, setRestaurantName] = useState('Restaurante')
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,7 +71,7 @@ export default function CustomerPaymentDetailPage() {
 
       const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('id')
+        .select('id, name')
         .eq('owner_id', user.id)
         .single()
 
@@ -95,7 +92,7 @@ export default function CustomerPaymentDetailPage() {
           .order('created_at', { ascending: true }),
         supabase
           .from('payments')
-          .select('id, amount, method, service_fee_included, paid_at, created_at')
+          .select('id, amount, method, split_type, service_fee_included, confirmation_code, paid_at, created_at')
           .eq('session_id', sessionId)
           .eq('customer_id', params.customerId)
           .eq('status', 'paid')
@@ -106,6 +103,8 @@ export default function CustomerPaymentDetailPage() {
           .eq('id', sessionId)
           .single(),
       ])
+
+      if (restaurant?.name) setRestaurantName(restaurant.name)
 
       const c = customerRes.data
       setCustomerName(c ? [c.first_name, c.last_name].filter(Boolean).join(' ') : 'Cliente')
@@ -184,30 +183,50 @@ export default function CustomerPaymentDetailPage() {
       </div>
 
       {payments.length > 0 && (
-        <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-outline-variant">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-              Pagamentos registrados
-            </p>
+        <div className="space-y-4">
+          <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-outline-variant">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+                Pagamentos registrados
+              </p>
+            </div>
+            <div className="divide-y divide-outline-variant">
+              {payments.map(p => {
+                const meta = splitReceiptMeta(p.split_type ?? 'combined')
+                return (
+                  <div key={p.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-mono text-emerald-400">{formatCurrency(p.amount)}</p>
+                      <p className="text-[10px] font-mono text-on-surface-variant mt-0.5">
+                        {paymentMethodLabel(p.method)}
+                        {p.service_fee_included === false ? ' · sem taxa' : ' · com taxa'}
+                        {' · '}{meta.title}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {p.confirmation_code ? (
+                        <p className="font-mono text-xs font-bold tracking-widest text-on-surface">{p.confirmation_code}</p>
+                      ) : (
+                        <p className="text-[10px] font-mono text-on-surface-variant">—</p>
+                      )}
+                      <p className="text-[10px] font-mono text-on-surface-variant mt-0.5">
+                        {new Date(p.paid_at ?? p.created_at).toLocaleString('pt-BR', {
+                          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-          <div className="divide-y divide-outline-variant">
-            {payments.map(p => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div>
-                  <p className="font-mono text-emerald-400">{formatCurrency(p.amount)}</p>
-                  <p className="text-[10px] font-mono text-on-surface-variant mt-0.5">
-                    {p.method.toUpperCase()}
-                    {p.service_fee_included === false ? ' · sem taxa' : ' · com taxa'}
-                  </p>
-                </div>
-                <p className="text-[10px] font-mono text-on-surface-variant">
-                  {new Date(p.paid_at ?? p.created_at).toLocaleString('pt-BR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                  })}
-                </p>
-              </div>
-            ))}
-          </div>
+
+          <PaymentReceiptList
+            payments={payments}
+            context={{ restaurantName, tableNumber }}
+            variant="dashboard"
+            title="Recibos de pagamento"
+          />
         </div>
       )}
 

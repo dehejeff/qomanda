@@ -7,6 +7,9 @@ import type { PaymentMethod } from '@/types'
 import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { splitConsumptionByAlcohol, splitPaymentAmounts } from '@/lib/alcohol-split'
+import { buildReceiptWhatsAppMessage, type PaymentReceiptRecord } from '@/lib/payment-receipt'
+import { PaymentReceiptList } from '@/components/payment-receipt-list'
+import Link from 'next/link'
 import {
   SERVICE_FEE_RATE,
   computeOpenBalance,
@@ -19,6 +22,8 @@ import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+
+type SessionPaymentRow = PaymentReceiptRecord & { customer_id: string | null }
 
 type CloseMode = 'individual' | 'table'
 type SplitType = 'equal' | 'custom'
@@ -433,7 +438,7 @@ export default function CheckoutPage() {
   const [subTotal, setSubTotal]             = useState(0)
   const [mySubtotal, setMySubtotal]         = useState(0)
   const [myOrders, setMyOrders]             = useState<Order[]>([])
-  const [sessionPayments, setSessionPayments] = useState<{ amount: number; customer_id: string | null; service_fee_included?: boolean | null }[]>([])
+  const [sessionPayments, setSessionPayments] = useState<SessionPaymentRow[]>([])
   const [myAlreadyPaid, setMyAlreadyPaid]   = useState(0)
 
   // Participants for Mesa Toda
@@ -447,6 +452,11 @@ export default function CheckoutPage() {
   const myPaymentRows = useMemo(
     () => sessionPayments.filter(p => p.customer_id === myCustomerId),
     [sessionPayments, myCustomerId],
+  )
+
+  const receiptContext = useMemo(
+    () => ({ restaurantName, tableNumber }),
+    [restaurantName, tableNumber],
   )
 
   const myOpen = useMemo(
@@ -525,7 +535,7 @@ export default function CheckoutPage() {
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
         supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
-        supabase.from('payments').select('amount, customer_id, service_fee_included').eq('session_id', sessionId).eq('status', 'paid'),
+        supabase.from('payments').select('id, amount, customer_id, method, split_type, service_fee_included, confirmation_code, paid_at, created_at').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
       const restaurant = (sessionRes.data as any)?.restaurant
@@ -552,7 +562,7 @@ export default function CheckoutPage() {
         : 0
 
       setSubTotal(sub)
-      setSessionPayments(allPayments)
+      setSessionPayments((allPayments as SessionPaymentRow[]) ?? [])
       setMyAlreadyPaid(myPaid)
 
       const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId) as unknown as Order[]
@@ -636,18 +646,23 @@ export default function CheckoutPage() {
     }
   }
 
-  function buildReceiptMessage(
-    items: { name: string; amount: number }[],
-    total: number,
+  async function sendReceiptWhatsApp(
+    amount: number,
     code: string,
-    label?: string
+    splitType: PaymentReceiptRecord['split_type'] = 'combined',
   ) {
-    const date = new Date().toLocaleDateString('pt-BR')
-    const itemLines = items.map(i => `• ${i.name} — ${formatCurrency(i.amount)}`).join('\n')
-    const header = label
-      ? `🧾 *${restaurantName}*\n${label}\nMesa: ${tableNumber} | Data: ${date}`
-      : `🧾 *${restaurantName}*\nMesa: ${tableNumber} | Data: ${date}`
-    return `${header}\n\n*Itens:*\n${itemLines}\n\n*Total: ${formatCurrency(total)}*\n\nCódigo de confirmação: *${code}*\n\n_A NF-e será emitida e enviada em seguida._`
+    if (!customerWhatsapp) return
+    const payment: PaymentReceiptRecord = {
+      id: '',
+      amount,
+      method,
+      split_type: splitType,
+      service_fee_included: includeServiceFee,
+      confirmation_code: code,
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    }
+    await sendWhatsApp(customerWhatsapp, buildReceiptWhatsAppMessage(payment, receiptContext))
   }
 
   async function createCloseRequest() {
@@ -733,8 +748,8 @@ export default function CheckoutPage() {
       setConfirmationCode2(alcoholRes.confirmationCode)
 
       if (customerWhatsapp) {
-        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], food, foodRes.confirmationCode, '🍽️ Alimentação'))
-        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcohol, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
+        await sendReceiptWhatsApp(food, foodRes.confirmationCode, 'food')
+        await sendReceiptWhatsApp(alcohol, alcoholRes.confirmationCode, 'alcohol')
       }
       return true
     }
@@ -746,8 +761,7 @@ export default function CheckoutPage() {
     const data = await submitPayment(singleAmount, singleType, cardData)
     setConfirmationCode(data.confirmationCode)
     if (customerWhatsapp) {
-      const label = singleType === 'food' ? '🍽️ Alimentação' : '🍷 Bebidas Alcoólicas'
-      await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], singleAmount, data.confirmationCode, label))
+      await sendReceiptWhatsApp(singleAmount, data.confirmationCode, singleType)
     }
     return true
   }
@@ -783,10 +797,7 @@ export default function CheckoutPage() {
         setPixPaymentId(data.paymentId)
 
         if (customerWhatsapp) {
-          await sendWhatsApp(
-            customerWhatsapp,
-            buildReceiptMessage([], paidAmount, 'PIX GERADO'),
-          )
+          await sendReceiptWhatsApp(paidAmount, 'PIX GERADO')
         }
         return false
       }
@@ -794,7 +805,7 @@ export default function CheckoutPage() {
       if (data.confirmationCode) {
         setConfirmationCode(data.confirmationCode)
         if (customerWhatsapp) {
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], paidAmount, data.confirmationCode))
+          await sendReceiptWhatsApp(paidAmount, data.confirmationCode)
         }
         setStep('confirmed')
         return true
@@ -828,7 +839,7 @@ export default function CheckoutPage() {
       const code = data.confirmation_code || generateConfirmationCode()
       setConfirmationCode(code)
       if (customerWhatsapp) {
-        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], paidAmount, code))
+        await sendReceiptWhatsApp(paidAmount, code)
       }
       setStep('confirmed')
     } catch {
@@ -1132,8 +1143,8 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        {/* ── Individual: meu consumo + extra opcional ── */}
-        {closeMode === 'individual' && hasPaidMyShare && (
+        {/* ── Parte quitada + recibos ── */}
+        {hasPaidMyShare && (
           <section className="space-y-3">
             <div className="rounded-xl px-5 py-4 flex items-start gap-3"
               style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.35)' }}>
@@ -1148,6 +1159,37 @@ export default function CheckoutPage() {
                 </p>
               </div>
             </div>
+            {myPaymentRows.length > 0 && (
+              <>
+                <PaymentReceiptList
+                  payments={myPaymentRows}
+                  context={receiptContext}
+                  variant="customer"
+                  compact
+                  title="Seus recibos"
+                />
+                <Link
+                  href={`/${params.slug}/receipts?session=${sessionId}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
+                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}
+                >
+                  <span className="material-symbols-outlined text-[16px]">history</span>
+                  Ver histórico completo
+                </Link>
+              </>
+            )}
+          </section>
+        )}
+
+        {myPaymentRows.length > 0 && !hasPaidMyShare && (
+          <section className="space-y-3">
+            <PaymentReceiptList
+              payments={myPaymentRows}
+              context={receiptContext}
+              variant="customer"
+              compact
+              title="Pagamentos anteriores"
+            />
           </section>
         )}
 
