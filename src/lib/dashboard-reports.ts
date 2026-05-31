@@ -4,7 +4,6 @@ import { startOfBrDay, startOfBrMonth, brDayKey } from '@/lib/date-tz'
 export type ReportPeriod = 'today' | 'week' | 'fortnight' | 'month' | 'last_month'
 
 export const PERIOD_OPTIONS: { id: ReportPeriod; label: string }[] = [
-  { id: 'today', label: 'Hoje' },
   { id: 'week', label: 'Semana' },
   { id: 'fortnight', label: 'Quinzena' },
   { id: 'month', label: 'Mês' },
