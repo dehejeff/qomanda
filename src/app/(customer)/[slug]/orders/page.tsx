@@ -651,38 +651,79 @@ export default function OrdersPage() {
               </div>
             )}
 
-            {/* Table total */}
+            {/* Table total — saldo em aberto em destaque; total máximo só como referência */}
             {allOrders.length > 0 && sessionBilling && (
               <div className="rounded-xl p-4" style={{ background: '#171f33', border: '1px solid #334155' }}>
-                <div className="flex justify-between text-sm mb-2" style={{ color: '#a78b7d' }}>
-                  <span>Subtotal da mesa</span>
-                  <span className="font-mono">{formatCurrency(tableTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-1" style={{ color: '#a78b7d' }}>
-                  <span>Taxa de serviço (10% — opcional)</span>
-                  <span className="font-mono">{formatCurrency(tableTotal * 0.1)}</span>
-                </div>
-                <p className="text-[10px] font-mono mb-3" style={{ color: '#584237' }}>
-                  Cada pessoa escolhe no checkout. Mínimo sem taxa: {formatCurrency(sessionBilling.grandTotalMinimum)}.
-                </p>
-                {sessionPaid > 0 && (
+                {sessionPaid > 0.01 ? (
                   <>
-                    <div className="flex justify-between text-sm mb-2" style={{ color: '#34d399' }}>
-                      <span>Já pago</span>
-                      <span className="font-mono">− {formatCurrency(sessionPaid)}</span>
+                    <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                        Saldo em aberto na mesa
+                      </p>
+                      <p
+                        className="text-3xl font-black mt-1"
+                        style={{
+                          color: sessionRemaining <= 0.02 ? '#34d399' : '#f87171',
+                          fontFamily: 'Geist, sans-serif',
+                        }}
+                      >
+                        {sessionRemaining <= 0.02 ? '✓ Quitada' : formatCurrency(sessionRemaining)}
+                      </p>
+                      {sessionRemaining > 0.02 && (
+                        <p className="text-[10px] font-mono mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#584237' }}>
+                          Taxa de serviço é opcional — cada pessoa escolhe no checkout.
+                        </p>
+                      )}
                     </div>
-                    <div className="flex justify-between text-sm mb-3" style={{ color: sessionRemaining <= 0.02 ? '#34d399' : '#f87171' }}>
-                      <span>Restante</span>
-                      <span className="font-mono font-bold">{formatCurrency(sessionRemaining)}</span>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#584237' }}>
+                      <div className="flex justify-between">
+                        <span>Consumo da mesa</span>
+                        <span className="font-mono">{formatCurrency(tableTotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Taxa de serviço (até 10%)</span>
+                        <span className="font-mono">{formatCurrency(tableTotal * 0.1)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total máximo da mesa</span>
+                        <span className="font-mono">{formatCurrency(grandTotal)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1" style={{ color: '#34d399' }}>
+                        <span>Já pago</span>
+                        <span className="font-mono">− {formatCurrency(sessionPaid)}</span>
+                      </div>
                     </div>
                   </>
+                ) : (
+                  <>
+                    <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                        Conta da mesa
+                      </p>
+                      <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                        {formatCurrency(tableTotal)}
+                      </p>
+                      <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                        consumo · sem taxa de serviço
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#a78b7d' }}>
+                      <div className="flex justify-between">
+                        <span>Taxa de serviço (10% — opcional)</span>
+                        <span className="font-mono">+ {formatCurrency(tableTotal * 0.1)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className="font-medium" style={{ color: '#dae2fd' }}>Total máximo</span>
+                        <span className="font-mono font-semibold" style={{ color: '#ffb690' }}>
+                          {formatCurrency(grandTotal)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] font-mono mt-3 leading-relaxed" style={{ color: '#584237' }}>
+                      Cada pessoa escolhe no checkout se inclui a taxa. Mínimo da mesa: {formatCurrency(sessionBilling.grandTotalMinimum)}.
+                    </p>
+                  </>
                 )}
-                <div className="flex justify-between items-center pt-3" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
-                  <span className="font-semibold">Total da Mesa</span>
-                  <span className="text-xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
-                    {formatCurrency(grandTotal)}
-                  </span>
-                </div>
               </div>
             )}
           </div>
@@ -692,21 +733,72 @@ export default function OrdersPage() {
         {displayOrders.length > 0 && (
           <>
             {tab === 'mine' && myOrders.length > 0 && (
-              <div className="rounded-xl p-4 space-y-2" style={{ background: '#171f33', border: '1px solid #334155' }}>
-                <div className="flex justify-between text-sm" style={{ color: '#a78b7d' }}>
-                  <span>Subtotal</span>
-                  <span className="font-mono">{formatCurrency(myTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm" style={{ color: '#a78b7d' }}>
-                  <span>Taxa de serviço (10%)</span>
-                  <span className="font-mono">{formatCurrency(myTotal * 0.1)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
-                  <span className="font-semibold">Meu Total</span>
-                  <span className="text-xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
-                    {formatCurrency(myTotal * 1.1)}
-                  </span>
-                </div>
+              <div className="rounded-xl p-4" style={{ background: '#171f33', border: '1px solid #334155' }}>
+                {myPaid > 0.01 ? (
+                  <>
+                    <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                        {myPayStatus === 'paid' ? 'Sua conta' : 'Seu saldo em aberto'}
+                      </p>
+                      <p
+                        className="text-3xl font-black mt-1"
+                        style={{
+                          color: myPayStatus === 'paid' ? '#34d399' : '#ffb690',
+                          fontFamily: 'Geist, sans-serif',
+                        }}
+                      >
+                        {myPayStatus === 'paid'
+                          ? '✓ Quitada'
+                          : formatCurrency(Math.max(0, myOwed - myPaid))}
+                      </p>
+                      {myPayStatus !== 'paid' && (
+                        <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                          Taxa opcional — você escolhe no checkout
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#584237' }}>
+                      <div className="flex justify-between">
+                        <span>Seu consumo</span>
+                        <span className="font-mono">{formatCurrency(myTotal)}</span>
+                      </div>
+                      {myPayStatus !== 'paid' && myBilling?.serviceFeeIncluded !== false && (
+                        <div className="flex justify-between">
+                          <span>Com taxa (até 10%)</span>
+                          <span className="font-mono">{formatCurrency(myOwed)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-1" style={{ color: '#34d399' }}>
+                        <span>Já pago</span>
+                        <span className="font-mono">− {formatCurrency(myPaid)}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                        Sua conta
+                      </p>
+                      <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                        {formatCurrency(myTotal)}
+                      </p>
+                      <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                        consumo · sem taxa
+                      </p>
+                    </div>
+                    <div className="flex justify-between text-sm" style={{ color: '#a78b7d' }}>
+                      <span>Taxa de serviço (10% — opcional)</span>
+                      <span className="font-mono">+ {formatCurrency(myTotal * 0.1)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 mt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', color: '#dae2fd' }}>
+                      <span className="font-medium">Total máximo</span>
+                      <span className="font-mono font-semibold" style={{ color: '#ffb690' }}>
+                        {formatCurrency(myTotal * 1.1)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </>
