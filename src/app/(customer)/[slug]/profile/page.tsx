@@ -266,7 +266,13 @@ export default function ProfilePage() {
         </div>
 
         {/* Logout */}
-        <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push('/login?perfil=cliente') }}
+        <button onClick={() => {
+          localStorage.removeItem('qomanda_customer_id')
+          localStorage.removeItem('qomanda_customer_name')
+          localStorage.removeItem('qomanda_session_id')
+          sessionStorage.clear()
+          router.push('/login?perfil=cliente')
+        }}
           className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
           style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}>
           <span className="material-symbols-outlined text-[18px]">logout</span>

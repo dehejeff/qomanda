@@ -8,15 +8,13 @@ import type { CheckInResponse } from '@/app/api/checkin/route'
 
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { formatWhatsApp } from '@/lib/customer-form'
+import { PinInput } from '@/components/customer/pin-input'
+import { isValidPin } from '@/lib/customer-pin-shared'
+import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
+import { persistCustomerAuth } from '@/lib/customer-auth'
 
 // ── Helpers ─────────────────────────────────────────────────
-
-function formatWhatsApp(value: string) {
-  const d = value.replace(/\D/g, '').slice(0, 11)
-  if (d.length <= 2) return d.length ? `(${d}` : ''
-  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
 
 function maskCPF(value: string) {
   const d = value.replace(/\D/g, '').slice(0, 11)
@@ -62,6 +60,10 @@ export default function CheckInPage() {
   const [savedCustomerId, setSavedCustomerId] = useState<string | null>(null)
   const [savedCustomerName, setSavedCustomerName] = useState('')
   const [showFullForm, setShowFullForm] = useState(false)
+  const [loginWhatsapp, setLoginWhatsapp] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
+  const [loginPin, setLoginPin] = useState('')
+  const [pinStep, setPinStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -140,6 +142,81 @@ export default function CheckInPage() {
     setCheckingIn(false)
     toast.success(`Bem-vindo, ${name}!`)
     setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
+  }
+
+  async function handleWhatsAppLogin() {
+    if (pinStep) {
+      if (!isValidPin(loginPin)) {
+        toast.error('PIN deve ter 4 dígitos.')
+        return
+      }
+      setLoggingIn(true)
+      try {
+        const data = await verifyLoginPin(pinStep.challengeToken, loginPin)
+        if (data.error) {
+          toast.error(data.error)
+          return
+        }
+        persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+        setSavedCustomerId(data.customerId)
+        setSavedCustomerName(`${data.firstName} ${data.lastName}`)
+        setShowFullForm(false)
+        setPinStep(null)
+        setLoginPin('')
+
+        if (data.activeSession?.slug === params.slug) {
+          toast.success(`Bem-vindo de volta, ${data.firstName}!`)
+          router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+          return
+        }
+        toast.success(`Olá, ${data.firstName}! Faça check-in na mesa.`)
+      } catch {
+        toast.error('Erro ao verificar PIN.')
+      } finally {
+        setLoggingIn(false)
+      }
+      return
+    }
+
+    const phone = loginWhatsapp.replace(/\D/g, '')
+    if (phone.length < 10) {
+      toast.error('Informe um WhatsApp válido.')
+      return
+    }
+
+    setLoggingIn(true)
+    try {
+      const data = await loginWithWhatsApp(phone)
+      if ('error' in data) {
+        toast.error(data.error)
+        setShowFullForm(true)
+        return
+      }
+
+      if ('requiresPin' in data && data.requiresPin) {
+        setPinStep({ challengeToken: data.challengeToken, firstName: data.firstName })
+        setLoginPin('')
+        toast.message(`Digite seu PIN, ${data.firstName}.`)
+        return
+      }
+
+      persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+      setSavedCustomerId(data.customerId)
+      setSavedCustomerName(`${data.firstName} ${data.lastName}`)
+      setShowFullForm(false)
+
+      if (data.activeSession?.slug === params.slug) {
+        toast.success(`Bem-vindo de volta, ${data.firstName}!`)
+        router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+        return
+      }
+
+      toast.success(`Olá, ${data.firstName}! Faça check-in na mesa.`)
+    } catch {
+      toast.error('Erro ao entrar. Tente novamente.')
+    } finally {
+      setLoggingIn(false)
+    }
   }
 
   async function handleQuickCheckIn() {
@@ -256,6 +333,46 @@ export default function CheckInPage() {
             </div>
           </div>
         </div>
+
+        {/* Entrar com WhatsApp (sem dados salvos no aparelho) */}
+        {!canQuickCheckIn && (
+          <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
+            style={{ background: '#1e293b', border: '1px solid #334155' }}>
+            <div>
+              <p className="text-sm font-semibold">Já tem conta Qomanda?</p>
+              <p className="text-xs mt-1" style={{ color: '#a78b7d' }}>
+                Entre com seu WhatsApp para retomar visitas em andamento ou check-in rápido.
+              </p>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+              <input type="tel" inputMode="numeric" value={loginWhatsapp}
+                onChange={e => setLoginWhatsapp(formatWhatsApp(e.target.value))}
+                placeholder="(11) 99999-9999" autoComplete="tel"
+                disabled={Boolean(pinStep)}
+                className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
+                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep ? 0.6 : 1 }}
+                onFocus={e => (e.target.style.borderColor = '#f97316')}
+                onBlur={e => (e.target.style.borderColor = '#584237')} />
+            </div>
+            {pinStep && (
+              <div className="space-y-2">
+                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>PIN de {pinStep.firstName}</p>
+                <PinInput value={loginPin} onChange={setLoginPin} autoFocus disabled={loggingIn} />
+              </div>
+            )}
+            <button type="button" onClick={handleWhatsAppLogin} disabled={loggingIn || checkingIn}
+              className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', color: '#ffb690' }}>
+              {loggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                <>
+                  <span className="material-symbols-outlined">{pinStep ? 'pin' : 'login'}</span>
+                  {pinStep ? 'Confirmar PIN' : 'Entrar com WhatsApp'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Check-in rápido */}
         {canQuickCheckIn && (

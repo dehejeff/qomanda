@@ -1,13 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
-import { SavedCardsSection } from '@/components/customer/saved-cards-section'
-import { PaymentReceiptCard } from '@/components/payment-receipt-card'
-import type { HubActiveSession, HubReceipt, HubVisit } from '@/app/api/customer/hub/route'
+import type { HubActiveSession, HubReceiptSummary, HubVisit } from '@/app/api/customer/hub/route'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -15,14 +12,9 @@ type HubData = {
   customer: { firstName: string; lastName: string; whatsapp: string }
   visits: HubVisit[]
   favorites: { restaurantId: string; slug: string; name: string; logoUrl: string | null }[]
-  receipts: HubReceipt[]
+  receiptSummary: HubReceiptSummary
+  hasPin: boolean
   activeSession: HubActiveSession | null
-}
-
-function formatWhatsApp(digits: string) {
-  const d = digits.replace(/\D/g, '')
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-  return digits
 }
 
 function formatVisitDate(iso: string) {
@@ -46,6 +38,18 @@ function RestaurantAvatar({ name, logoUrl, size = 44 }: { name: string; logoUrl:
 }
 
 export default function CustomerHubPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      </div>
+    }>
+      <CustomerHubContent />
+    </Suspense>
+  )
+}
+
+function CustomerHubContent() {
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [data, setData] = useState<HubData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,6 +64,9 @@ export default function CustomerHubPage() {
     if (!res.ok) throw new Error('Erro ao carregar')
     const hub = await res.json() as HubData
     setData(hub)
+    if (hub.activeSession) {
+      localStorage.setItem('qomanda_session_id', hub.activeSession.sessionId)
+    }
     setLoading(false)
   }, [])
 
@@ -110,15 +117,6 @@ export default function CustomerHubPage() {
     } finally {
       setTogglingFav(null)
     }
-  }
-
-  const router = useRouter()
-
-  function handleLogout() {
-    localStorage.clear()
-    sessionStorage.clear()
-    toast.success('Sessão encerrada.')
-    router.push('/login?perfil=cliente')
   }
 
   if (loading) {
@@ -272,71 +270,29 @@ export default function CustomerHubPage() {
           </section>
         )}
 
-        {/* Recibos e NF-e */}
+        {/* Atalhos */}
         {customerId && (
-          <section id="receipts">
-            <div className="mb-3 px-1">
-              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
-                Recibos e notas fiscais
+          <section className="grid grid-cols-2 gap-3">
+            <Link href="/hub/receipts"
+              className="rounded-xl p-4 flex flex-col gap-2 transition-all active:scale-[0.98]"
+              style={{ background: '#131b2e', border: '1px solid #334155' }}>
+              <span className="material-symbols-outlined text-[24px]" style={{ color: '#ffb690' }}>receipt_long</span>
+              <p className="text-sm font-semibold">Recibos</p>
+              <p className="text-[11px] font-mono" style={{ color: '#584237' }}>
+                {(data?.receiptSummary.totalReceipts ?? 0) > 0
+                  ? `${data!.receiptSummary.totalReceipts} em ${data!.receiptSummary.restaurantCount} restaurante(s)`
+                  : 'Nenhum ainda'}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#584237' }}>
-                Comprovantes de pagamento · NF-e enviada ao WhatsApp quando disponível
+            </Link>
+            <Link href="/hub/profile"
+              className="rounded-xl p-4 flex flex-col gap-2 transition-all active:scale-[0.98]"
+              style={{ background: '#131b2e', border: '1px solid #334155' }}>
+              <span className="material-symbols-outlined text-[24px]" style={{ color: '#ffb690' }}>person</span>
+              <p className="text-sm font-semibold">Perfil</p>
+              <p className="text-[11px] font-mono" style={{ color: '#584237' }}>
+                {data?.hasPin ? 'PIN ativo' : 'Cartões e PIN'}
               </p>
-            </div>
-            {(data?.receipts.length ?? 0) === 0 ? (
-              <div className="rounded-xl p-8 text-center" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-                <span className="material-symbols-outlined text-[40px] block mb-3" style={{ color: '#584237' }}>receipt_long</span>
-                <p className="text-sm font-semibold">Nenhum recibo ainda</p>
-                <p className="text-xs mt-2 leading-relaxed max-w-[260px] mx-auto" style={{ color: '#a78b7d' }}>
-                  Após pagar pela Qomanda, seus comprovantes aparecem aqui.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data!.receipts.map(r => (
-                  <div key={r.id}>
-                    <p className="text-[10px] font-mono uppercase tracking-widest mb-1.5 px-1" style={{ color: '#584237' }}>
-                      {r.restaurantName} · Mesa {r.tableNumber}
-                    </p>
-                    <PaymentReceiptCard
-                      payment={r}
-                      context={{ restaurantName: r.restaurantName, tableNumber: r.tableNumber }}
-                      variant="customer"
-                      compact
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Meus cartões */}
-        {customerId && <SavedCardsSection customerId={customerId} />}
-
-        {/* Perfil resumido */}
-        {customerId && data?.customer && (
-          <section id="profile" className="rounded-xl p-5 space-y-4"
-            style={{ background: '#131b2e', border: '1px solid #334155' }}>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meu perfil</p>
-            <div>
-              <p className="text-base font-bold">{data.customer.firstName} {data.customer.lastName}</p>
-              <p className="text-sm mt-0.5" style={{ color: '#a78b7d' }}>{formatWhatsApp(data.customer.whatsapp)}</p>
-            </div>
-            {data.activeSession && (
-              <Link href={`/${data.activeSession.slug}/profile?session=${data.activeSession.sessionId}`}
-                className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
-                style={{ background: '#1e293b', border: '1px solid #334155' }}>
-                <span className="text-sm">Preferências e fidelidade</span>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>chevron_right</span>
-              </Link>
-            )}
-            <button type="button" onClick={handleLogout}
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-mono transition-all active:scale-[0.98]"
-              style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-              Limpar dados deste aparelho
-            </button>
+            </Link>
           </section>
         )}
 
@@ -363,7 +319,9 @@ export default function CustomerHubPage() {
         )}
       </main>
 
-      <HubBottomNav active="home" />
+      <Suspense fallback={null}>
+        <HubBottomNav />
+      </Suspense>
     </div>
   )
 }

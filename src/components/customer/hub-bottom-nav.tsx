@@ -3,21 +3,30 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+type Tab = 'home' | 'scan' | 'receipts' | 'profile'
+
 type Props = {
-  active?: 'home' | 'scan' | 'receipts' | 'profile'
+  active?: Tab
+}
+
+function resolveTab(pathname: string): Tab {
+  if (pathname === '/scan') return 'scan'
+  if (pathname.startsWith('/hub/receipts')) return 'receipts'
+  if (pathname === '/hub/profile') return 'profile'
+  if (pathname.startsWith('/hub')) return 'home'
+  return 'home'
 }
 
 export function HubBottomNav({ active }: Props) {
   const pathname = usePathname()
-  const current = active ?? (
-    pathname === '/scan' ? 'scan'
-    : pathname.startsWith('/hub') ? 'home'
-    : 'home'
-  )
+  const current = active ?? resolveTab(pathname)
 
-  const itemStyle = (id: string) => ({
+  const itemStyle = (id: Tab) => ({
     color: current === id ? '#ffb690' : '#e0c0b1',
   })
+
+  const iconStyle = (id: Tab) =>
+    current === id ? { fontVariationSettings: "'FILL' 1", color: '#f97316' } as const : undefined
 
   return (
     <nav
@@ -25,10 +34,7 @@ export function HubBottomNav({ active }: Props) {
       style={{ background: '#171f33', borderTop: '1px solid rgba(88,66,55,0.4)' }}
     >
       <Link href="/hub" className="flex flex-col items-center gap-0.5 p-2 rounded-xl min-w-[64px]" style={itemStyle('home')}>
-        <span className="material-symbols-outlined text-[22px]"
-          style={current === 'home' ? { fontVariationSettings: "'FILL' 1", color: '#f97316' } : undefined}>
-          home
-        </span>
+        <span className="material-symbols-outlined text-[22px]" style={iconStyle('home')}>home</span>
         <span className="text-[10px] font-mono">Início</span>
       </Link>
 
@@ -38,19 +44,13 @@ export function HubBottomNav({ active }: Props) {
         <span className="text-[10px] font-mono font-bold">Escanear</span>
       </Link>
 
-      <Link href="/hub#receipts" className="flex flex-col items-center gap-0.5 p-2 rounded-xl min-w-[64px]" style={itemStyle('receipts')}>
-        <span className="material-symbols-outlined text-[22px]"
-          style={current === 'receipts' ? { fontVariationSettings: "'FILL' 1", color: '#f97316' } : undefined}>
-          receipt_long
-        </span>
+      <Link href="/hub/receipts" className="flex flex-col items-center gap-0.5 p-2 rounded-xl min-w-[64px]" style={itemStyle('receipts')}>
+        <span className="material-symbols-outlined text-[22px]" style={iconStyle('receipts')}>receipt_long</span>
         <span className="text-[10px] font-mono">Recibos</span>
       </Link>
 
-      <Link href="/hub#profile" className="flex flex-col items-center gap-0.5 p-2 rounded-xl min-w-[64px]" style={itemStyle('profile')}>
-        <span className="material-symbols-outlined text-[22px]"
-          style={current === 'profile' ? { fontVariationSettings: "'FILL' 1", color: '#f97316' } : undefined}>
-          person
-        </span>
+      <Link href="/hub/profile" className="flex flex-col items-center gap-0.5 p-2 rounded-xl min-w-[64px]" style={itemStyle('profile')}>
+        <span className="material-symbols-outlined text-[22px]" style={iconStyle('profile')}>person</span>
         <span className="text-[10px] font-mono">Perfil</span>
       </Link>
     </nav>

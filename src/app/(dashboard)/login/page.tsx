@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { CustomerLoginForm } from '@/components/customer/customer-login-form'
 
 type AccessRole = 'customer' | 'admin' | 'waiter'
 
@@ -49,6 +50,12 @@ export default function LoginPage() {
     const param = new URLSearchParams(window.location.search).get('perfil')
     setRole(parseRole(param))
   }, [])
+
+  useEffect(() => {
+    if (role !== 'customer') return
+    const cid = localStorage.getItem('qomanda_customer_id')
+    if (cid) router.replace('/hub')
+  }, [role, router])
 
   const copy = ROLE_COPY[role]
 
@@ -132,32 +139,7 @@ export default function LoginPage() {
 
         {/* ── Cliente ── */}
         {role === 'customer' && (
-          <div className="space-y-3">
-            <Link href="/hub"
-              className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-              style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
-              <span className="material-symbols-outlined text-[20px]">home</span>
-              Entrar na minha conta
-            </Link>
-            <Link href="/cadastro?tipo=cliente"
-              className="w-full h-12 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
-              style={{ background: '#131b2e', border: '1px solid #584237', color: '#dae2fd' }}>
-              <span className="material-symbols-outlined text-[20px]">person_add</span>
-              Criar conta de cliente
-            </Link>
-            <Link href="/scan"
-              className="w-full h-11 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
-              style={{ background: 'transparent', border: '1px solid #334155', color: '#a78b7d' }}>
-              <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-              Escanear mesa (check-in)
-            </Link>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(123,208,255,0.06)', border: '1px solid rgba(123,208,255,0.15)' }}>
-              <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                <strong style={{ color: '#7bd0ff' }}>Duas formas de começar:</strong>{' '}
-                cadastre-se aqui para acessar o hub, ou escaneie o QR na mesa do restaurante na primeira visita.
-              </p>
-            </div>
-          </div>
+          <CustomerLoginForm onFocus={onFocus} onBlur={onBlur} />
         )}
 
         {/* ── Admin do restaurante ── */}

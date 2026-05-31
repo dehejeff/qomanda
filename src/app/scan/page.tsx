@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
@@ -206,7 +206,9 @@ export default function ScanPage() {
       </main>
 
       {/* Bottom nav */}
-      <HubBottomNav active="scan" />
+      <Suspense fallback={null}>
+        <HubBottomNav active="scan" />
+      </Suspense>
 
       {/* ── Modal de entrada manual ─────────────────────── */}
       {showModal && (

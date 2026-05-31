@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { findCustomerActiveSession } from '@/lib/customer-auth-server'
+import {
+  fetchCustomerReceipts,
+  groupReceiptsByRestaurant,
+} from '@/lib/customer-receipts-server'
 
 export type HubVisit = {
   restaurantId: string
@@ -11,19 +16,9 @@ export type HubVisit = {
   isFavorite: boolean
 }
 
-export type HubReceipt = {
-  id: string
-  amount: number
-  method: string
-  split_type: 'food' | 'alcohol' | 'combined'
-  service_fee_included?: boolean | null
-  confirmation_code: string | null
-  paid_at: string | null
-  created_at: string
-  restaurantName: string
-  restaurantSlug: string
-  tableNumber: string
-  sessionId: string
+export type HubReceiptSummary = {
+  totalReceipts: number
+  restaurantCount: number
 }
 
 export type HubActiveSession = {
@@ -52,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, first_name, last_name, whatsapp')
+      .select('id, first_name, last_name, whatsapp, pin_hash')
       .eq('id', customerId)
       .single()
 
@@ -140,59 +135,16 @@ export async function GET(req: NextRequest) {
       } : null
     }).filter(Boolean) as { restaurantId: string; slug: string; name: string; logoUrl: string | null }[]
 
-    const { data: payments } = await supabase
-      .from('payments')
-      .select(`
-        id, amount, method, split_type, service_fee_included,
-        confirmation_code, paid_at, created_at, session_id,
-        session:sessions(
-          id,
-          table:tables(number),
-          restaurant:restaurants(name, slug)
-        )
-      `)
-      .eq('customer_id', customerId)
-      .eq('status', 'paid')
-      .order('paid_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(30)
+    const receipts = await fetchCustomerReceipts(supabase, customerId)
+    const receiptSummary: HubReceiptSummary = {
+      totalReceipts: receipts.length,
+      restaurantCount: groupReceiptsByRestaurant(receipts).length,
+    }
 
-    const receipts: HubReceipt[] = (payments ?? []).map(p => {
-      const sessRaw = p.session as {
-        id: string
-        table: { number: string } | { number: string }[] | null
-        restaurant: { name: string; slug: string } | { name: string; slug: string }[] | null
-      } | {
-        id: string
-        table: { number: string } | { number: string }[] | null
-        restaurant: { name: string; slug: string } | { name: string; slug: string }[] | null
-      }[] | null
+    let activeSession: HubActiveSession | null = await findCustomerActiveSession(supabase, customerId)
 
-      const sess = Array.isArray(sessRaw) ? sessRaw[0] : sessRaw
-      const tableRaw = sess?.table
-      const table = Array.isArray(tableRaw) ? tableRaw[0] : tableRaw
-      const restRaw = sess?.restaurant
-      const rest = Array.isArray(restRaw) ? restRaw[0] : restRaw
-
-      return {
-        id: p.id,
-        amount: Number(p.amount),
-        method: p.method,
-        split_type: p.split_type as HubReceipt['split_type'],
-        service_fee_included: p.service_fee_included,
-        confirmation_code: p.confirmation_code,
-        paid_at: p.paid_at,
-        created_at: p.created_at,
-        restaurantName: rest?.name ?? 'Restaurante',
-        restaurantSlug: rest?.slug ?? '',
-        tableNumber: table?.number ?? '—',
-        sessionId: p.session_id,
-      }
-    })
-
-    let activeSession: HubActiveSession | null = null
-
-    if (sessionId) {
+    // Preferir sessão informada pelo cliente se ainda estiver aberta
+    if (sessionId && (!activeSession || activeSession.sessionId !== sessionId)) {
       const { data: active } = await supabase
         .from('sessions')
         .select(`
@@ -238,7 +190,8 @@ export async function GET(req: NextRequest) {
       },
       visits,
       favorites: favoriteRestaurants,
-      receipts,
+      receiptSummary,
+      hasPin: Boolean(customer.pin_hash),
       activeSession,
     })
   } catch (err) {
