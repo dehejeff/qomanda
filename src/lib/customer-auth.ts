@@ -75,8 +75,8 @@ export function persistCustomerAuth(
   }
 }
 
-/** Após mesa quitada ou sessão encerrada — hub se logado, senão check-in do restaurante. */
-export function redirectAfterSessionEnd(router: AppRouterInstance, restaurantSlug?: string) {
+/** Cliente encerra visita ao restaurante (mantém login WhatsApp → hub). */
+export function leaveRestaurantSession(router: AppRouterInstance, restaurantSlug?: string) {
   localStorage.removeItem('qomanda_session_id')
   if (localStorage.getItem('qomanda_customer_id')) {
     router.replace('/hub')
@@ -88,3 +88,6 @@ export function redirectAfterSessionEnd(router: AppRouterInstance, restaurantSlu
   }
   router.replace('/login?perfil=cliente')
 }
+
+/** @deprecated use leaveRestaurantSession */
+export const redirectAfterSessionEnd = leaveRestaurantSession

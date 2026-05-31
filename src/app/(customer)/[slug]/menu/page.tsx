@@ -28,6 +28,10 @@ export default function MenuPage() {
   const tabsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (showReview && cart.length === 0) setShowReview(false)
+  }, [showReview, cart.length])
+
+  useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
 
     async function loadMenu() {

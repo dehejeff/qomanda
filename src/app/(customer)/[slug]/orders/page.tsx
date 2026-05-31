@@ -18,7 +18,6 @@ import { ParticipantPaymentRow } from '@/components/customer/participant-payment
 import { ItemStatusIcon } from '@/components/customer/item-status-icon'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { redirectAfterSessionEnd } from '@/lib/customer-auth'
 
 type Tab = 'mine' | 'table'
 
@@ -235,7 +234,7 @@ export default function OrdersPage() {
         const status = (p.new as any)?.status
         if (status === 'closing') setSessionClosing(true)
         if (status === 'closed') {
-          redirectAfterSessionEnd(router, params.slug)
+          load()
         }
       })
       .subscribe()
@@ -839,11 +838,15 @@ export default function OrdersPage() {
         <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
           style={{ background: 'rgba(11,19,38,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
           {sessionFullyPaid ? (
-            <div className="w-full h-14 rounded-xl flex items-center justify-center gap-2"
-              style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
-              <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              <span className="text-sm font-semibold" style={{ color: '#34d399' }}>Mesa quitada — obrigado!</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/${params.slug}/home?session=${sessionId}`)}
+              className="w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}
+            >
+              <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <span className="text-sm font-semibold" style={{ color: '#34d399' }}>Mesa quitada — ver código de saída</span>
+            </button>
           ) : (
             <button onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
               className="w-full h-14 rounded-xl font-semibold text-base flex items-center justify-center gap-3 active:scale-95 transition-all"

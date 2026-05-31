@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { buildSessionBilling } from '@/lib/session-billing'
-import { redirectAfterSessionEnd } from '@/lib/customer-auth'
+import { leaveRestaurantSession } from '@/lib/customer-auth'
+import { SessionSettledPanel, type SessionPaymentReceipt } from '@/components/customer/session-settled-panel'
 import type { Order } from '@/types'
 import { Loader2 } from 'lucide-react'
 
@@ -33,9 +34,10 @@ export default function CustomerHomePage() {
   const [loading, setLoading] = useState(true)
   const [closeInvite, setCloseInvite] = useState<{ requestId: string; initiatorName: string; amountOwed: number } | null>(null)
   const [sessionSettled, setSessionSettled] = useState(false)
+  const [myPayments, setMyPayments] = useState<SessionPaymentReceipt[]>([])
 
-  function exitClosedSession() {
-    redirectAfterSessionEnd(router, params.slug)
+  function handleLeaveRestaurant() {
+    leaveRestaurantSession(router, params.slug)
   }
 
   useEffect(() => {
@@ -55,12 +57,9 @@ export default function CustomerHomePage() {
         .eq('id', sessionId)
         .single()
 
-      if (!session) { redirectAfterSessionEnd(router, params.slug); return }
+      if (!session) { router.replace(`/${params.slug}`); return }
 
-      if (session.status === 'closed') {
-        exitClosedSession()
-        return
-      }
+      const sessionClosed = session.status === 'closed'
 
       setRestaurantName((session.restaurant as any)?.name ?? '')
       setLogoUrl((session.restaurant as any)?.logo_url ?? null)
@@ -89,9 +88,22 @@ export default function CustomerHomePage() {
         paymentsRes.data ?? [],
         (participantsRes.data ?? []).map(p => p.customer_id),
       )
-      const settled = billing.grandTotal > 0.01 && billing.remaining <= 0.02
+      const settled = sessionClosed || (billing.grandTotal > 0.01 && billing.remaining <= 0.02)
       setSessionSettled(settled)
       if (settled) setCloseInvite(null)
+
+      if (customerId) {
+        const { data: myPays } = await supabase
+          .from('payments')
+          .select('confirmation_code, amount, split_type')
+          .eq('session_id', sessionId)
+          .eq('customer_id', customerId)
+          .eq('status', 'paid')
+          .order('created_at', { ascending: false })
+        setMyPayments((myPays ?? []) as SessionPaymentReceipt[])
+      } else {
+        setMyPayments([])
+      }
 
       let ordersQuery = supabase
         .from('orders')
@@ -124,7 +136,7 @@ export default function CustomerHomePage() {
     const sessionCh = supabase.channel('home-session-watch')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` }, (p) => {
         const status = (p.new as { status?: string })?.status
-        if (status === 'closed') exitClosedSession()
+        if (status === 'closed') load()
       })
       .subscribe()
 
@@ -199,12 +211,16 @@ export default function CustomerHomePage() {
             </span>
           )}
         </div>
-        {!sessionSettled && tableNumber && (
+        {tableNumber && (
         <span
           className="text-xs font-mono px-3 py-1.5 rounded-lg"
-          style={{ background: 'rgba(249,115,22,0.12)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.2)' }}
+          style={{
+            background: sessionSettled ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
+            color: sessionSettled ? '#34d399' : '#ffb690',
+            border: sessionSettled ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(249,115,22,0.2)',
+          }}
         >
-          Mesa {tableNumber}
+          {sessionSettled ? 'Mesa quitada' : `Mesa ${tableNumber}`}
         </span>
         )}
       </header>
@@ -254,18 +270,13 @@ export default function CustomerHomePage() {
           </h1>
         </div>
 
-        {/* Mesa quitada — sem reserva ativa */}
+        {/* Mesa quitada — código de saída */}
         {sessionSettled && (
-          <div className="rounded-xl px-5 py-4 flex items-start gap-3"
-            style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.35)' }}>
-            <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            <div>
-              <p className="text-sm font-bold" style={{ color: '#34d399' }}>Mesa quitada — visita encerrada</p>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                Todos os pagamentos foram recebidos e a mesa foi liberada. Você ainda pode ver pedidos e recibos abaixo.
-              </p>
-            </div>
-          </div>
+          <SessionSettledPanel
+            tableNumber={tableNumber}
+            payments={myPayments}
+            onLeaveRestaurant={handleLeaveRestaurant}
+          />
         )}
 
         {/* Active order status card */}

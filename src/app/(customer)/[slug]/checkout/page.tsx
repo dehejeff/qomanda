@@ -20,7 +20,6 @@ import {
 } from '@/lib/session-billing'
 import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
-import { redirectAfterSessionEnd } from '@/lib/customer-auth'
 import { CardPaymentScreen, type CardPaymentPayload } from '@/components/customer/card-payment-screen'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -692,10 +691,10 @@ export default function CheckoutPage() {
   ]
 
   useEffect(() => {
-    if (step !== 'confirmed' || !tableSettled) return
-    localStorage.removeItem('qomanda_session_id')
-    if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
-    const timer = setTimeout(() => redirectAfterSessionEnd(router, params.slug), 4000)
+    if (step !== 'confirmed' || !tableSettled || !sessionId) return
+    const timer = setTimeout(() => {
+      router.push(`/${params.slug}/home?session=${sessionId}`)
+    }, 5000)
     return () => clearTimeout(timer)
   }, [step, tableSettled, sessionId, router, params.slug])
 
@@ -815,20 +814,20 @@ export default function CheckoutPage() {
             <>
               <button
                 type="button"
-                onClick={() => redirectAfterSessionEnd(router, params.slug)}
+                onClick={() => router.push(`/${params.slug}/home?session=${sessionId}`)}
                 className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}
               >
                 <span className="material-symbols-outlined text-[20px]">home</span>
-                Ir para o Hub
+                Ver código na página inicial
               </button>
               <p className="text-[11px] font-mono text-center" style={{ color: '#584237' }}>
-                Redirecionando automaticamente em alguns segundos…
+                Redirecionando para o início em alguns segundos…
               </p>
             </>
           )}
         </main>
-        {!tableSettled && <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />}
+        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
       </div>
     )
   }
