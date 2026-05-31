@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { MenuCategory, MenuItem, CartItem } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
+import { OrderReviewModal } from '@/components/customer/order-review-modal'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -21,6 +22,7 @@ export default function MenuPage() {
   const [openNoteId, setOpenNoteId] = useState<string | null>(null) // item com nota expandida
   const [loading, setLoading] = useState(true)
   const [placing, setPlacing] = useState(false)
+  const [showReview, setShowReview] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [restaurantName, setRestaurantName] = useState('Qomanda')
   const tabsRef = useRef<HTMLDivElement>(null)
@@ -74,6 +76,40 @@ export default function MenuPage() {
     })
   }
 
+  function updateCartQuantity(itemId: string, delta: number) {
+    if (delta > 0) {
+      const item = categories.flatMap(c => c.items ?? []).find(i => i.id === itemId)
+      if (item) addToCart(item)
+      return
+    }
+    removeFromCart(itemId)
+  }
+
+  function removeItemCompletely(itemId: string) {
+    setCart(prev => prev.filter(c => c.menu_item.id !== itemId))
+    setNotes(prev => {
+      const next = { ...prev }
+      delete next[itemId]
+      return next
+    })
+    if (openNoteId === itemId) setOpenNoteId(null)
+  }
+
+  function updateItemNote(itemId: string, note: string) {
+    setNotes(prev => {
+      if (!note) {
+        const next = { ...prev }
+        delete next[itemId]
+        return next
+      }
+      return { ...prev, [itemId]: note }
+    })
+  }
+
+  function confirmNote(itemId: string) {
+    setOpenNoteId(null)
+  }
+
   const cartTotal = cart.reduce((s, c) => s + c.menu_item.price * c.quantity, 0)
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
 
@@ -109,8 +145,14 @@ export default function MenuPage() {
     setCart([])
     setNotes({})
     setOpenNoteId(null)
+    setShowReview(false)
     toast.success('Pedido enviado!')
     setPlacing(false)
+  }
+
+  function openReview() {
+    if (cart.length === 0) return
+    setShowReview(true)
   }
 
   // Featured item: first available item across all categories
@@ -299,22 +341,36 @@ export default function MenuPage() {
                     {qty > 0 && (
                       <div className="mt-2">
                         {openNoteId === item.id ? (
-                          <div className="flex gap-2 items-center">
+                          <div className="space-y-2">
                             <input
                               autoFocus
                               type="text"
                               placeholder="ex: sem cebola, ponto bem passado…"
                               value={notes[item.id] ?? ''}
                               onChange={e => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                              onBlur={() => setOpenNoteId(null)}
-                              className="flex-1 h-8 px-2.5 rounded-lg text-xs outline-none"
+                              onKeyDown={e => { if (e.key === 'Enter') confirmNote(item.id) }}
+                              className="w-full h-10 px-3 rounded-xl text-sm outline-none font-mono"
                               style={{ background: '#0b1326', border: '1px solid #f97316', color: '#dae2fd' }}
                             />
-                            <button onClick={() => setOpenNoteId(null)}
-                              className="text-[10px] font-mono shrink-0"
-                              style={{ color: '#34d399' }}>
-                              OK
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setOpenNoteId(null)}
+                                className="flex-1 h-10 rounded-xl text-xs font-mono font-medium"
+                                style={{ border: '1px solid #334155', color: '#a78b7d' }}
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => confirmNote(item.id)}
+                                className="flex-1 h-10 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                                style={{ background: '#34d399', color: '#064e3b' }}
+                              >
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                                Salvar
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <button
@@ -356,25 +412,36 @@ export default function MenuPage() {
               </span>
             </div>
             <button
-              onClick={placeOrder}
+              onClick={openReview}
               disabled={placing}
               className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-mono font-bold active:scale-95 transition-all disabled:opacity-60"
               style={{ background: '#f97316', color: '#582200' }}
             >
-              {placing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Fazer Pedido
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </>
-              )}
+              <>
+                Revisar pedido
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </>
             </button>
           </div>
         </div>
       )}
 
       <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+
+      {showReview && (
+        <OrderReviewModal
+          cart={cart}
+          notes={notes}
+          total={cartTotal}
+          itemCount={cartCount}
+          placing={placing}
+          onClose={() => setShowReview(false)}
+          onConfirm={placeOrder}
+          onUpdateQuantity={updateCartQuantity}
+          onRemoveItem={removeItemCompletely}
+          onUpdateNote={updateItemNote}
+        />
+      )}
     </div>
   )
 }
