@@ -7,6 +7,7 @@ import type { PaymentMethod } from '@/types'
 import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { splitConsumptionByAlcohol, splitPaymentAmounts } from '@/lib/alcohol-split'
+import { SERVICE_FEE_RATE } from '@/lib/session-billing'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -464,6 +465,17 @@ export default function CheckoutPage() {
     if (closeMode === 'individual') return myIndividualTotal
     return myDefinedAmount
   }
+
+  /** Base em aberto para calcular a taxa: individual = sua conta; mesa = saldo da mesa */
+  const serviceFeeOpenBase = closeMode === 'individual' ? myIndividualBase : remaining
+
+  const serviceFeeDisplay = (() => {
+    if (serviceFeeOpenBase <= 0.01) return 0
+    if (includeServiceFee) {
+      return Math.round((serviceFeeOpenBase - serviceFeeOpenBase / (1 + SERVICE_FEE_RATE)) * 100) / 100
+    }
+    return Math.round(serviceFeeOpenBase * SERVICE_FEE_RATE * 100) / 100
+  })()
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -1410,7 +1422,9 @@ export default function CheckoutPage() {
               <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Taxa de serviço (10%)</p>
               <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
                 {includeServiceFee
-                  ? `+ ${formatCurrency(subTotal * 0.1)} incluídos no seu pagamento`
+                  ? serviceFeeOpenBase > 0.01
+                    ? `+ ${formatCurrency(serviceFeeDisplay)} incluídos no pagamento (sobre os ${formatCurrency(serviceFeeOpenBase)} em aberto ${closeMode === 'individual' ? 'da sua conta' : 'da mesa'})`
+                    : 'Nada em aberto para aplicar taxa'
                   : 'Você optou por não incluir — paga só o consumo'}
               </p>
               {!includeServiceFee && (
