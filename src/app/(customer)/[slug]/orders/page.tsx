@@ -251,7 +251,6 @@ export default function OrdersPage() {
   const activeSt      = statusOf(tab === 'mine' ? myOrders : allOrders)
   const myTotal       = totalOf(myOrders)
   const tableTotal    = totalOf(allOrders)
-  const serviceFee    = (tab === 'mine' ? myTotal : tableTotal) * 0.1
   const myBilling     = paymentProgress.find(p => p.isMe)?.billing
   const myOwed        = myBilling?.amountDue ?? consumptionWithFee(myTotal)
   const myPaid        = myBilling?.paid ?? 0
