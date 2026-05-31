@@ -8,6 +8,7 @@ import { QomandaLogo } from '@/components/qomanda-logo'
 
 const NAV_ITEMS = [
   { href: '/dashboard',           icon: 'dashboard',        label: 'Overview' },
+  { href: '/dashboard/reports',   icon: 'analytics',        label: 'Relatórios' },
   { href: '/dashboard/orders',    icon: 'receipt_long',     label: 'Pedidos' },
   { href: '/dashboard/customers',   icon: 'groups',           label: 'Clientes' },
   { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },

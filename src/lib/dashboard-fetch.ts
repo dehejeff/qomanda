@@ -24,6 +24,8 @@ export async function fetchDashboardOverview(
   supabase: SupabaseClient,
   restaurantId: string,
 ): Promise<DashboardOverviewData> {
+  const todayIso = startOfTodayIso()
+
   const [tablesRes, ordersRes, paymentsRes, recentRes] = await Promise.all([
     supabase
       .from('tables')
@@ -35,12 +37,14 @@ export async function fetchDashboardOverview(
       .select('id')
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready']),
+    // Faturamento do dia: pagamentos confirmados HOJE (por paid_at, data real da liquidação).
     supabase
       .from('payments')
       .select('amount')
       .eq('restaurant_id', restaurantId)
       .eq('status', 'paid')
-      .gte('created_at', startOfTodayIso()),
+      .gte('paid_at', todayIso),
+    // Pedidos do dia: apenas os criados HOJE.
     supabase
       .from('orders')
       .select(`
@@ -50,8 +54,8 @@ export async function fetchDashboardOverview(
         customer:customers(first_name, last_name)
       `)
       .eq('restaurant_id', restaurantId)
-      .order('created_at', { ascending: false })
-      .limit(1000),
+      .gte('created_at', todayIso)
+      .order('created_at', { ascending: false }),
   ])
 
   const tables = sortTablesByNumber((tablesRes.data ?? []) as RestaurantTable[])

@@ -73,7 +73,7 @@ export function OverviewOrdersPanel({ orders }: { orders: OverviewOrder[] }) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>
-          Pedidos
+          Pedidos de hoje
         </h3>
         <Link href="/dashboard/orders" className="text-xs font-mono text-primary hover:underline">
           Gerenciar
