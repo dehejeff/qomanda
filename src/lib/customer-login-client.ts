@@ -30,13 +30,7 @@ export async function verifyLoginPin(
 export function finishCustomerLogin(
   data: CustomerAuthPayload,
   router: AppRouterInstance,
-  options?: { preferHub?: boolean },
 ) {
   persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
-
-  if (!options?.preferHub && data.activeSession?.sessionId) {
-    router.push(`/${data.activeSession.slug}/home?session=${data.activeSession.sessionId}`)
-  } else {
-    router.push('/hub')
-  }
+  router.push('/hub')
 }
