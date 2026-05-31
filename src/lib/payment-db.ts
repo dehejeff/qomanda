@@ -24,8 +24,8 @@ export function paymentInsertErrorMessage(error: { message?: string; code?: stri
   if (error.code === '23503') {
     return 'Cliente não encontrado. Faça check-in novamente e tente outra vez.'
   }
-  if (error.message.includes('split_type') || error.message.includes('customer_id')) {
-    return 'Banco desatualizado: execute supabase/migrate.sql no Supabase.'
+  if (error.message.includes('split_type') || error.message.includes('customer_id') || error.message.includes('asaas_payment_id')) {
+    return 'Banco desatualizado: rode supabase/migrate-payments-asaas.sql no SQL Editor do Supabase.'
   }
   return `Erro ao registrar pagamento: ${error.message}`
 }
