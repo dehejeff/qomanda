@@ -212,7 +212,7 @@ create table if not exists payments (
   customer_id         uuid          references customers(id) on delete set null,
   asaas_payment_id    text,         -- ID da cobrança no Asaas (pay_xxx)
   amount              numeric(10,2) not null check (amount > 0),
-  method                   text          not null check (method in ('credit','debit','pix','offer')),
+  method                   text          not null check (method in ('credit','debit','pix','offer','cash')),
   split_type               text          not null default 'combined'
                                          check (split_type in ('food','alcohol','combined')),
   status                   text          not null default 'pending'

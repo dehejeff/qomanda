@@ -28,7 +28,7 @@ const PHASES = [
           'Home com status de pedido em tempo real',
           'Cardápio com fotos, promoções e sugestão do chef',
           'Pedidos, checkout e divisão de conta',
-          'Pagamento PIX, débito e crédito (Asaas)',
+          'Pagamento PIX, débito, crédito e dinheiro (confirmação pelo restaurante)',
           'Perfil — encerrar mesa e acesso ao Hub',
           'Hub do cliente: visitas, recibos, cartões, fidelidade',
         ],
@@ -40,6 +40,7 @@ const PHASES = [
           'QR Code por mesa — download e impressão com número visível',
           'Cardápio — criar/editar, foto, promo, sugestão do chef',
           'Fila de pedidos em tempo real (kanban)',
+          'Confirmar pagamento em dinheiro (mesa e pedidos da mesa)',
           'Settings: Pagamentos e Fidelidade',
           'Segurança: senha de cartão, sessão idle 15 min',
         ],
@@ -131,6 +132,9 @@ const PHASES = [
       {
         title: 'Equipe & Segurança',
         items: [
+          'App Garçom — painel mobile para garçons e caixa',
+          'Confirmar pagamentos em dinheiro na mesa (notificação + um toque)',
+          'Ver pedidos das mesas e responder "Chamar Garçom"',
           'Gestão de equipe: garçons, cozinheiros, gerentes',
           'Controle de acesso por perfil',
           '2FA e histórico de sessões do administrador',

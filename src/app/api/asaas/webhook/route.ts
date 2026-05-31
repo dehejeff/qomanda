@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
-import { generateConfirmationCode } from '@/lib/utils'
-import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
-import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
-import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
-import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
+import { confirmPaymentRecord } from '@/lib/confirm-payment'
 
 /**
  * POST /api/asaas/webhook
@@ -54,42 +50,11 @@ export async function POST(req: NextRequest) {
     const asaasStatus: AsaasPaymentStatus = payment.status
 
     if (isPaymentConfirmed(asaasStatus) && internalPayment.status !== 'paid') {
-      // Pagamento confirmado — gera código de validação e atualiza o registro
-      const confirmationCode = generateConfirmationCode()
-
-      await supabase
-        .from('payments')
-        .update({
-          status:            'paid',
-          confirmation_code: confirmationCode,
-          paid_at:           new Date().toISOString(),
-        })
-        .eq('id', internalPayment.id)
-
-      await syncCloseRequestOnPayment(
-        supabase,
-        internalPayment.session_id,
-        internalPayment.customer_id,
-        internalPayment.id,
-        Number(internalPayment.amount),
-      )
-
-      await notifyPaymentCoverage(
-        supabase,
-        internalPayment.session_id,
-        internalPayment.customer_id,
-        {
-          customer_id: internalPayment.customer_id,
-          amount: Number(internalPayment.amount),
-          service_fee_included: internalPayment.service_fee_included,
-          paid_at: new Date().toISOString(),
-        },
-        internalPayment.id,
-      )
-
-      await closeSessionIfSettled(supabase, internalPayment.session_id)
-      await grantEarnedLoyaltyOffers(supabase, internalPayment.customer_id, internalPayment.restaurant_id)
-
+      const { confirmationCode } = await confirmPaymentRecord(supabase, {
+        ...internalPayment,
+        method: 'pix',
+        amount: Number(internalPayment.amount),
+      })
       console.log(`[Asaas Webhook] Pagamento confirmado: ${internalPayment.id} → código ${confirmationCode}`)
     }
 

@@ -17,7 +17,7 @@
 - [x] Pedidos direto do celular com carrinho e stepper de quantidade
 - [x] Acompanhamento de pedidos com barra de progresso animada
 - [x] Checkout com divisão de conta automática
-- [x] Telas de pagamento: PIX, Débito, Crédito (formulário + parcelas)
+- [x] Telas de pagamento: PIX, Débito, Crédito, **Dinheiro** (confirmação manual pelo restaurante)
 - [x] Tela de confirmação com código de validação
 - [x] Perfil do cliente — editar dados, encerrar mesa (sem consumo em aberto), ir ao Hub
 - [x] Área Hub do cliente (visitas, recibos, cartões, fidelidade)
@@ -31,6 +31,7 @@
 - [x] QR Code por mesa — download e impressão com número visível (Mesa X / T-XX)
 - [x] Gestão de cardápio — criar/editar itens, foto (upload ou URL), preço promocional, sugestão do chef
 - [x] Fila de pedidos (kanban: pendente → confirmado → preparando → pronto → entregue)
+- [x] **Confirmar pagamento em dinheiro** — painel na mesa e em Pedidos · Mesa
 - [x] Settings: aba Pagamentos com histórico de transações
 - [x] Settings: aba Fidelidade (configurar regras visitas → benefício)
 - [x] Sidebar com navegação e logo
@@ -98,6 +99,11 @@
 - [ ] Exportação de relatórios (CSV/PDF)
 
 ### Equipe & Permissões
+- [ ] **App Garçom** — painel mobile-first dedicado (login em `/login?role=garcom`)
+  - [ ] Confirmar pagamentos em dinheiro na mesa (notificação + confirmação em um toque)
+  - [ ] Ver pedidos e status das mesas atribuídas
+  - [ ] Receber e responder alertas "Chamar Garçom"
+  - [ ] Marcar pedidos como entregues
 - [ ] **Gestão de equipe** (Settings → Equipe) — convide garçons, cozinheiros, gerentes
 - [ ] Controle de acesso por perfil (garçom: vê mesas / cozinheiro: vê fila / gerente: vê tudo)
 - [ ] Log de atividades por colaborador
@@ -145,12 +151,13 @@
 | Área | Status | % Completo |
 |---|---|---|
 | Cliente — Fluxo principal | ✅ Completo | 98% |
-| Cliente — Pagamento | ⚠️ Parcial | 80% |
+| Cliente — Pagamento | ⚠️ Parcial | 88% |
 | Cliente — Hub & segurança | ✅ Completo | 90% |
 | Dashboard — Operação | ✅ Completo | 95% |
 | Dashboard — Cardápio & QR mesas | ✅ Completo | 92% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
+| App Garçom | 🔴 Faltando | 5% |
 | Pagamentos (Asaas self-service) | ⚠️ Parcial | 55% |
 | NF-e | 🔴 Faltando | 0% |
 | Fidelidade | ⚠️ Parcial | 75% |

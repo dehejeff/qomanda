@@ -34,7 +34,7 @@ type SessionPaymentRow = PaymentReceiptRecord & { customer_id: string | null }
 
 type CloseMode = 'individual' | 'table'
 type SplitType = 'equal' | 'custom'
-type Step      = 'mode' | 'pix' | 'card' | 'confirmed'
+type Step      = 'mode' | 'pix' | 'card' | 'cash_amount' | 'cash_pending' | 'confirmed'
 
 // ── PIX Screen ───────────────────────────────────────────────
 // ── PIX Screen ── Mostra QR Code real gerado pelo Asaas ─────
@@ -212,6 +212,171 @@ function PixScreen({
   )
 }
 
+// ── Dinheiro — informar valor a pagar ────────────────────────
+function CashAmountScreen({
+  minimumOwed,
+  amount,
+  onAmountChange,
+  onSubmit,
+  onBack,
+  loading,
+}: {
+  minimumOwed: number
+  amount: string
+  onAmountChange: (value: string) => void
+  onSubmit: () => void
+  onBack: () => void
+  loading: boolean
+}) {
+  const parsed = parseFloat(amount.replace(',', '.')) || 0
+  const extra = Math.max(0, roundMoney(parsed - minimumOwed))
+  const valid = parsed >= minimumOwed - 0.02
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Quanto vai pagar?</h2>
+      </div>
+
+      <div className="rounded-xl p-5 space-y-4"
+        style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
+            Valor em dinheiro
+          </p>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono" style={{ color: '#a78b7d' }}>R$</span>
+            <input
+              type="number"
+              step="0.01"
+              min={minimumOwed}
+              value={amount}
+              onChange={e => onAmountChange(e.target.value)}
+              className="w-full h-14 pl-12 pr-4 rounded-xl font-mono text-2xl font-black outline-none"
+              style={{ background: '#0b1326', border: '2px solid #584237', color: '#ffb690' }}
+              onFocus={e => (e.target.style.borderColor = '#f97316')}
+              onBlur={e => (e.target.style.borderColor = '#584237')}
+            />
+          </div>
+          <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+            Mínimo: {formatCurrency(minimumOwed)} (sua parte nesta mesa)
+          </p>
+        </div>
+
+        <div className="space-y-2 pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#a78b7d' }}>Sua conta</span>
+            <span className="font-mono font-semibold" style={{ color: '#dae2fd' }}>{formatCurrency(minimumOwed)}</span>
+          </div>
+          {extra > 0.01 && (
+            <div className="flex justify-between text-sm">
+              <span style={{ color: '#34d399' }}>Extra para a mesa</span>
+              <span className="font-mono font-semibold" style={{ color: '#34d399' }}>+ {formatCurrency(extra)}</span>
+            </div>
+          )}
+          <div className="flex justify-between pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
+            <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Total em dinheiro</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#f97316' }}>{formatCurrency(valid ? parsed : minimumOwed)}</span>
+          </div>
+        </div>
+
+        {extra > 0.01 && (
+          <p className="text-xs leading-relaxed" style={{ color: '#34d399' }}>
+            O extra vira saldo da mesa — quem pagar depois pagará menos.
+          </p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={loading || !valid}
+        className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+        style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}
+      >
+        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Registrando...</> : (
+          <><span className="material-symbols-outlined">payments</span> Informar ao restaurante</>
+        )}
+      </button>
+    </div>
+  )
+}
+
+// ── Dinheiro — aguarda confirmação do restaurante ────────────
+function CashPendingScreen({
+  amount,
+  minimumOwed,
+  tableNumber,
+  onBack,
+  onCancel,
+  cancelling,
+}: {
+  amount: number
+  minimumOwed?: number
+  tableNumber: string
+  onBack: () => void
+  onCancel: () => void
+  cancelling: boolean
+}) {
+  const extra = minimumOwed != null ? Math.max(0, roundMoney(amount - minimumOwed)) : 0
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento em dinheiro</h2>
+      </div>
+
+      <div className="flex flex-col items-center gap-4 rounded-xl p-6 text-center"
+        style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(249,115,22,0.12)', border: '2px solid rgba(249,115,22,0.35)' }}>
+          <span className="material-symbols-outlined text-[32px]" style={{ color: '#f97316' }}>payments</span>
+        </div>
+        <div>
+          <p className="text-2xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+            {formatCurrency(amount)}
+          </p>
+          {extra > 0.01 && minimumOwed != null && (
+            <p className="text-xs font-mono mt-2" style={{ color: '#34d399' }}>
+              Conta {formatCurrency(minimumOwed)} + extra {formatCurrency(extra)} para a mesa
+            </p>
+          )}
+          <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
+            Entregue este valor ao garçom ou caixa da Mesa {tableNumber}.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl px-4 py-4 flex items-start gap-3"
+        style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.2)' }}>
+        <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5 animate-pulse" style={{ color: '#7bd0ff' }}>hourglass_top</span>
+        <div>
+          <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Aguardando confirmação</p>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+            Assim que o restaurante confirmar o recebimento, seu pagamento aparecerá aqui com o código de validação.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={cancelling}
+        className="w-full h-12 rounded-xl text-sm font-mono transition-all active:scale-95 disabled:opacity-40"
+        style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}
+      >
+        {cancelling ? 'Cancelando…' : 'Cancelar solicitação'}
+      </button>
+    </div>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────
 export default function CheckoutPage() {
   const params      = useParams<{ slug: string }>()
@@ -241,6 +406,10 @@ export default function CheckoutPage() {
   const [pixPayload, setPixPayload]         = useState('')
   const [pixExpiration, setPixExpiration]   = useState('')
   const [pixPaymentId, setPixPaymentId]     = useState('')  // ID interno para polling
+  const [pendingCashPaymentId, setPendingCashPaymentId] = useState('')
+  const [pendingCashAmount, setPendingCashAmount] = useState(0)
+  const [pendingCashMinOwed, setPendingCashMinOwed] = useState(0)
+  const [cashAmountInput, setCashAmountInput] = useState('')
   const [tableNumber, setTableNumber] = useState('')
   const [splitAlcohol, setSplitAlcohol] = useState(false)
   const [alcoholSplitDismissed, setAlcoholSplitDismissed] = useState(false)
@@ -337,6 +506,9 @@ export default function CheckoutPage() {
   const sessionFullySettled = subTotal > 0.01 && remaining <= 0.02
   const tableCreditForMe  = Math.max(0, myOpen.openTotal - myIndividualBase)
 
+  /** Mínimo que o cliente deve pagar (sem extra) — usado no fluxo de dinheiro. */
+  const cashMinimumOwed = closeMode === 'individual' ? myIndividualBase : myDefinedAmount
+
   function getAmountToPay() {
     if (closeMode === 'individual') return myIndividualTotal
     return myDefinedAmount
@@ -359,11 +531,14 @@ export default function CheckoutPage() {
     async function load() {
       const supabase = createClient()
 
-      const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
+      const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
         supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
         supabase.from('payments').select('id, amount, customer_id, method, split_type, service_fee_included, confirmation_code, paid_at, created_at').eq('session_id', sessionId).eq('status', 'paid'),
+        myCustomerId
+          ? supabase.from('payments').select('id, amount, status, confirmation_code').eq('session_id', sessionId).eq('customer_id', myCustomerId).eq('method', 'cash').eq('status', 'pending').maybeSingle()
+          : Promise.resolve({ data: null }),
       ])
 
       const restaurant = (sessionRes.data as any)?.restaurant
@@ -451,6 +626,16 @@ export default function CheckoutPage() {
       const sessionRem = computeOpenBalance(sub, allPayments, true).openTotal
       const equalAmt = parts.length > 0 ? (sessionRem / parts.length).toFixed(2) : '0'
       setCustomAmounts(Object.fromEntries(parts.map(p => [p.id, equalAmt])))
+
+      const pendingCash = (pendingCashRes as { data: { id: string; amount: number } | null }).data
+      if (pendingCash) {
+        setPendingCashPaymentId(pendingCash.id)
+        setPendingCashAmount(Number(pendingCash.amount))
+        setStep(prev => prev === 'confirmed' ? prev : 'cash_pending')
+      }
+
+      if (sessionRem <= 0.02 && sub > 0.01) setTableSettled(true)
+
       setLoading(false)
     }
     load()
@@ -462,6 +647,36 @@ export default function CheckoutPage() {
 
     return () => { supabase.removeChannel(ch) }
   }, [sessionId, params.slug, router, myCustomerId])
+
+  // Confirmação em tempo real quando o restaurante valida pagamento em dinheiro
+  useEffect(() => {
+    if (!pendingCashPaymentId) return
+
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`cash-payment-${pendingCashPaymentId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'payments',
+        filter: `id=eq.${pendingCashPaymentId}`,
+      }, (payload) => {
+        const row = payload.new as { status?: string; confirmation_code?: string; amount?: number }
+        if (row.status !== 'paid' || !row.confirmation_code) return
+
+        setConfirmationCode(row.confirmation_code)
+        setPendingCashPaymentId('')
+        if (row.amount) setPendingCashAmount(Number(row.amount))
+        setStep('confirmed')
+
+        if (customerWhatsapp) {
+          sendReceiptWhatsApp(Number(row.amount ?? pendingCashAmount), row.confirmation_code, 'combined')
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
+  }, [pendingCashPaymentId, customerWhatsapp, pendingCashAmount])
 
   // Recalculate equal amounts when selection changes or remaining changes
   useEffect(() => {
@@ -601,6 +816,63 @@ export default function CheckoutPage() {
     // o canal realtime de payments dispara o reload automaticamente
   }
 
+  async function processCashPayment(amount: number, minimumOwed: number): Promise<void> {
+    setPaying(true)
+    try {
+      const res = await fetch('/api/payments/cash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          amount,
+          splitType: 'combined',
+          customerId: myCustomerId,
+          serviceFeeIncluded: includeServiceFee,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao registrar pagamento em dinheiro.')
+      setPendingCashPaymentId(data.paymentId)
+      setPendingCashAmount(data.amount)
+      setPendingCashMinOwed(minimumOwed)
+      setStep('cash_pending')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento em dinheiro.')
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  async function submitCashAmount() {
+    const parsed = parseFloat(cashAmountInput.replace(',', '.')) || 0
+    if (parsed < cashMinimumOwed - 0.02) {
+      toast.error(`O valor mínimo é ${formatCurrency(cashMinimumOwed)}.`)
+      return
+    }
+    await processCashPayment(parsed, cashMinimumOwed)
+  }
+
+  async function cancelCashPayment() {
+    if (!pendingCashPaymentId || !myCustomerId) return
+    setPaying(true)
+    try {
+      const res = await fetch(
+        `/api/payments/cash?paymentId=${encodeURIComponent(pendingCashPaymentId)}&customerId=${encodeURIComponent(myCustomerId)}`,
+        { method: 'DELETE' },
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao cancelar.')
+      setPendingCashPaymentId('')
+      setPendingCashAmount(0)
+      setStep('mode')
+      toast.message('Solicitação de pagamento em dinheiro cancelada.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cancelar.')
+    } finally {
+      setPaying(false)
+    }
+  }
+
   /**
    * Inicia o pagamento via Asaas (ou modo teste sem gateway).
    * Retorna true se foi direto para a tela de confirmação.
@@ -610,6 +882,9 @@ export default function CheckoutPage() {
     splitType: 'food' | 'alcohol' | 'combined',
     cardPayload?: CardPaymentPayload,
   ): Promise<AsaasPaymentResponse> {
+    if (method === 'cash') {
+      throw new Error('Pagamento em dinheiro usa fluxo separado.')
+    }
     const payload: AsaasPaymentRequest = {
       sessionId: sessionId!,
       amount,
@@ -758,6 +1033,18 @@ export default function CheckoutPage() {
       toast.error('Os valores não fecham com o total da conta. Ajuste os valores.')
       return
     }
+
+    if (method === 'cash') {
+      if (splitAlcohol) {
+        toast.error('Pagamento em dinheiro não está disponível com recibos separados.')
+        return
+      }
+      await createCloseRequest()
+      setCashAmountInput(cashMinimumOwed > 0.01 ? cashMinimumOwed.toFixed(2) : '0.00')
+      setStep('cash_amount')
+      return
+    }
+
     await createCloseRequest()
 
     // Recibos separados: processar split antes de ir para tela PIX única
@@ -785,9 +1072,10 @@ export default function CheckoutPage() {
   }
 
   const PAYMENT_METHODS = [
-    { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'    },
-    { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito' },
-    { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito'},
+    { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'     },
+    { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito'  },
+    { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito' },
+    { value: 'cash'   as PaymentMethod, icon: 'payments',    label: 'Dinheiro', disabled: splitAlcohol },
   ]
 
   useEffect(() => {
@@ -808,6 +1096,11 @@ export default function CheckoutPage() {
 
   // ── CONFIRMED ──────────────────────────────────────────────
   if (step === 'confirmed') {
+    const confirmedPaidAmount = pendingCashAmount > 0.01 ? pendingCashAmount : getAmountToPay()
+    const confirmedTableExtra = pendingCashAmount > 0.01 && pendingCashMinOwed > 0.01
+      ? Math.max(0, roundMoney(pendingCashAmount - pendingCashMinOwed))
+      : Math.max(0, myIndividualTotal - myOpen.openTotal)
+
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
@@ -848,7 +1141,7 @@ export default function CheckoutPage() {
             <div className="text-right">
               <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Você pagou</p>
               <p className="text-xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                {formatCurrency(getAmountToPay())}
+                {formatCurrency(confirmedPaidAmount)}
               </p>
             </div>
           </div>
@@ -900,12 +1193,12 @@ export default function CheckoutPage() {
               </p>
             </div>
           )}
-          {closeMode === 'individual' && (myIndividualTotal - myOpen.openTotal) > 0.01 && (
+          {closeMode === 'individual' && confirmedTableExtra > 0.01 && (
             <div className="w-full rounded-xl p-4 flex items-start gap-3"
               style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
               <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#34d399' }}>savings</span>
               <p className="text-xs leading-relaxed" style={{ color: '#34d399' }}>
-                <strong>+{formatCurrency(myIndividualTotal - myOpen.openTotal)}</strong> ficaram como saldo na mesa. Os outros pagantes vão se beneficiar. 💛
+                <strong>+{formatCurrency(confirmedTableExtra)}</strong> ficaram como saldo na mesa. Os outros pagantes vão se beneficiar. 💛
               </p>
             </div>
           )}
@@ -932,7 +1225,7 @@ export default function CheckoutPage() {
     )
   }
 
-  // ── PIX / CARD ─────────────────────────────────────────────
+  // ── PIX / CARD / DINHEIRO ───────────────────────────────────
   const isTableMode = closeMode === 'table'
 
   if (step === 'pix') {
@@ -952,6 +1245,50 @@ export default function CheckoutPage() {
             onConfirmManual={confirmPixManually}
             onBack={() => setStep('mode')}
             loading={paying}
+          />
+        </main>
+        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+      </div>
+    )
+  }
+
+  if (step === 'cash_amount') {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <header className="sticky top-0 z-40 flex items-center px-6 h-16"
+          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
+        </header>
+        <main className="flex-1 px-6 py-6 pb-28">
+          <CashAmountScreen
+            minimumOwed={cashMinimumOwed}
+            amount={cashAmountInput}
+            onAmountChange={setCashAmountInput}
+            onSubmit={submitCashAmount}
+            onBack={() => setStep('mode')}
+            loading={paying}
+          />
+        </main>
+        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+      </div>
+    )
+  }
+
+  if (step === 'cash_pending') {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <header className="sticky top-0 z-40 flex items-center px-6 h-16"
+          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
+        </header>
+        <main className="flex-1 px-6 py-6 pb-28">
+          <CashPendingScreen
+            amount={pendingCashAmount || parseFloat(cashAmountInput) || cashMinimumOwed}
+            minimumOwed={pendingCashMinOwed > 0.01 ? pendingCashMinOwed : undefined}
+            tableNumber={tableNumber}
+            onBack={() => setStep('cash_amount')}
+            onCancel={cancelCashPayment}
+            cancelling={paying}
           />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
@@ -1378,8 +1715,8 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {/* Extra contribution — only makes sense if they can still pay */}
-              {myIndividualBase > 0.01 && (
+              {/* Extra contribution — oculto no dinheiro (valor extra na tela de dinheiro) */}
+              {myIndividualBase > 0.01 && method !== 'cash' && (
                 <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
                   <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
                     Contribuição extra para a mesa (opcional)
@@ -1576,10 +1913,13 @@ export default function CheckoutPage() {
             <span className="material-symbols-outlined text-[18px]" style={{ color: '#7bd0ff' }}>payments</span>
             <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Forma de Pagamento</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {PAYMENT_METHODS.map(m => (
-              <button key={m.value} onClick={() => setMethod(m.value)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all active:scale-95"
+              <button
+                key={m.value}
+                onClick={() => !m.disabled && setMethod(m.value)}
+                disabled={m.disabled}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: method === m.value ? 'rgba(249,115,22,0.1)' : 'rgba(30,41,59,0.7)',
                   borderColor: method === m.value ? '#f97316' : '#334155',
@@ -1589,6 +1929,11 @@ export default function CheckoutPage() {
               </button>
             ))}
           </div>
+          {splitAlcohol && (
+            <p className="text-[10px] font-mono text-center" style={{ color: '#a78b7d' }}>
+              Dinheiro indisponível com recibos separados — use PIX ou cartão.
+            </p>
+          )}
         </section>
         )}
         </>
@@ -1611,11 +1956,16 @@ export default function CheckoutPage() {
         style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
         <button
           onClick={handleProceed}
-          disabled={!canProceed}
+          disabled={!canProceed || paying}
           className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
           style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.3)', fontFamily: 'Geist, sans-serif' }}>
-          Confirmar e Ir para Pagamento
-          <span className="material-symbols-outlined">arrow_forward</span>
+          {paying ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</>
+          ) : method === 'cash' ? (
+            <>Informar valor em dinheiro<span className="material-symbols-outlined">payments</span></>
+          ) : (
+            <>Confirmar e Ir para Pagamento<span className="material-symbols-outlined">arrow_forward</span></>
+          )}
         </button>
       </div>
       )}

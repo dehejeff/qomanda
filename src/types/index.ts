@@ -71,7 +71,7 @@ export interface CustomerVisit {
 export type TableStatus = 'free' | 'occupied' | 'reserved'
 export type SessionStatus = 'open' | 'closing' | 'closed'
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
-export type PaymentMethod = 'credit' | 'debit' | 'pix'
+export type PaymentMethod = 'credit' | 'debit' | 'pix' | 'cash'
 export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'refunded'
 
 export interface Restaurant {

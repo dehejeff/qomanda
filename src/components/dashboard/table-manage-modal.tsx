@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send, ListOrdered } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { SETTLE_TOLERANCE } from '@/lib/session-billing'
+import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-payments-panel'
 
 interface Props {
   table: RestaurantTable
@@ -306,6 +307,10 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
                       <p className="text-xs font-mono text-on-surface-variant text-center">Sessão não encontrada</p>
                     )}
                   </div>
+
+                  {session && (
+                    <PendingCashPaymentsPanel sessionId={session.id} />
+                  )}
 
                   {/* Table history */}
                   {session && session.table_history.length > 0 && (

@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { DEV_BYPASS, mockOrders, mockTables } from '@/lib/dev-mock'
 import { useSessionRealtime } from '@/lib/use-restaurant-realtime'
+import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-payments-panel'
 
 const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
@@ -85,7 +86,9 @@ export default function TableOrdersPage() {
       .from('sessions')
       .select('id')
       .eq('table_id', table.id)
-      .eq('status', 'open')
+      .in('status', ['open', 'closing'])
+      .order('started_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     if (!session) {
@@ -149,6 +152,10 @@ export default function TableOrdersPage() {
           </p>
         </div>
       </div>
+
+      {sessionId && (
+        <PendingCashPaymentsPanel sessionId={sessionId} />
+      )}
 
       {orders.length === 0 ? (
         <div className="tonal-layer-1 ghost-border rounded-xl py-16 text-center">
