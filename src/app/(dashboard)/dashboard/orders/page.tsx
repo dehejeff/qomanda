@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Order } from '@/types'
@@ -189,6 +189,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedDate, setSelectedDate] = useState(todayDateStr)
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   async function loadOrders(rid: string, dateStr: string, silent = false) {
     if (!silent) setLoading(true)
@@ -375,16 +376,21 @@ export default function OrdersPage() {
           >
             Ontem
           </button>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant">
+          <button
+            type="button"
+            onClick={() => dateInputRef.current?.showPicker?.()}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant hover:border-primary/40 transition-colors cursor-pointer"
+          >
             <span className="material-symbols-outlined text-[16px] text-on-surface-variant">calendar_today</span>
             <input
+              ref={dateInputRef}
               type="date"
               value={selectedDate}
               max={todayDateStr()}
               onChange={e => e.target.value && setSelectedDate(e.target.value)}
-              className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
+              className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden"
             />
-          </div>
+          </button>
           {!isToday && restaurantId && (
             <button
               type="button"
