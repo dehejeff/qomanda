@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { PaymentMethod } from '@/types'
 import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
+import { splitConsumptionByAlcohol, splitPaymentAmounts } from '@/lib/alcohol-split'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -469,7 +470,7 @@ export default function CheckoutPage() {
       const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
-        supabase.from('orders').select('customer_id, status, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol))').eq('session_id', sessionId),
+        supabase.from('orders').select('customer_id, status, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
         supabase.from('payments').select('amount').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
@@ -502,14 +503,15 @@ export default function CheckoutPage() {
       // My consumption + alcohol detection
       const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId)
       const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
-      const mySub        = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-      setMyConsumption(mySub * 1.1)
+      const feeMult = includeServiceFee ? 1.1 : 1
+      const mySub = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      setMyConsumption(mySub * feeMult)
 
-      const foodItems = myAllItems.filter((i: any) => !i.menu_item?.contains_alcohol)
-      const alcItems  = myAllItems.filter((i: any) =>  i.menu_item?.contains_alcohol)
-      const foodTotal = foodItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0) * 1.1
-      const alcTotal  = alcItems.reduce((s: number,  i: any) => s + i.unit_price * i.quantity, 0) * 1.1
-      setAlcoholSplit({ food: foodTotal, alcohol: alcTotal, hasAlcohol: alcItems.length > 0 })
+      const split = splitConsumptionByAlcohol(myAllItems, feeMult)
+      setAlcoholSplit(split)
+
+      const savedSplit = sessionStorage.getItem(`qomanda_split_alcohol_${sessionId}`)
+      if (savedSplit === 'true' && split.hasAlcohol) setSplitAlcohol(true)
 
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
@@ -538,7 +540,7 @@ export default function CheckoutPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
-  }, [sessionId, params.slug, router, myCustomerId])
+  }, [sessionId, params.slug, router, myCustomerId, includeServiceFee])
 
   // Recalcula grandTotal e remaining quando a taxa de serviço muda
   useEffect(() => {
@@ -645,12 +647,50 @@ export default function CheckoutPage() {
   }
 
   function alcoholPaymentAmounts() {
-    const scale = myConsumption > 0 ? Math.min(1, Math.max(0, remaining) / myConsumption) : 1
     const extra = parseFloat(extraAmount) || 0
-    return {
-      food: alcoholSplit.food * scale + extra,
-      alcohol: alcoholSplit.alcohol * scale,
+    return splitPaymentAmounts(
+      getAmountToPay(),
+      alcoholSplit.food,
+      alcoholSplit.alcohol,
+      extra,
+    )
+  }
+
+  async function processSplitPayments(
+    cardData?: {
+      creditCard: AsaasPaymentRequest['creditCard']
+      creditCardHolderInfo: AsaasPaymentRequest['creditCardHolderInfo']
+      installmentCount?: number
+    },
+  ): Promise<boolean> {
+    const { food, alcohol } = alcoholPaymentAmounts()
+    const mustSplit = alcoholSplit.hasAlcohol && food >= 0.01 && alcohol >= 0.01
+
+    if (mustSplit) {
+      const foodRes = await submitPayment(food, 'food', cardData)
+      const alcoholRes = await submitPayment(alcohol, 'alcohol')
+
+      setConfirmationCode(foodRes.confirmationCode)
+      setConfirmationCode2(alcoholRes.confirmationCode)
+
+      if (customerWhatsapp) {
+        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], food, foodRes.confirmationCode, '🍽️ Alimentação'))
+        await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcohol, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
+      }
+      return true
     }
+
+    const singleAmount = food >= 0.01 ? food : alcohol
+    const singleType = food >= 0.01 ? 'food' as const : 'alcohol' as const
+    if (singleAmount < 0.01) return false
+
+    const data = await submitPayment(singleAmount, singleType, cardData)
+    setConfirmationCode(data.confirmationCode)
+    if (customerWhatsapp) {
+      const label = singleType === 'food' ? '🍽️ Alimentação' : '🍷 Bebidas Alcoólicas'
+      await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], singleAmount, data.confirmationCode, label))
+    }
+    return true
   }
 
   async function processPayment(
@@ -664,42 +704,13 @@ export default function CheckoutPage() {
     setPaying(true)
 
     try {
-      // Split alcoólico: só registra pagamentos com valor > 0
+      // Split alcoólico: 2 pagamentos (alimentação + bebidas)
       if (splitAlcohol && closeMode === 'individual') {
-        const { food, alcohol } = alcoholPaymentAmounts()
-        const parts: Array<{ amount: number; splitType: 'food' | 'alcohol' }> = []
-        if (food >= 0.01) parts.push({ amount: food, splitType: 'food' })
-        if (alcohol >= 0.01) parts.push({ amount: alcohol, splitType: 'alcohol' })
-
-        if (parts.length === 0) {
+        const done = await processSplitPayments(cardData)
+        if (!done) {
           toast.error('Nenhum valor a pagar.')
           return false
         }
-
-        if (parts.length === 1) {
-          const data = await submitPayment(parts[0].amount, parts[0].splitType, cardData)
-          setConfirmationCode(data.confirmationCode)
-          if (customerWhatsapp) {
-            const label = parts[0].splitType === 'food' ? '🍽️ Alimentação' : '🍷 Bebidas Alcoólicas'
-            await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[0].amount, data.confirmationCode, label))
-          }
-          setStep('confirmed')
-          return true
-        }
-
-        const [foodRes, alcoholRes] = await Promise.all([
-          submitPayment(parts[0].amount, parts[0].splitType, cardData),
-          submitPayment(parts[1].amount, parts[1].splitType),
-        ])
-
-        setConfirmationCode(foodRes.confirmationCode)
-        setConfirmationCode2(alcoholRes.confirmationCode)
-
-        if (customerWhatsapp) {
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[0].amount, foodRes.confirmationCode, '🍽️ Alimentação'))
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[1].amount, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
-        }
-
         setStep('confirmed')
         return true
       }
@@ -743,6 +754,15 @@ export default function CheckoutPage() {
   async function confirmPixManually(paidAmount: number) {
     setPaying(true)
     try {
+      if (splitAlcohol && closeMode === 'individual') {
+        const done = await processSplitPayments()
+        if (done) {
+          sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+          setStep('confirmed')
+        }
+        return
+      }
+
       const res = await fetch(`/api/asaas/payments?id=${pixPaymentId}`)
       const data = await res.json()
 
@@ -767,6 +787,23 @@ export default function CheckoutPage() {
       return
     }
     await createCloseRequest()
+
+    // Recibos separados: processar split antes de ir para tela PIX única
+    if (splitAlcohol && closeMode === 'individual') {
+      if (method === 'credit') {
+        setStep('card')
+        return
+      }
+      const confirmed = await processPayment(getAmountToPay())
+      if (confirmed) {
+        sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+        setStep('confirmed')
+      } else if (method === 'pix' || method === 'debit') {
+        setStep('pix')
+      }
+      return
+    }
+
     if (method === 'pix' || method === 'debit') {
       const confirmed = await processPayment(getAmountToPay())
       if (!confirmed) setStep('pix')
@@ -823,7 +860,7 @@ export default function CheckoutPage() {
               </p>
             </div>
           </div>
-          {splitAlcohol && confirmationCode2 ? (
+          {splitAlcohol && confirmationCode && confirmationCode2 ? (
             /* Two receipts */
             <div className="w-full space-y-3">
               <div className="rounded-xl p-5 flex flex-col items-center gap-3"
@@ -833,7 +870,7 @@ export default function CheckoutPage() {
                   <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
                 </div>
                 <p className="text-xs text-center" style={{ color: '#34d399' }}>
-                  {formatCurrency(alcoholSplit.food)} · Reembolsável
+                  {formatCurrency(alcoholPaymentAmounts().food)} · Reembolsável
                 </p>
               </div>
               <div className="rounded-xl p-5 flex flex-col items-center gap-3"
@@ -843,7 +880,7 @@ export default function CheckoutPage() {
                   <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode2}</p>
                 </div>
                 <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
-                  {formatCurrency(alcoholSplit.alcohol)} · Conta pessoal
+                  {formatCurrency(alcoholPaymentAmounts().alcohol)} · Conta pessoal
                 </p>
               </div>
               <p className="text-xs text-center leading-relaxed" style={{ color: '#a78b7d' }}>
@@ -1038,7 +1075,10 @@ export default function CheckoutPage() {
                     Deseja separar alimentação e bebidas em recibos diferentes?
                   </p>
                   <div className="flex gap-2 mt-3">
-                    <button onClick={() => setSplitAlcohol(true)}
+                    <button onClick={() => {
+                      setSplitAlcohol(true)
+                      if (sessionId) sessionStorage.setItem(`qomanda_split_alcohol_${sessionId}`, 'true')
+                    }}
                       className="text-xs font-mono font-bold px-4 py-2 rounded-lg active:scale-95 transition-all"
                       style={{ background: '#f97316', color: '#582200' }}>
                       Sim, separar recibos
@@ -1055,7 +1095,9 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {splitAlcohol && (
+            {splitAlcohol && (() => {
+              const { food, alcohol } = alcoholPaymentAmounts()
+              return (
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
                 <div className="px-4 py-3 flex items-center gap-2"
                   style={{ background: 'rgba(52,211,153,0.06)', borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
@@ -1063,7 +1105,11 @@ export default function CheckoutPage() {
                   <span className="text-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#34d399' }}>
                     Recibos separados ativado
                   </span>
-                  <button onClick={() => { setSplitAlcohol(false); setAlcoholSplitDismissed(false) }}
+                  <button onClick={() => {
+                    setSplitAlcohol(false)
+                    setAlcoholSplitDismissed(false)
+                    if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+                  }}
                     className="ml-auto text-[10px] font-mono" style={{ color: '#584237' }}>
                     Desfazer
                   </button>
@@ -1074,7 +1120,7 @@ export default function CheckoutPage() {
                       <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍽️ Alimentação</p>
                     </div>
                     <p className="text-base font-black font-mono" style={{ color: '#34d399' }}>
-                      {formatCurrency(alcoholSplit.food)}
+                      {formatCurrency(food)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
@@ -1083,7 +1129,7 @@ export default function CheckoutPage() {
                       <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Conta pessoal</p>
                     </div>
                     <p className="text-base font-black font-mono" style={{ color: '#ffb690' }}>
-                      {formatCurrency(alcoholSplit.alcohol)}
+                      {formatCurrency(alcohol)}
                     </p>
                   </div>
                 </div>
@@ -1093,7 +1139,8 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               </div>
-            )}
+              )
+            })()}
 
             {remaining <= 0 && (
               <div className="rounded-xl px-4 py-3 flex items-start gap-3"
