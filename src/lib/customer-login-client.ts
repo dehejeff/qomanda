@@ -27,6 +27,21 @@ export async function verifyLoginPin(
   return res.json()
 }
 
+export async function setupLoginPin(
+  challengeToken: string,
+  pin: string,
+  pinConfirm: string,
+): Promise<CustomerAuthPayload & { sessionToken?: string; error?: string }> {
+  const res = await fetch('/api/customer/login/setup-pin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ challengeToken, pin, pinConfirm }),
+  })
+  const data = await res.json()
+  if (!res.ok) return { error: data.error ?? 'Não foi possível criar o PIN.', ...data }
+  return data as CustomerAuthPayload
+}
+
 export function finishCustomerLogin(
   data: CustomerAuthPayload & { sessionToken?: string },
   router: AppRouterInstance,

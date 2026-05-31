@@ -11,7 +11,8 @@ import { Loader2 } from 'lucide-react'
 import { formatPhoneInput, formatWhatsApp } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
 import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
-import { loginWithWhatsApp, verifyLoginPin } from '@/lib/customer-login-client'
+import { loginWithWhatsApp, verifyLoginPin, setupLoginPin } from '@/lib/customer-login-client'
+import { CustomerPinSetupForm } from '@/components/customer/customer-pin-setup-form'
 import { persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
 import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
 import Link from 'next/link'
@@ -76,6 +77,9 @@ export default function CheckInPage() {
   const [loggingIn, setLoggingIn] = useState(false)
   const [loginPin, setLoginPin] = useState('')
   const [pinStep, setPinStep] = useState<{ challengeToken: string; firstName: string; pinLength: 4 | 6 } | null>(null)
+  const [pinSetupStep, setPinSetupStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
+  const [setupPin, setSetupPin] = useState('')
+  const [setupPinConfirm, setSetupPinConfirm] = useState('')
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -199,6 +203,45 @@ export default function CheckInPage() {
   }
 
   async function handleWhatsAppLogin() {
+    if (pinSetupStep) {
+      if (!isValidLoginPin(setupPin)) {
+        toast.error('O PIN deve ter 4 dígitos.')
+        return
+      }
+      if (setupPin !== setupPinConfirm) {
+        toast.error('A confirmação do PIN não confere.')
+        return
+      }
+      setLoggingIn(true)
+      try {
+        const data = await setupLoginPin(pinSetupStep.challengeToken, setupPin, setupPinConfirm)
+        if (data.error) {
+          toast.error(data.error)
+          return
+        }
+        persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+        if (data.sessionToken) setCustomerSessionToken(data.sessionToken)
+        setSavedCustomerId(data.customerId)
+        setSavedCustomerName(`${data.firstName} ${data.lastName}`)
+        setShowFullForm(false)
+        setPinSetupStep(null)
+        setSetupPin('')
+        setSetupPinConfirm('')
+
+        if (data.activeSession?.slug === params.slug) {
+          toast.success(`PIN criado! Bem-vindo, ${data.firstName}!`)
+          router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+          return
+        }
+        toast.success(`PIN criado! Olá, ${data.firstName}! Faça check-in na mesa.`)
+      } catch {
+        toast.error('Erro ao criar PIN.')
+      } finally {
+        setLoggingIn(false)
+      }
+      return
+    }
+
     if (pinStep) {
       const pinValid = pinStep.pinLength === 6
         ? isValidCardPassword(loginPin)
@@ -251,6 +294,18 @@ export default function CheckInPage() {
         return
       }
 
+      if ('requiresPinSetup' in data && data.requiresPinSetup) {
+        setPinSetupStep({
+          challengeToken: data.challengeToken,
+          firstName: data.firstName,
+        })
+        setSetupPin('')
+        setSetupPinConfirm('')
+        setPinStep(null)
+        toast.message(`${data.firstName}, crie seu PIN de 4 dígitos para continuar.`)
+        return
+      }
+
       if ('requiresPin' in data && data.requiresPin) {
         setPinStep({
           challengeToken: data.challengeToken,
@@ -262,6 +317,8 @@ export default function CheckInPage() {
         toast.message(`Digite sua ${label}, ${data.firstName}.`)
         return
       }
+
+      if (!('customerId' in data)) return
 
       persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
       if ('sessionToken' in data && data.sessionToken) setCustomerSessionToken(data.sessionToken)
@@ -466,13 +523,29 @@ export default function CheckInPage() {
               <input type="tel" inputMode="tel" value={loginWhatsapp}
                 onChange={e => setLoginWhatsapp(formatPhoneInput(e.target.value))}
                 placeholder="(21) 99999-9999 ou +351…" autoComplete="tel"
-                disabled={Boolean(pinStep)}
+                disabled={Boolean(pinStep || pinSetupStep)}
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep ? 0.6 : 1 }}
+                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep || pinSetupStep ? 0.6 : 1 }}
                 onFocus={e => (e.target.style.borderColor = '#f97316')}
                 onBlur={e => (e.target.style.borderColor = '#584237')} />
             </div>
-            {pinStep && (
+            {pinSetupStep && (
+              <CustomerPinSetupForm
+                firstName={pinSetupStep.firstName}
+                pin={setupPin}
+                pinConfirm={setupPinConfirm}
+                loading={loggingIn}
+                onPinChange={setSetupPin}
+                onPinConfirmChange={setSetupPinConfirm}
+                onSubmit={handleWhatsAppLogin}
+                onBack={() => {
+                  setPinSetupStep(null)
+                  setSetupPin('')
+                  setSetupPinConfirm('')
+                }}
+              />
+            )}
+            {pinStep && !pinSetupStep && (
               <div className="space-y-2">
                 <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
                   {pinStep.pinLength === 6 ? `Senha de ${pinStep.firstName}` : `PIN de ${pinStep.firstName}`}
@@ -480,6 +553,7 @@ export default function CheckInPage() {
                 <PinInput value={loginPin} onChange={setLoginPin} length={pinStep.pinLength} autoFocus disabled={loggingIn} />
               </div>
             )}
+            {!pinSetupStep && (
             <button type="button" onClick={handleWhatsAppLogin} disabled={loggingIn || checkingIn}
               className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
               style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', color: '#ffb690' }}>
@@ -490,6 +564,7 @@ export default function CheckInPage() {
                 </>
               )}
             </button>
+            )}
           </div>
         )}
 

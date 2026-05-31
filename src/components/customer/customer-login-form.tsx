@@ -8,8 +8,8 @@ import { Loader2 } from 'lucide-react'
 import { formatPhoneInput } from '@/lib/customer-form'
 import { PinInput } from '@/components/customer/pin-input'
 import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
-import { loginWithWhatsApp, verifyLoginPin, finishCustomerLogin } from '@/lib/customer-login-client'
-import type { CustomerLoginResponse } from '@/lib/customer-login-types'
+import { loginWithWhatsApp, verifyLoginPin, setupLoginPin, finishCustomerLogin } from '@/lib/customer-login-client'
+import { CustomerPinSetupForm } from '@/components/customer/customer-pin-setup-form'
 
 const inputStyle: React.CSSProperties = {
   background: '#131b2e',
@@ -35,12 +35,20 @@ type PinStep = {
   pinLength: 4 | 6
 }
 
+type PinSetupStep = {
+  challengeToken: string
+  firstName: string
+}
+
 export function CustomerLoginForm({ onFocus, onBlur }: Props) {
   const router = useRouter()
   const [whatsapp, setWhatsapp] = useState('')
   const [pin, setPin] = useState('')
+  const [setupPin, setSetupPin] = useState('')
+  const [setupPinConfirm, setSetupPinConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [pinStep, setPinStep] = useState<PinStep | null>(null)
+  const [pinSetupStep, setPinSetupStep] = useState<PinSetupStep | null>(null)
 
   async function handleWhatsAppSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -58,6 +66,16 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
         return
       }
 
+      if ('requiresPinSetup' in data && data.requiresPinSetup) {
+        setPinSetupStep({
+          challengeToken: data.challengeToken,
+          firstName: data.firstName,
+        })
+        setSetupPin('')
+        setSetupPinConfirm('')
+        return
+      }
+
       if ('requiresPin' in data && data.requiresPin) {
         setPinStep({
           challengeToken: data.challengeToken,
@@ -70,8 +88,10 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
         return
       }
 
-      toast.success(`Olá, ${data.firstName}!`)
-      finishCustomerLogin(data, router)
+      if ('customerId' in data) {
+        toast.success(`Olá, ${data.firstName}!`)
+        finishCustomerLogin(data, router)
+      }
     } catch {
       toast.error('Erro ao entrar. Tente novamente.')
     } finally {
@@ -106,6 +126,52 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handlePinSetupSubmit() {
+    if (!pinSetupStep) return
+    if (!isValidLoginPin(setupPin)) {
+      toast.error('O PIN deve ter 4 dígitos.')
+      return
+    }
+    if (setupPin !== setupPinConfirm) {
+      toast.error('A confirmação do PIN não confere.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const data = await setupLoginPin(pinSetupStep.challengeToken, setupPin, setupPinConfirm)
+      if (data.error) {
+        toast.error(data.error)
+        return
+      }
+      toast.success(`PIN criado! Olá, ${data.firstName}!`)
+      finishCustomerLogin(data, router)
+    } catch {
+      toast.error('Erro ao criar PIN.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (pinSetupStep) {
+    return (
+      <CustomerPinSetupForm
+        firstName={pinSetupStep.firstName}
+        pin={setupPin}
+        pinConfirm={setupPinConfirm}
+        loading={loading}
+        onPinChange={setSetupPin}
+        onPinConfirmChange={setSetupPinConfirm}
+        onSubmit={handlePinSetupSubmit}
+        onBack={() => {
+          setPinSetupStep(null)
+          setSetupPin('')
+          setSetupPinConfirm('')
+        }}
+      />
+    )
   }
 
   if (pinStep) {

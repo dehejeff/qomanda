@@ -8,14 +8,17 @@ function secret(): string {
   return s
 }
 
-export function createLoginChallenge(customerId: string, pinLength: 4 | 6): string {
+export function createLoginChallenge(customerId: string, pinLength: 4 | 6 | 'setup'): string {
   const exp = Date.now() + TTL_MS
-  const payload = `${customerId}:${exp}:${pinLength}`
+  const lengthPart = pinLength === 'setup' ? 'setup' : String(pinLength)
+  const payload = `${customerId}:${exp}:${lengthPart}`
   const sig = createHmac('sha256', secret()).update(payload).digest('hex')
   return Buffer.from(`${payload}:${sig}`).toString('base64url')
 }
 
-export function verifyLoginChallenge(token: string): { customerId: string; pinLength: 4 | 6 } | null {
+export function verifyLoginChallenge(
+  token: string,
+): { customerId: string; pinLength: 4 | 6; setup: boolean } | null {
   try {
     const raw = Buffer.from(token, 'base64url').toString('utf8')
     const lastColon = raw.lastIndexOf(':')
@@ -30,11 +33,17 @@ export function verifyLoginChallenge(token: string): { customerId: string; pinLe
     const parts = payload.split(':')
     const customerId = parts[0]
     const exp = Number(parts[1])
-    const pinLengthRaw = parts[2]
-    const pinLength = pinLengthRaw === '6' ? 6 : pinLengthRaw === '4' ? 4 : null
+    const lengthPart = parts[2]
 
-    if (!customerId || !Number.isFinite(exp) || Date.now() > exp || !pinLength) return null
-    return { customerId, pinLength }
+    if (!customerId || !Number.isFinite(exp) || Date.now() > exp) return null
+
+    if (lengthPart === 'setup') {
+      return { customerId, pinLength: 4, setup: true }
+    }
+
+    const pinLength = lengthPart === '6' ? 6 : lengthPart === '4' ? 4 : null
+    if (!pinLength) return null
+    return { customerId, pinLength, setup: false }
   } catch {
     return null
   }

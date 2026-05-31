@@ -62,8 +62,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      error: 'Conta sem PIN. Faça check-in na mesa do restaurante para concluir seu cadastro.',
-    }, { status: 403 })
+      requiresPinSetup: true,
+      challengeToken: createLoginChallenge(customer.id, 'setup'),
+      firstName: customer.first_name,
+    } satisfies CustomerLoginResponse)
   } catch (err) {
     console.error('[Customer Login Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

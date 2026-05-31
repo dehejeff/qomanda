@@ -17,3 +17,9 @@ export type CustomerLoginResponse =
       /** Emite sessionToken após verificação (clientes com cartão salvo). */
       requiresSession?: boolean
     }
+  | {
+      /** Conta legada sem PIN — criar PIN de 4 dígitos antes de entrar. */
+      requiresPinSetup: true
+      challengeToken: string
+      firstName: string
+    }
