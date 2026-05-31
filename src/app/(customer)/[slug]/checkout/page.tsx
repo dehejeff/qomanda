@@ -423,7 +423,8 @@ export default function CheckoutPage() {
   // Amounts
   const [subTotal, setSubTotal]     = useState(0)   // subtotal sem taxa
   const [grandTotal, setGrandTotal] = useState(0)   // subtotal + taxa (quando aplicável)
-  const [alreadyPaid, setAlreadyPaid] = useState(0) // sum of individual payments already made
+  const [alreadyPaid, setAlreadyPaid] = useState(0) // total pago na mesa
+  const [myAlreadyPaid, setMyAlreadyPaid] = useState(0) // total pago por este cliente
   const [myConsumption, setMyConsumption] = useState(0) // my portion
   const [remaining, setRemaining]   = useState(0)   // grandTotal - alreadyPaid
 
@@ -452,9 +453,11 @@ export default function CheckoutPage() {
     .reduce((s, [, v]) => s + (parseFloat(v) || 0), 0)
   const customSumOk       = Math.abs(customSum - remaining) < 0.02
   const myDefinedAmount   = splitType === 'equal' ? equalShare : (parseFloat(customAmounts[myCustomerId ?? ''] ?? '0') || 0)
-  // Base for individual = min(my consumption, remaining) — credit from others auto-applied
-  const myIndividualBase  = Math.min(myConsumption, Math.max(0, remaining))
+  const myPersonalOwed    = Math.max(0, myConsumption - myAlreadyPaid)
+  const myIndividualBase  = Math.min(myPersonalOwed, Math.max(0, remaining))
   const myIndividualTotal = myIndividualBase + (parseFloat(extraAmount) || 0)
+  const hasPaidMyShare    = myConsumption > 0.01 && myAlreadyPaid >= myConsumption - 0.02
+  const tableCreditForMe  = Math.max(0, myPersonalOwed - myIndividualBase)
 
   function getAmountToPay() {
     if (closeMode === 'individual') return myIndividualTotal
@@ -471,7 +474,7 @@ export default function CheckoutPage() {
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
         supabase.from('orders').select('customer_id, status, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
-        supabase.from('payments').select('amount').eq('session_id', sessionId).eq('status', 'paid'),
+        supabase.from('payments').select('amount, customer_id').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
       const restaurant = (sessionRes.data as any)?.restaurant
@@ -493,11 +496,16 @@ export default function CheckoutPage() {
       const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
       const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
       const gt         = sub * 1.1
-      const paid       = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
+      const allPayments = paymentsRes.data ?? []
+      const paid       = allPayments.reduce((s, p) => s + Number(p.amount), 0)
+      const myPaid     = myCustomerId
+        ? allPayments.filter(p => p.customer_id === myCustomerId).reduce((s, p) => s + Number(p.amount), 0)
+        : 0
       const rem        = Math.max(0, gt - paid)
       setSubTotal(sub)
       setGrandTotal(gt)
       setAlreadyPaid(paid)
+      setMyAlreadyPaid(myPaid)
       setRemaining(rem)
 
       // My consumption + alcohol detection
@@ -510,8 +518,16 @@ export default function CheckoutPage() {
       const split = splitConsumptionByAlcohol(myAllItems, feeMult)
       setAlcoholSplit(split)
 
-      const savedSplit = sessionStorage.getItem(`qomanda_split_alcohol_${sessionId}`)
-      if (savedSplit === 'true' && split.hasAlcohol) setSplitAlcohol(true)
+      const myConsumptionCalc = mySub * feeMult
+      if (myPaid >= myConsumptionCalc - 0.02) {
+        setCloseMode('table')
+        setSplitAlcohol(false)
+        setAlcoholSplitDismissed(true)
+        if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+      } else {
+        const savedSplit = sessionStorage.getItem(`qomanda_split_alcohol_${sessionId}`)
+        if (savedSplit === 'true' && split.hasAlcohol) setSplitAlcohol(true)
+      }
 
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
@@ -980,8 +996,10 @@ export default function CheckoutPage() {
 
   // ── MODE + SUMMARY ─────────────────────────────────────────
   const canProceed = closeMode === 'individual'
-    ? getAmountToPay() >= 0.01
+    ? (!hasPaidMyShare && getAmountToPay() >= 0.01)
     : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
+
+  const showPaymentFlow = !(closeMode === 'individual' && hasPaidMyShare)
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -1020,33 +1038,63 @@ export default function CheckoutPage() {
             {([
               { mode: 'individual' as CloseMode, icon: 'person',  title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
               { mode: 'table'      as CloseMode, icon: 'groups',  title: 'Fechar mesa toda',  desc: 'Inicia fechamento coletivo' },
-            ]).map(opt => (
-              <button key={opt.mode} onClick={() => setCloseMode(opt.mode)}
-                className="flex flex-col items-start gap-2 p-4 rounded-xl text-left transition-all active:scale-95"
+            ]).map(opt => {
+              const individualDone = opt.mode === 'individual' && hasPaidMyShare
+              return (
+              <button
+                key={opt.mode}
+                disabled={individualDone}
+                onClick={() => {
+                  if (individualDone) return
+                  setCloseMode(opt.mode)
+                }}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl text-left transition-all active:scale-95 disabled:opacity-60"
                 style={{
                   background: closeMode === opt.mode ? 'rgba(249,115,22,0.12)' : 'rgba(30,41,59,0.7)',
-                  border: `2px solid ${closeMode === opt.mode ? '#f97316' : '#334155'}`,
+                  border: `2px solid ${individualDone ? '#34d399' : closeMode === opt.mode ? '#f97316' : '#334155'}`,
                 }}>
                 <span className="material-symbols-outlined text-[24px]"
-                  style={{ color: closeMode === opt.mode ? '#f97316' : '#a78b7d', fontVariationSettings: closeMode === opt.mode ? "'FILL' 1" : "'FILL' 0" }}>
-                  {opt.icon}
+                  style={{ color: individualDone ? '#34d399' : closeMode === opt.mode ? '#f97316' : '#a78b7d', fontVariationSettings: (closeMode === opt.mode || individualDone) ? "'FILL' 1" : "'FILL' 0" }}>
+                  {individualDone ? 'check_circle' : opt.icon}
                 </span>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: closeMode === opt.mode ? '#ffb690' : '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
-                    {opt.title}
+                  <p className="text-sm font-bold" style={{ color: individualDone ? '#34d399' : closeMode === opt.mode ? '#ffb690' : '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
+                    {individualDone ? 'Parte quitada ✓' : opt.title}
                   </p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#a78b7d' }}>{opt.desc}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#a78b7d' }}>
+                    {individualDone
+                      ? `${formatCurrency(myAlreadyPaid)} pagos`
+                      : opt.desc}
+                  </p>
                 </div>
               </button>
-            ))}
+            )})}
           </div>
         </section>
 
         {/* ── Individual: meu consumo + extra opcional ── */}
-        {closeMode === 'individual' && (
+        {closeMode === 'individual' && hasPaidMyShare && (
           <section className="space-y-3">
-            {/* Saldo beneficiando este pagador */}
-            {remaining < myConsumption && remaining > 0 && (
+            <div className="rounded-xl px-5 py-4 flex items-start gap-3"
+              style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.35)' }}>
+              <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#34d399' }}>Sua parte já está quitada!</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  Você pagou {formatCurrency(myAlreadyPaid)} do seu consumo de {formatCurrency(myConsumption)}.
+                  {remaining > 0.01
+                    ? ` Falta ${formatCurrency(remaining)} para fechar a mesa — aguarde os outros ou use "Fechar mesa toda".`
+                    : ' A mesa está totalmente paga!'}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {closeMode === 'individual' && !hasPaidMyShare && (
+          <section className="space-y-3">
+            {/* Crédito da mesa (pagamentos de outros) reduz o que falta */}
+            {tableCreditForMe > 0.01 && myIndividualBase > 0.01 && (
               <div className="rounded-xl px-4 py-3 flex items-start gap-3"
                 style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
                 <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5" style={{ color: '#34d399' }}>celebration</span>
@@ -1055,8 +1103,9 @@ export default function CheckoutPage() {
                     Saldo da mesa reduziu o seu valor!
                   </p>
                   <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Seu consumo era {formatCurrency(myConsumption)}, mas o saldo já pago por outros
-                    cobre {formatCurrency(myConsumption - remaining)}. Você paga apenas {formatCurrency(remaining)}.
+                    Seu consumo é {formatCurrency(myConsumption)}
+                    {myAlreadyPaid > 0.01 && ` e você já pagou ${formatCurrency(myAlreadyPaid)}`}.
+                    {' '}Pagamentos na mesa cobrem {formatCurrency(tableCreditForMe)} — você paga apenas {formatCurrency(myIndividualBase)}.
                   </p>
                 </div>
               </div>
@@ -1157,20 +1206,24 @@ export default function CheckoutPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Meu consumo</span>
-                  {remaining < myConsumption && (
+                  {myAlreadyPaid > 0.01 && (
+                    <p className="text-[10px] font-mono mt-0.5" style={{ color: '#34d399' }}>
+                      Já pago: {formatCurrency(myAlreadyPaid)}
+                    </p>
+                  )}
+                  {myPersonalOwed > myIndividualBase + 0.01 && (
                     <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
-                      (original: {formatCurrency(myConsumption)})
+                      (consumo: {formatCurrency(myConsumption)})
                     </p>
                   )}
                 </div>
                 <span className="text-2xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
-                  {/* Show remaining if lower than consumption, else show consumption */}
-                  {formatCurrency(Math.min(myConsumption, Math.max(0, remaining)))}
+                  {formatCurrency(myIndividualBase)}
                 </span>
               </div>
 
               {/* Extra contribution — only makes sense if they can still pay */}
-              {remaining > 0 && (
+              {myIndividualBase > 0.01 && (
                 <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
                   <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
                     Contribuição extra para a mesa (opcional)
@@ -1352,6 +1405,7 @@ export default function CheckoutPage() {
         </section>
 
         {/* ── Método de pagamento ─────────────────────── */}
+        {showPaymentFlow && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]" style={{ color: '#7bd0ff' }}>payments</span>
@@ -1371,9 +1425,11 @@ export default function CheckoutPage() {
             ))}
           </div>
         </section>
+        )}
       </main>
 
       {/* CTA */}
+      {showPaymentFlow && (
       <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
         style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
         <button
@@ -1385,8 +1441,7 @@ export default function CheckoutPage() {
           <span className="material-symbols-outlined">arrow_forward</span>
         </button>
       </div>
-
-      <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+      )}
     </div>
   )
 }
