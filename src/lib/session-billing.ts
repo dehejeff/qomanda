@@ -150,3 +150,98 @@ export function payStatusLabel(status: CustomerBilling['status']) {
   if (status === 'partial') return 'partial'
   return 'pending'
 }
+
+export type OrderPaymentAllocation = {
+  order: Order
+  paymentStatus: 'cancelled' | 'paid' | 'partial' | 'pending'
+  amountDue: number
+  paidAmount: number
+}
+
+/** Distribui o pagamento do cliente entre pedidos (FIFO por data). */
+export function allocatePaymentToOrders(
+  orders: Order[],
+  billing: CustomerBilling,
+): OrderPaymentAllocation[] {
+  const sorted = [...orders].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  )
+  let paidLeft = billing.paid
+
+  return sorted.map(order => {
+    if (!isBillableOrder(order)) {
+      return { order, paymentStatus: 'cancelled' as const, amountDue: 0, paidAmount: 0 }
+    }
+
+    const sub = orderSubtotal(order)
+    const amountDue = billing.subtotal > 0
+      ? roundMoney(billing.amountDue * (sub / billing.subtotal))
+      : 0
+
+    if (paidLeft >= amountDue - SETTLE_TOLERANCE) {
+      paidLeft = roundMoney(paidLeft - amountDue)
+      return { order, paymentStatus: 'paid' as const, amountDue, paidAmount: amountDue }
+    }
+
+    if (paidLeft > 0.01) {
+      const applied = paidLeft
+      paidLeft = 0
+      return { order, paymentStatus: 'partial' as const, amountDue, paidAmount: applied }
+    }
+
+    return { order, paymentStatus: 'pending' as const, amountDue, paidAmount: 0 }
+  })
+}
+
+export type ItemPaymentLine = {
+  orderId: string
+  itemKey: string
+  name: string
+  quantity: number
+  lineTotal: number
+  paymentStatus: 'cancelled' | 'paid' | 'partial' | 'pending'
+}
+
+/** Distribui pagamento do cliente linha a linha (FIFO por pedido/item). */
+export function allocatePaymentToItemLines(
+  orders: Order[],
+  billing: CustomerBilling,
+): ItemPaymentLine[] {
+  const sortedOrders = [...orders].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  )
+
+  const lines: ItemPaymentLine[] = []
+  for (const order of sortedOrders) {
+    for (const [i, item] of (order.items ?? []).entries()) {
+      const lineTotal = item.unit_price * item.quantity
+      lines.push({
+        orderId: order.id,
+        itemKey: `${order.id}-${(item as { id?: string }).id ?? i}`,
+        name: item.menu_item?.name ?? 'Item',
+        quantity: item.quantity,
+        lineTotal,
+        paymentStatus: isBillableOrder(order) ? 'pending' : 'cancelled',
+      })
+    }
+  }
+
+  if (billing.subtotal <= 0.01) return lines
+
+  let paidLeft = billing.paid
+  return lines.map(line => {
+    if (line.paymentStatus === 'cancelled') return line
+
+    const amountDue = roundMoney(billing.amountDue * (line.lineTotal / billing.subtotal))
+
+    if (paidLeft >= amountDue - SETTLE_TOLERANCE) {
+      paidLeft = roundMoney(paidLeft - amountDue)
+      return { ...line, paymentStatus: 'paid' }
+    }
+    if (paidLeft > 0.01) {
+      paidLeft = 0
+      return { ...line, paymentStatus: 'partial' }
+    }
+    return { ...line, paymentStatus: 'pending' }
+  })
+}

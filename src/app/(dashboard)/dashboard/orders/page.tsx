@@ -10,10 +10,10 @@ import { toast } from 'sonner'
 import { DEV_BYPASS, mockOrders } from '@/lib/dev-mock'
 import {
   buildSessionBilling,
-  amountWithServiceFee,
   isBillableOrder,
   type PaymentRow as BillingPaymentRow,
 } from '@/lib/session-billing'
+import { PayBadge } from '@/components/dashboard/pay-badge'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -133,46 +133,6 @@ function orderPayInfo(
   const key = `${order.session_id}:${order.customer_id}`
   const info = customerByKey.get(key) ?? { owed: 0, paid: 0, status: 'pending' as PayDisplay }
   return { ...info, display: info.status }
-}
-
-function PayBadge({ display, paid, owed }: { display: PayDisplay; paid: number; owed: number }) {
-  if (display === 'cancelled') {
-    return <span className="text-[10px] font-mono text-on-surface-variant">—</span>
-  }
-  if (display === 'paid') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-        Pago
-      </span>
-    )
-  }
-  if (display === 'partial') {
-    const remaining = Math.max(0, owed - paid)
-    return (
-      <div className="space-y-0.5">
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-amber-500/10 text-amber-400 border border-amber-500/20">
-          <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
-          Parcial
-        </span>
-        <p className="text-[10px] font-mono text-emerald-400">{formatCurrency(paid)} pago</p>
-        <p className="text-[10px] font-mono text-red-400">Falta {formatCurrency(remaining)}</p>
-      </div>
-    )
-  }
-  return (
-    <div className="space-y-0.5">
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap bg-red-500/10 text-red-400 border border-red-500/20">
-        <span className="material-symbols-outlined text-[12px]">pending</span>
-        Pendente
-      </span>
-      {owed > 0 && (
-        <p className="text-[10px] font-mono text-on-surface-variant">
-          até {formatCurrency(owed)} · taxa opcional
-        </p>
-      )}
-    </div>
-  )
 }
 
 function startOfTodayIso() {
@@ -452,8 +412,24 @@ export default function OrdersPage() {
                         </span>
                         <p className="text-[10px] font-mono text-on-surface-variant">{time}</p>
                       </td>
-                      <td className="px-4 py-4 text-sm text-on-surface max-w-[140px] truncate" title={name}>
-                        {name}
+                      <td className="px-4 py-4 max-w-[140px]">
+                        {order.customer_id ? (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              router.push(
+                                `/dashboard/orders/customer/${order.customer_id}?session=${order.session_id}`,
+                              )
+                            }}
+                            className="text-sm text-left text-primary hover:underline truncate block max-w-full font-medium"
+                            title={name}
+                          >
+                            {name}
+                          </button>
+                        ) : (
+                          <span className="text-sm text-on-surface truncate block" title={name}>{name}</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-sm font-bold font-mono text-primary">
                         <span>{mesa}</span>
@@ -473,7 +449,7 @@ export default function OrdersPage() {
                         {formatCurrency(total)}
                       </td>
                       <td className="px-4 py-4">
-                        <PayBadge display={payInfo.display} paid={payInfo.paid} owed={payInfo.owed} />
+                        <PayBadge display={payInfo.display} />
                       </td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase whitespace-nowrap ${badge}`}>

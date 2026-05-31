@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Order, SessionParticipant } from '@/types'
@@ -9,10 +9,13 @@ import { CancelOrderModal } from '@/components/customer/cancel-order-modal'
 import { formatCurrency } from '@/lib/utils'
 import {
   buildSessionBilling,
+  buildCustomerBilling,
+  allocatePaymentToItemLines,
   amountWithServiceFee,
   type CustomerBilling,
 } from '@/lib/session-billing'
 import { ParticipantPaymentRow } from '@/components/customer/participant-payment-row'
+import { ItemStatusIcon } from '@/components/customer/item-status-icon'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -58,25 +61,6 @@ function paymentStatus(owed: number, paid: number): PayStatus {
   if (paid >= owed - 0.02) return 'paid'
   if (paid > 0.01) return 'partial'
   return 'pending'
-}
-
-function ItemTag({ variant }: { variant: 'cancelled' | 'paid' }) {
-  if (variant === 'cancelled') {
-    return (
-      <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
-        style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
-        <span className="material-symbols-outlined text-[11px]">cancel</span>
-        Cancelado
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
-      style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', border: '1px solid rgba(52,211,153,0.25)' }}>
-      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-      Pago
-    </span>
-  )
 }
 
 function CustomerPayBadge({ status, paid, owed }: { status: PayStatus; paid: number; owed: number }) {
@@ -292,6 +276,12 @@ export default function OrdersPage() {
     total: totalOf(allOrders.filter(o => o.customer_id === p.customer_id)),
   }))
 
+  const myItemLines = useMemo(() => {
+    const b = paymentProgress.find(p => p.isMe)?.billing
+      ?? buildCustomerBilling(customerId ?? '', myTotal, myPaid, [])
+    return allocatePaymentToItemLines(myOrders, b)
+  }, [myOrders, paymentProgress, customerId, myTotal, myPaid])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
@@ -416,40 +406,41 @@ export default function OrdersPage() {
                   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
                   const ot  = isBillable(order) ? orderItemsTotal(order) : 0
                   const cancelled = order.status === 'cancelled'
-                  const orderIncludedInPayment = !cancelled && myPayStatus === 'paid'
                   return (
                     <div key={order.id} className="rounded-xl overflow-hidden"
                       style={{
                         background: 'linear-gradient(145deg,#1e293b,#131b2e)',
-                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.25)' : orderIncludedInPayment ? 'rgba(52,211,153,0.25)' : '#334155'}`,
-                        opacity: cancelled ? 0.7 : 1,
+                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.2)' : '#334155'}`,
+                        opacity: cancelled ? 0.75 : 1,
                       }}>
                       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
-                          {cancelled && <ItemTag variant="cancelled" />}
-                          {orderIncludedInPayment && <ItemTag variant="paid" />}
-                        </div>
+                        <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
                         <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                           style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}30` }}>
                           {cfg.label}
                         </span>
                       </div>
                       <div className="px-4 py-3 space-y-2">
-                        {(order.items ?? []).map(item => (
-                          <div key={item.id}>
-                            <div className="flex items-center gap-3">
+                        {(order.items ?? []).map((item, idx) => {
+                          const line = myItemLines.find(l => l.itemKey === `${order.id}-${item.id ?? idx}`)
+                          const payStatus = line?.paymentStatus ?? (cancelled ? 'cancelled' : 'pending')
+                          return (
+                          <div key={item.id ?? idx}>
+                            <div className="flex items-center gap-2 min-w-0">
                               <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
                                 style={{ background: '#2d3449' }}>
                                 {item.menu_item?.image_url
                                   ? <img src={item.menu_item.image_url} alt="" className="w-full h-full object-cover rounded-lg" />
                                   : <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>fastfood</span>}
                               </div>
-                              <div className="flex-1 flex justify-between items-start">
-                                <p className={`text-sm font-semibold ${cancelled ? 'line-through' : ''}`} style={cancelled ? { color: '#584237' } : undefined}>
+                              <div className="flex-1 flex items-center gap-2 min-w-0">
+                                <ItemStatusIcon status={payStatus} />
+                                <p className={`flex-1 min-w-0 truncate text-sm font-semibold ${cancelled ? 'line-through' : ''}`}
+                                  style={cancelled ? { color: '#584237' } : undefined}>
                                   {item.quantity}x {item.menu_item?.name}
                                 </p>
-                                <p className={`text-sm font-mono ${cancelled ? 'line-through' : ''}`} style={{ color: cancelled ? '#584237' : '#ffb690' }}>
+                                <p className={`text-sm font-mono shrink-0 ${cancelled ? 'line-through' : ''}`}
+                                  style={{ color: cancelled ? '#584237' : '#ffb690' }}>
                                   {formatCurrency(item.unit_price * item.quantity)}
                                 </p>
                               </div>
@@ -461,7 +452,8 @@ export default function OrdersPage() {
                               </p>
                             )}
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                       <div className="flex justify-between items-center px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
                         <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>Subtotal</span>
@@ -502,8 +494,12 @@ export default function OrdersPage() {
                   <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                   Pago
                 </span>
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#584237' }}>
+                  <span className="material-symbols-outlined text-[12px]">radio_button_unchecked</span>
+                  Pendente
+                </span>
                 <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#f87171' }}>
-                  <span className="material-symbols-outlined text-[12px]">cancel</span>
+                  <span className="material-symbols-outlined text-[12px]">close</span>
                   Cancelado
                 </span>
               </div>
@@ -517,10 +513,12 @@ export default function OrdersPage() {
               const activeOrder = orders.find(o => !['delivered','cancelled'].includes(o.status))
               const cfg = activeOrder ? STATUS_CONFIG[activeOrder.status] : null
               const billing = billingForCustomer(participant.customer_id)
-              const owed = billing?.amountDue ?? consumptionWithFee(total)
-              const paid = billing?.paid ?? paidForCustomer(participant.customer_id)
-              const paySt = billing?.status ?? paymentStatus(owed, paid)
+                ?? buildCustomerBilling(participant.customer_id, total, 0, [])
+              const owed = billing.amountDue
+              const paid = billing.paid
+              const paySt = billing.status
               const customerFullyPaid = paySt === 'paid'
+              const itemLines = allocatePaymentToItemLines(orders, billing)
 
               return (
                 <div key={participant.id} className="rounded-xl overflow-hidden"
@@ -573,37 +571,35 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Orders summary */}
-                  {orders.length > 0 && (
-                    <div className="px-4 py-3 space-y-3">
-                      {orders.map(order => {
-                        const cancelled = order.status === 'cancelled'
-                        const showPaid = !cancelled && (billing?.status === 'paid')
+                  {/* Items — uma linha por produto */}
+                  {itemLines.length > 0 && (
+                    <div className="px-4 py-3 space-y-1.5">
+                      {itemLines.map(line => {
+                        const cancelled = line.paymentStatus === 'cancelled'
                         return (
-                          <div key={order.id} className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
-                                #{order.id.slice(-4).toUpperCase()}
-                              </span>
-                              {cancelled && <ItemTag variant="cancelled" />}
-                              {showPaid && <ItemTag variant="paid" />}
-                            </div>
-                            {(order.items ?? []).map((item, i) => (
-                              <div
-                                key={`${order.id}-${item.id ?? i}`}
-                                className={`flex justify-between items-start gap-2 text-xs ${cancelled ? 'line-through opacity-60' : showPaid ? 'opacity-70' : ''}`}
-                                style={{ color: cancelled ? '#584237' : showPaid ? '#a78b7d' : '#e0c0b1' }}
-                              >
-                                <span>{item.quantity}x {item.menu_item?.name}</span>
-                                <span className="font-mono shrink-0">{formatCurrency(item.unit_price * item.quantity)}</span>
-                              </div>
-                            ))}
+                          <div
+                            key={line.itemKey}
+                            className={`flex items-center gap-2 text-xs min-w-0 ${cancelled ? 'opacity-55' : ''}`}
+                          >
+                            <ItemStatusIcon status={line.paymentStatus} />
+                            <span
+                              className={`flex-1 min-w-0 truncate ${cancelled ? 'line-through' : ''}`}
+                              style={{ color: cancelled ? '#584237' : line.paymentStatus === 'paid' ? '#a78b7d' : '#e0c0b1' }}
+                            >
+                              {line.quantity}x {line.name}
+                            </span>
+                            <span
+                              className={`font-mono shrink-0 ${cancelled ? 'line-through' : ''}`}
+                              style={{ color: cancelled ? '#584237' : '#ffb690' }}
+                            >
+                              {formatCurrency(line.lineTotal)}
+                            </span>
                           </div>
                         )
                       })}
                     </div>
                   )}
-                  {orders.length === 0 && (
+                  {itemLines.length === 0 && (
                     <p className="px-4 py-3 text-xs" style={{ color: '#584237' }}>Nenhum pedido ainda</p>
                   )}
                 </div>
