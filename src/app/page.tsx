@@ -110,23 +110,31 @@ function PricingCard({
 const FAQS = [
   {
     q: 'Preciso de equipamento específico?',
-    a: 'Não. A Qomanda funciona 100% via navegador. Seus clientes usam o próprio celular; você gerencia pelo computador ou tablet.',
+    a: 'Não. A Qomanda funciona 100% no navegador. Seus clientes usam o próprio celular; você gerencia pelo computador ou tablet. Não precisa instalar app.',
+  },
+  {
+    q: 'Como funciona o check-in na mesa?',
+    a: 'Cada mesa tem um QR Code único e seguro. Na primeira visita, o cliente informa nome, WhatsApp e cria um PIN de 4 dígitos. Nas próximas, entra mais rápido pelo WhatsApp. Sem app, sem fila no balcão.',
+  },
+  {
+    q: 'O QR Code pode levar o cliente para outro restaurante?',
+    a: 'Não. Cada QR combina restaurante, número da mesa e um token secreto gerado pelo sistema. Só funciona na mesa correta — não dá para adivinhar ou reutilizar em outro lugar.',
   },
   {
     q: 'Como funciona a taxa de transação?',
-    a: 'Cobramos uma pequena porcentagem apenas sobre pagamentos processados pelo Qomanda Pay (PIX, débito e crédito). Se o cliente pagar em dinheiro ou na máquina da casa, não há taxa.',
+    a: 'Cobramos uma pequena porcentagem apenas sobre pagamentos processados pelo Qomanda Pay (PIX, débito e crédito via Asaas). Se o cliente pagar em dinheiro ou na maquininha da casa, não há taxa Qomanda.',
   },
   {
     q: 'Posso usar sem integrar o pagamento?',
-    a: 'Sim. O cardápio digital e a gestão de pedidos funcionam de forma independente. Você ativa o Qomanda Pay quando quiser.',
+    a: 'Sim. Cardápio digital, pedidos e gestão de mesas funcionam de forma independente. Você ativa o Qomanda Pay quando quiser — nossa equipe ajuda na configuração inicial com o Asaas.',
   },
   {
     q: 'Quanto tempo leva para configurar?',
-    a: 'Menos de 30 minutos. Você cadastra o restaurante, sobe o cardápio e imprime os QR Codes. Pronto.',
+    a: 'Em cerca de 30 minutos você cadastra o restaurante, monta o cardápio e gera os QR Codes das mesas. Pagamentos online exigem a conta Asaas — o onboarding leva mais um passo, com suporte nosso.',
   },
   {
-    q: 'Tem fidelidade automática?',
-    a: 'Sim. O sistema conta as visitas de cada cliente (identificado pelo WhatsApp) e libera automaticamente os benefícios que você configurar.',
+    q: 'Como funciona a fidelidade?',
+    a: 'Você define regras por visitas ou valor gasto. O sistema identifica o cliente pelo WhatsApp, concede benefícios automaticamente e o cliente resgata no checkout da próxima ida. Você também pode enviar ofertas personalizadas.',
   },
   {
     q: 'Posso cancelar quando quiser?',
@@ -221,17 +229,17 @@ export default function LandingPage() {
           style={{ background: 'rgba(123,208,255,0.05)', filter: 'blur(100px)' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          <Tag>Novo · Cardápio digital + Pagamento integrado</Tag>
+          <Tag>Cardápio digital · Pedidos · Pagamento na mesa</Tag>
 
           <h1 className="text-[38px] sm:text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mt-6 mb-6"
             style={{ letterSpacing: '-0.03em' }}>
-            O restaurante do<br />
-            <span style={{ color: C.primary }}>futuro começa</span><br />
-            com um QR Code.
+            Seu cliente pede e paga<br />
+            <span style={{ color: C.primary }}>pelo celular.</span><br />
+            Você controla tudo.
           </h1>
 
           <p className="text-base md:text-xl leading-relaxed max-w-2xl mx-auto mb-8 md:mb-10 px-2" style={{ color: C.muted }}>
-            Substitua cardápios físicos, reduza erros de pedido, receba pagamentos direto na mesa e fidelize seus clientes — tudo em uma plataforma só.
+            QR Code seguro na mesa, cardápio digital, pedidos em tempo real e pagamento integrado — sem comissão por pedido e sem app para o cliente instalar.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -258,8 +266,8 @@ export default function LandingPage() {
           {[
             { n: '30 min', label: 'Para entrar no ar' },
             { n: '0%', label: 'Comissão sobre pedidos' },
-            { n: '3x', label: 'Mais agilidade na mesa' },
-            { n: '24/7', label: 'Suporte disponível' },
+            { n: 'PIX', label: 'Crédito e débito na mesa' },
+            { n: 'QR', label: 'Seguro por mesa' },
           ].map(s => (
             <div key={s.n} className="rounded-xl p-4 text-center"
               style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
@@ -275,32 +283,32 @@ export default function LandingPage() {
         <div className="text-center mb-16">
           <Tag color={C.blue}>Funcionalidades</Tag>
           <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4" style={{ letterSpacing: '-0.02em' }}>
-            Tudo que seu restaurante<br />precisa em um só lugar
+            O que já está pronto<br />para o seu restaurante
           </h2>
           <p className="text-lg max-w-xl mx-auto" style={{ color: C.muted }}>
-            Da entrada do cliente ao pagamento. Sem papel, sem fila, sem erro.
+            Funcionalidades reais, testadas em operação — da mesa ao caixa, sem promessas vazias.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <FeatureCard icon="qr_code_scanner" title="Check-in via QR Code"
-            desc="O cliente escaneia o QR da mesa, informa nome e WhatsApp e já acessa o cardápio. Sem app, sem cadastro longo." />
-          <FeatureCard icon="restaurant_menu" title="Cardápio Digital Dinâmico"
-            desc="Atualize preços, fotos e disponibilidade em tempo real. O cliente sempre vê o cardápio correto." />
-          <FeatureCard icon="shopping_cart" title="Pedidos Direto da Mesa"
-            desc="O cliente monta o pedido no celular. A cozinha recebe instantaneamente no painel. Menos erros, mais velocidade." />
+          <FeatureCard icon="qr_code_scanner" title="Check-in seguro por QR"
+            desc="Cada mesa tem um QR único com token secreto. O cliente faz check-in com WhatsApp e PIN — só entra na mesa certa, no restaurante certo." />
+          <FeatureCard icon="restaurant_menu" title="Cardápio digital"
+            desc="Atualize preços, categorias e disponibilidade em tempo real. O cliente vê o cardápio correto direto no celular, sem baixar app." />
+          <FeatureCard icon="shopping_cart" title="Pedidos em tempo real"
+            desc="O cliente monta o pedido na mesa. A cozinha recebe na fila kanban do painel — pendente, preparando, pronto, entregue." />
           <FeatureCard icon="account_balance_wallet" title="Qomanda Pay"
-            desc="Pagamento integrado: PIX, débito e crédito. Divisão de conta automática. O garçom só confirma." />
-          <FeatureCard icon="workspace_premium" title="Programa de Fidelidade"
-            desc="Defina recompensas por número de visitas. O sistema identifica o cliente pelo WhatsApp e aplica o benefício automaticamente." />
-          <FeatureCard icon="monitoring" title="Analytics em Tempo Real"
-            desc="Veja os pratos mais pedidos, horários de pico, ticket médio e receita transacionada. Tome decisões com dados." />
-          <FeatureCard icon="groups" title="Divisão de Conta"
-            desc="Cada cliente paga a própria parte. O sistema calcula e processa individualmente — sem confusão no caixa." />
-          <FeatureCard icon="table_restaurant" title="Gestão de Mesas"
-            desc="Visualize em tempo real quais mesas estão livres, ocupadas ou reservadas. Gerencie trocas de mesa sem papel." />
-          <FeatureCard icon="notifications_active" title="Alertas para o Garçom"
-            desc="Pedido pronto na cozinha? Notificação automática. Fechamento de conta solicitado? O garçom recebe na hora." />
+            desc="PIX, crédito e débito integrados via Asaas. Cartão salvo com senha de 6 dígitos. Divisão de conta automática por cliente." />
+          <FeatureCard icon="groups" title="Divisão de conta inteligente"
+            desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar." />
+          <FeatureCard icon="workspace_premium" title="Fidelidade e ofertas"
+            desc="Regras por visitas ou valor gasto. Benefícios automáticos no checkout e cortesias personalizadas que você envia pelo painel." />
+          <FeatureCard icon="person" title="Hub do cliente"
+            desc="Seus clientes têm área própria: histórico de visitas, recibos, cartões salvos e restaurantes favoritos — tudo pelo WhatsApp." />
+          <FeatureCard icon="table_restaurant" title="Gestão de mesas"
+            desc="Mapa ao vivo: mesas livres, ocupadas ou reservadas. QR Code por mesa, troca de mesa e visão operacional no dashboard." />
+          <FeatureCard icon="monitoring" title="Relatórios de vendas"
+            desc="Receita, ticket médio e volume de pedidos por período — semana, quinzena ou mês. Dados reais do seu fluxo, não estimativas." />
         </div>
       </section>
 
@@ -311,7 +319,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Tag color={C.green}>Como funciona</Tag>
             <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4" style={{ letterSpacing: '-0.02em' }}>
-              Do cadastro ao primeiro pedido<br />em menos de uma hora
+              Três passos para<br />colocar no ar
             </h2>
           </div>
 
@@ -321,19 +329,19 @@ export default function LandingPage() {
                 step: '01',
                 icon: 'storefront',
                 title: 'Cadastre seu restaurante',
-                desc: 'Crie sua conta, adicione as mesas, suba o cardápio com fotos e preços. O painel é intuitivo — sem precisar de TI.',
+                desc: 'Crie sua conta, adicione mesas e monte o cardápio com preços e categorias. O painel é intuitivo — sem depender de TI.',
               },
               {
                 step: '02',
                 icon: 'print',
                 title: 'Imprima os QR Codes',
-                desc: 'Cada mesa ganha um QR Code único. Imprima, plastifique e coloque na mesa. Custo: zero.',
+                desc: 'Cada mesa ganha um QR Code único e seguro. Imprima, plastifique e coloque na mesa. Troca de mesa? Gere outro QR no painel.',
               },
               {
                 step: '03',
                 icon: 'trending_up',
-                title: 'Comece a receber pedidos',
-                desc: 'Seus clientes escaneiam, pedem e pagam. Você acompanha tudo em tempo real. Simples assim.',
+                title: 'Receba pedidos e pagamentos',
+                desc: 'Clientes escaneiam, pedem e pagam pelo celular. Você acompanha mesas, fila da cozinha e receita em tempo real.',
               },
             ].map(step => (
               <div key={step.step} className="flex flex-col gap-5">
@@ -405,10 +413,10 @@ export default function LandingPage() {
             txFee="1,99%"
             features={[
               'Cardápio digital ilimitado',
-              'Pedidos em tempo real',
-              'Qomanda Pay (PIX, débito, crédito)',
-              'QR Codes para até 20 mesas',
-              'Painel de gestão',
+              'Pedidos em tempo real (kanban)',
+              'QR Code seguro por mesa',
+              'Painel de mesas e operação',
+              'Qomanda Pay (PIX, crédito, débito)*',
               'Suporte por e-mail',
             ]}
           />
@@ -421,10 +429,10 @@ export default function LandingPage() {
             features={[
               'Tudo do Starter',
               'Até 50 mesas',
-              'Programa de fidelidade',
+              'Programa de fidelidade e ofertas',
               'Divisão automática de conta',
-              'Analytics avançado',
-              'Suporte prioritário (chat)',
+              'Relatórios de receita e ticket',
+              'Suporte prioritário',
             ]}
           />
           <PricingCard
@@ -435,9 +443,9 @@ export default function LandingPage() {
             features={[
               'Tudo do Growth',
               'Até 100 mesas',
-              'Multi-cardápio (almoço/jantar)',
-              'Relatórios exportáveis',
-              'Integração com impressora de cozinha',
+              'Ofertas e cortesias personalizadas',
+              'Histórico de clientes e recibos',
+              'Relatórios por período',
               'Gerente de conta dedicado',
             ]}
           />
@@ -448,17 +456,19 @@ export default function LandingPage() {
             txFee="Negociável"
             features={[
               'Mesas ilimitadas',
-              'Multi-unidades',
-              'API para integrações',
-              'SLA garantido',
-              'Onboarding presencial',
-              'Suporte 24/7',
+              'Multi-unidades (em breve)',
+              'API para integrações (em breve)',
+              'Onboarding personalizado',
+              'SLA negociável',
+              'Suporte dedicado',
             ]}
           />
         </div>
 
-        <p className="text-center text-sm mt-8" style={{ ...mono, color: C.faint }}>
+        <p className="text-center text-sm mt-8 max-w-xl mx-auto leading-relaxed" style={{ ...mono, color: C.faint }}>
           Todos os planos incluem 14 dias grátis · Sem taxa de setup · Cancele quando quiser
+          <br />
+          <span style={{ color: C.muted }}>* Qomanda Pay requer conta Asaas — ajudamos na configuração inicial.</span>
         </p>
       </section>
 
@@ -482,14 +492,15 @@ export default function LandingPage() {
             </thead>
             <tbody className="divide-y" style={{ borderColor: `${C.borderBlu}` }}>
               {[
-                ['Cardápio digital QR Code', true, true, true, false],
+                ['Cardápio digital com QR Code', true, true, true, false],
+                ['QR Code seguro por mesa (token)', true, false, false, false],
                 ['Pedidos pelo celular do cliente', true, false, true, true],
-                ['Pagamento integrado', true, false, false, true],
+                ['Pagamento na mesa (PIX e cartão)', true, false, false, true],
                 ['Sem comissão por pedido', true, true, true, false],
-                ['Programa de fidelidade', true, false, false, false],
-                ['Divisão de conta', true, false, false, false],
-                ['Analytics de vendas', true, true, false, true],
-                ['Setup em 30 minutos', true, true, true, false],
+                ['Divisão de conta por cliente', true, false, false, false],
+                ['Fidelidade automática', true, false, false, false],
+                ['Relatórios de receita', true, true, false, true],
+                ['Setup em ~30 minutos', true, true, true, false],
               ].map(([label, ...vals], i) => (
                 <tr key={i} className="transition-colors hover:bg-white/5">
                   <td className="px-5 py-3.5" style={{ color: C.text }}>{label as string}</td>
@@ -546,10 +557,10 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-2xl mx-auto text-center">
           <QomandaLogo size={56} className="mx-auto mb-6" />
           <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ letterSpacing: '-0.02em' }}>
-            Pronto para modernizar<br />seu restaurante?
+            Pronto para colocar<br />seu restaurante no ar?
           </h2>
           <p className="text-lg mb-10" style={{ color: C.muted }}>
-            Junte-se a centenas de restaurantes que já transformaram a experiência dos seus clientes com a Qomanda.
+            Teste grátis por 14 dias. Cardápio digital, pedidos na mesa e pagamento integrado — tudo em uma plataforma, sem comissão por pedido.
           </p>
           <Link href="/cadastro"
             className="inline-flex items-center gap-2 px-10 py-5 rounded-xl font-bold text-lg transition-all active:scale-95 hover:opacity-90"
@@ -577,7 +588,7 @@ export default function LandingPage() {
             <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80 transition-opacity">contato@qomanda.com.br</a>
           </div>
           <p className="text-xs" style={{ ...mono, color: C.faint }}>
-            © 2025 Qomanda. Todos os direitos reservados.
+            © 2026 Qomanda. Todos os direitos reservados.
           </p>
         </div>
       </footer>
