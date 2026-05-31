@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { formatWhatsAppDisplay } from '@/lib/customer-form'
+import { buildSessionBilling, ordersSubtotal, SETTLE_TOLERANCE } from '@/lib/session-billing'
+import { leaveRestaurantSession } from '@/lib/customer-auth'
+import type { Order } from '@/types'
 
 type Prefs = { notifications: boolean; shareHistory: boolean; newsletter: boolean }
 
@@ -37,6 +41,10 @@ export default function ProfilePage() {
   const [lastName, setLastName]   = useState('')
   const [prefs, setPrefs]       = useState<Prefs>({ notifications: true, shareHistory: true, newsletter: false })
   const [receiptCount, setReceiptCount] = useState(0)
+  const [tableNumber, setTableNumber] = useState('')
+  const [hasConsumption, setHasConsumption] = useState(false)
+  const [openBalance, setOpenBalance] = useState(0)
+  const [leavingTable, setLeavingTable] = useState(false)
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
@@ -60,6 +68,49 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(d => setReceiptCount((d.payments ?? []).length))
       .catch(() => {})
+
+    async function loadTableState() {
+      const supabase = createClient()
+      const customerId = localStorage.getItem('qomanda_customer_id')
+
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('status, table:tables(number)')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (!session) return
+
+      setTableNumber((session.table as { number?: string } | null)?.number ?? '')
+
+      const [ordersRes, paymentsRes, participantsRes] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('customer_id, status, items:order_items(unit_price, quantity)')
+          .eq('session_id', sessionId),
+        supabase
+          .from('payments')
+          .select('customer_id, amount, service_fee_included')
+          .eq('session_id', sessionId)
+          .eq('status', 'paid'),
+        supabase
+          .from('session_participants')
+          .select('customer_id')
+          .eq('session_id', sessionId),
+      ])
+
+      const orders = (ordersRes.data ?? []) as Order[]
+      const billing = buildSessionBilling(
+        orders,
+        paymentsRes.data ?? [],
+        (participantsRes.data ?? []).map(p => p.customer_id),
+      )
+
+      setHasConsumption(ordersSubtotal(orders) > SETTLE_TOLERANCE)
+      setOpenBalance(billing.remaining)
+    }
+
+    loadTableState().catch(() => {})
   }, [sessionId, params.slug, router])
 
   async function handleSave() {
@@ -85,6 +136,40 @@ export default function ProfilePage() {
 
   function togglePref(key: keyof Prefs) {
     setPrefs(p => ({ ...p, [key]: !p[key] }))
+  }
+
+  const hasOpenBalance = openBalance > SETTLE_TOLERANCE
+  const canLeaveTable = !hasOpenBalance
+  const leaveTableLabel = hasConsumption ? 'Sair da mesa' : 'Encerrar mesa'
+
+  async function handleLeaveTable() {
+    if (!canLeaveTable || !sessionId) return
+
+    const customerId = localStorage.getItem('qomanda_customer_id')
+    if (!customerId) {
+      toast.error('Faça login para sair da mesa.')
+      return
+    }
+
+    setLeavingTable(true)
+    try {
+      const res = await fetch('/api/customer/leave-table', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, customerId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Não foi possível sair da mesa.')
+        return
+      }
+      toast.success(data.sessionClosed ? 'Mesa encerrada.' : 'Você saiu da mesa.')
+      leaveRestaurantSession(router)
+    } catch {
+      toast.error('Erro ao sair da mesa.')
+    } finally {
+      setLeavingTable(false)
+    }
   }
 
   if (loading) {
@@ -261,19 +346,50 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Logout */}
-        <button onClick={() => {
-          localStorage.removeItem('qomanda_customer_id')
-          localStorage.removeItem('qomanda_customer_name')
-          localStorage.removeItem('qomanda_session_id')
-          sessionStorage.clear()
-          router.push('/login?perfil=cliente')
-        }}
-          className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-          style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}>
-          <span className="material-symbols-outlined text-[18px]">logout</span>
-          Encerrar sessão
-        </button>
+        {/* Mesa / saída */}
+        <div className="space-y-3">
+          {tableNumber && (
+            <p className="text-xs font-mono text-center" style={{ color: '#a78b7d' }}>
+              Você está na <strong style={{ color: '#ffb690' }}>Mesa {tableNumber}</strong>
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleLeaveTable}
+            disabled={!canLeaveTable || leavingTable}
+            className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
+          >
+            {leavingTable ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">table_restaurant</span>
+                {leaveTableLabel}
+              </>
+            )}
+          </button>
+
+          {hasOpenBalance && (
+            <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#a78b7d' }}>
+              Há {formatCurrency(openBalance)} em aberto nesta mesa. Quite sua conta em{' '}
+              <Link href={`/${params.slug}/checkout?session=${sessionId}`} className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+                Pagamento
+              </Link>{' '}
+              antes de sair.
+            </p>
+          )}
+
+          <Link
+            href="/hub"
+            className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+            style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)', color: '#ffb690' }}
+          >
+            <span className="material-symbols-outlined text-[18px]">home_storage</span>
+            Ir para minha área (Hub)
+          </Link>
+        </div>
 
         <div className="flex flex-col items-center gap-2 py-2">
           <div className="flex items-center gap-2 opacity-30">

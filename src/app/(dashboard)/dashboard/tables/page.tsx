@@ -20,6 +20,7 @@ const STATUS_CONFIG: Record<string, { label: string; cardClass: string; labelCla
 export default function TablesPage() {
   const [tables, setTables] = useState<RestaurantTable[]>([])
   const [restaurantSlug, setRestaurantSlug] = useState('')
+  const [restaurantName, setRestaurantName] = useState('')
   const [restaurantId, setRestaurantId] = useState('')
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -31,6 +32,7 @@ export default function TablesPage() {
   useEffect(() => {
     if (DEV_BYPASS) {
       setRestaurantSlug(mockRestaurant.slug)
+      setRestaurantName(mockRestaurant.name)
       setRestaurantId(mockRestaurant.id)
       setTables(mockTables)
       setLoading(false)
@@ -44,10 +46,11 @@ export default function TablesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: r } = await supabase.from('restaurants').select('id, slug').eq('owner_id', user.id).single()
+      const { data: r } = await supabase.from('restaurants').select('id, slug, name').eq('owner_id', user.id).single()
       if (!r) return
 
       setRestaurantSlug(r.slug)
+      setRestaurantName(r.name ?? '')
       setRestaurantId(r.id)
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
@@ -283,6 +286,7 @@ export default function TablesPage() {
         <TableQrModal
           table={qrTable}
           url={getQrUrl(qrTable)}
+          restaurantName={restaurantName || undefined}
           onClose={() => setQrTable(null)}
         />
       )}
