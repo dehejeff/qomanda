@@ -225,8 +225,8 @@ export default function CustomersPage() {
         </div>
       ) : (
         <div className="tonal-layer-1 ghost-border rounded-xl overflow-hidden">
-          <div className="hidden md:grid grid-cols-[1.4fr_0.7fr_0.9fr_0.9fr_1fr_auto] gap-4 px-5 py-3 border-b border-outline-variant text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-            <span className="text-left">Cliente</span>
+          <div className="hidden md:grid grid-cols-[1.2fr_0.8fr_1fr_0.8fr_1.2fr_auto] gap-3 px-6 py-3 border-b border-outline-variant text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+            <span>Cliente</span>
             <span className="text-center">Visitas</span>
             <span className="text-center">Última visita</span>
             <span className="text-center">Sem voltar</span>
@@ -239,8 +239,9 @@ export default function CustomersPage() {
               return (
                 <div
                   key={customer.id}
-                  className="px-5 py-4 grid grid-cols-1 md:grid-cols-[1.4fr_0.7fr_0.9fr_0.9fr_1fr_auto] gap-3 md:gap-4 md:items-center hover:bg-surface-container-highest/30 transition-colors"
+                  className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr_1fr_0.8fr_1.2fr_auto] gap-3 md:gap-3 px-6 py-4 md:items-center hover:bg-surface-container-highest/30 transition-colors"
                 >
+                  {/* Coluna 1: Cliente */}
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-sm font-black text-primary shrink-0">
                       {customer.firstName.charAt(0).toUpperCase()}
@@ -260,29 +261,43 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  <div className="md:contents">
-                    <p className="text-sm font-mono font-bold text-on-surface md:text-center">
-                      <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Visitas</span>
+                  {/* Coluna 2: Visitas */}
+                  <div className="flex md:justify-center items-center">
+                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Visitas</span>
+                    <p className="text-sm font-mono font-bold text-on-surface">
                       {customer.visitCount}
                     </p>
-                    <p className="text-sm font-mono text-on-surface-variant md:text-center">
-                      <span className="md:hidden text-[10px] uppercase mr-2">Última</span>
+                  </div>
+
+                  {/* Coluna 3: Última visita */}
+                  <div className="flex md:justify-center items-center">
+                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Última</span>
+                    <p className="text-sm font-mono text-on-surface-variant">
                       {formatLastVisit(customer.lastVisitAt)}
                     </p>
-                    <p className={`text-sm font-mono md:text-center ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
-                      <span className="md:hidden text-[10px] uppercase mr-2">Ausente</span>
+                  </div>
+
+                  {/* Coluna 4: Sem voltar */}
+                  <div className="flex md:justify-center items-center">
+                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2">Ausente</span>
+                    <p className={`text-sm font-mono ${customer.daysSinceLastVisit >= 30 ? 'text-amber-400 font-bold' : 'text-on-surface-variant'}`}>
                       {daysLabel(customer.daysSinceLastVisit)}
                     </p>
-                    <p className="text-xs font-mono text-on-surface-variant md:text-center">
-                      <span className="md:hidden text-[10px] uppercase mr-2 block mb-0.5">Fidelidade</span>
+                  </div>
+
+                  {/* Coluna 5: Fidelidade */}
+                  <div className="flex md:justify-center items-center">
+                    <span className="md:hidden text-[10px] uppercase text-on-surface-variant mr-2 block mb-0.5">Fidelidade</span>
+                    <p className="text-xs font-mono text-on-surface-variant">
                       {customer.visitsUntilNextReward != null && customer.visitsUntilNextReward > 0
-                        ? `Faltam ${customer.visitsUntilNextReward} para: ${customer.nextRewardLabel}`
+                        ? `Faltam ${customer.visitsUntilNextReward}`
                         : customer.nextRewardLabel
-                          ? `Benefício: ${customer.nextRewardLabel}`
+                          ? '✓ Benefício'
                           : '—'}
                     </p>
                   </div>
 
+                  {/* Coluna 6: Ações */}
                   <div className="flex gap-2 md:justify-end">
                     <button
                       type="button"
