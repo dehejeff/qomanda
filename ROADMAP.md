@@ -42,20 +42,44 @@
 
 ---
 
-## 🔴 Fase 1 — Lançamento (Prioridade Alta)
+## 🔴 Fase 1 — Fechamento do Projeto (Prioridade Máxima)
 
-> Bloqueadores para ir a produção com clientes reais.
+> Três entregas para ir a produção com clientes reais. **Maio 2026**
 
-### Pagamentos
-- [ ] **Stripe PIX real** — geração de QR Code via Stripe e polling de status
-- [ ] **Stripe Débito** — fluxo completo de débito (atualmente UI only)
-- [ ] **Stripe Crédito com parcelamento** — lógica de parcelamento no backend
-- [ ] **Webhook robusto** — retry, idempotência e logs de erro
+### 1. Configurar método de pagamento
+- [ ] **Painel Settings → Pagamentos** — fluxo para o restaurante conectar credenciais Asaas (API key, ambiente sandbox/produção)
+- [ ] Validação de credenciais e status de integração visível no dashboard
+- [ ] PIX, crédito e débito habilitados conforme configuração da conta Asaas
+- [ ] Modo teste (bypass) desligável em produção
+
+### 2. QR Codes e notas fiscais
+- [ ] **QR Code das mesas** — geração e impressão/download no painel (revisar fluxo atual e garantir produção)
+- [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / emissor configurável)
+- [ ] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
+- [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
+
+### 3. Imagens do cardápio
+- [ ] **Upload de foto do produto** — corrigir modal de edição de item (hoje não abre / não funciona)
+- [ ] Armazenamento via Supabase Storage (bucket + políticas RLS)
+- [ ] Preview e remoção de imagem no formulário de edição
+- [ ] Exibição das fotos no cardápio do cliente
+
+---
+
+## 🟠 Fase 1 — Lançamento (demais itens)
+
+> Itens complementares pós-fechamento.
+
+### Pagamentos (melhorias)
+- [x] Integração Asaas — PIX, crédito, webhook e modo bypass para testes
+- [x] Recibos, códigos de confirmação e histórico de pagamentos
+- [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
+- [ ] Webhook robusto — retry, idempotência e logs de erro
 
 ### Onboarding do Restaurante
 - [ ] **Fluxo de cadastro do restaurante** — tela de sign-up pública para novos clientes
 - [ ] **Wizard de configuração inicial** — nome, logo, endereço, horários
-- [ ] **Upload de logo e fotos de itens** — Supabase Storage
+- [ ] **Upload de logo do restaurante** — Supabase Storage
 
 ### Fidelidade (Persistência)
 - [ ] **Salvar regras de fidelidade no Supabase** — settings → loyalty_rules (atualmente UI only)
@@ -63,7 +87,6 @@
 
 ### Outros
 - [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
-- [ ] **Upload de imagem de item do cardápio** — formulário de adição com Supabase Storage
 
 ---
 
@@ -128,9 +151,11 @@
 | Dashboard — Operação | ✅ Completo | 90% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
-| Pagamentos (Stripe) | ⚠️ Parcial | 50% |
+| Pagamentos (Asaas) | ⚠️ Parcial | 65% |
+| NF-e / QR Code mesas | 🔴 Faltando | 15% |
+| Cardápio — fotos | 🔴 Faltando | 10% |
 | Fidelidade | ⚠️ Parcial | 70% |
-| WhatsApp | 🔴 Faltando | 0% |
+| WhatsApp | ⚠️ Parcial | 40% |
 | Onboarding restaurante | 🔴 Faltando | 20% |
 | Multi-unidades | 🔴 Faltando | 0% |
 

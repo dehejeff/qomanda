@@ -50,19 +50,56 @@ const PHASES = [
     ],
   },
   {
+    id: 'fechamento',
+    label: 'Prioridade',
+    title: 'Fechamento do Projeto',
+    status: 'next',
+    color: C.red,
+    period: 'Próximo · Maio 2026',
+    groups: [
+      {
+        title: '1 · Método de pagamento',
+        items: [
+          'Settings → Pagamentos: conectar credenciais Asaas (sandbox/produção)',
+          'Validação de integração e status no painel',
+          'Habilitar PIX, crédito e débito conforme conta Asaas',
+          'Desligar modo teste (bypass) em produção',
+        ],
+      },
+      {
+        title: '2 · QR Codes e notas fiscais',
+        items: [
+          'QR Code das mesas — geração, download e impressão no painel',
+          'NF-e automática após pagamento confirmado (SEFAZ / emissor)',
+          'Envio da nota ao cliente via WhatsApp',
+          'Histórico pagamento ↔ nota fiscal (cliente e dashboard)',
+        ],
+      },
+      {
+        title: '3 · Fotos do cardápio',
+        items: [
+          'Corrigir modal de edição de produto (hoje não funciona)',
+          'Upload de imagem via Supabase Storage',
+          'Preview e remoção de foto no formulário',
+          'Exibir fotos no cardápio do cliente',
+        ],
+      },
+    ],
+  },
+  {
     id: 'fase1',
     label: 'Fase 1',
     title: 'Lançamento',
-    status: 'next',
+    status: 'planned',
     color: C.primary,
     period: 'Q3 2026',
     groups: [
       {
-        title: 'Pagamentos (Bloqueador)',
+        title: 'Pagamentos (melhorias)',
         items: [
-          'Stripe PIX real — geração de QR Code + polling de status',
-          'Stripe Débito — fluxo completo',
-          'Stripe Crédito com parcelamento no backend',
+          'Asaas PIX, crédito, webhook — base implementada ✓',
+          'Recibos, códigos e histórico de pagamentos ✓',
+          'Conta paga por outro cliente + WhatsApp ✓',
           'Webhook robusto com retry e idempotência',
         ],
       },
@@ -71,7 +108,7 @@ const PHASES = [
         items: [
           'Fluxo de cadastro público para novos clientes',
           'Wizard de configuração inicial (nome, logo, horários)',
-          'Upload de logo e fotos de itens via Supabase Storage',
+          'Upload de logo do restaurante via Supabase Storage',
         ],
       },
       {
@@ -157,13 +194,14 @@ const PHASES = [
 
 const STATUS_SUMMARY = [
   { label: 'Cliente — Fluxo principal',   pct: 95, color: C.green  },
-  { label: 'Cliente — Pagamento',         pct: 60, color: C.amber  },
+  { label: 'Cliente — Pagamento',         pct: 75, color: C.amber  },
   { label: 'Dashboard — Operação',        pct: 90, color: C.green  },
+  { label: 'Fechamento — Pagamentos Asaas', pct: 65, color: C.amber  },
+  { label: 'Fechamento — NF-e / QR mesas', pct: 15, color: C.red    },
+  { label: 'Fechamento — Fotos cardápio', pct: 10, color: C.red    },
   { label: 'Dashboard — Analytics',       pct: 10, color: C.red    },
-  { label: 'Dashboard — Equipe/Segurança',pct: 0,  color: C.red    },
-  { label: 'Stripe / Pagamentos',         pct: 50, color: C.amber  },
   { label: 'Fidelidade',                  pct: 70, color: C.amber  },
-  { label: 'WhatsApp',                    pct: 0,  color: C.red    },
+  { label: 'WhatsApp',                    pct: 40, color: C.amber  },
   { label: 'Onboarding restaurante',      pct: 20, color: C.red    },
 ]
 
