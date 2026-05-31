@@ -27,6 +27,7 @@ import {
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
+import { computeAsaasSplit } from '@/lib/asaas-split'
 import {
   applySessionRenewal,
   authenticateCustomerSession,
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
     // ── Busca sessão e restaurante ─────────────────────────
     const { data: session } = await supabase
       .from('sessions')
-      .select('customer_id, restaurant_id, restaurant:restaurants(name)')
+      .select('customer_id, restaurant_id, restaurant:restaurants(name, asaas_wallet_id, platform_fee_percent, platform_fee_fixed)')
       .eq('id', sessionId)
       .single()
 
@@ -165,7 +166,16 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const restaurantName = (session.restaurant as any)?.name ?? 'Restaurante'
+    const restaurantData = (session.restaurant as any) ?? {}
+    const restaurantName = restaurantData.name ?? 'Restaurante'
+
+    // Split do marketplace: parte do restaurante vai para a subconta dele (walletId).
+    // A taxa da Qomanda fica na conta master. Sem walletId, cobra sem repasse (fallback).
+    const split = computeAsaasSplit(amount, {
+      walletId: restaurantData.asaas_wallet_id ?? null,
+      feePercent: Number(restaurantData.platform_fee_percent ?? 0),
+      feeFixed: Number(restaurantData.platform_fee_fixed ?? 0),
+    }).split
 
     // ── Cliente Asaas (pagador) ────────────────────────────
     let asaasCustomerId: string
@@ -213,6 +223,7 @@ export async function POST(req: NextRequest) {
         value: amount,
         description,
         externalReference: payment.id,
+        split,
       })
 
       // Busca QR Code
@@ -252,6 +263,7 @@ export async function POST(req: NextRequest) {
           installmentCount,
           description,
           externalReference: payment.id,
+          split,
         })
       } else {
         if (!body.creditCard) {
@@ -280,6 +292,7 @@ export async function POST(req: NextRequest) {
           externalReference: payment.id,
           creditCard: body.creditCard,
           creditCardHolderInfo: holderInfo,
+          split,
         })
 
         if (saveCard && payerCustomerId) {
