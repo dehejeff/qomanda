@@ -98,6 +98,7 @@ export async function fetchReportData(
       .select('amount, paid_at, created_at')
       .eq('restaurant_id', restaurantId)
       .eq('status', 'paid')
+      .neq('method', 'offer')
       .gte('paid_at', startIso)
       .lt('paid_at', endIso),
     supabase

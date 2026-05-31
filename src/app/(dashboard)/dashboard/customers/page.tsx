@@ -64,6 +64,7 @@ function daysLabel(days: number) {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<RestaurantCustomerStats[]>([])
   const [restaurantName, setRestaurantName] = useState('')
+  const [restaurantId, setRestaurantId] = useState('')
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -72,6 +73,7 @@ export default function CustomersPage() {
   const loadCustomers = useCallback(async () => {
     if (DEV_BYPASS) {
       setRestaurantName(mockRestaurant.name)
+      setRestaurantId(mockRestaurant.id)
       setCustomers(MOCK_CUSTOMERS)
       setLoading(false)
       return
@@ -90,6 +92,7 @@ export default function CustomersPage() {
     if (!restaurant) return
 
     setRestaurantName(restaurant.name)
+    setRestaurantId(restaurant.id)
 
     const [visitsRes, rulesRes] = await Promise.all([
       supabase
@@ -334,6 +337,7 @@ export default function CustomersPage() {
       {offerCustomer && (
         <CustomerOfferModal
           customer={offerCustomer}
+          restaurantId={restaurantId}
           restaurantName={restaurantName}
           onClose={() => setOfferCustomer(null)}
         />

@@ -3,47 +3,89 @@
 import { useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import { DEV_BYPASS } from '@/lib/dev-mock'
 import {
   buildWinBackMessage,
-  OFFER_PRESETS,
   type RestaurantCustomerStats,
   whatsAppLink,
 } from '@/lib/restaurant-customers'
+import {
+  OFFER_PRESETS,
+  VALIDITY_OPTIONS,
+  DEFAULT_VALIDITY_DAYS,
+  type OfferBenefitType,
+} from '@/lib/customer-offers'
 
 type Props = {
   customer: RestaurantCustomerStats
+  restaurantId: string
   restaurantName: string
   onClose: () => void
 }
 
-export function CustomerOfferModal({ customer, restaurantName, onClose }: Props) {
-  const suggestedOffer = customer.nextRewardLabel ?? OFFER_PRESETS[0].offer
+export function CustomerOfferModal({ customer, restaurantId, restaurantName, onClose }: Props) {
   const [presetId, setPresetId] = useState<string>(OFFER_PRESETS[0].id)
-  const [customOffer, setCustomOffer] = useState(suggestedOffer)
+  const [customOffer, setCustomOffer] = useState(OFFER_PRESETS[0].offerText)
+  const [validityDays, setValidityDays] = useState<number>(DEFAULT_VALIDITY_DAYS)
+  const [sending, setSending] = useState(false)
 
   const selectedPreset = OFFER_PRESETS.find(p => p.id === presetId)
-  const offerText = presetId === 'custom' ? customOffer.trim() : (selectedPreset?.offer ?? customOffer.trim())
+  const isCustom = presetId === 'custom'
+
+  // Tipo/valor estruturado do benefício a ser gravado.
+  const benefitType: OfferBenefitType = isCustom ? 'custom' : (selectedPreset?.benefitType ?? 'custom')
+  const benefitValue = isCustom ? customOffer.trim() : (selectedPreset?.benefitValue ?? '')
+  const offerText = isCustom ? customOffer.trim() : (selectedPreset?.offerText ?? customOffer.trim())
+  const label = isCustom ? customOffer.trim() : (selectedPreset?.label ?? customOffer.trim())
 
   const message = useMemo(
-    () => buildWinBackMessage(customer, restaurantName, offerText || suggestedOffer),
-    [customer, restaurantName, offerText, suggestedOffer],
+    () => buildWinBackMessage(customer, restaurantName, offerText),
+    [customer, restaurantName, offerText],
   )
-
-  const waUrl = offerText ? whatsAppLink(customer.whatsapp, message) : ''
 
   function handlePresetChange(id: string) {
     setPresetId(id)
     const preset = OFFER_PRESETS.find(p => p.id === id)
-    if (preset) setCustomOffer(preset.offer)
+    if (preset) setCustomOffer(preset.offerText)
   }
 
-  function openWhatsApp() {
-    if (!waUrl) {
+  async function handleSend() {
+    if (!offerText) {
       toast.error('Descreva o benefício antes de enviar.')
       return
     }
+    setSending(true)
+
+    const expiresAt = new Date(Date.now() + validityDays * 86_400_000).toISOString()
+    const waUrl = whatsAppLink(customer.whatsapp, message)
+
+    if (DEV_BYPASS) {
+      window.open(waUrl, '_blank', 'noopener,noreferrer')
+      toast.success('Oferta registrada e WhatsApp aberto.')
+      onClose()
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase.from('customer_offers').insert({
+      restaurant_id: restaurantId,
+      customer_id: customer.id,
+      benefit_type: benefitType,
+      benefit_value: benefitValue,
+      label,
+      status: 'active',
+      expires_at: expiresAt,
+    })
+
+    if (error) {
+      toast.error('Erro ao registrar a oferta.')
+      setSending(false)
+      return
+    }
+
     window.open(waUrl, '_blank', 'noopener,noreferrer')
-    toast.success('WhatsApp aberto com a mensagem pronta.')
+    toast.success('Oferta registrada! O cliente poderá usá-la no checkout.')
     onClose()
   }
 
@@ -90,7 +132,7 @@ export function CustomerOfferModal({ customer, restaurantName, onClose }: Props)
                 type="button"
                 onClick={() => setPresetId('custom')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors ${
-                  presetId === 'custom'
+                  isCustom
                     ? 'bg-primary-container text-on-primary-container border-primary/30'
                     : 'border-outline-variant text-on-surface-variant hover:border-primary/40'
                 }`}
@@ -110,6 +152,31 @@ export function CustomerOfferModal({ customer, restaurantName, onClose }: Props)
               className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2.5 text-sm text-on-surface font-mono focus:outline-none focus:ring-1 focus:ring-primary-container"
               placeholder="Ex: 15% off + entrada grátis"
             />
+            {isCustom && (
+              <p className="text-[10px] font-mono text-amber-400 mt-1.5">
+                Benefício personalizado é informativo — não aplica desconto automático no checkout.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-2">Validade</p>
+            <div className="flex flex-wrap gap-2">
+              {VALIDITY_OPTIONS.map(v => (
+                <button
+                  key={v.days}
+                  type="button"
+                  onClick={() => setValidityDays(v.days)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors ${
+                    validityDays === v.days
+                      ? 'bg-primary-container text-on-primary-container border-primary/30'
+                      : 'border-outline-variant text-on-surface-variant hover:border-primary/40'
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -130,11 +197,11 @@ export function CustomerOfferModal({ customer, restaurantName, onClose }: Props)
           </button>
           <button
             type="button"
-            onClick={openWhatsApp}
-            disabled={!offerText}
+            onClick={handleSend}
+            disabled={!offerText || sending}
             className="flex-1 h-11 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2 bg-emerald-600 text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-[18px]">chat</span>
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="material-symbols-outlined text-[18px]">chat</span>}
             Enviar via WhatsApp
           </button>
         </div>

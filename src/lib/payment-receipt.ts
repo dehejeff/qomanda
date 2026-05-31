@@ -38,6 +38,7 @@ const METHOD_LABELS: Record<string, string> = {
   pix: 'PIX',
   credit: 'Crédito',
   debit: 'Débito',
+  offer: 'Benefício',
 }
 
 export function splitReceiptMeta(splitType: PaymentReceiptRecord['split_type']) {

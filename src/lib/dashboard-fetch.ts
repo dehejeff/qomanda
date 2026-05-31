@@ -35,11 +35,13 @@ export async function fetchDashboardOverview(
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready']),
     // Faturamento do dia: pagamentos confirmados HOJE (por paid_at, data real da liquidação).
+    // Exclui method='offer' (desconto absorvido, não é receita real).
     supabase
       .from('payments')
       .select('amount')
       .eq('restaurant_id', restaurantId)
       .eq('status', 'paid')
+      .neq('method', 'offer')
       .gte('paid_at', todayIso),
     // Pedidos do dia: apenas os criados HOJE.
     supabase

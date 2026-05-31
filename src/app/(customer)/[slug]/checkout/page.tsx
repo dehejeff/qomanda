@@ -21,6 +21,11 @@ import {
 import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { CardPaymentScreen, type CardPaymentPayload } from '@/components/customer/card-payment-screen'
+import {
+  type CustomerOffer,
+  computeOfferDiscount,
+  isOfferRedeemable,
+} from '@/lib/customer-offers'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -249,6 +254,8 @@ export default function CheckoutPage() {
   const [myOrders, setMyOrders]             = useState<Order[]>([])
   const [sessionPayments, setSessionPayments] = useState<SessionPaymentRow[]>([])
   const [myAlreadyPaid, setMyAlreadyPaid]   = useState(0)
+  const [offers, setOffers]                 = useState<CustomerOffer[]>([])
+  const [applyingOfferId, setApplyingOfferId] = useState<string | null>(null)
 
   // Participants for Mesa Toda
   const [participants, setParticipants]   = useState<Participant[]>([])
@@ -287,6 +294,16 @@ export default function CheckoutPage() {
   const unpaidItems = useMemo(
     () => unpaidOrderLineItems(myOrders, myPaymentRows),
     [myOrders, myPaymentRows],
+  )
+
+  const redeemableOffers = useMemo(
+    () => offers.filter(o => isOfferRedeemable(o)),
+    [offers],
+  )
+
+  const appliedOffers = useMemo(
+    () => offers.filter(o => o.status === 'redeemed' && o.redeemed_session_id === sessionId),
+    [offers, sessionId],
   )
 
   const alcoholSplit = useMemo(() => {
@@ -352,6 +369,18 @@ export default function CheckoutPage() {
       if (restaurant) {
         setRestaurantId(restaurant.id)
         setRestaurantName(restaurant.name)
+      }
+
+      // Ofertas do cliente neste restaurante (ativas ou já resgatadas nesta sessão)
+      if (myCustomerId && restaurant?.id) {
+        const { data: offerData } = await supabase
+          .from('customer_offers')
+          .select('*')
+          .eq('customer_id', myCustomerId)
+          .eq('restaurant_id', restaurant.id)
+          .in('status', ['active', 'redeemed'])
+          .order('created_at', { ascending: false })
+        setOffers((offerData ?? []) as CustomerOffer[])
       }
 
       // Customer WhatsApp
@@ -499,6 +528,76 @@ export default function CheckoutPage() {
         }))
       )
     }
+  }
+
+  /**
+   * Aplica um benefício: registra o desconto como crédito ('offer') na sessão.
+   * O saldo recalcula automaticamente e o cliente paga apenas o restante.
+   */
+  async function applyOffer(offer: CustomerOffer) {
+    if (!sessionId || !myCustomerId) return
+    if (applyingOfferId) return
+
+    const discount = computeOfferDiscount(
+      offer.benefit_type,
+      offer.benefit_value,
+      myOpen.openSubtotal,
+      includeServiceFee,
+      unpaidItems,
+    )
+
+    if (discount.discountTotal <= 0.01) {
+      toast.error('Sem valor em aberto para aplicar este benefício.')
+      return
+    }
+
+    setApplyingOfferId(offer.id)
+
+    const supabase = createClient()
+
+    // 1) marca a oferta como resgatada (evita reuso)
+    const { error: offerErr } = await supabase
+      .from('customer_offers')
+      .update({
+        status: 'redeemed',
+        redeemed_at: new Date().toISOString(),
+        redeemed_session_id: sessionId,
+      })
+      .eq('id', offer.id)
+      .eq('status', 'active')
+
+    if (offerErr) {
+      toast.error('Erro ao aplicar o benefício.')
+      setApplyingOfferId(null)
+      return
+    }
+
+    // 2) registra o crédito do desconto como pagamento 'offer' (absorvido pelo restaurante)
+    const { error: payErr } = await supabase.from('payments').insert({
+      session_id: sessionId,
+      restaurant_id: restaurantId,
+      customer_id: myCustomerId,
+      amount: discount.discountTotal,
+      method: 'offer',
+      split_type: 'combined',
+      status: 'paid',
+      service_fee_included: includeServiceFee,
+      paid_at: new Date().toISOString(),
+    })
+
+    if (payErr) {
+      // rollback do resgate se o crédito falhar
+      await supabase.from('customer_offers')
+        .update({ status: 'active', redeemed_at: null, redeemed_session_id: null })
+        .eq('id', offer.id)
+      toast.error('Erro ao aplicar o benefício.')
+      setApplyingOfferId(null)
+      return
+    }
+
+    toast.success('Benefício aplicado à sua conta!')
+    setApplyingOfferId(null)
+    // o canal realtime de payments dispara o reload automaticamente
   }
 
   /**
@@ -1198,6 +1297,53 @@ export default function CheckoutPage() {
                 <p className="text-sm font-bold" style={{ color: '#34d399' }}>
                   A conta da mesa já está totalmente coberta! Nenhum pagamento necessário.
                 </p>
+              </div>
+            )}
+
+            {(redeemableOffers.length > 0 || appliedOffers.length > 0) && (
+              <div className="rounded-xl p-4 space-y-3"
+                style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.25)' }}>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>redeem</span>
+                  <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Seus benefícios</p>
+                </div>
+
+                {appliedOffers.map(o => (
+                  <div key={o.id} className="flex items-center justify-between rounded-lg px-3 py-2"
+                    style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: '#34d399' }}>{o.label}</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Aplicado à sua conta</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  </div>
+                ))}
+
+                {redeemableOffers.map(o => {
+                  const est = computeOfferDiscount(o.benefit_type, o.benefit_value, myOpen.openSubtotal, includeServiceFee, unpaidItems)
+                  const noValue = est.discountTotal <= 0.01
+                  return (
+                    <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                      style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.label}</p>
+                        <p className="text-[10px] font-mono" style={{ color: noValue ? '#a78b7d' : '#34d399' }}>
+                          {noValue ? 'Sem valor em aberto' : `Desconto de ${formatCurrency(est.discountTotal)}`}
+                          {est.freeItemName ? ` · ${est.freeItemName}` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applyOffer(o)}
+                        disabled={noValue || applyingOfferId !== null}
+                        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-opacity disabled:opacity-40"
+                        style={{ background: '#34d399', color: '#052e1b' }}
+                      >
+                        {applyingOfferId === o.id ? '...' : 'Aplicar'}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
