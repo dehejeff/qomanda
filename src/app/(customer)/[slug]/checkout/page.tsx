@@ -664,21 +664,40 @@ export default function CheckoutPage() {
     setPaying(true)
 
     try {
-      // Dois pagamentos quando separa alimentação e bebidas
+      // Split alcoólico: só registra pagamentos com valor > 0
       if (splitAlcohol && closeMode === 'individual') {
         const { food, alcohol } = alcoholPaymentAmounts()
+        const parts: Array<{ amount: number; splitType: 'food' | 'alcohol' }> = []
+        if (food >= 0.01) parts.push({ amount: food, splitType: 'food' })
+        if (alcohol >= 0.01) parts.push({ amount: alcohol, splitType: 'alcohol' })
+
+        if (parts.length === 0) {
+          toast.error('Nenhum valor a pagar.')
+          return false
+        }
+
+        if (parts.length === 1) {
+          const data = await submitPayment(parts[0].amount, parts[0].splitType, cardData)
+          setConfirmationCode(data.confirmationCode)
+          if (customerWhatsapp) {
+            const label = parts[0].splitType === 'food' ? '🍽️ Alimentação' : '🍷 Bebidas Alcoólicas'
+            await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[0].amount, data.confirmationCode, label))
+          }
+          setStep('confirmed')
+          return true
+        }
 
         const [foodRes, alcoholRes] = await Promise.all([
-          submitPayment(food, 'food', cardData),
-          submitPayment(alcohol, 'alcohol'),
+          submitPayment(parts[0].amount, parts[0].splitType, cardData),
+          submitPayment(parts[1].amount, parts[1].splitType),
         ])
 
         setConfirmationCode(foodRes.confirmationCode)
         setConfirmationCode2(alcoholRes.confirmationCode)
 
         if (customerWhatsapp) {
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], food, foodRes.confirmationCode, '🍽️ Alimentação'))
-          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], alcohol, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[0].amount, foodRes.confirmationCode, '🍽️ Alimentação'))
+          await sendWhatsApp(customerWhatsapp, buildReceiptMessage([], parts[1].amount, alcoholRes.confirmationCode, '🍷 Bebidas Alcoólicas'))
         }
 
         setStep('confirmed')
@@ -924,7 +943,7 @@ export default function CheckoutPage() {
 
   // ── MODE + SUMMARY ─────────────────────────────────────────
   const canProceed = closeMode === 'individual'
-    ? myConsumption > 0
+    ? getAmountToPay() >= 0.01
     : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
 
   return (

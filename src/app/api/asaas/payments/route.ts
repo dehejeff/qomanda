@@ -13,6 +13,11 @@ import {
 import { generateConfirmationCode } from '@/lib/utils'
 import { isPaymentBypassEnabled } from '@/lib/payment-bypass'
 import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
+import {
+  normalizePaymentAmount,
+  paymentInsertErrorMessage,
+  resolvePaymentCustomerId,
+} from '@/lib/payment-db'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -41,10 +46,11 @@ export type AsaasPaymentResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body: AsaasPaymentRequest = await req.json()
-    const { sessionId, amount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId } = body
+    const { sessionId, amount: rawAmount, method, splitType = 'combined', installmentCount = 1, customerId: bodyCustomerId } = body
 
+    const amount = normalizePaymentAmount(rawAmount)
     if (!sessionId || !amount || !method) {
-      return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+      return NextResponse.json({ error: 'Campos obrigatórios ausentes ou valor inválido.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
@@ -60,7 +66,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sessão inválida.' }, { status: 404 })
     }
 
-    const payerCustomerId = bodyCustomerId ?? session.customer_id
+    const payerCustomerId = await resolvePaymentCustomerId(
+      supabase,
+      bodyCustomerId ?? session.customer_id,
+    )
 
     // ── Modo teste: confirma pagamento sem gateway ────────
     if (isPaymentBypassEnabled()) {
@@ -85,7 +94,8 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (pmtError || !payment) {
-        return NextResponse.json({ error: 'Erro ao registrar pagamento.' }, { status: 500 })
+        console.error('[Payment bypass insert]', pmtError)
+        return NextResponse.json({ error: paymentInsertErrorMessage(pmtError) }, { status: 500 })
       }
 
       await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
@@ -158,7 +168,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (pmtError || !payment) {
-      return NextResponse.json({ error: 'Erro ao criar registro de pagamento.' }, { status: 500 })
+      console.error('[Payment insert]', pmtError)
+      return NextResponse.json({ error: paymentInsertErrorMessage(pmtError) }, { status: 500 })
     }
 
     const description = `${restaurantName} — Sessão ${sessionId.slice(-6).toUpperCase()}`

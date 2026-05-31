@@ -13,5 +13,5 @@ export function formatCurrency(value: number): string {
 }
 
 export function generateConfirmationCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
 }
