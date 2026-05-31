@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findCustomerActiveSession } from '@/lib/customer-auth-server'
+import { findCustomerByWhatsApp } from '@/lib/customer-lookup'
 import { createLoginChallenge } from '@/lib/login-challenge'
+import { isValidBrazilWhatsApp, normalizeBrazilWhatsApp } from '@/lib/whatsapp-normalize'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
 
 export type { CustomerAuthPayload, CustomerLoginResponse }
@@ -28,23 +30,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as { whatsapp?: string }
     const phone = body.whatsapp?.replace(/\D/g, '') ?? ''
 
-    if (phone.length < 10) {
-      return NextResponse.json({ error: 'Informe um WhatsApp válido.' }, { status: 400 })
+    if (!isValidBrazilWhatsApp(phone)) {
+      return NextResponse.json({ error: 'Informe um WhatsApp válido com DDD.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
-
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id, first_name, last_name, whatsapp, pin_hash')
-      .eq('whatsapp', phone)
-      .maybeSingle()
+    const customer = await findCustomerByWhatsApp(supabase, phone)
 
     if (!customer) {
       return NextResponse.json(
         { error: 'WhatsApp não encontrado. Cadastre-se ou faça check-in na mesa do restaurante.' },
         { status: 404 },
       )
+    }
+
+    // Unifica formato legado no banco (ex.: sem 9º dígito ou com 55)
+    const canonical = normalizeBrazilWhatsApp(phone)
+    if (customer.whatsapp !== canonical) {
+      await supabase.from('customers').update({ whatsapp: canonical }).eq('id', customer.id)
     }
 
     if (customer.pin_hash) {

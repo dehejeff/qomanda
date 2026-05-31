@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertCustomerRecord } from '@/lib/customer-upsert'
+import { whatsappForStorage } from '@/lib/customer-lookup'
 
 export type CheckInRequest = {
   slug: string
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       customerId = await upsertCustomerRecord(supabase, {
         firstName: firstName!,
         lastName: lastName!,
-        whatsapp: whatsapp!,
+        whatsapp: whatsappForStorage(whatsapp!),
         documentType,
         cpf: cpf ?? null,
         passport: passport ?? null,

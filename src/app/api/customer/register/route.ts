@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertCustomerRecord } from '@/lib/customer-upsert'
+import { whatsappForStorage } from '@/lib/customer-lookup'
+import { isValidBrazilWhatsApp } from '@/lib/whatsapp-normalize'
 
 export type CustomerRegisterRequest = {
   firstName: string
@@ -30,9 +32,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome, sobrenome e WhatsApp são obrigatórios.' }, { status: 400 })
     }
 
-    const phone = whatsapp.replace(/\D/g, '')
-    if (phone.length < 10) {
-      return NextResponse.json({ error: 'Informe um WhatsApp válido.' }, { status: 400 })
+    const phone = whatsappForStorage(whatsapp.replace(/\D/g, ''))
+    if (!isValidBrazilWhatsApp(phone)) {
+      return NextResponse.json({ error: 'Informe um WhatsApp válido com DDD.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()

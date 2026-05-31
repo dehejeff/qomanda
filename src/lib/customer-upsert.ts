@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { hashCPF, encryptCPF } from '@/lib/crypto'
+import { whatsappForStorage } from '@/lib/customer-lookup'
 
 export type UpsertCustomerInput = {
   firstName: string
@@ -17,7 +18,8 @@ export async function upsertCustomerRecord(
   supabase: SupabaseClient,
   input: UpsertCustomerInput,
 ): Promise<string> {
-  const { firstName, lastName, whatsapp, documentType, cpf, passport } = input
+  const { firstName, lastName, whatsapp: rawWhatsapp, documentType, cpf, passport } = input
+  const whatsapp = whatsappForStorage(rawWhatsapp)
   let customerId: string | null = null
 
   let cpfHash: string | null = null
