@@ -7,10 +7,11 @@ import { DEV_BYPASS } from '@/lib/dev-mock'
 import { QomandaLogo } from '@/components/qomanda-logo'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',        icon: 'dashboard',        label: 'Overview' },
-  { href: '/dashboard/orders', icon: 'receipt_long',     label: 'Pedidos' },
-  { href: '/dashboard/menu',   icon: 'restaurant_menu',  label: 'Cardápio' },
-  { href: '/dashboard/tables', icon: 'table_restaurant', label: 'Mesas' },
+  { href: '/dashboard',           icon: 'dashboard',        label: 'Overview' },
+  { href: '/dashboard/orders',    icon: 'receipt_long',     label: 'Pedidos' },
+  { href: '/dashboard/customers',   icon: 'groups',           label: 'Clientes' },
+  { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },
+  { href: '/dashboard/tables',      icon: 'table_restaurant', label: 'Mesas' },
 ]
 
 export function DashboardSidebar({ restaurantName }: { restaurantName: string }) {

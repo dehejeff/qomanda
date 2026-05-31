@@ -5,6 +5,7 @@ import type { RestaurantTable } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
+import { sortTablesByNumber } from '@/lib/sort-tables'
 
 type Props = {
   tables: RestaurantTable[]
@@ -18,7 +19,7 @@ export function OverviewFloorMap({ tables, restaurantSlug, restaurantId }: Props
   const [localTables, setLocalTables] = useState(tables)
 
   useEffect(() => {
-    setLocalTables(tables)
+    setLocalTables(sortTablesByNumber(tables))
   }, [tables])
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function OverviewFloorMap({ tables, restaurantSlug, restaurantId }: Props
         filter: `restaurant_id=eq.${restaurantId}`,
       }, (payload) => {
         const updated = payload.new as RestaurantTable
-        setLocalTables(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t))
+        setLocalTables(prev => sortTablesByNumber(prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)))
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }

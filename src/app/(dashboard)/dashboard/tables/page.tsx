@@ -8,6 +8,7 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
+import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
 
 const STATUS_CONFIG: Record<string, { label: string; cardClass: string; labelClass: string; icon: string }> = {
   free:     { label: 'Livre',     cardClass: 'border-outline-variant hover:border-primary cursor-pointer group', labelClass: 'text-on-surface-variant group-hover:text-primary', icon: '' },
@@ -48,7 +49,7 @@ export default function TablesPage() {
       setRestaurantSlug(r.slug)
       setRestaurantId(r.id)
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
-      setTables((data ?? []) as RestaurantTable[])
+      setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
 
       ch = supabase.channel('tables-status')
@@ -59,7 +60,7 @@ export default function TablesPage() {
           filter: `restaurant_id=eq.${r.id}`,
         }, (payload) => {
           const updated = payload.new as RestaurantTable
-          setTables(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t))
+          setTables(prev => sortTablesByNumber(prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)))
           if (updated.status === 'free') {
             toast.success(`Mesa ${updated.number} liberada`)
           }
@@ -74,18 +75,18 @@ export default function TablesPage() {
   async function addTable() {
     setAdding(true)
     if (DEV_BYPASS) {
-      const next = String(tables.length + 1)
+      const next = nextTableNumber(tables)
       const newTable: RestaurantTable = { id: `table-${Date.now()}`, restaurant_id: restaurantId, number: next, qr_code_url: null, status: 'free', created_at: new Date().toISOString() }
-      setTables((prev) => [...prev, newTable])
+      setTables(prev => sortTablesByNumber([...prev, newTable]))
       toast.success(`Mesa ${next} criada!`)
       setAdding(false)
       return
     }
     const supabase = createClient()
-    const next = String(tables.length + 1)
+    const next = nextTableNumber(tables)
     const { data, error } = await supabase.from('tables').insert({ restaurant_id: restaurantId, number: next, status: 'free' }).select().single()
     if (error) { toast.error('Erro ao adicionar mesa'); setAdding(false); return }
-    setTables((prev) => [...prev, data as RestaurantTable])
+    setTables(prev => sortTablesByNumber([...prev, data as RestaurantTable]))
     toast.success(`Mesa ${next} criada!`)
     setAdding(false)
   }

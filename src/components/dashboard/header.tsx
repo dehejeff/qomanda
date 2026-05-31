@@ -5,11 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard':          'Overview',
-  '/dashboard/orders':   'Pedidos',
-  '/dashboard/menu':     'Cardápio',
-  '/dashboard/tables':   'Mesas',
-  '/dashboard/settings': 'Settings',
+  '/dashboard':           'Overview',
+  '/dashboard/orders':    'Pedidos',
+  '/dashboard/customers': 'Clientes',
+  '/dashboard/menu':      'Cardápio',
+  '/dashboard/tables':    'Mesas',
+  '/dashboard/settings':  'Settings',
 }
 
 export function DashboardHeader({

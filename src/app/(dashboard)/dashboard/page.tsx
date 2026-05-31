@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { DEV_BYPASS, mockTables, mockOrders, mockRestaurant } from '@/lib/dev-mock'
+import { sortTablesByNumber } from '@/lib/sort-tables'
 import { OverviewOrdersPanel } from '@/components/dashboard/overview-orders-panel'
 import { OverviewFloorMap } from '@/components/dashboard/overview-floor-map'
 
@@ -11,7 +12,7 @@ export default async function DashboardPage() {
     return (
       <OverviewView
         stats={{ occupied, total: mockTables.length, openOrders: mockOrders.length, revenue: 0 }}
-        tables={mockTables as any}
+        tables={sortTablesByNumber(mockTables) as any}
         orders={mockOrders as any}
         restaurantSlug={mockRestaurant.slug}
         restaurantId={mockRestaurant.id}
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
       .limit(1000),
   ])
 
-  const tables = tablesRes.data ?? []
+  const tables = sortTablesByNumber(tablesRes.data ?? [])
   const occupied = tables.filter((t) => t.status === 'occupied').length
   const revenue = (paymentsRes.data ?? []).reduce((a, p) => a + p.amount, 0)
 
