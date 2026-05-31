@@ -1,6 +1,9 @@
 import type { Restaurant, RestaurantTable, MenuCategory, Order } from '@/types'
 
-export const DEV_BYPASS = process.env.NEXT_PUBLIC_DEV_BYPASS === 'true'
+/** Só ativa mocks em desenvolvimento local — nunca em produção (Vercel). */
+export const DEV_BYPASS =
+  process.env.NODE_ENV === 'development' &&
+  process.env.NEXT_PUBLIC_DEV_BYPASS === 'true'
 
 export const mockRestaurant: Restaurant = {
   id: 'mock-restaurant-id',
