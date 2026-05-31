@@ -146,6 +146,58 @@ export default function SettingsPage() {
   const [wpSaving, setWpSaving]         = useState(false)
   const [wpTesting, setWpTesting]       = useState(false)
 
+  // Asaas (marketplace / recebimento) state
+  const [asaasWalletId, setAsaasWalletId] = useState<string | null>(null)
+  const [asaasStatus, setAsaasStatus]     = useState<string>('pending')
+  const [asaasSaving, setAsaasSaving]     = useState(false)
+  const [asaasForm, setAsaasForm] = useState({
+    email: '', cpfCnpj: '', mobilePhone: '', incomeValue: '',
+    address: '', addressNumber: '', province: '', postalCode: '',
+  })
+
+  const loadAsaas = useCallback(async () => {
+    if (DEV_BYPASS) return
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('restaurants')
+      .select('asaas_wallet_id, asaas_onboarding_status')
+      .eq('owner_id', user.id)
+      .single()
+    if (data) {
+      setAsaasWalletId(data.asaas_wallet_id ?? null)
+      setAsaasStatus(data.asaas_onboarding_status ?? 'pending')
+    }
+  }, [])
+
+  useEffect(() => { loadAsaas().catch(() => {}) }, [loadAsaas])
+
+  async function submitAsaasOnboarding() {
+    const f = asaasForm
+    if (!f.email || !f.cpfCnpj || !f.mobilePhone || !f.incomeValue || !f.address || !f.addressNumber || !f.province || !f.postalCode) {
+      toast.error('Preencha todos os campos para criar a conta de recebimento.')
+      return
+    }
+    setAsaasSaving(true)
+    try {
+      const res = await fetch('/api/dashboard/asaas/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...f, incomeValue: Number(f.incomeValue.replace(',', '.')) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar conta.')
+      setAsaasWalletId(data.walletId)
+      setAsaasStatus(data.status ?? 'submitted')
+      toast.success('Conta de recebimento criada! Em análise pelo Asaas.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar conta.')
+    } finally {
+      setAsaasSaving(false)
+    }
+  }
+
   async function saveWhatsApp() {
     setWpSaving(true)
     await new Promise(r => setTimeout(r, 800)) // mock save
@@ -611,6 +663,86 @@ export default function SettingsPage() {
       {/* ── INTEGRAÇÕES ────────────────────────────────── */}
       {tab === 'integracoes' && (
         <div className="space-y-card-gap">
+
+          {/* Asaas — Conta de recebimento (marketplace/split) */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+            <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant"
+              style={{ background: 'linear-gradient(135deg, rgba(0,176,255,0.08), transparent)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                style={{ background: 'rgba(0,176,255,0.12)', border: '1px solid rgba(0,176,255,0.2)' }}>
+                🏦
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-on-surface">Conta de Recebimento (Asaas)</h3>
+                <p className="text-sm text-on-surface-variant mt-0.5">
+                  Receba os pagamentos dos clientes direto na sua conta. A Qomanda repassa o valor automaticamente, já descontando a taxa do seu plano.
+                </p>
+              </div>
+              {asaasWalletId ? (
+                <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  {asaasStatus === 'approved' ? 'ATIVA' : 'EM ANÁLISE'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                  CONFIGURAR
+                </span>
+              )}
+            </div>
+
+            <div className="px-6 py-5">
+              {asaasWalletId ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px] text-emerald-400">check_circle</span>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">Conta conectada</p>
+                      <p className="text-xs font-mono text-on-surface-variant">Wallet: {asaasWalletId}</p>
+                    </div>
+                  </div>
+                  {asaasStatus !== 'approved' && (
+                    <div className="px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low">
+                      <p className="text-xs text-on-surface-variant leading-relaxed">
+                        Sua conta está <span className="font-semibold text-on-surface">em análise pelo Asaas</span>. Você já pode receber, mas a liberação dos saques depende da aprovação dos documentos (KYC) no painel do Asaas.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'email',        label: 'E-mail',            ph: 'contato@restaurante.com', mode: 'email' },
+                      { key: 'cpfCnpj',      label: 'CPF ou CNPJ',       ph: 'Apenas números', mode: 'numeric' },
+                      { key: 'mobilePhone',  label: 'Celular',           ph: '(11) 99999-9999', mode: 'tel' },
+                      { key: 'incomeValue',  label: 'Faturamento mensal estimado (R$)', ph: 'Ex: 50000', mode: 'decimal' },
+                      { key: 'postalCode',   label: 'CEP',               ph: 'Apenas números', mode: 'numeric' },
+                      { key: 'address',      label: 'Endereço',          ph: 'Rua / Avenida', mode: 'text' },
+                      { key: 'addressNumber',label: 'Número',            ph: '123', mode: 'text' },
+                      { key: 'province',     label: 'Bairro',            ph: 'Centro', mode: 'text' },
+                    ].map(f => (
+                      <div key={f.key} className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">{f.label}</label>
+                        <input
+                          value={(asaasForm as Record<string, string>)[f.key]}
+                          onChange={e => setAsaasForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                          placeholder={f.ph}
+                          inputMode={f.mode as React.HTMLAttributes<HTMLInputElement>['inputMode']}
+                          className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors placeholder:text-on-surface-variant/40"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={submitAsaasOnboarding} disabled={asaasSaving}
+                    className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-40">
+                    {asaasSaving ? 'Criando conta...' : 'Criar conta de recebimento'}
+                  </button>
+                  <p className="text-[10px] text-on-surface-variant opacity-60 leading-relaxed">
+                    Ao criar, abrimos uma subconta Asaas vinculada ao seu restaurante. Os documentos para liberação de saque são enviados depois, no painel do Asaas.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* WhatsApp Business */}
           <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
