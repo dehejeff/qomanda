@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { tokenizeCreditCard, type AsaasCreditCard, type AsaasCreditCardHolderInfo } from '@/lib/asaas'
 import { buildHolderInfoFromCustomer, resolveAsaasCustomerId } from '@/lib/asaas-customer'
+import { requireCustomerSession } from '@/lib/customer-session'
 import {
   clientIp,
   listPaymentMethods,
   savePaymentMethod,
 } from '@/lib/payment-methods'
+
+const UNAUTHORIZED = { error: 'Sessão não autenticada. Faça login com sua senha de 6 dígitos.' }
 
 export type SavedPaymentMethodDto = {
   id: string
@@ -23,6 +26,10 @@ export async function GET(req: NextRequest) {
   const customerId = req.nextUrl.searchParams.get('customer')
   if (!customerId) {
     return NextResponse.json({ error: 'customer obrigatório.' }, { status: 400 })
+  }
+
+  if (!requireCustomerSession(req, customerId)) {
+    return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
   try {
@@ -62,6 +69,10 @@ export async function POST(req: NextRequest) {
 
   if (!customerId || !creditCard?.number || !creditCard.holderName || !creditCard.ccv) {
     return NextResponse.json({ error: 'Dados do cartão incompletos.' }, { status: 400 })
+  }
+
+  if (!requireCustomerSession(req, customerId)) {
+    return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
   try {
@@ -113,6 +124,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 })
   }
 
+  if (!requireCustomerSession(req, customerId)) {
+    return NextResponse.json(UNAUTHORIZED, { status: 401 })
+  }
+
   try {
     const supabase = createAdminClient()
 
@@ -146,6 +161,10 @@ export async function PATCH(req: NextRequest) {
 
   if (!customerId || !methodId) {
     return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
+  }
+
+  if (!requireCustomerSession(req, customerId)) {
+    return NextResponse.json(UNAUTHORIZED, { status: 401 })
   }
 
   try {

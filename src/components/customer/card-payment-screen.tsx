@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import type { AsaasPaymentRequest } from '@/app/api/asaas/payments/route'
 import type { SavedPaymentMethodDto } from '@/app/api/customer/payment-methods/route'
 import { formatCardBrand } from '@/lib/payment-methods'
+import { authHeaders } from '@/lib/customer-auth'
 import { formatCurrency } from '@/lib/utils'
 
 export type CardPaymentPayload = {
@@ -70,7 +71,7 @@ export function CardPaymentScreen({
       return
     }
 
-    fetch(`/api/customer/payment-methods?customer=${customerId}`)
+    fetch(`/api/customer/payment-methods?customer=${customerId}`, { headers: authHeaders() })
       .then(r => r.json())
       .then(data => {
         const methods = (data.methods ?? []) as SavedPaymentMethodDto[]

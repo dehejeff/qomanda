@@ -26,6 +26,7 @@ import {
   computeOfferDiscount,
   isOfferRedeemable,
 } from '@/lib/customer-offers'
+import { authHeaders } from '@/lib/customer-auth'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -621,7 +622,7 @@ export default function CheckoutPage() {
 
     const res = await fetch('/api/asaas/payments', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
     })
 

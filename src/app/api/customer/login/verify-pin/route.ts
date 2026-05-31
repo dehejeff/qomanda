@@ -4,6 +4,7 @@ import { findCustomerActiveSession } from '@/lib/customer-auth-server'
 import { verifyLoginChallenge } from '@/lib/login-challenge'
 import { verifyPin, isValidPin } from '@/lib/customer-pin'
 import { getCustomerPinHash } from '@/lib/customer-pin-server'
+import { createCustomerSession } from '@/lib/customer-session'
 import type { CustomerAuthPayload } from '@/lib/customer-login-types'
 
 /**
@@ -16,11 +17,11 @@ export async function POST(req: NextRequest) {
     const { challengeToken, pin } = body
 
     if (!challengeToken || !pin) {
-      return NextResponse.json({ error: 'Token e PIN são obrigatórios.' }, { status: 400 })
+      return NextResponse.json({ error: 'Token e senha são obrigatórios.' }, { status: 400 })
     }
 
     if (!isValidPin(pin)) {
-      return NextResponse.json({ error: 'PIN deve ter 4 dígitos.' }, { status: 400 })
+      return NextResponse.json({ error: 'A senha deve ter 6 dígitos.' }, { status: 400 })
     }
 
     const challenge = verifyLoginChallenge(challengeToken)
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const pinHash = await getCustomerPinHash(supabase, customer.id)
 
     if (!pinHash || !verifyPin(pin, pinHash)) {
-      return NextResponse.json({ error: 'PIN incorreto.' }, { status: 401 })
+      return NextResponse.json({ error: 'Senha incorreta.' }, { status: 401 })
     }
 
     const activeSession = await findCustomerActiveSession(supabase, customer.id)
@@ -52,7 +53,8 @@ export async function POST(req: NextRequest) {
       firstName: customer.first_name,
       lastName: customer.last_name,
       activeSession,
-    } satisfies CustomerAuthPayload)
+      sessionToken: createCustomerSession(customer.id),
+    } satisfies CustomerAuthPayload & { sessionToken: string })
   } catch (err) {
     console.error('[Customer Verify PIN Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

@@ -1,5 +1,5 @@
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
-import { persistCustomerAuth } from '@/lib/customer-auth'
+import { persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
 
 export async function loginWithWhatsApp(
@@ -18,7 +18,7 @@ export async function loginWithWhatsApp(
 export async function verifyLoginPin(
   challengeToken: string,
   pin: string,
-): Promise<CustomerAuthPayload & { error?: string }> {
+): Promise<CustomerAuthPayload & { sessionToken?: string; error?: string }> {
   const res = await fetch('/api/customer/login/verify-pin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,9 +28,10 @@ export async function verifyLoginPin(
 }
 
 export function finishCustomerLogin(
-  data: CustomerAuthPayload,
+  data: CustomerAuthPayload & { sessionToken?: string },
   router: AppRouterInstance,
 ) {
   persistCustomerAuth(data.customerId, data.firstName, data.lastName, data.activeSession)
+  if (data.sessionToken) setCustomerSessionToken(data.sessionToken)
   router.push('/hub')
 }

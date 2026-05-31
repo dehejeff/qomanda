@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { SavedPaymentMethodDto } from '@/app/api/customer/payment-methods/route'
 import { formatCardBrand } from '@/lib/payment-methods'
+import { authHeaders, getCustomerSessionToken, setCustomerSessionToken } from '@/lib/customer-auth'
 
 function maskCard(v: string) {
   return v.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ').trim()
@@ -18,6 +19,8 @@ type Props = {
   customerId: string
 }
 
+type Gate = 'loading' | 'create_password' | 'enter_password' | 'unlocked'
+
 export function SavedCardsSection({ customerId }: Props) {
   const [cards, setCards] = useState<SavedPaymentMethodDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,14 +31,85 @@ export function SavedCardsSection({ customerId }: Props) {
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
 
+  // Portão de segurança: senha de 6 dígitos obrigatória para acessar cartões.
+  const [gate, setGate] = useState<Gate>('loading')
+  const [pwd, setPwd] = useState('')
+  const [pwd2, setPwd2] = useState('')
+  const [authing, setAuthing] = useState(false)
+
   const load = useCallback(async () => {
-    const res = await fetch(`/api/customer/payment-methods?customer=${customerId}`)
+    const res = await fetch(`/api/customer/payment-methods?customer=${customerId}`, {
+      headers: authHeaders(),
+    })
+    if (res.status === 401) { setGate('enter_password'); setLoading(false); return }
     const data = await res.json()
     setCards(data.methods ?? [])
+    setGate('unlocked')
     setLoading(false)
   }, [customerId])
 
-  useEffect(() => { load().catch(() => setLoading(false)) }, [load])
+  // Decide o portão: tem senha? tem token válido?
+  const initGate = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/customer/pin?customer=${customerId}`)
+      const data = await res.json()
+      if (!data.hasPin) { setGate('create_password'); setLoading(false); return }
+      if (!getCustomerSessionToken()) { setGate('enter_password'); setLoading(false); return }
+      await load()
+    } catch {
+      setGate('enter_password')
+      setLoading(false)
+    }
+  }, [customerId, load])
+
+  useEffect(() => { initGate().catch(() => setLoading(false)) }, [initGate])
+
+  async function handleCreatePassword() {
+    if (pwd.length !== 6 || pwd !== pwd2) {
+      toast.error(pwd.length !== 6 ? 'A senha deve ter 6 dígitos.' : 'As senhas não conferem.')
+      return
+    }
+    setAuthing(true)
+    try {
+      const res = await fetch('/api/customer/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, pin: pwd, mode: 'set' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar senha.')
+      if (data.sessionToken) setCustomerSessionToken(data.sessionToken)
+      setPwd(''); setPwd2('')
+      toast.success('Senha criada! Agora você pode cadastrar cartões com segurança.')
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar senha.')
+    } finally {
+      setAuthing(false)
+    }
+  }
+
+  async function handleEnterPassword() {
+    if (pwd.length !== 6) { toast.error('A senha deve ter 6 dígitos.'); return }
+    setAuthing(true)
+    try {
+      const res = await fetch('/api/customer/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, pin: pwd, mode: 'verify' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Senha incorreta.')
+      if (data.sessionToken) setCustomerSessionToken(data.sessionToken)
+      setPwd('')
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Senha incorreta.')
+    } finally {
+      setAuthing(false)
+    }
+  }
 
   async function handleAdd() {
     if (cardNumber.replace(/\s/g, '').length < 13 || !cardName || expiry.length !== 5 || cvv.length < 3) {
@@ -47,7 +121,7 @@ export function SavedCardsSection({ customerId }: Props) {
     try {
       const res = await fetch('/api/customer/payment-methods', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           customerId,
           creditCard: {
@@ -79,7 +153,10 @@ export function SavedCardsSection({ customerId }: Props) {
 
   async function handleRemove(id: string) {
     try {
-      await fetch(`/api/customer/payment-methods?customer=${customerId}&id=${id}`, { method: 'DELETE' })
+      await fetch(`/api/customer/payment-methods?customer=${customerId}&id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
       toast.success('Cartão removido.')
       await load()
     } catch {
@@ -96,7 +173,7 @@ export function SavedCardsSection({ customerId }: Props) {
     <section id="cards">
       <div className="flex items-center justify-between mb-3 px-1">
         <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meus cartões</p>
-        {!showForm && (
+        {!showForm && gate === 'unlocked' && (
           <button type="button" onClick={() => setShowForm(true)}
             className="text-[10px] font-mono uppercase tracking-wider flex items-center gap-1"
             style={{ color: '#f97316' }}>
@@ -109,6 +186,43 @@ export function SavedCardsSection({ customerId }: Props) {
       {loading ? (
         <div className="py-6 flex justify-center">
           <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#f97316' }} />
+        </div>
+      ) : gate === 'create_password' ? (
+        <div className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>lock</span>
+            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Crie uma senha de 6 dígitos</p>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+            Para cadastrar cartões com segurança, defina uma senha. Ela será exigida sempre que acessar seus cartões ou pagar com cartão salvo.
+          </p>
+          <input type="password" inputMode="numeric" value={pwd} placeholder="Nova senha (6 dígitos)"
+            onChange={e => setPwd(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} style={inputSt} />
+          <input type="password" inputMode="numeric" value={pwd2} placeholder="Confirme a senha"
+            onChange={e => setPwd2(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} style={inputSt} />
+          <button type="button" onClick={handleCreatePassword} disabled={authing}
+            className="w-full h-10 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-2"
+            style={{ background: '#f97316', color: '#582200' }}>
+            {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar senha'}
+          </button>
+        </div>
+      ) : gate === 'enter_password' ? (
+        <div className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>lock</span>
+            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Digite sua senha</p>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+            Confirme sua senha de 6 dígitos para acessar seus cartões.
+          </p>
+          <input type="password" inputMode="numeric" value={pwd} placeholder="Senha (6 dígitos)"
+            onChange={e => setPwd(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} style={inputSt}
+            onKeyDown={e => { if (e.key === 'Enter') handleEnterPassword() }} />
+          <button type="button" onClick={handleEnterPassword} disabled={authing}
+            className="w-full h-10 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-2"
+            style={{ background: '#f97316', color: '#582200' }}>
+            {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desbloquear'}
+          </button>
         </div>
       ) : showForm ? (
         <div className="rounded-xl p-4 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>

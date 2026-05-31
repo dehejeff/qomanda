@@ -8,5 +8,5 @@ export type CustomerAuthPayload = {
 }
 
 export type CustomerLoginResponse =
-  | ({ requiresPin: false } & CustomerAuthPayload)
+  | ({ requiresPin: false } & CustomerAuthPayload & { sessionToken?: string })
   | { requiresPin: true; challengeToken: string; firstName: string }

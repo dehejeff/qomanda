@@ -27,6 +27,7 @@ import {
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
+import { requireCustomerSession } from '@/lib/customer-session'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -66,6 +67,16 @@ export async function POST(req: NextRequest) {
     const amount = normalizePaymentAmount(rawAmount)
     if (!sessionId || !amount || !method) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes ou valor inválido.' }, { status: 400 })
+    }
+
+    // Pagar com cartão salvo exige sessão autenticada por senha (prova de identidade).
+    if (paymentMethodId) {
+      if (!bodyCustomerId || !requireCustomerSession(req, bodyCustomerId)) {
+        return NextResponse.json(
+          { error: 'Sessão não autenticada. Faça login com sua senha de 6 dígitos para usar o cartão salvo.' },
+          { status: 401 },
+        )
+      }
     }
 
     const supabase = createAdminClient()

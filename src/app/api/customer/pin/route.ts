@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { hashPin, verifyPin, isValidPin } from '@/lib/customer-pin'
 import { getCustomerPinHash, isPinColumnMissing } from '@/lib/customer-pin-server'
+import { createCustomerSession } from '@/lib/customer-session'
 
 const PIN_MIGRATION_HINT =
   'Recurso de PIN indisponível. Execute supabase/migrate-customer-pin.sql no Supabase SQL Editor.'
@@ -36,15 +37,15 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as { customerId?: string; pin?: string; currentPin?: string }
-    const { customerId, pin, currentPin } = body
+    const body = await req.json() as { customerId?: string; pin?: string; currentPin?: string; mode?: 'set' | 'verify' }
+    const { customerId, pin, currentPin, mode } = body
 
     if (!customerId || !pin) {
-      return NextResponse.json({ error: 'customerId e pin são obrigatórios.' }, { status: 400 })
+      return NextResponse.json({ error: 'customerId e senha são obrigatórios.' }, { status: 400 })
     }
 
     if (!isValidPin(pin)) {
-      return NextResponse.json({ error: 'PIN deve ter 4 dígitos.' }, { status: 400 })
+      return NextResponse.json({ error: 'A senha deve ter 6 dígitos.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
@@ -60,9 +61,17 @@ export async function POST(req: NextRequest) {
 
     const existingPin = await getCustomerPinHash(supabase, customerId)
 
+    // Modo verificação: confere a senha existente e emite sessão (não altera o hash).
+    if (mode === 'verify') {
+      if (!existingPin || !verifyPin(pin, existingPin)) {
+        return NextResponse.json({ error: 'Senha incorreta.' }, { status: 401 })
+      }
+      return NextResponse.json({ success: true, hasPin: true, sessionToken: createCustomerSession(customerId) })
+    }
+
     if (existingPin) {
       if (!currentPin || !verifyPin(currentPin, existingPin)) {
-        return NextResponse.json({ error: 'PIN atual incorreto.' }, { status: 401 })
+        return NextResponse.json({ error: 'Senha atual incorreta.' }, { status: 401 })
       }
     }
 
@@ -75,10 +84,11 @@ export async function POST(req: NextRequest) {
       if (isPinColumnMissing(error)) {
         return NextResponse.json({ error: PIN_MIGRATION_HINT }, { status: 503 })
       }
-      return NextResponse.json({ error: 'Erro ao salvar PIN.' }, { status: 500 })
+      return NextResponse.json({ error: 'Erro ao salvar senha.' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, hasPin: true })
+    // Emite sessão autenticada: ao criar/alterar a senha o cliente fica autenticado.
+    return NextResponse.json({ success: true, hasPin: true, sessionToken: createCustomerSession(customerId) })
   } catch (err) {
     console.error('[Customer PIN POST Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

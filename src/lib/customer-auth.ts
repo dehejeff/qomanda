@@ -75,6 +75,31 @@ export function persistCustomerAuth(
   }
 }
 
+const SESSION_TOKEN_KEY = 'qomanda_customer_session_token'
+
+/** Token de sessão autenticada (emitido após a senha de 6 dígitos). */
+export function setCustomerSessionToken(token: string) {
+  localStorage.setItem(SESSION_TOKEN_KEY, token)
+}
+
+export function getCustomerSessionToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(SESSION_TOKEN_KEY)
+}
+
+export function clearCustomerSessionToken() {
+  localStorage.removeItem(SESSION_TOKEN_KEY)
+}
+
+/** Headers com a sessão autenticada para chamadas sensíveis (cartões/pagamento). */
+export function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const token = getCustomerSessionToken()
+  return {
+    ...(extra ?? {}),
+    ...(token ? { 'x-customer-session': token } : {}),
+  }
+}
+
 /** Cliente encerra visita ao restaurante (mantém login WhatsApp → hub). */
 export function leaveRestaurantSession(router: AppRouterInstance, restaurantSlug?: string) {
   localStorage.removeItem('qomanda_session_id')

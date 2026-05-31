@@ -8,7 +8,7 @@ const SCRYPT_OPTS = { N: 16384, r: 8, p: 1, maxmem: 32 * 1024 * 1024 } as const
 
 export function hashPin(pin: string): string {
   const digits = normalizePin(pin)
-  if (!isValidPin(digits)) throw new Error('PIN deve ter 4 dígitos.')
+  if (!isValidPin(digits)) throw new Error('A senha deve ter 6 dígitos.')
   const salt = randomBytes(16).toString('hex')
   const hash = scryptSync(digits, salt, KEY_LEN, SCRYPT_OPTS).toString('hex')
   return `${salt}:${hash}`
