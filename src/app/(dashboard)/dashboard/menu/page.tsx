@@ -7,7 +7,8 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { DEV_BYPASS, mockCategories, mockRestaurant } from '@/lib/dev-mock'
-import { AddItemModal } from '@/components/dashboard/add-item-modal'
+import { MenuItemModal } from '@/components/dashboard/menu-item-modal'
+import { menuItemEffectivePrice, menuItemHasPromo } from '@/lib/menu-item-pricing'
 
 export default function MenuManagementPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -17,6 +18,7 @@ export default function MenuManagementPage() {
   const [addingCategory, setAddingCategory] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalCategoryId, setModalCategoryId] = useState<string | undefined>()
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
 
   useEffect(() => {
     if (DEV_BYPASS) {
@@ -37,19 +39,36 @@ export default function MenuManagementPage() {
     })
   }, [])
 
-  function openModal(categoryId?: string) {
+  function openModal(categoryId?: string, item?: MenuItem) {
     setModalCategoryId(categoryId)
+    setEditingItem(item ?? null)
     setModalOpen(true)
   }
 
-  function handleItemCreated(item: MenuItem, categoryId: string) {
-    setCategories((prev) =>
-      prev.map((cat) =>
+  function handleItemSaved(item: MenuItem, categoryId: string) {
+    setCategories((prev) => {
+      let next = prev.map((cat) => ({
+        ...cat,
+        items: (cat.items ?? []).filter((i) => i.id !== item.id),
+      }))
+
+      if (item.is_chef_pick) {
+        next = next.map((cat) => ({
+          ...cat,
+          items: cat.items?.map((i) =>
+            i.id === item.id ? i : { ...i, is_chef_pick: false },
+          ),
+        }))
+      }
+
+      next = next.map((cat) =>
         cat.id === categoryId
           ? { ...cat, items: [...(cat.items ?? []), item] }
-          : cat
+          : cat,
       )
-    )
+
+      return next
+    })
   }
 
   async function addCategory() {
@@ -239,6 +258,12 @@ export default function MenuManagementPage() {
                           ) : (
                             <span className="material-symbols-outlined text-on-surface-variant text-3xl opacity-20">image</span>
                           )}
+                          {item.is_chef_pick && (
+                            <span className="absolute top-1 left-1 text-[7px] font-mono font-bold uppercase px-1 py-0.5 rounded"
+                              style={{ background: '#ffb690', color: '#552100' }}>
+                              Chef
+                            </span>
+                          )}
                           {!item.available && (
                             <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
                               <span className="text-[8px] font-mono font-bold bg-error text-white px-1.5 py-0.5 rounded">ESGOTADO</span>
@@ -248,18 +273,40 @@ export default function MenuManagementPage() {
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
+                          <div className="flex justify-between items-start mb-1 gap-2">
                             <h4 className="text-base font-semibold text-on-surface truncate" style={{ fontFamily: 'Geist, sans-serif' }}>
                               {item.name}
                             </h4>
-                            <span className="text-sm font-mono font-bold text-primary ml-2 flex-shrink-0">
-                              {formatCurrency(item.price)}
-                            </span>
+                            <div className="text-right flex-shrink-0">
+                              {menuItemHasPromo(item) ? (
+                                <>
+                                  <span className="block text-xs font-mono line-through text-on-surface-variant">
+                                    {formatCurrency(item.price)}
+                                  </span>
+                                  <span className="text-sm font-mono font-bold text-primary">
+                                    {formatCurrency(menuItemEffectivePrice(item))}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-sm font-mono font-bold text-primary">
+                                  {formatCurrency(item.price)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {item.description && (
                             <p className="text-sm text-on-surface-variant line-clamp-2 mb-3">{item.description}</p>
                           )}
-                          <div className="flex items-center justify-end gap-4 mt-2 flex-wrap">
+                          <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => openModal(cat.id, item)}
+                              className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant hover:text-primary flex items-center gap-1 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                              Editar
+                            </button>
+                            <div className="flex items-center gap-4 flex-wrap justify-end">
                             {/* Álcool badge */}
                             {item.contains_alcohol && (
                               <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded"
@@ -292,6 +339,7 @@ export default function MenuManagementPage() {
                                 <div className="absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform toggle-dot" />
                               </div>
                             </label>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -306,12 +354,13 @@ export default function MenuManagementPage() {
 
       {/* Modal */}
       {modalOpen && (
-        <AddItemModal
+        <MenuItemModal
           categories={categories}
           restaurantId={restaurantId}
           defaultCategoryId={modalCategoryId}
-          onClose={() => setModalOpen(false)}
-          onCreated={handleItemCreated}
+          item={editingItem}
+          onClose={() => { setModalOpen(false); setEditingItem(null) }}
+          onSaved={handleItemSaved}
         />
       )}
     </>

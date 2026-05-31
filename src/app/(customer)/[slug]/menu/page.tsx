@@ -7,6 +7,7 @@ import type { MenuCategory, MenuItem, CartItem } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { OrderReviewModal } from '@/components/customer/order-review-modal'
 import { formatCurrency } from '@/lib/utils'
+import { menuItemEffectivePrice, menuItemHasPromo } from '@/lib/menu-item-pricing'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -114,7 +115,7 @@ export default function MenuPage() {
     setOpenNoteId(null)
   }
 
-  const cartTotal = cart.reduce((s, c) => s + c.menu_item.price * c.quantity, 0)
+  const cartTotal = cart.reduce((s, c) => s + menuItemEffectivePrice(c.menu_item) * c.quantity, 0)
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
 
   async function placeOrder() {
@@ -141,7 +142,7 @@ export default function MenuPage() {
         order_id:    order.id,
         menu_item_id: c.menu_item.id,
         quantity:    c.quantity,
-        unit_price:  c.menu_item.price,
+        unit_price:  menuItemEffectivePrice(c.menu_item),
         notes:       notes[c.menu_item.id] || null,
       }))
     )
@@ -159,8 +160,9 @@ export default function MenuPage() {
     setShowReview(true)
   }
 
-  // Featured item: first available item across all categories
-  const featuredItem = categories.flatMap(c => c.items ?? []).find(i => i.available)
+  const allItems = categories.flatMap(c => c.items ?? [])
+  const featuredItem = allItems.find(i => i.available && i.is_chef_pick)
+    ?? allItems.find(i => i.available)
 
   function selectCategory(id: string) {
     setActiveCategory(id)
@@ -249,7 +251,16 @@ export default function MenuPage() {
                 SUGESTÃO DO CHEF
               </span>
               <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>{featuredItem.name}</h2>
-              <p className="text-sm font-mono" style={{ color: '#ffb690' }}>{formatCurrency(featuredItem.price)}</p>
+              <div className="flex items-center gap-2">
+                {menuItemHasPromo(featuredItem) && (
+                  <span className="text-xs font-mono line-through" style={{ color: '#a78b7d' }}>
+                    {formatCurrency(featuredItem.price)}
+                  </span>
+                )}
+                <p className="text-sm font-mono" style={{ color: '#ffb690' }}>
+                  {formatCurrency(menuItemEffectivePrice(featuredItem))}
+                </p>
+              </div>
             </div>
             <div className="absolute bottom-4 right-4">
               <div
@@ -310,9 +321,22 @@ export default function MenuPage() {
                       )}
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm font-mono font-semibold" style={{ color: '#ffb690' }}>
-                        {formatCurrency(item.price)}
-                      </span>
+                      <div>
+                        {menuItemHasPromo(item) ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono line-through" style={{ color: '#a78b7d' }}>
+                              {formatCurrency(item.price)}
+                            </span>
+                            <span className="text-sm font-mono font-semibold" style={{ color: '#ffb690' }}>
+                              {formatCurrency(menuItemEffectivePrice(item))}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-mono font-semibold" style={{ color: '#ffb690' }}>
+                            {formatCurrency(item.price)}
+                          </span>
+                        )}
+                      </div>
                       {/* Qty stepper */}
                       <div
                         className="flex items-center rounded-full p-1"

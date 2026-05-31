@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { CartItem } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { menuItemEffectivePrice } from '@/lib/menu-item-pricing'
 import { Loader2 } from 'lucide-react'
 
 type Props = {
@@ -81,7 +82,9 @@ export function OrderReviewModal({
               Seu carrinho está vazio.
             </p>
           ) : (
-            cart.map(({ menu_item: item, quantity }) => (
+            cart.map(({ menu_item: item, quantity }) => {
+              const unit = menuItemEffectivePrice(item)
+              return (
               <div
                 key={item.id}
                 className="rounded-xl p-4 space-y-3"
@@ -93,7 +96,7 @@ export function OrderReviewModal({
                       {item.name}
                     </p>
                     <p className="text-xs font-mono mt-0.5" style={{ color: '#ffb690' }}>
-                      {formatCurrency(item.price)} · {formatCurrency(item.price * quantity)}
+                      {formatCurrency(unit)} · {formatCurrency(unit * quantity)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -186,7 +189,7 @@ export function OrderReviewModal({
                   </button>
                 )}
               </div>
-            ))
+            )})
           )}
         </div>
 
