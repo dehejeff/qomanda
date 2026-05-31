@@ -23,6 +23,14 @@ function parsePrice(raw: string): number | null {
   return n
 }
 
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'] as const
+
+function isAllowedImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  return IMAGE_EXTENSIONS.includes(ext as (typeof IMAGE_EXTENSIONS)[number])
+}
+
 export function MenuItemModal({
   categories,
   restaurantId,
@@ -63,8 +71,8 @@ export function MenuItemModal({
 
   async function handleImageFile(file: File | null) {
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      toast.error('Selecione um arquivo de imagem.')
+    if (!isAllowedImageFile(file)) {
+      toast.error('Selecione JPG, PNG, WebP ou GIF.')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -291,9 +299,12 @@ export function MenuItemModal({
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/*,.png,.jpg,.jpeg,.webp,.gif"
                   className="hidden"
-                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => {
+                    handleImageFile(e.target.files?.[0] ?? null)
+                    e.target.value = ''
+                  }}
                 />
                 <button
                   type="button"
