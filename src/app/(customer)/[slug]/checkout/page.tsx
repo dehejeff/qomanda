@@ -469,7 +469,7 @@ export default function CheckoutPage() {
       const [sessionRes, participantsRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
-        supabase.from('orders').select('customer_id, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol))').eq('session_id', sessionId),
+        supabase.from('orders').select('customer_id, status, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol))').eq('session_id', sessionId),
         supabase.from('payments').select('amount').eq('session_id', sessionId).eq('status', 'paid'),
       ])
 
@@ -488,7 +488,8 @@ export default function CheckoutPage() {
       if (!sessionRes.data) { router.replace(`/${params.slug}`); return }
       setTableNumber((sessionRes.data.table as any)?.number ?? '')
 
-      const allItems   = (ordersRes.data ?? []).flatMap((o: any) => o.items ?? [])
+      const billableOrders = (ordersRes.data ?? []).filter((o: any) => o.status !== 'cancelled')
+      const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
       const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
       const gt         = sub * 1.1
       const paid       = (paymentsRes.data ?? []).reduce((s, p) => s + p.amount, 0)
@@ -499,7 +500,7 @@ export default function CheckoutPage() {
       setRemaining(rem)
 
       // My consumption + alcohol detection
-      const myOrdersData = (ordersRes.data ?? []).filter((o: any) => o.customer_id === myCustomerId)
+      const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId)
       const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
       const mySub        = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
       setMyConsumption(mySub * 1.1)
@@ -512,7 +513,7 @@ export default function CheckoutPage() {
 
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
-        const pOrders = (ordersRes.data ?? []).filter((o: any) => o.customer_id === p.customer_id)
+        const pOrders = billableOrders.filter((o: any) => o.customer_id === p.customer_id)
         const pSub    = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
         return {
           id: p.customer_id,
@@ -530,6 +531,13 @@ export default function CheckoutPage() {
       setLoading(false)
     }
     load()
+
+    const supabase = createClient()
+    const ch = supabase.channel('checkout-payments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `session_id=eq.${sessionId}` }, load)
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
   }, [sessionId, params.slug, router, myCustomerId])
 
   // Recalcula grandTotal e remaining quando a taxa de serviço muda

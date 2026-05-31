@@ -12,6 +12,7 @@ import {
 } from '@/lib/asaas'
 import { generateConfirmationCode } from '@/lib/utils'
 import { isPaymentBypassEnabled } from '@/lib/payment-bypass'
+import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
 
 export type AsaasPaymentRequest = {
   sessionId: string
@@ -86,6 +87,8 @@ export async function POST(req: NextRequest) {
       if (pmtError || !payment) {
         return NextResponse.json({ error: 'Erro ao registrar pagamento.' }, { status: 500 })
       }
+
+      await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
 
       return NextResponse.json({
         paymentId: payment.id,
@@ -217,6 +220,10 @@ export async function POST(req: NextRequest) {
           paid_at:          confirmed ? new Date().toISOString() : null,
         })
         .eq('id', payment.id)
+
+      if (confirmed) {
+        await syncCloseRequestOnPayment(supabase, sessionId, payerCustomerId, payment.id, amount)
+      }
 
       return NextResponse.json({
         paymentId:        payment.id,

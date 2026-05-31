@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
 import { generateConfirmationCode } from '@/lib/utils'
+import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
 
 /**
  * POST /api/asaas/webhook
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Busca o pagamento interno pelo asaas_payment_id
     const { data: internalPayment } = await supabase
       .from('payments')
-      .select('id, status, session_id')
+      .select('id, status, session_id, customer_id, amount')
       .eq('asaas_payment_id', payment.id)
       .maybeSingle()
 
@@ -61,6 +62,14 @@ export async function POST(req: NextRequest) {
           paid_at:           new Date().toISOString(),
         })
         .eq('id', internalPayment.id)
+
+      await syncCloseRequestOnPayment(
+        supabase,
+        internalPayment.session_id,
+        internalPayment.customer_id,
+        internalPayment.id,
+        Number(internalPayment.amount),
+      )
 
       console.log(`[Asaas Webhook] Pagamento confirmado: ${internalPayment.id} → código ${confirmationCode}`)
     }

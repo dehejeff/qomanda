@@ -66,6 +66,8 @@ export default function OrdersPage() {
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
   const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
   const [grandTotal, setGrandTotal]   = useState(0)
+  const [sessionPaid, setSessionPaid] = useState(0)
+  const [closeRequestActive, setCloseRequestActive] = useState(false)
 
   const customerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
@@ -108,7 +110,7 @@ export default function OrdersPage() {
     const supabase = createClient()
 
     async function load() {
-      const [ordersRes, participantsRes, sessionRes] = await Promise.all([
+      const [ordersRes, participantsRes, sessionRes, paymentsRes, closeReqRes] = await Promise.all([
         supabase
           .from('orders')
           .select('*, items:order_items(*, menu_item:menu_items(*))')
@@ -123,43 +125,74 @@ export default function OrdersPage() {
           .select('status')
           .eq('id', sessionId)
           .single(),
+        supabase
+          .from('payments')
+          .select('customer_id, amount')
+          .eq('session_id', sessionId)
+          .eq('status', 'paid'),
+        supabase
+          .from('close_requests')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('status', 'pending')
+          .maybeSingle(),
       ])
 
       const orders = (ordersRes.data ?? []) as Order[]
+      const parts = (participantsRes.data ?? []) as SessionParticipant[]
       setAllOrders(orders)
       setMyOrders(customerId ? orders.filter(o => o.customer_id === customerId) : orders)
-      setParticipants((participantsRes.data ?? []) as SessionParticipant[])
+      setParticipants(parts)
       if (sessionRes.data?.status === 'closing') setSessionClosing(true)
 
-      // Load close request payment progress if one exists
-      const { data: closeReq } = await supabase
-        .from('close_requests')
-        .select('id')
-        .eq('session_id', sessionId)
-        .eq('status', 'pending')
-        .maybeSingle()
+      const gt = totalOf(orders) * 1.1
+      setGrandTotal(gt)
 
-      if (closeReq) {
-        const { data: crParticipants } = await supabase
+      const payments = paymentsRes.data ?? []
+      const paidByCustomer = new Map<string, number>()
+      for (const p of payments) {
+        if (!p.customer_id) continue
+        paidByCustomer.set(p.customer_id, (paidByCustomer.get(p.customer_id) ?? 0) + Number(p.amount))
+      }
+      const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0)
+      setSessionPaid(totalPaid)
+
+      let crParticipants: any[] = []
+      if (closeReqRes.data) {
+        const { data } = await supabase
           .from('close_request_participants')
           .select('*, customer:customers(first_name,last_name)')
-          .eq('request_id', closeReq.id)
-
-        const allItemsTotal = orders
-          .filter(o => o.status !== 'cancelled')
-          .flatMap(o => (o as any).items ?? [])
-          .reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0) * 1.1
-        setGrandTotal(allItemsTotal)
-
-        setPaymentProgress((crParticipants ?? []).map((p: any) => ({
-          participantId: p.customer_id,
-          name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
-          isMe: p.customer_id === customerId,
-          amountOwed: p.amount_owed,
-          amountPaid: p.amount_paid,
-          status: p.status,
-        })))
+          .eq('request_id', closeReqRes.data.id)
+        crParticipants = data ?? []
       }
+      setCloseRequestActive(crParticipants.length > 0)
+
+      const progressSource = crParticipants.length > 0
+        ? crParticipants.map((p: any) => ({
+            participantId: p.customer_id as string,
+            name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
+            amountOwed: Number(p.amount_owed),
+            crStatus: p.status as string,
+          }))
+        : parts.map(p => ({
+            participantId: p.customer_id,
+            name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
+            amountOwed: totalOf(orders.filter(o => o.customer_id === p.customer_id)) * 1.1,
+            crStatus: 'pending' as string,
+          }))
+
+      setPaymentProgress(progressSource.map(p => {
+        const paid = paidByCustomer.get(p.participantId) ?? 0
+        const fullyPaid = paid >= p.amountOwed - 0.02
+        return {
+          participantId: p.participantId,
+          name: p.name,
+          isMe: p.participantId === customerId,
+          amountOwed: p.amountOwed,
+          amountPaid: paid > 0 ? paid : null,
+          status: fullyPaid ? 'paid' : paid > 0 ? 'confirmed' : p.crStatus,
+        }
+      }))
 
       setLoading(false)
     }
@@ -177,7 +210,11 @@ export default function OrdersPage() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2) }
+    const ch3 = supabase.channel('payments-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `session_id=eq.${sessionId}` }, load)
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); supabase.removeChannel(ch3) }
   }, [sessionId, params.slug, router, customerId])
 
   const displayOrders = tab === 'mine' ? myOrders : allOrders
@@ -446,8 +483,8 @@ export default function OrdersPage() {
               )
             })}
 
-            {/* Payment progress countdown */}
-            {paymentProgress.length > 0 && (
+            {/* Payment progress — fonte: tabela payments (pagamentos individuais e mesa toda) */}
+            {(sessionPaid > 0 || closeRequestActive) && (
               <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
                 <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
                   <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
@@ -456,7 +493,7 @@ export default function OrdersPage() {
                 </div>
                 {/* Progress bar */}
                 {(() => {
-                  const totalPaid  = paymentProgress.reduce((s, p) => s + (p.amountPaid ?? 0), 0)
+                  const totalPaid  = sessionPaid
                   const pct        = grandTotal > 0 ? Math.min(100, (totalPaid / grandTotal) * 100) : 0
                   const remaining  = Math.max(0, grandTotal - totalPaid)
                   return (
@@ -485,8 +522,8 @@ export default function OrdersPage() {
                             <span className="flex-1 text-sm" style={{ color: '#dae2fd' }}>
                               {p.name}{p.isMe && <span className="text-[10px] font-mono ml-1" style={{ color: '#34d399' }}>(você)</span>}
                             </span>
-                            <span className="text-sm font-mono" style={{ color: p.status === 'paid' ? '#34d399' : '#a78b7d' }}>
-                              {p.status === 'paid' && p.amountPaid
+                            <span className="text-sm font-mono" style={{ color: (p.amountPaid ?? 0) > 0 ? '#34d399' : '#a78b7d' }}>
+                              {p.amountPaid
                                 ? formatCurrency(p.amountPaid)
                                 : formatCurrency(p.amountOwed)}
                             </span>
@@ -510,6 +547,18 @@ export default function OrdersPage() {
                   <span>Taxa de serviço (10%)</span>
                   <span className="font-mono">{formatCurrency(tableTotal * 0.1)}</span>
                 </div>
+                {sessionPaid > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm mb-2" style={{ color: '#34d399' }}>
+                      <span>Já pago</span>
+                      <span className="font-mono">− {formatCurrency(sessionPaid)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-3" style={{ color: sessionPaid >= tableTotal * 1.1 - 0.02 ? '#34d399' : '#f87171' }}>
+                      <span>Restante</span>
+                      <span className="font-mono font-bold">{formatCurrency(Math.max(0, tableTotal * 1.1 - sessionPaid))}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between items-center pt-3" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
                   <span className="font-semibold">Total da Mesa</span>
                   <span className="text-xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
