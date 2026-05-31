@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { MenuCategory, MenuItem, CartItem } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { OrderReviewModal } from '@/components/customer/order-review-modal'
+import { MenuItemDetailModal } from '@/components/customer/menu-item-detail-modal'
 import { formatCurrency } from '@/lib/utils'
 import { menuItemEffectivePrice, menuItemHasPromo } from '@/lib/menu-item-pricing'
 import { toast } from 'sonner'
@@ -19,8 +20,10 @@ export default function MenuPage() {
 
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
-  const [notes, setNotes] = useState<Record<string, string>>({}) // itemId → nota
-  const [openNoteId, setOpenNoteId] = useState<string | null>(null) // item com nota expandida
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
+  const [detailQty, setDetailQty] = useState(1)
+  const [detailNote, setDetailNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [placing, setPlacing] = useState(false)
   const [showReview, setShowReview] = useState(false)
@@ -64,30 +67,52 @@ export default function MenuPage() {
     loadMenu()
   }, [params.slug, sessionId, router])
 
-  function addToCart(item: MenuItem) {
+  function setCartQuantity(item: MenuItem, quantity: number) {
+    if (quantity <= 0) {
+      removeItemCompletely(item.id)
+      return
+    }
     setCart(prev => {
       const existing = prev.find(c => c.menu_item.id === item.id)
-      if (existing) return prev.map(c => c.menu_item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c)
-      return [...prev, { menu_item: item, quantity: 1 }]
+      if (existing) {
+        return prev.map(c => c.menu_item.id === item.id ? { ...c, quantity } : c)
+      }
+      return [...prev, { menu_item: item, quantity }]
     })
   }
 
-  function removeFromCart(itemId: string) {
-    setCart(prev => {
-      const existing = prev.find(c => c.menu_item.id === itemId)
-      if (!existing) return prev
-      if (existing.quantity === 1) return prev.filter(c => c.menu_item.id !== itemId)
-      return prev.map(c => c.menu_item.id === itemId ? { ...c, quantity: c.quantity - 1 } : c)
-    })
+  function openItemDetail(item: MenuItem) {
+    const inCart = cart.find(c => c.menu_item.id === item.id)
+    setDetailItem(item)
+    setDetailQty(inCart?.quantity ?? 1)
+    setDetailNote(notes[item.id] ?? '')
+  }
+
+  function closeItemDetail() {
+    setDetailItem(null)
+    setDetailQty(1)
+    setDetailNote('')
+  }
+
+  function confirmItemDetail() {
+    if (!detailItem) return
+    if (detailQty <= 0) {
+      removeItemCompletely(detailItem.id)
+      toast.message(`${detailItem.name} removido do pedido`)
+      closeItemDetail()
+      return
+    }
+    setCartQuantity(detailItem, detailQty)
+    updateItemNote(detailItem.id, detailNote.trim())
+    toast.success(detailQty === 1 ? `${detailItem.name} adicionado` : `${detailQty}× ${detailItem.name} no pedido`)
+    closeItemDetail()
   }
 
   function updateCartQuantity(itemId: string, delta: number) {
-    if (delta > 0) {
-      const item = categories.flatMap(c => c.items ?? []).find(i => i.id === itemId)
-      if (item) addToCart(item)
-      return
-    }
-    removeFromCart(itemId)
+    const item = categories.flatMap(c => c.items ?? []).find(i => i.id === itemId)
+    if (!item) return
+    const current = cart.find(c => c.menu_item.id === itemId)?.quantity ?? 0
+    setCartQuantity(item, current + delta)
   }
 
   function removeItemCompletely(itemId: string) {
@@ -97,7 +122,7 @@ export default function MenuPage() {
       delete next[itemId]
       return next
     })
-    if (openNoteId === itemId) setOpenNoteId(null)
+    if (detailItem?.id === itemId) closeItemDetail()
   }
 
   function updateItemNote(itemId: string, note: string) {
@@ -109,10 +134,6 @@ export default function MenuPage() {
       }
       return { ...prev, [itemId]: note }
     })
-  }
-
-  function confirmNote(itemId: string) {
-    setOpenNoteId(null)
   }
 
   const cartTotal = cart.reduce((s, c) => s + menuItemEffectivePrice(c.menu_item) * c.quantity, 0)
@@ -149,7 +170,7 @@ export default function MenuPage() {
 
     setCart([])
     setNotes({})
-    setOpenNoteId(null)
+    closeItemDetail()
     setShowReview(false)
     toast.success('Pedido enviado!')
     setPlacing(false)
@@ -230,7 +251,7 @@ export default function MenuPage() {
       <main className="px-6 pt-5 space-y-5">
         {/* Featured hero */}
         {featuredItem && (
-          <div className="relative overflow-hidden rounded-xl h-48 group cursor-pointer" onClick={() => addToCart(featuredItem)}>
+          <div className="relative overflow-hidden rounded-xl h-48 group cursor-pointer" onClick={() => openItemDetail(featuredItem)}>
             {featuredItem.image_url ? (
               <img
                 src={featuredItem.image_url}
@@ -287,7 +308,11 @@ export default function MenuPage() {
               return (
                 <div
                   key={item.id}
-                  className="flex items-stretch gap-3 rounded-xl p-3 transition-all"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openItemDetail(item)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openItemDetail(item) }}
+                  className="flex items-stretch gap-3 rounded-xl p-3 transition-all cursor-pointer active:scale-[0.99]"
                   style={{
                     background: 'rgba(30,41,59,0.7)',
                     border: qty > 0 ? '1px solid #f97316' : '1px solid #334155',
@@ -337,82 +362,22 @@ export default function MenuPage() {
                           </span>
                         )}
                       </div>
-                      {/* Qty stepper */}
-                      <div
-                        className="flex items-center rounded-full p-1"
-                        style={{ background: '#2d3449', border: '1px solid rgba(88,66,55,0.3)' }}
-                      >
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full active:scale-90 transition-all"
-                          style={{ color: '#f97316' }}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">remove</span>
-                        </button>
+                      {qty > 0 ? (
                         <span
-                          className="px-2 text-sm font-mono font-bold min-w-[24px] text-center"
-                          style={{ color: qty > 0 ? '#ffb690' : '#584237' }}
-                        >
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full active:scale-95 transition-all"
+                          className="min-w-[28px] h-7 px-2 rounded-full text-xs font-mono font-bold flex items-center justify-center"
                           style={{ background: '#f97316', color: '#582200' }}
                         >
-                          <span className="material-symbols-outlined text-[18px]">add</span>
-                        </button>
-                      </div>
+                          {qty}×
+                        </span>
+                      ) : (
+                        <span className="material-symbols-outlined text-[22px]" style={{ color: '#f97316' }}>add_circle</span>
+                      )}
                     </div>
-
-                    {/* Campo de observação — aparece quando item está no carrinho */}
-                    {qty > 0 && (
-                      <div className="mt-2">
-                        {openNoteId === item.id ? (
-                          <div className="space-y-2">
-                            <input
-                              autoFocus
-                              type="text"
-                              placeholder="ex: sem cebola, ponto bem passado…"
-                              value={notes[item.id] ?? ''}
-                              onChange={e => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                              onKeyDown={e => { if (e.key === 'Enter') confirmNote(item.id) }}
-                              className="w-full h-10 px-3 rounded-xl text-sm outline-none font-mono"
-                              style={{ background: '#0b1326', border: '1px solid #f97316', color: '#dae2fd' }}
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setOpenNoteId(null)}
-                                className="flex-1 h-10 rounded-xl text-xs font-mono font-medium"
-                                style={{ border: '1px solid #334155', color: '#a78b7d' }}
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => confirmNote(item.id)}
-                                className="flex-1 h-10 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                                style={{ background: '#34d399', color: '#064e3b' }}
-                              >
-                                <span className="material-symbols-outlined text-[18px]">check</span>
-                                Salvar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setOpenNoteId(item.id)}
-                            className="flex items-center gap-1 text-[11px] font-mono transition-colors"
-                            style={{ color: notes[item.id] ? '#f97316' : '#584237' }}
-                          >
-                            <span className="material-symbols-outlined text-[13px]">
-                              {notes[item.id] ? 'edit_note' : 'add_comment'}
-                            </span>
-                            {notes[item.id] ? notes[item.id] : 'Adicionar observação'}
-                          </button>
-                        )}
-                      </div>
+                    {notes[item.id] && (
+                      <p className="text-[11px] font-mono mt-1.5 line-clamp-1 flex items-center gap-1" style={{ color: '#a78b7d' }}>
+                        <span className="material-symbols-outlined text-[13px]">edit_note</span>
+                        {notes[item.id]}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -455,6 +420,18 @@ export default function MenuPage() {
       )}
 
       <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+
+      {detailItem && (
+        <MenuItemDetailModal
+          item={detailItem}
+          quantity={detailQty}
+          note={detailNote}
+          onClose={closeItemDetail}
+          onQuantityChange={setDetailQty}
+          onNoteChange={setDetailNote}
+          onConfirm={confirmItemDetail}
+        />
+      )}
 
       {showReview && (
         <OrderReviewModal
