@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Order, SessionParticipant } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
+import { CancelOrderModal } from '@/components/customer/cancel-order-modal'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -25,8 +26,19 @@ function statusOf(orders: Order[]) {
   return active ? STATUS_CONFIG[active.status] ?? STATUS_CONFIG.pending : null
 }
 
+function isBillable(order: Order) {
+  return order.status !== 'cancelled'
+}
+
 function totalOf(orders: Order[]) {
-  return orders.flatMap(o => o.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
+  return orders
+    .filter(isBillable)
+    .flatMap(o => o.items ?? [])
+    .reduce((s, i) => s + i.unit_price * i.quantity, 0)
+}
+
+function orderItemsTotal(order: Order) {
+  return (order.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
 }
 
 export default function OrdersPage() {
@@ -51,18 +63,21 @@ export default function OrdersPage() {
   const [loading, setLoading]         = useState(true)
   const [sessionClosing, setSessionClosing] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
   const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
   const [grandTotal, setGrandTotal]   = useState(0)
 
   const customerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
 
-  async function cancelOrder(orderId: string) {
+  async function confirmCancelOrder() {
+    if (!cancelTarget) return
+    const orderId = cancelTarget.id
+
     if (!customerId) {
       toast.error('Não foi possível identificar sua conta.')
       return
     }
-    if (!window.confirm('Deseja cancelar este pedido?')) return
 
     setCancellingId(orderId)
     try {
@@ -79,6 +94,7 @@ export default function OrdersPage() {
       toast.success('Pedido cancelado.')
       setMyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
       setAllOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+      setCancelTarget(null)
     } catch {
       toast.error('Erro ao cancelar pedido.')
     } finally {
@@ -129,7 +145,9 @@ export default function OrdersPage() {
           .select('*, customer:customers(first_name,last_name)')
           .eq('request_id', closeReq.id)
 
-        const allItemsTotal = orders.flatMap(o => (o as any).items ?? [])
+        const allItemsTotal = orders
+          .filter(o => o.status !== 'cancelled')
+          .flatMap(o => (o as any).items ?? [])
           .reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0) * 1.1
         setGrandTotal(allItemsTotal)
 
@@ -285,10 +303,15 @@ export default function OrdersPage() {
               <div className="space-y-3">
                 {myOrders.map(order => {
                   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
-                  const ot  = totalOf([order])
+                  const ot  = isBillable(order) ? orderItemsTotal(order) : 0
+                  const cancelled = order.status === 'cancelled'
                   return (
                     <div key={order.id} className="rounded-xl overflow-hidden"
-                      style={{ background: 'linear-gradient(145deg,#1e293b,#131b2e)', border: '1px solid #334155' }}>
+                      style={{
+                        background: 'linear-gradient(145deg,#1e293b,#131b2e)',
+                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.25)' : '#334155'}`,
+                        opacity: cancelled ? 0.75 : 1,
+                      }}>
                       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
                         <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
                         <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full"
@@ -307,8 +330,12 @@ export default function OrdersPage() {
                                   : <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>fastfood</span>}
                               </div>
                               <div className="flex-1 flex justify-between items-start">
-                                <p className="text-sm font-semibold">{item.quantity}x {item.menu_item?.name}</p>
-                                <p className="text-sm font-mono" style={{ color: '#ffb690' }}>{formatCurrency(item.unit_price * item.quantity)}</p>
+                                <p className={`text-sm font-semibold ${cancelled ? 'line-through' : ''}`} style={cancelled ? { color: '#584237' } : undefined}>
+                                  {item.quantity}x {item.menu_item?.name}
+                                </p>
+                                <p className={`text-sm font-mono ${cancelled ? 'line-through' : ''}`} style={{ color: cancelled ? '#584237' : '#ffb690' }}>
+                                  {formatCurrency(item.unit_price * item.quantity)}
+                                </p>
                               </div>
                             </div>
                             {item.notes && (
@@ -322,13 +349,15 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex justify-between items-center px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
                         <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>Subtotal</span>
-                        <span className="text-sm font-semibold" style={{ color: '#ffb690' }}>{formatCurrency(ot)}</span>
+                        <span className={`text-sm font-semibold ${cancelled ? 'line-through' : ''}`} style={{ color: cancelled ? '#584237' : '#ffb690' }}>
+                          {cancelled ? formatCurrency(orderItemsTotal(order)) : formatCurrency(ot)}
+                        </span>
                       </div>
                       {order.status === 'pending' && (
                         <div className="px-4 pb-3">
                           <button
                             type="button"
-                            onClick={() => cancelOrder(order.id)}
+                            onClick={() => setCancelTarget(order)}
                             disabled={cancellingId === order.id}
                             className="w-full py-2.5 rounded-lg text-xs font-mono font-bold transition-all active:scale-95 disabled:opacity-50"
                             style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
@@ -395,20 +424,19 @@ export default function OrdersPage() {
                   {/* Orders summary */}
                   {orders.length > 0 && (
                     <div className="px-4 py-3 space-y-1.5">
-                      {orders.flatMap(o => o.items ?? []).map((item, i) => (
-                        <div key={i}>
-                          <div className="flex justify-between text-xs" style={{ color: '#e0c0b1' }}>
+                      {orders.flatMap(order => {
+                        const cancelled = order.status === 'cancelled'
+                        return (order.items ?? []).map((item, i) => (
+                          <div
+                            key={`${order.id}-${item.id ?? i}`}
+                            className={`flex justify-between text-xs ${cancelled ? 'line-through' : ''}`}
+                            style={{ color: cancelled ? '#584237' : '#e0c0b1' }}
+                          >
                             <span>{item.quantity}x {item.menu_item?.name}</span>
                             <span className="font-mono">{formatCurrency(item.unit_price * item.quantity)}</span>
                           </div>
-                          {item.notes && (
-                            <p className="text-[10px] font-mono pl-3 flex items-start gap-1" style={{ color: '#f59e0b' }}>
-                              <span className="material-symbols-outlined text-[11px] shrink-0">chat</span>
-                              {item.notes}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                        ))
+                      })}
                     </div>
                   )}
                   {orders.length === 0 && (
@@ -535,6 +563,13 @@ export default function OrdersPage() {
           </button>
         </div>
       )}
+
+      <CancelOrderModal
+        order={cancelTarget}
+        loading={!!cancelTarget && cancellingId === cancelTarget.id}
+        onClose={() => { if (!cancellingId) setCancelTarget(null) }}
+        onConfirm={confirmCancelOrder}
+      />
 
       <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
 

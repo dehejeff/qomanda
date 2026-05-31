@@ -899,7 +899,7 @@ export default function CheckoutPage() {
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Fechar Conta</h1>
       </header>
 
-      <main className="flex-1 px-6 py-6 pb-32 space-y-5">
+      <main className="flex-1 px-6 py-6 pb-56 space-y-5">
 
         {/* ── Saldo já pago ───────────────────────────── */}
         {alreadyPaid > 0 && (
