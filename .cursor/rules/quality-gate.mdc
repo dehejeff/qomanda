@@ -1,0 +1,27 @@
+---
+description: Mandatory quality gate — verify all work with context-engineering, owasp-security, and documentation-writer skills
+alwaysApply: true
+---
+
+# Quality Gate (always on)
+
+Every task must pass through the **quality-gate** orchestrator skill.
+
+## Required skills (read from `.agents/skills/`)
+
+1. **quality-gate** — `.agents/skills/quality-gate/SKILL.md` (read first)
+2. **context-engineering** — before coding
+3. **owasp-security** — before finishing code changes
+4. **documentation-writer** — before user-facing docs/responses
+
+## Rules
+
+- **Session start / new task**: read `quality-gate` + `context-engineering`.
+- **After edits** to API, auth, payments, PII: apply `owasp-security`.
+- **Before delivery**: run completion checklist in `quality-gate`.
+
+## Sensitive paths
+
+- `src/app/api/**`
+- `src/lib/customer-*`, `*session*`, `*auth*`, `*pin*`
+- Asaas / payment integrations
