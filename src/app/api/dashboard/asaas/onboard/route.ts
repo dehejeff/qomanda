@@ -1,6 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createSubAccount } from '@/lib/asaas'
+import { createSubAccount, getSubAccountInfo } from '@/lib/asaas'
+
+export type OnboardStatusDto = {
+  status: 'inactive' | 'submitted' | 'approved' | 'rejected' | null
+  walletId: string | null
+  accountId: string | null
+  refreshed: boolean
+  asaasApproval: string | null
+}
+
+/**
+ * GET /api/dashboard/asaas/onboard
+ * Consulta o status de aprovação da subconta no Asaas e atualiza o DB se aprovada.
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('id, asaas_account_id, asaas_wallet_id, asaas_onboarding_status')
+      .eq('owner_id', user.id)
+      .single()
+
+    if (!restaurant) return NextResponse.json({ error: 'Restaurante não encontrado.' }, { status: 404 })
+
+    const dto: OnboardStatusDto = {
+      status: (restaurant.asaas_onboarding_status as OnboardStatusDto['status']) ?? 'inactive',
+      walletId: restaurant.asaas_wallet_id,
+      accountId: restaurant.asaas_account_id,
+      refreshed: false,
+      asaasApproval: null,
+    }
+
+    if (!restaurant.asaas_account_id) {
+      return NextResponse.json(dto)
+    }
+
+    if (restaurant.asaas_onboarding_status === 'approved') {
+      return NextResponse.json(dto)
+    }
+
+    try {
+      const subInfo = await getSubAccountInfo(restaurant.asaas_account_id)
+      dto.asaasApproval = subInfo.generalApproval ?? null
+      dto.refreshed = true
+
+      if (subInfo.generalApproval === 'APPROVED') {
+        await supabase
+          .from('restaurants')
+          .update({ asaas_onboarding_status: 'approved' })
+          .eq('id', restaurant.id)
+        dto.status = 'approved'
+      } else if (subInfo.generalApproval === 'REJECTED') {
+        await supabase
+          .from('restaurants')
+          .update({ asaas_onboarding_status: 'rejected' })
+          .eq('id', restaurant.id)
+        dto.status = 'rejected'
+      }
+    } catch (pollErr) {
+      console.error('[Asaas onboard status poll]', pollErr)
+    }
+
+    return NextResponse.json(dto)
+  } catch (err) {
+    console.error('[Asaas onboard GET]', err)
+    return NextResponse.json({ error: 'Erro ao verificar status.' }, { status: 500 })
+  }
+}
 
 /**
  * POST /api/dashboard/asaas/onboard

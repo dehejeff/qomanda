@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { paymentMethodLabel } from '@/lib/payment-receipt'
 import { BRAZIL_BANKS } from '@/lib/brazil-banks'
 import type { PayoutBankAccountDto } from '@/app/api/dashboard/payout/bank-account/route'
+import type { OnboardStatusDto } from '@/app/api/dashboard/asaas/onboard/route'
 import type { WhatsAppIntegrationDto } from '@/app/api/dashboard/integrations/whatsapp/route'
 import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 
@@ -254,6 +255,8 @@ export default function SettingsPage() {
   const [payoutAccount, setPayoutAccount] = useState<PayoutBankAccountDto | null>(null)
   const [payoutLoading, setPayoutLoading] = useState(true)
   const [payoutSaving, setPayoutSaving] = useState(false)
+  const [asaasStatus, setAsaasStatus] = useState<OnboardStatusDto | null>(null)
+  const [asaasChecking, setAsaasChecking] = useState(false)
   const [editingBank, setEditingBank] = useState(false)
   const [bankForm, setBankForm] = useState({
     holderName: '',
@@ -307,6 +310,26 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => { loadPayoutAccount().catch(() => {}) }, [loadPayoutAccount])
+
+  async function checkAsaasStatus() {
+    setAsaasChecking(true)
+    try {
+      const res = await fetch('/api/dashboard/asaas/onboard')
+      const data = await res.json() as OnboardStatusDto
+      if (res.ok) {
+        setAsaasStatus(data)
+        if (data.status === 'approved' && payoutAccount) {
+          setPayoutAccount({ ...payoutAccount, digitalStatus: 'active', digitalStatusLabel: 'Qomanda Pay ativo' })
+        }
+        if (data.status === 'approved') toast.success('Conta aprovada! PIX e cartão liberados.')
+        else if (data.refreshed) toast.message('Ainda em análise. Tente novamente em breve.')
+      }
+    } catch {
+      toast.error('Erro ao verificar status.')
+    } finally {
+      setAsaasChecking(false)
+    }
+  }
 
   const loadWhatsApp = useCallback(async () => {
     if (DEV_BYPASS) {
@@ -583,9 +606,21 @@ export default function SettingsPage() {
                       <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">CPF ou CNPJ do titular</label>
                       <input
                         value={bankForm.document}
-                        onChange={e => setBankForm(p => ({ ...p, document: e.target.value }))}
-                        placeholder="Mesmo CNPJ/CPF do cadastro da loja"
+                        onChange={e => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 14)
+                          const fmt = digits.length <= 11
+                            ? digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4')
+                                    .replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3')
+                                    .replace(/(\d{3})(\d{1,3})/, '$1.$2')
+                            : digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5')
+                                    .replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4')
+                                    .replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3')
+                                    .replace(/(\d{2})(\d{1,3})/, '$1.$2')
+                          setBankForm(p => ({ ...p, document: fmt }))
+                        }}
+                        placeholder="000.000.000-00 ou 00.000.000/0001-00"
                         inputMode="numeric"
+                        maxLength={18}
                         className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
                       />
                     </div>
@@ -605,22 +640,33 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Agência</label>
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                        Agência <span className="normal-case text-on-surface-variant/50">(sem dígito)</span>
+                      </label>
                       <input
                         value={bankForm.agency}
-                        onChange={e => setBankForm(p => ({ ...p, agency: e.target.value }))}
+                        onChange={e => setBankForm(p => ({ ...p, agency: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
                         placeholder="0000"
                         inputMode="numeric"
+                        maxLength={5}
                         className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Conta</label>
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                        Conta
+                        {bankConfigured && payoutAccount?.bankAccountMasked && (
+                          <span className="normal-case text-on-surface-variant/50 ml-1">
+                            (atual: {payoutAccount.bankAccountMasked})
+                          </span>
+                        )}
+                      </label>
                       <input
                         value={bankForm.account}
-                        onChange={e => setBankForm(p => ({ ...p, account: e.target.value }))}
-                        placeholder="00000000"
+                        onChange={e => setBankForm(p => ({ ...p, account: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+                        placeholder={bankConfigured ? 'Redigite para alterar' : '00000000'}
                         inputMode="numeric"
+                        maxLength={12}
                         className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
                       />
                     </div>
@@ -628,9 +674,10 @@ export default function SettingsPage() {
                       <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Dígito</label>
                       <input
                         value={bankForm.accountDigit}
-                        onChange={e => setBankForm(p => ({ ...p, accountDigit: e.target.value }))}
+                        onChange={e => setBankForm(p => ({ ...p, accountDigit: e.target.value.replace(/\D/g, '').slice(0, 2) }))}
                         placeholder="0"
                         inputMode="numeric"
+                        maxLength={2}
                         className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
                       />
                     </div>
@@ -679,6 +726,57 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-on-surface-variant leading-relaxed">
                     O repasse só pode ser feito em conta vinculada ao CNPJ (ou CPF do titular, se MEI) cadastrado no restaurante.
                   </p>
+                </div>
+              )}
+
+              {/* Asaas onboarding status */}
+              {!payoutLoading && (
+                <div className="pt-4 border-t border-outline-variant">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+                        Status Qomanda Pay
+                      </p>
+                      {digitalActive ? (
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-emerald-400">verified</span>
+                          <span className="text-sm font-mono text-emerald-400">Subconta aprovada — split ativo</span>
+                        </div>
+                      ) : digitalPending ? (
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-amber-400">pending</span>
+                          <span className="text-sm font-mono text-amber-400">
+                            {asaasStatus?.refreshed
+                              ? `Em análise no Asaas (${asaasStatus.asaasApproval ?? 'AWAITING'})`
+                              : 'Documentação enviada — aguardando análise'}
+                          </span>
+                        </div>
+                      ) : bankConfigured ? (
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-on-surface-variant opacity-50">info</span>
+                          <span className="text-sm font-mono text-on-surface-variant">
+                            Conta bancária salva. Ativação Asaas pendente de dados cadastrais completos.
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-mono text-on-surface-variant opacity-60">Cadastre a conta bancária para iniciar.</span>
+                      )}
+                    </div>
+
+                    {digitalPending && (
+                      <button
+                        type="button"
+                        onClick={checkAsaasStatus}
+                        disabled={asaasChecking}
+                        className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-mono border border-outline-variant text-on-surface-variant hover:bg-surface-container-highest transition-colors disabled:opacity-40 shrink-0"
+                      >
+                        <span className={`material-symbols-outlined text-[16px] ${asaasChecking ? 'animate-spin' : ''}`}>
+                          refresh
+                        </span>
+                        {asaasChecking ? 'Verificando...' : 'Verificar aprovação'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -14,6 +14,7 @@ export type BusinessFormState = {
   documentNumber: string
   companyType: RestaurantCompanyType | ''
   ownerCpf: string
+  ownerBirthDate: string   // YYYY-MM-DD — obrigatório se cpfCnpj for CPF
   contactEmail: string
   phone: string
   addressPostalCode: string
@@ -33,6 +34,7 @@ export const emptyBusinessForm = (): BusinessFormState => ({
   documentNumber: '',
   companyType: 'LIMITED',
   ownerCpf: '',
+  ownerBirthDate: '',
   contactEmail: '',
   phone: '',
   addressPostalCode: '',
@@ -53,6 +55,7 @@ export function businessFormToInput(form: BusinessFormState): RestaurantBusiness
     documentNumber: form.documentNumber,
     companyType: form.companyType,
     ownerCpf: form.ownerCpf,
+    ownerBirthDate: form.ownerBirthDate || undefined,
     contactEmail: form.contactEmail,
     phone: form.phone,
     addressPostalCode: form.addressPostalCode,
@@ -135,6 +138,29 @@ export function RestaurantBusinessFields({
 
   const isCnpj = form.documentType === 'cnpj'
 
+  function fmtPhone(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 2) return d.length ? `(${d}` : ''
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  }
+
+  function fmtCnpj(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 14)
+    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5')
+             .replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4')
+             .replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3')
+             .replace(/(\d{2})(\d{1,3})/, '$1.$2')
+  }
+
+  function fmtCpf(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 11)
+    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4')
+             .replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3')
+             .replace(/(\d{3})(\d{1,3})/, '$1.$2')
+  }
+
   return (
     <>
       <section className={sectionClass(true, embedded)}>
@@ -145,7 +171,7 @@ export function RestaurantBusinessFields({
           <SelectField label="Tipo de negócio" value={form.businessType} onChange={v => patch({ businessType: v })}
             options={BUSINESS_TYPES.map(t => ({ value: t.id, label: t.label }))} />
           <Field label="Slug (URL)" value={slug} onChange={setSlug} placeholder="tasca-do-porto" mono required />
-          <Field label="Telefone comercial" value={form.phone} onChange={v => patch({ phone: v })} placeholder="(11) 99999-9999" inputMode="tel" required />
+          <Field label="Telefone comercial" value={form.phone} onChange={v => patch({ phone: fmtPhone(v) })} placeholder="(11) 99999-9999" inputMode="tel" maxLength={16} required />
           <Field label="E-mail comercial" value={form.contactEmail} onChange={v => patch({ contactEmail: v })} type="email" placeholder="contato@restaurante.com" autoComplete="off" name="new-client-contact-email" />
         </div>
       </section>
@@ -175,22 +201,34 @@ export function RestaurantBusinessFields({
           <Field
             label={isCnpj ? 'CNPJ' : 'CPF do titular'}
             value={form.documentNumber}
-            onChange={v => patch({ documentNumber: v })}
+            onChange={v => patch({ documentNumber: isCnpj ? fmtCnpj(v) : fmtCpf(v) })}
             placeholder={isCnpj ? '00.000.000/0000-00' : '000.000.000-00'}
             inputMode="numeric"
+            maxLength={isCnpj ? 18 : 14}
+            mono
             required
           />
           {isCnpj && (
             <>
               <SelectField label="Tipo jurídico" value={form.companyType} onChange={v => patch({ companyType: v as RestaurantCompanyType })}
                 options={COMPANY_TYPES.map(c => ({ value: c.id, label: c.label }))} />
-              <Field label="CPF do responsável legal" value={form.ownerCpf} onChange={v => patch({ ownerCpf: v })} placeholder="000.000.000-00" inputMode="numeric" required className="md:col-span-2" />
+              <Field label="CPF do responsável legal" value={form.ownerCpf} onChange={v => patch({ ownerCpf: fmtCpf(v) })} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} mono required className="md:col-span-2" />
             </>
           )}
           {!isCnpj && (
             <SelectField label="Enquadramento" value={form.companyType || 'MEI'} onChange={v => patch({ companyType: v as RestaurantCompanyType })}
               options={COMPANY_TYPES.filter(c => c.id === 'MEI' || c.id === 'INDIVIDUAL').map(c => ({ value: c.id, label: c.label }))} />
           )}
+          <Field
+            label="Data de nascimento do titular"
+            value={form.ownerBirthDate}
+            onChange={v => patch({ ownerBirthDate: v })}
+            type="date"
+            mono
+            required
+            className="md:col-span-2"
+            hint="Obrigatório para ativação do Qomanda Pay quando o CPF/CNPJ é de pessoa física."
+          />
         </div>
       </section>
 
@@ -219,12 +257,13 @@ export function RestaurantBusinessFields({
         <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Operação</p>
         <Field
           label="Faturamento mensal estimado (R$)"
-          value={form.estimatedMonthlyRevenue}
-          onChange={v => patch({ estimatedMonthlyRevenue: v })}
-          placeholder="30000"
-          inputMode="decimal"
+          value={form.estimatedMonthlyRevenue.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+          onChange={v => patch({ estimatedMonthlyRevenue: v.replace(/\D/g, '').slice(0, 10) })}
+          placeholder="30.000"
+          inputMode="numeric"
           mono
           required
+          maxLength={14}
           hint="Usado no cadastro do gateway de pagamentos e análise de risco."
         />
       </section>
@@ -263,11 +302,11 @@ function CepField({
 
 function Field({
   label, value, onChange, placeholder, mono, className = '', type = 'text', required, hint,
-  inputMode, autoComplete, name,
+  inputMode, autoComplete, name, maxLength,
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean
   className?: string; type?: string; required?: boolean; hint?: string; inputMode?: 'numeric' | 'tel' | 'decimal' | 'email'
-  autoComplete?: string; name?: string
+  autoComplete?: string; name?: string; maxLength?: number
 }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -281,6 +320,7 @@ function Field({
         inputMode={inputMode}
         autoComplete={autoComplete}
         required={required}
+        maxLength={maxLength}
         className={`h-10 px-3 rounded-lg text-sm bg-surface-dim border border-outline-variant text-on-surface outline-none focus:border-primary ${mono ? 'font-mono' : ''}`}
       />
       {hint && <p className="text-[10px] text-on-surface-variant">{hint}</p>}

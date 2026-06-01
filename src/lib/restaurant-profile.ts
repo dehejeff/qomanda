@@ -32,6 +32,7 @@ export type RestaurantBusinessInput = {
   documentNumber?: string
   companyType?: RestaurantCompanyType | ''
   ownerCpf?: string
+  ownerBirthDate?: string   // YYYY-MM-DD
   contactEmail?: string
   phone?: string
   addressPostalCode?: string
@@ -122,6 +123,7 @@ export function businessFieldsToDb(input: RestaurantBusinessInput) {
     document_number: doc,
     company_type: docType === 'cnpj' ? (input.companyType || null) : (input.companyType || 'MEI'),
     owner_cpf: docType === 'cnpj' ? digitsOnly(input.ownerCpf ?? '') : null,
+    owner_birth_date: input.ownerBirthDate?.trim() || null,
     contact_email: input.contactEmail?.trim().toLowerCase() || null,
     phone: digitsOnly(input.phone ?? ''),
     address_postal_code: digitsOnly(input.addressPostalCode ?? ''),
@@ -145,6 +147,7 @@ export type RestaurantBusinessProfile = {
   document_number: string | null
   company_type: RestaurantCompanyType | null
   owner_cpf: string | null
+  owner_birth_date: string | null
   contact_email: string | null
   address_postal_code: string | null
   address_street: string | null
@@ -164,6 +167,7 @@ export function profileFromRow(row: Record<string, unknown>): RestaurantBusiness
     document_number: (row.document_number as string | null) ?? null,
     company_type: (row.company_type as RestaurantCompanyType | null) ?? null,
     owner_cpf: (row.owner_cpf as string | null) ?? null,
+    owner_birth_date: (row.owner_birth_date as string | null) ?? null,
     contact_email: (row.contact_email as string | null) ?? null,
     address_postal_code: (row.address_postal_code as string | null) ?? null,
     address_street: (row.address_street as string | null) ?? null,
@@ -177,7 +181,7 @@ export function profileFromRow(row: Record<string, unknown>): RestaurantBusiness
 }
 
 export const BUSINESS_PROFILE_SELECT = `
-  business_type, legal_name, document_type, document_number, company_type, owner_cpf,
+  business_type, legal_name, document_type, document_number, company_type, owner_cpf, owner_birth_date,
   contact_email, address_postal_code, address_street, address_number, address_complement,
   address_neighborhood, address_city, address_state, estimated_monthly_revenue
 `

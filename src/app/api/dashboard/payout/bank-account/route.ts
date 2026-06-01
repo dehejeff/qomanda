@@ -21,8 +21,7 @@ function validateBankPayload(body: Record<string, unknown>): BankAccountPayload 
   if (document.length !== 11 && document.length !== 14) return 'CPF ou CNPJ inválido.'
   if (!bankCode || bankCode.length < 3) return 'Selecione o banco.'
   if (!agency || agency.length < 3) return 'Agência inválida.'
-  if (!account || account.length < 4) return 'Conta inválida.'
-  if (!accountDigit) return 'Informe o dígito da conta.'
+  // account e accountDigit são opcionais na edição — validados no handler com fallback no DB
 
   return {
     holderName,
@@ -30,8 +29,8 @@ function validateBankPayload(body: Record<string, unknown>): BankAccountPayload 
     bankCode,
     bankName,
     agency,
-    account,
-    accountDigit,
+    account,       // pode ser vazio na edição
+    accountDigit,  // pode ser vazio na edição
     accountType,
   }
 }
@@ -128,12 +127,18 @@ export async function POST(req: NextRequest) {
         id, name, address, phone, asaas_wallet_id,
         legal_name, document_number, company_type, contact_email,
         address_street, address_number, address_neighborhood, address_postal_code,
-        estimated_monthly_revenue
+        estimated_monthly_revenue, bank_account, bank_account_digit, owner_birth_date
       `)
       .eq('owner_id', user.id)
       .single()
 
     if (!restaurant) return NextResponse.json({ error: 'Restaurante não encontrado.' }, { status: 404 })
+
+    // Ao editar, mantém conta/dígito existentes se não fornecidos
+    const finalAccount = validated.account || restaurant.bank_account
+    const finalDigit = validated.accountDigit || restaurant.bank_account_digit
+    if (!finalAccount) return NextResponse.json({ error: 'Conta inválida.' }, { status: 400 })
+    if (!finalDigit) return NextResponse.json({ error: 'Informe o dígito da conta.' }, { status: 400 })
 
     const now = new Date().toISOString()
     const resolvedBankName = validated.bankName || bankLabel(validated.bankCode, null)
@@ -146,8 +151,8 @@ export async function POST(req: NextRequest) {
         bank_code: validated.bankCode,
         bank_name: resolvedBankName,
         bank_agency: validated.agency,
-        bank_account: validated.account,
-        bank_account_digit: validated.accountDigit,
+        bank_account: finalAccount,
+        bank_account_digit: finalDigit,
         bank_account_type: validated.accountType,
         payout_configured_at: now,
       })

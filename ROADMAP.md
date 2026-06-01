@@ -74,6 +74,26 @@
 
 ---
 
+## 🏢 Jurídico & Financeiro (Pré-lançamento)
+
+> Necessário para operar o Qomanda Pay em produção.
+
+### Abertura de empresa
+- [ ] Definir tipo societário — **SLU ou LTDA** (MEI não serve para marketplace de pagamentos)
+- [ ] Escolher CNAEs — `6204-0/00` (TI), `6202-3/00` (software), avaliar `6619-3/99` (serviços financeiros auxiliares)
+- [ ] Contratar contador e abrir CNPJ (~1–2 semanas, ~R$ 500–1.000)
+- [ ] Abrir conta bancária PJ (Nubank PJ, Inter PJ ou similar)
+
+### Asaas — conta master da plataforma
+- [ ] Criar conta no **sandbox.asaas.com** com CPF para testar agora
+- [ ] Adicionar `ASAAS_API_KEY` do sandbox no `.env.local` e testar split + subcontas
+- [ ] Após ter CNPJ: criar conta em **asaas.com** (produção) com CNPJ da Qomanda
+- [ ] Solicitar ativação do **marketplace/white-label** para o Asaas (aprovação manual por eles) — **obrigatório para split funcionar; testado em sandbox e confirmado que requer contato com suporte Asaas mesmo para CNPJ**
+- [ ] Configurar API key de produção no portal interno (`/internal` → Gateway Pay)
+- [ ] Configurar webhook de produção no painel Asaas apontando para o domínio da Vercel
+
+---
+
 ## 🔴 Fase 1 — Fechamento do Projeto (Prioridade Máxima)
 
 > Entregas restantes para operação comercial plena. **Junho 2026**

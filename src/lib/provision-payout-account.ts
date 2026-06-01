@@ -16,6 +16,7 @@ type RestaurantRow = {
   estimated_monthly_revenue: number | null
   address: string | null
   asaas_wallet_id: string | null
+  owner_birth_date: string | null  // YYYY-MM-DD — obrigatório para CPF
 }
 
 export type BankAccountPayload = {
@@ -68,6 +69,11 @@ export async function provisionDigitalPayoutIfNeeded(
   }
 
   try {
+    const isCpf = cpfCnpj.replace(/\D/g, '').length === 11
+    if (isCpf && !restaurant.owner_birth_date) {
+      return { provisioned: false, reason: 'missing_birth_date' }
+    }
+
     const sub = await createSubAccount({
       name: restaurant.legal_name ?? restaurant.name,
       email,
@@ -80,6 +86,7 @@ export async function provisionDigitalPayoutIfNeeded(
       postalCode: postalCode || '01310100',
       companyType: (restaurant.company_type as 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION' | undefined) ?? undefined,
       externalReference: restaurant.id,
+      birthDate: restaurant.owner_birth_date ?? undefined,
     })
 
     await supabase

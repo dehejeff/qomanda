@@ -88,6 +88,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         documentNumber: p.document_number ?? '',
         companyType: p.company_type ?? 'LIMITED',
         ownerCpf: p.owner_cpf ?? '',
+        ownerBirthDate: p.owner_birth_date ?? '',
         contactEmail: p.contact_email ?? '',
         phone: c.phone ?? '',
         addressPostalCode: p.address_postal_code ?? '',

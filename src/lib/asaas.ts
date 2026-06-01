@@ -321,6 +321,27 @@ export function isPaymentConfirmed(status: AsaasPaymentStatus): boolean {
 
 // ── Subcontas (marketplace) ──────────────────────────────────
 
+/** Status retornado pelo Asaas para uma subconta. */
+export interface AsaasSubAccountInfo {
+  id: string
+  name: string
+  email: string
+  walletId?: string
+  /** Aprovação geral da subconta no Asaas. */
+  generalApproval?: 'AWAITING' | 'APPROVED' | 'REJECTED' | 'PARTIALLY_APPROVED'
+  commercialInfoApproval?: 'AWAITING' | 'APPROVED' | 'REJECTED'
+  bankAccountInfoApproval?: 'AWAITING' | 'APPROVED' | 'REJECTED'
+  documentationApproval?: 'AWAITING' | 'APPROVED' | 'REJECTED'
+}
+
+/**
+ * Consulta os dados e o status de aprovação de uma subconta.
+ * Doc: https://docs.asaas.com/reference/buscar-subconta
+ */
+export async function getSubAccountInfo(accountId: string): Promise<AsaasSubAccountInfo> {
+  return request<AsaasSubAccountInfo>(`/accounts/${accountId}`)
+}
+
 /**
  * Cria uma subconta Asaas para um restaurante (onboarding do marketplace).
  * Retorna o walletId (destino do split) e a apiKey da subconta.
@@ -338,6 +359,8 @@ export async function createSubAccount(params: {
   postalCode: string
   companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION'
   externalReference?: string
+  /** Obrigatório quando cpfCnpj é CPF (Pessoa Física). Formato YYYY-MM-DD. */
+  birthDate?: string
 }): Promise<AsaasSubAccount> {
   return request<AsaasSubAccount>('/accounts', {
     method: 'POST',
@@ -353,6 +376,7 @@ export async function createSubAccount(params: {
       postalCode: params.postalCode.replace(/\D/g, ''),
       companyType: params.companyType,
       externalReference: params.externalReference,
+      ...(params.birthDate ? { birthDate: params.birthDate } : {}),
     }),
   })
 }
