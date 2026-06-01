@@ -34,14 +34,34 @@
 - [x] **Confirmar pagamento em dinheiro** — painel na mesa e em Pedidos · Mesa
 - [x] Settings: aba Pagamentos com histórico de transações
 - [x] Settings: aba Fidelidade (configurar regras visitas → benefício)
+- [x] Settings: aba Integrações — WhatsApp Business (credenciais Meta + teste de envio)
+- [x] Settings: aba Pagamentos — cadastro de conta bancária de repasse (Qomanda Pay)
+- [x] **Suporte** — abertura de tickets, mensagens e anexos (`/dashboard/support`)
 - [x] Sidebar com navegação e logo
 
+### Portal Interno Qomanda (Staff)
+> Acesso em `/internal` — restrito à equipe Qomanda (`staff_users` ou `QOMANDA_STAFF_EMAILS`).
+
+- [x] Login staff com Supabase Auth
+- [x] **Overview** — KPIs (clientes, MRR planos, taxa tx 30d, receita Qomanda, volume Pay/GMV), gráficos de cadastros, distribuição de assinaturas/planos/Pay, fila de atenção e tickets abertos
+- [x] **Clientes** — listagem, cadastro e edição com abas: Estabelecimento, NF-e cliente, Plano Qomanda, NF-e serviço
+- [x] Perfil comercial por restaurante — plano, assinatura (trial/ativo), taxas custom, status Qomanda Pay
+- [x] Reparo automático de billing para clientes legados (plano + assinatura + taxas)
+- [x] Cadastro de perfil empresarial (CNPJ/CPF, endereço, ViaCEP)
+- [x] Configuração NF-e ao consumidor (Focus NFe, status, leitura WhatsApp)
+- [x] Painel NF-e de serviço (Qomanda → restaurante) — estrutura UI, emissão em breve
+- [x] **Suporte** — fila interna de tickets com resposta staff e anexos
+- [x] **Gateway Pay** — configuração Asaas da plataforma (credenciais criptografadas)
+- [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe
+
 ### Segurança & Pagamentos
-- [x] Integração Qomanda Pay — PIX, crédito, webhook e modo bypass para testes
+- [x] Integração **Qomanda Pay (Asaas)** — PIX, crédito, marketplace/split por restaurante, webhook
+- [x] Taxa da plataforma (`platform_fee_percent` + `platform_fee_fixed`) por plano/restaurante
 - [x] Recibos, códigos de confirmação e histórico de pagamentos
 - [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
 - [x] Senha de 6 dígitos para cartões salvos no Hub; sessão com idle 15 min / TTL 24 h
 - [x] CPF criptografado + hash; WhatsApp como identidade única
+- [x] Modo bypass de pagamentos para testes (`payment-bypass`)
 
 ### Infraestrutura
 - [x] Schema Supabase completo (tabelas com RLS e triggers)
@@ -50,6 +70,7 @@
 - [x] Tipagem TypeScript completa
 - [x] Landing page de marketing com pricing e comparativo de mercado
 - [x] Roadmap público, Termos de Uso e Política de Privacidade
+- [x] Migrações incrementais em `supabase/migrate-*.sql`
 
 ---
 
@@ -57,20 +78,32 @@
 
 > Entregas restantes para operação comercial plena. **Junho 2026**
 
-### 1. Configurar método de pagamento (self-service)
-- [x] **Painel Settings → Pagamentos** — restaurante cadastra conta bancária de repasse
-- [x] Status de validação visível no dashboard (pendente / ativo)
-- [ ] PIX, crédito e débito liberados automaticamente após aprovação da conta
+### 1. Qomanda Pay em produção
+- [x] Painel Settings → Pagamentos — restaurante cadastra conta bancária de repasse
+- [x] Onboarding Asaas (subconta/wallet) por restaurante
+- [x] Split automático com taxa da plataforma por transação
+- [ ] PIX, crédito e débito liberados automaticamente após aprovação da conta Asaas
 - [ ] Modo teste (bypass) desligável em produção
 
 ### 2. Notas fiscais
-- [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / emissor configurável)
+- [x] Cadastro NF-e ao cliente (Focus NFe) — portal interno + campos no restaurante
+- [x] Configuração WhatsApp para envio de NF-e — restaurante em Settings → Integrações
+- [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / Focus NFe)
 - [ ] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
+- [ ] **NF-e de serviço** — Qomanda → restaurante (mensalidade + taxas tx)
 - [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
 
-### 3. Melhorias operacionais pós-lançamento
+### 3. Cobrança SaaS (mensalidade)
+- [x] Planos comerciais (Starter / Growth / Pro / Enterprise)
+- [x] Assinaturas por restaurante com trial
+- [x] Faturas manuais (registro interno)
+- [ ] Cobrança automática de mensalidade (Asaas assinaturas ou boleto/PIX recorrente)
+- [ ] NF-e de serviço emitida junto com a fatura
+
+### 4. Melhorias operacionais pós-lançamento
 - [ ] Webhook de pagamentos robusto — retry, idempotência e logs de erro
 - [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
+- [ ] E-mail de notificação em novos tickets de suporte
 
 ---
 
@@ -92,7 +125,7 @@
 ## 🟡 Fase 2 — Crescimento (Q3 2026)
 
 ### Analytics
-- [ ] Gráfico de receita por período (diário/semanal/mensal)
+- [ ] Gráfico de receita por período (diário/semanal/mensal) no dashboard do restaurante
 - [ ] Ranking de pratos mais pedidos
 - [ ] Análise de horário de pico
 - [ ] Ticket médio por mesa e por cliente
@@ -115,7 +148,6 @@
 
 ### Comunicação
 - [ ] **WhatsApp Business API** — confirmação de pedido via WhatsApp
-- [ ] Envio de nota fiscal via WhatsApp
 - [ ] Campanhas de promoção para clientes fiéis
 
 ---
@@ -155,16 +187,37 @@
 | Cliente — Hub & segurança | ✅ Completo | 90% |
 | Dashboard — Operação | ✅ Completo | 95% |
 | Dashboard — Cardápio & QR mesas | ✅ Completo | 92% |
+| Dashboard — Suporte | ✅ Completo | 85% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
+| Portal Interno Qomanda | ✅ Completo | 85% |
 | App Garçom | 🔴 Faltando | 5% |
-| Pagamentos (Qomanda Pay self-service) | ⚠️ Parcial | 75% |
-| NF-e | 🔴 Faltando | 0% |
+| Pagamentos (Qomanda Pay / Asaas) | ⚠️ Parcial | 80% |
+| NF-e cliente (emissão) | 🔴 Faltando | 25% |
+| NF-e serviço (Qomanda) | 🔴 Faltando | 10% |
+| Cobrança SaaS (mensalidade) | ⚠️ Parcial | 50% |
 | Fidelidade | ⚠️ Parcial | 75% |
-| WhatsApp | ⚠️ Parcial | 40% |
+| WhatsApp | ⚠️ Parcial | 55% |
 | Onboarding restaurante | 🔴 Faltando | 20% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Multi-unidades | 🔴 Faltando | 0% |
+
+---
+
+## 🗄️ Migrações Supabase (ordem sugerida)
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `schema.sql` | Schema base (rodar primeiro em projetos novos) |
+| `migrate-internal-portal.sql` | Planos, assinaturas, faturas, staff |
+| `migrate-asaas-marketplace.sql` | Split/taxas por restaurante |
+| `migrate-restaurant-payout-bank.sql` | Conta bancária de repasse |
+| `migrate-restaurant-business-profile.sql` | Perfil empresarial (CNPJ, endereço) |
+| `migrate-restaurant-nfe.sql` | Campos NF-e ao consumidor |
+| `migrate-platform-asaas-config.sql` | Credenciais Asaas da plataforma |
+| `migrate-support-tickets.sql` | Tickets, mensagens, anexos, storage |
+
+Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 
 ---
 

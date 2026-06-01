@@ -41,8 +41,19 @@ const PHASES = [
           'Cardápio — criar/editar, foto, promo, sugestão do chef',
           'Fila de pedidos em tempo real (kanban)',
           'Confirmar pagamento em dinheiro (mesa e pedidos da mesa)',
-          'Settings: Pagamentos e Fidelidade',
+          'Settings: Pagamentos, Fidelidade e Integrações (WhatsApp)',
+          'Cadastro de conta bancária de repasse (Qomanda Pay)',
+          'Suporte — tickets com mensagens e anexos',
           'Segurança: senha de cartão, sessão idle 15 min',
+        ],
+      },
+      {
+        title: 'Qomanda Pay (Asaas)',
+        items: [
+          'PIX, crédito e débito via Asaas',
+          'Marketplace com split — taxa da plataforma por restaurante',
+          'Onboarding de subconta/wallet por restaurante',
+          'Webhook de confirmação de pagamentos',
         ],
       },
       {
@@ -65,24 +76,29 @@ const PHASES = [
       {
         title: '1 · Pagamento self-service',
         items: [
-          'Settings → Pagamentos: cadastrar conta bancária de repasse (Qomanda Pay)',
-          'Validação da conta e status no painel',
+          'Settings → Pagamentos: cadastrar conta bancária de repasse ✓',
+          'Onboarding Asaas e split automático por plano ✓',
+          'Aprovação da conta e liberação PIX/cartão em produção',
           'Desligar modo teste (bypass) em produção',
         ],
       },
       {
         title: '2 · Notas fiscais',
         items: [
-          'NF-e automática após pagamento confirmado (SEFAZ / emissor)',
-          'Envio da nota ao cliente via WhatsApp',
-          'Histórico pagamento ↔ nota fiscal (cliente e dashboard)',
+          'Cadastro NF-e ao consumidor (Focus NFe) — configuração ✓',
+          'WhatsApp para envio de NF-e — configuração pelo restaurante ✓',
+          'Emissão automática após pagamento confirmado',
+          'NF-e de serviço Qomanda → restaurante (mensalidade + taxas)',
+          'Histórico pagamento ↔ nota fiscal',
         ],
       },
       {
         title: '3 · Operação',
         items: [
+          'Suporte com tickets — restaurante e equipe Qomanda ✓',
           'Webhook de pagamentos robusto (retry, idempotência, logs)',
           'Botão "Chamar Garçom" — notificação no dashboard',
+          'Cobrança automática de mensalidade SaaS',
         ],
       },
     ],
@@ -188,13 +204,15 @@ const PHASES = [
 
 const STATUS_SUMMARY = [
   { label: 'Cliente — Fluxo principal',     pct: 98, color: C.green  },
-  { label: 'Cliente — Pagamento',           pct: 80, color: C.amber  },
+  { label: 'Cliente — Pagamento',           pct: 88, color: C.amber  },
   { label: 'Cliente — Hub & segurança',     pct: 90, color: C.green  },
   { label: 'Dashboard — Operação',          pct: 95, color: C.green  },
   { label: 'Dashboard — Cardápio & QR',     pct: 92, color: C.green  },
-  { label: 'Qomanda Pay (self-service)', pct: 75, color: C.amber  },
-  { label: 'NF-e',                          pct: 0,  color: C.red    },
+  { label: 'Dashboard — Suporte',           pct: 85, color: C.green  },
+  { label: 'Qomanda Pay (Asaas / split)',   pct: 80, color: C.amber  },
+  { label: 'NF-e (emissão automática)',     pct: 25, color: C.red    },
   { label: 'Fidelidade',                    pct: 75, color: C.amber  },
+  { label: 'WhatsApp (config + envio NF-e)', pct: 55, color: C.amber  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
   { label: 'Onboarding restaurante',        pct: 20, color: C.red    },
 ]
@@ -246,7 +264,7 @@ export default function RoadmapPage() {
         {/* Progress overview */}
         <div className="rounded-2xl p-6 mb-16" style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ ...mono, color: C.muted }}>
-            Status do produto · Maio 2026
+            Status do produto · Junho 2026
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STATUS_SUMMARY.map(s => (

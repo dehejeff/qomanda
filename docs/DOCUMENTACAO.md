@@ -1,6 +1,6 @@
 # Qomanda — Documentação Técnica Completa
 
-> Versão 2.1 · Atualizado em 2026-05-30
+> Versão 3.0 · Atualizado em 2026-05-31
 
 ---
 
@@ -13,15 +13,17 @@
 5. [Modelo de Dados](#5-modelo-de-dados)
 6. [Fluxos do Cliente (PWA Mobile)](#6-fluxos-do-cliente-pwa-mobile)
 7. [Fluxos do Admin (Dashboard)](#7-fluxos-do-admin-dashboard)
-8. [Sistema de Pagamentos](#8-sistema-de-pagamentos)
-9. [Programa de Fidelidade](#9-programa-de-fidelidade)
-10. [Integração WhatsApp e NF-e](#10-integração-whatsapp-e-nf-e)
-11. [Regras de Negócio](#11-regras-de-negócio)
-12. [Segurança e LGPD](#12-segurança-e-lgpd)
-13. [API Routes](#13-api-routes)
-14. [Variáveis de Ambiente](#14-variáveis-de-ambiente)
-15. [Configuração Inicial (Supabase)](#15-configuração-inicial-supabase)
-16. [Roadmap](#16-roadmap)
+8. [Portal Interno Qomanda (Staff)](#8-portal-interno-qomanda-staff)
+9. [Sistema de Suporte (Tickets)](#9-sistema-de-suporte-tickets)
+10. [Sistema de Pagamentos (Qomanda Pay / Asaas)](#10-sistema-de-pagamentos-qomanda-pay--asaas)
+11. [Programa de Fidelidade](#11-programa-de-fidelidade)
+12. [Integração WhatsApp e NF-e](#12-integração-whatsapp-e-nf-e)
+13. [Regras de Negócio](#13-regras-de-negócio)
+14. [Segurança e LGPD](#14-segurança-e-lgpd)
+15. [API Routes](#15-api-routes)
+16. [Variáveis de Ambiente](#16-variáveis-de-ambiente)
+17. [Configuração Inicial (Supabase)](#17-configuração-inicial-supabase)
+18. [Roadmap](#18-roadmap)
 
 ---
 
@@ -59,35 +61,35 @@ A **Qomanda** é uma plataforma SaaS de cardápio digital e pagamento integrado 
                     │  (deploy)   │
                     └──────┬──────┘
                            │
-          ┌────────────────┼────────────────┐
-          │                │                │
-    ┌─────▼─────┐   ┌──────▼──────┐  ┌─────▼──────┐
-    │  PWA      │   │  Dashboard  │  │  API       │
-    │  Cliente  │   │  Admin      │  │  Routes    │
-    │  /[slug]  │   │  /dashboard │  │  /api/*    │
-    └─────┬─────┘   └──────┬──────┘  └─────┬──────┘
-          │                │               │
-          └────────────────┼───────────────┘
+     ┌─────────────────────┼─────────────────────┐
+     │                     │                     │
+┌────▼─────┐      ┌────────▼────────┐    ┌──────▼──────┐
+│  PWA     │      │  Dashboard      │    │  Portal     │
+│  Cliente │      │  Restaurante    │    │  Interno    │
+│  /[slug] │      │  /dashboard     │    │  /internal  │
+└────┬─────┘      └────────┬────────┘    └──────┬──────┘
+     │                     │                     │
+     └─────────────────────┼─────────────────────┘
                            │
                     ┌──────▼──────┐
                     │  Supabase   │
                     │  ┌────────┐ │
                     │  │Postgres│ │  (Banco de dados)
                     │  ├────────┤ │
-                    │  │  Auth  │ │  (Autenticação do admin)
+                    │  │  Auth  │ │  (Admin + staff + clientes hub)
                     │  ├────────┤ │
                     │  │Realtime│ │  (WebSockets para pedidos)
                     │  ├────────┤ │
-                    │  │Storage │ │  (Imagens do cardápio)
+                    │  │Storage │ │  (Imagens, anexos suporte)
                     │  └────────┘ │
                     └──────┬──────┘
                            │
           ┌────────────────┼────────────────┐
           │                │                │
     ┌─────▼─────┐   ┌──────▼──────┐  ┌─────▼──────┐
-    │  Stripe   │   │  WhatsApp   │  │  SEFAZ     │
-    │  (pgtos)  │   │  Business   │  │  (NF-e)    │
-    │           │   │  API (Meta) │  │  Em breve  │
+    │  Asaas    │   │  WhatsApp   │  │  Focus NFe │
+    │ Qomanda   │   │  Business   │  │  (NF-e     │
+    │ Pay/split │   │  API (Meta) │  │  em breve) │
     └───────────┘   └─────────────┘  └────────────┘
 ```
 
@@ -96,8 +98,10 @@ A **Qomanda** é uma plataforma SaaS de cardápio digital e pagamento integrado 
 - **Cliente → Supabase:** chamadas diretas via SDK client-side (Row Level Security protege os dados)
 - **Admin → Supabase:** chamadas server-side com session auth
 - **Realtime:** Supabase Realtime (WebSocket) para pedidos, sessões e notificações
-- **Pagamentos:** API route Next.js → Stripe → Webhook de confirmação
+- **Pagamentos:** API route Next.js → Asaas (Qomanda Pay) → Webhook de confirmação
+- **Split:** taxa da plataforma retida por transação conforme plano do restaurante
 - **WhatsApp:** API route Next.js → Meta WhatsApp Cloud API
+- **Portal interno:** APIs `/api/internal/*` com `requireStaff()` (service role)
 
 ---
 
@@ -111,7 +115,7 @@ A **Qomanda** é uma plataforma SaaS de cardápio digital e pagamento integrado 
 | Banco de dados | Supabase (PostgreSQL) | 2.x SDK |
 | Autenticação | Supabase Auth | — |
 | Realtime | Supabase Realtime | — |
-| Pagamentos | Stripe | 22.x |
+| Pagamentos | Asaas (Qomanda Pay — marketplace/split) | — |
 | Ícones | Material Symbols (Google) | — |
 | Fonte | Geist + JetBrains Mono | — |
 | Deploy | Vercel | — |
@@ -126,59 +130,51 @@ A **Qomanda** é uma plataforma SaaS de cardápio digital e pagamento integrado 
 qomanda/
 ├── docs/
 │   └── DOCUMENTACAO.md        ← este arquivo
+├── scripts/
+│   └── setup-internal-staff.mjs
 ├── supabase/
-│   └── schema.sql             ← schema completo (rodar no Supabase)
+│   ├── schema.sql             ← schema base
+│   └── migrate-*.sql          ← migrações incrementais
 ├── src/
 │   ├── app/
-│   │   ├── (customer)/        ← grupo de rotas do cliente (sem auth)
-│   │   │   └── [slug]/
-│   │   │       ├── page.tsx         ← check-in (chama /api/checkin — server-side)
-│   │   │       ├── home/            ← hub pós check-in
-│   │   │       ├── menu/            ← cardápio digital
-│   │   │       ├── orders/          ← meus pedidos / mesa toda
-│   │   │       ├── checkout/        ← pagamento
-│   │   │       └── profile/         ← perfil do cliente (chama /api/customer/profile)
-│   │   ├── (dashboard)/       ← grupo de rotas admin (com auth)
-│   │   │   ├── login/               ← login do restaurante
-│   │   │   └── dashboard/
-│   │   │       ├── page.tsx         ← overview (KPIs + mapa de mesas)
-│   │   │       ├── orders/          ← fila de pedidos (kanban)
-│   │   │       ├── menu/            ← gestão do cardápio
-│   │   │       ├── tables/          ← gestão de mesas + QR Codes
-│   │   │       └── settings/        ← configurações (pagamentos, fidelidade, integrações)
+│   │   ├── (customer)/        ← PWA do cliente (sem auth Supabase)
+│   │   │   └── [slug]/        ← check-in, home, menu, orders, checkout, profile
+│   │   ├── (dashboard)/       ← painel do restaurante (auth owner)
+│   │   │   └── dashboard/     ← overview, orders, menu, tables, settings, support
+│   │   ├── (internal)/        ← portal interno Qomanda (auth staff)
+│   │   │   └── internal/      ← overview, clients, support, gateway
 │   │   ├── api/
-│   │   │   ├── checkin/             ← ⚠️ server-side: upsert de cliente + sessão (service role)
-│   │   │   ├── customer/profile/    ← ⚠️ server-side: leitura/edição do perfil (service role)
-│   │   │   ├── payments/            ← criação de pagamento + Stripe
-│   │   │   ├── stripe/webhook/      ← confirmação de pagamento Stripe
-│   │   │   └── whatsapp/            ← envio de mensagens WhatsApp
-│   │   ├── cadastro/          ← cadastro de novos restaurantes
-│   │   ├── scan/              ← scanner de QR Code (cliente)
+│   │   │   ├── asaas/         ← pagamentos + webhook Asaas
+│   │   │   ├── checkin/       ← check-in server-side (service role)
+│   │   │   ├── customer/      ← perfil, hub, PIN, cartões
+│   │   │   ├── dashboard/     ← payout, whatsapp, support, menu-image
+│   │   │   └── internal/      ← clients, overview, gateway, support, plans
+│   │   ├── hub/               ← área hub do cliente
+│   │   ├── scan/              ← scanner QR
 │   │   ├── roadmap/           ← roadmap público
-│   │   └── page.tsx           ← landing page de marketing
+│   │   └── page.tsx           ← landing page
 │   ├── components/
 │   │   ├── customer/
-│   │   │   └── bottom-nav.tsx       ← navegação inferior do cliente
 │   │   ├── dashboard/
-│   │   │   ├── sidebar.tsx
-│   │   │   ├── header.tsx
-│   │   │   ├── add-item-modal.tsx
-│   │   │   ├── table-qr-modal.tsx
-│   │   │   └── table-manage-modal.tsx
-│   │   ├── ui/                      ← componentes Radix/shadcn
-│   │   └── qomanda-logo.tsx         ← SVG do logo
+│   │   ├── internal/          ← formulários e charts do portal staff
+│   │   └── support/           ← UI compartilhada de tickets
 │   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts            ← cliente browser (anon key, sujeito a RLS)
-│   │   │   ├── server.ts            ← cliente server-side (anon key + cookie auth)
-│   │   │   └── admin.ts             ← cliente admin (service role — NUNCA no browser)
-│   │   ├── crypto.ts                ← hashCPF(), encryptCPF(), decryptCPF()
-│   │   ├── stripe.ts                ← inicialização do Stripe
-│   │   ├── utils.ts                 ← formatCurrency, generateConfirmationCode
-│   │   └── dev-mock.ts              ← dados mock para desenvolvimento
+│   │   ├── supabase/          ← client, server, admin
+│   │   ├── asaas.ts           ← cliente Asaas
+│   │   ├── internal-clients.ts
+│   │   ├── internal-overview.ts
+│   │   ├── staff-auth.ts
+│   │   ├── support-tickets.ts
+│   │   ├── restaurant-nfe.ts
+│   │   ├── restaurant-profile.ts
+│   │   ├── restaurant-whatsapp.ts
+│   │   └── crypto.ts
 │   └── types/
-│       └── index.ts                 ← todos os tipos TypeScript
-└── ROADMAP.md
+│       ├── index.ts
+│       └── internal.ts
+├── ROADMAP.md
+├── README.md
+└── AGENTS.md
 ```
 
 ---
@@ -419,7 +415,8 @@ O layout `/dashboard/layout.tsx` é server-side: verifica `auth.getUser()` e red
 | Pedidos | `/dashboard/orders` | Kanban: `pending → confirmed → preparing → ready → delivered` |
 | Cardápio | `/dashboard/menu` | CRUD de categorias e itens, toggle de disponibilidade, toggle de álcool |
 | Mesas | `/dashboard/tables` | Grid de mesas, status visual, geração de QR Code, gestão (troca de mesa) |
-| Settings | `/dashboard/settings` | 4 abas: Pagamentos, Fidelidade, Integrações, Segurança, Equipe |
+| Settings | `/dashboard/settings` | Pagamentos, Fidelidade, Integrações (WhatsApp), Segurança |
+| Suporte | `/dashboard/support` | Tickets de suporte ao restaurante (mensagens + anexos) |
 
 ### 7.3 Atualização de status de pedido
 
@@ -458,9 +455,113 @@ Cliente clica em "Pagar agora" → /checkout
 
 ---
 
-## 8. Sistema de Pagamentos
+## 8. Portal Interno Qomanda (Staff)
 
-### 8.1 Modos de fechamento
+> Rotas em `/internal/*` — acesso restrito à equipe Qomanda.
+
+### 8.1 Autenticação
+
+1. Login em `/internal/login` via Supabase Auth
+2. `requireStaff()` valida:
+   - registro ativo em `staff_users`, **ou**
+   - e-mail na allowlist `QOMANDA_STAFF_EMAILS`
+3. Em dev com `NEXT_PUBLIC_DEV_BYPASS=true`, acesso liberado sem auth
+
+Provisionamento de contas:
+
+```bash
+node scripts/setup-internal-staff.mjs
+```
+
+### 8.2 Páginas
+
+| Página | Rota | Função |
+|--------|------|--------|
+| Overview | `/internal` | KPIs comerciais, gráficos, fila operacional |
+| Clientes | `/internal/clients` | Listagem de restaurantes |
+| Novo cliente | `/internal/clients/new` | Cadastro completo (abas) |
+| Cliente | `/internal/clients/[id]` | Edição: estabelecimento, NF-e, plano, NF-e serviço |
+| Suporte | `/internal/support` | Fila de tickets |
+| Gateway Pay | `/internal/gateway` | Credenciais Asaas da plataforma |
+
+### 8.3 Métricas do Overview
+
+| Card | Significado |
+|------|-------------|
+| **MRR planos** | Mensalidade contratada (inclui trial) |
+| **Taxa tx 30d** | Comissão Qomanda sobre pagamentos digitais |
+| **Receita Qomanda 30d** | Taxas tx no período (mensalidade entra após trial ativo) |
+| **Volume Pay 30d** | GMV — valor pago nas mesas (dinheiro do restaurante, não receita Qomanda) |
+
+Lib de agregação: `src/lib/internal-overview.ts`
+
+### 8.4 Billing por restaurante
+
+Tabelas:
+- `plans` — catálogo comercial (Starter R$ 199 / 1,99%, etc.)
+- `restaurant_subscriptions` — assinatura (trialing, active, …)
+- `restaurants.plan_id`, `platform_fee_percent`, `platform_fee_fixed` — taxas efetivas para split
+- `billing_invoices` — faturas de mensalidade (registro manual hoje)
+
+`ensureRestaurantBilling()` em `internal-clients.ts` repara clientes criados sem plano/assinatura.
+
+### 8.5 NF-e — duas notas distintas
+
+| Tipo | Emissor → Destinatário | Onde configurar |
+|------|------------------------|-----------------|
+| **NF-e cliente** | Restaurante → consumidor | Aba NF-e cliente (interno) + Focus NFe |
+| **NF-e serviço** | Qomanda → restaurante | Aba NF-e serviço (emissão em breve) |
+
+WhatsApp para envio de NF-e ao consumidor: restaurante configura em **Settings → Integrações**; staff vê apenas status.
+
+---
+
+## 9. Sistema de Suporte (Tickets)
+
+### 9.1 Fluxo
+
+```
+Restaurante → /dashboard/support → cria ticket + anexos
+                        │
+                        ▼
+              support_tickets (Supabase)
+                        │
+                        ▼
+Staff → /internal/support → responde, altera status/prioridade
+```
+
+### 9.2 Tabelas
+
+- `support_tickets` — assunto, categoria, status, prioridade, assignee
+- `support_ticket_messages` — thread restaurante/staff
+- `support_ticket_attachments` — metadados; arquivos no bucket `support-attachments`
+
+### 9.3 Categorias
+
+`bug`, `billing`, `payments`, `nfe`, `account`, `feature`, `other`
+
+### 9.4 Status
+
+`open` → `in_progress` → `waiting_customer` → `resolved` → `closed`
+
+---
+
+## 10. Sistema de Pagamentos (Qomanda Pay / Asaas)
+
+### 10.1 Arquitetura marketplace
+
+Cada restaurante possui subconta/wallet Asaas. Em cada pagamento digital:
+
+```
+Valor pago pelo cliente
+        │
+        ├─ Split Qomanda (platform_fee_percent + platform_fee_fixed)
+        └─ Repasse restaurante (wallet Asaas)
+```
+
+Taxas vêm do plano (`plans`) ou overrides em `restaurant_subscriptions` / `restaurants`.
+
+### 10.2 Modos de fechamento
 
 #### Modo Individual
 - O cliente paga apenas o seu consumo
@@ -476,7 +577,7 @@ Cliente clica em "Pagar agora" → /checkout
   - Se personalizado: soma dos valores deve ser **exatamente** igual ao saldo restante
   - Validação em tempo real — CTA desabilitado enquanto não fecha
 
-### 8.2 Notificação e confirmação
+### 10.3 Notificação e confirmação
 
 ```
 A inicia Mesa Toda, seleciona B e C
@@ -502,7 +603,7 @@ B escolhe PIX / Débito / Crédito → paga
 WhatsApp enviado para B com a nota
 ```
 
-### 8.3 Saldo da mesa (crédito)
+### 10.4 Saldo da mesa (crédito)
 
 O saldo é calculado em tempo real:
 
@@ -515,7 +616,7 @@ Quando João paga Individual com valor extra (ex: R$100 para uma conta de R$78):
 - O próximo pagador individual verá: `valor_sugerido = min(consumo, saldo_restante)`
 - Quem pagar por último se beneficia do crédito automaticamente
 
-### 8.4 Split de recibo por álcool
+### 10.5 Split de recibo por álcool
 
 Para funcionários que precisam de reembolso corporativo:
 
@@ -541,7 +642,7 @@ Banner: "Separar em dois recibos? (Empresa + Pessoal)"
 🍷 Bebidas      → WhatsApp "Pessoal"
 ```
 
-### 8.5 Cálculo de taxa de serviço
+### 10.6 Cálculo de taxa de serviço
 
 Taxa padrão: **10%** sobre o subtotal.
 
@@ -551,42 +652,36 @@ grand_total = subtotal × 1.1
 
 O valor que cada cliente vê já inclui a taxa proporcional ao seu consumo.
 
-### 8.6 Fluxo Stripe
+### 10.7 Fluxo Asaas
 
 ```
-POST /api/payments
+POST /api/asaas/payments
     │
-    ├─ PIX/Débito → cria Payment record com status 'pending'
-    │               │
-    │               ▼
-    │           Cliente confirma manualmente → status 'paid'
-    │           WhatsApp enviado
+    ├─ PIX → cobrança Asaas + split → webhook confirma
+    ├─ Crédito → tokenização + cobrança + split
+    └─ Dinheiro → POST /api/payments/cash (confirmação manual no dashboard)
+
+POST /api/asaas/webhook
     │
-    └─ Crédito  → Stripe PaymentIntent criado
-                  │
-                  ▼
-              Frontend: stripe.confirmCardPayment(client_secret)
-                  │
-                  ▼
-              Stripe Webhook → POST /api/stripe/webhook
-                  │
-                  ▼
-              payments.update({ status: 'paid', paid_at: now() })
-              WhatsApp enviado
+    └─ Atualiza payments.status = 'paid', dispara WhatsApp/recibo
 ```
+
+Onboarding de repasse: `POST /api/dashboard/asaas/onboard` + cadastro bancário em `/api/dashboard/payout/bank-account`.
+
+Modo bypass para testes: `src/lib/payment-bypass.ts` (desligar em produção).
 
 ---
 
-## 9. Programa de Fidelidade
+## 11. Programa de Fidelidade
 
-### 9.1 Como funciona
+### 11.1 Como funciona
 
 1. Cliente faz check-in → `customer_visits` recebe 1 registro (upsert por `session_id`)
 2. Admin configura regras em **Settings → Fidelidade**
 3. Sistema conta visitas: `SELECT COUNT(*) FROM customer_visits WHERE customer_id = X AND restaurant_id = Y`
 4. Quando atinge o threshold → benefício exibido para o garçom na comanda
 
-### 9.2 Tipos de benefício
+### 11.2 Tipos de benefício
 
 | Tipo | Valor de exemplo |
 |------|-----------------|
@@ -595,13 +690,13 @@ POST /api/payments
 | `discount_pct` | "10% de desconto na conta" |
 | `custom` | Texto livre definido pelo admin |
 
-### 9.3 Regras de configuração (admin)
+### 11.3 Regras de configuração (admin)
 
 - Múltiplas regras por restaurante (ex: 5 visitas = drink grátis, 10 visitas = 10% off)
 - Cada regra pode ser ativada/desativada individualmente
 - Ordenação automática por número de visitas
 
-### 9.4 Tela de perfil do cliente
+### 11.4 Tela de perfil do cliente
 
 O cliente vê:
 - Total de visitas no restaurante
@@ -610,9 +705,9 @@ O cliente vê:
 
 ---
 
-## 10. Integração WhatsApp e NF-e
+## 12. Integração WhatsApp e NF-e
 
-### 10.1 WhatsApp Business API (Meta Cloud API)
+### 12.1 WhatsApp Business API (Meta Cloud API)
 
 **Pré-requisitos:**
 1. Conta Business no Meta for Developers
@@ -620,7 +715,13 @@ O cliente vê:
 3. Número de telefone verificado
 4. Phone Number ID + Access Token permanente
 
-**Configuração no admin:** `Settings → Integrações → WhatsApp Business API`
+**Configuração:** restaurante em `Settings → Integrações → WhatsApp Business API`
+
+APIs:
+- `GET/POST /api/dashboard/integrations/whatsapp` — salvar credenciais
+- `POST /api/dashboard/integrations/whatsapp/test` — enviar mensagem de teste
+
+Staff (portal interno) vê status somente leitura na ficha do cliente (aba NF-e cliente).
 
 **Rota:** `POST /api/whatsapp`
 
@@ -655,24 +756,26 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 **Em modo de desenvolvimento:** a mensagem é logada no console e não enviada.
 
-### 10.2 NF-e (Nota Fiscal Eletrônica) — Em Breve
+### 12.2 NF-e — duas notas, emissão em construção
 
-**Estrutura preparada**, integração pendente de provedor.
+**NF-e ao consumidor** (restaurante → cliente):
+- Campos em `restaurants` (Focus NFe, IE, CNAE, série, etc.)
+- Configuração pelo staff na aba **NF-e cliente**
+- Emissão automática pós-pagamento: **pendente**
 
-**O que o restaurante precisa:**
-- CNPJ ativo com Inscrição Estadual
-- Certificado Digital A1 (.pfx)
-- Conta em provedor homologado: Focus NFe, NFe.io, Nota Simples, etc.
+**NF-e de serviço** (Qomanda → restaurante):
+- Mensalidade + taxas de transação
+- UI preparada na aba **NF-e serviço** — emissão **pendente**
 
-**Comportamento planejado:**
-1. Pagamento confirmado → trigger de emissão de NF-e
-2. NF-e processada pelo provedor → PDF gerado
-3. PDF enviado via WhatsApp para CPF do cliente
-4. Se split por álcool: duas NF-e separadas (alimentação + bebidas)
+**Comportamento planejado (NF-e cliente):**
+1. Pagamento confirmado → trigger de emissão
+2. Provedor (Focus NFe) processa → PDF/XML
+3. Se `whatsapp_nfe_enabled`, envio via WhatsApp
+4. Split alimentação/bebidas → duas NF-e quando configurado
 
 ---
 
-## 11. Regras de Negócio
+## 13. Regras de Negócio
 
 ### Mesa
 
@@ -722,9 +825,9 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 ---
 
-## 12. Segurança e LGPD
+## 14. Segurança e LGPD
 
-### 12.1 Modelo de ameaças
+### 14.1 Modelo de ameaças
 
 | Ameaça | Risco sem mitigação | Mitigação implementada |
 |--------|--------------------|-----------------------|
@@ -736,7 +839,7 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 ---
 
-### 12.2 Camadas de segurança
+### 14.2 Camadas de segurança
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -751,7 +854,7 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 │  • /api/checkin           → service role            │
 │  • /api/customer/profile  → service role            │
 │  • /api/payments          → service role            │
-│  • /api/whatsapp          → service role            │
+│  • /api/internal/*        → requireStaff + service role │
 │  • Validação de entrada em todas as rotas           │
 └──────────────────────┬──────────────────────────────┘
                        │ service_role_key (secreta)
@@ -765,7 +868,7 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 ---
 
-### 12.3 Row Level Security — mapa completo
+### 14.3 Row Level Security — mapa completo
 
 | Tabela | Acesso público (ANON) | Acesso admin (auth) |
 |--------|----------------------|---------------------|
@@ -792,7 +895,10 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 ---
 
-### 12.4 Criptografia de CPF
+| `plans`, `staff_users`, `restaurant_subscriptions`, `billing_invoices` | ✗ nenhum | ✗ service role only |
+| `support_tickets`, `support_ticket_messages` | ✗ nenhum | ✓ via API autenticada |
+
+### 14.4 Criptografia de CPF
 
 O CPF é dado sensível para fins de LGPD. Nunca é armazenado em texto puro.
 
@@ -841,7 +947,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ---
 
-### 12.5 Padrão service role
+### 14.5 Padrão service role
 
 A `SUPABASE_SERVICE_ROLE_KEY` bypassa completamente o RLS. Só é usada server-side:
 
@@ -864,7 +970,7 @@ de executar qualquer operação de escrita.
 
 ---
 
-### 12.6 O que ainda falta (Fase 2)
+### 14.6 O que ainda falta (Fase 2)
 
 | Feature | Benefício | Complexidade |
 |---------|-----------|-------------|
@@ -875,7 +981,37 @@ de executar qualquer operação de escrita.
 
 ---
 
-## 13. API Routes
+## 15. API Routes
+
+Rotas legadas Stripe (`/api/payments`, `/api/stripe/webhook`) permanecem como stub; produção usa **Asaas**.
+
+### Portal interno (staff)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/internal/overview` | KPIs e séries do overview |
+| GET/POST | `/api/internal/clients` | Listar / criar clientes |
+| GET/PATCH | `/api/internal/clients/[id]` | Detalhe / atualizar cliente |
+| GET/POST | `/api/internal/clients/[id]/invoices` | Faturas de mensalidade |
+| GET | `/api/internal/plans` | Catálogo de planos |
+| GET/PATCH/POST | `/api/internal/gateway` | Config Asaas plataforma |
+| GET | `/api/internal/support/tickets` | Fila de tickets |
+| GET/PATCH/POST | `/api/internal/support/tickets/[id]` | Detalhe, status, resposta |
+
+### Dashboard restaurante (seleção)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET/POST | `/api/dashboard/payout/bank-account` | Conta de repasse |
+| GET/POST | `/api/dashboard/integrations/whatsapp` | Credenciais WhatsApp |
+| GET/POST | `/api/dashboard/support/tickets` | Tickets do restaurante |
+
+### Pagamentos Asaas
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST/GET | `/api/asaas/payments` | Criar/consultar cobrança |
+| POST | `/api/asaas/webhook` | Confirmação Asaas |
 
 ### `POST /api/checkin` ⚠️ server-side
 
@@ -926,64 +1062,15 @@ Atualiza nome do cliente. WhatsApp é imutável.
 
 ---
 
-### `POST /api/payments`
-
-Cria um pagamento e (se cartão de crédito) um Stripe PaymentIntent.
-
-**Body:**
-```json
-{
-  "session_id": "uuid",
-  "amount": 67.98,
-  "method": "pix" | "debit" | "credit"
-}
-```
-
-**Response:**
-```json
-{
-  "payment_id": "uuid",
-  "client_secret": "pi_xxx_secret_xxx"  // apenas para crédito
-}
-```
-
----
-
-### `POST /api/stripe/webhook`
-
-Recebe eventos do Stripe. Valida assinatura e processa `payment_intent.succeeded`.
-
-**Eventos tratados:**
-- `payment_intent.succeeded` → `payments.update({ status: 'paid' })`
-
----
-
 ### `POST /api/whatsapp`
 
 Envia mensagem via Meta WhatsApp Cloud API.
 
-**Body:**
-```json
-{
-  "to": "11999999999",
-  "restaurantId": "uuid",
-  "message": "texto da mensagem"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "messageId": "wamid.xxx"
-}
-```
-
-Em desenvolvimento sem credenciais: `{ "success": true, "mock": true }`
+**Body:** `{ "to": "11999999999", "restaurantId": "uuid", "message": "texto" }`
 
 ---
 
-## 14. Variáveis de Ambiente
+## 16. Variáveis de Ambiente
 
 Criar o arquivo `.env.local` na raiz do projeto:
 
@@ -991,106 +1078,90 @@ Criar o arquivo `.env.local` na raiz do projeto:
 # Supabase (obrigatório)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-# Service Role Key — NUNCA expor no frontend — usar apenas server-side
-# Encontrar em: Supabase Dashboard → Settings → API → service_role key
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# Criptografia de CPF (AES-256-GCM)
-# Gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-CPF_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+# Criptografia CPF (gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+CPF_ENCRYPTION_KEY=
+CPF_HASH_SALT=
 
-# Salt para hash HMAC-SHA256 do CPF (irreversível)
-# Gerar: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-CPF_HASH_SALT=0000000000000000000000000000000000000000000000000000000000000000
-
-# Asaas (gateway de pagamento — substitui o Stripe)
-# Obter em: https://www.asaas.com → Configurações → Integrações → API
-# A chave começa com $aact_ (sandbox) ou $aact_prod_ (produção)
+# Asaas — Qomanda Pay
 ASAAS_API_KEY=$aact_YourKeyHere
-# 'sandbox' para testes, 'production' para produção
-ASAAS_ENVIRONMENT=sandbox
-# Token para validar webhooks (definir no painel Asaas → Configurações → Notificações)
-ASAAS_WEBHOOK_TOKEN=seu-token-secreto-aqui
+ASAAS_ENVIRONMENT=sandbox          # ou production
+ASAAS_WEBHOOK_TOKEN=
 
-# URL pública (para geração dos QR Codes)
+# App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_DEV_BYPASS=true        # apenas dev local
 
-# Modo desenvolvimento (pula autenticação e usa dados mock)
-NEXT_PUBLIC_DEV_BYPASS=true
+# Portal interno
+QOMANDA_STAFF_EMAILS=ops@qomanda.com
+PLATFORM_SECRETS_KEY=              # credenciais gateway plataforma (64 hex)
 ```
 
 ---
 
-## 15. Configuração Inicial (Supabase)
+## 17. Configuração Inicial (Supabase)
 
 ### Passo 1 — Criar projeto
 
 1. Acesse [supabase.com](https://supabase.com) e crie um novo projeto
-2. Anote a **URL** e a **anon key** (Settings → API)
+2. Anote URL e anon key (Settings → API)
 
-### Passo 2 — Executar o schema
+### Passo 2 — Schema base
 
-1. Vá em **SQL Editor** no Supabase Dashboard
-2. Cole o conteúdo de `supabase/schema.sql`
-3. Execute
+1. SQL Editor → cole `supabase/schema.sql` → Execute
 
-### Passo 3 — Habilitar Realtime
+### Passo 3 — Migrações incrementais
 
-1. Vá em **Database → Replication**
-2. Habilite as seguintes tabelas:
-   - `orders`
-   - `order_items`
-   - `sessions`
-   - `tables`
-   - `close_request_participants`
-   - `session_participants`
-   - `payments`
+Rodar em ordem (ver também [ROADMAP.md](../ROADMAP.md)):
 
-### Passo 4 — Criar primeiro restaurante
+| Migração | Conteúdo |
+|----------|----------|
+| `migrate-internal-portal.sql` | Planos, assinaturas, staff, faturas |
+| `migrate-asaas-marketplace.sql` | Split/taxas por restaurante |
+| `migrate-restaurant-payout-bank.sql` | Conta bancária repasse |
+| `migrate-restaurant-business-profile.sql` | Perfil empresarial |
+| `migrate-restaurant-nfe.sql` | NF-e ao consumidor |
+| `migrate-platform-asaas-config.sql` | Credenciais Asaas plataforma |
+| `migrate-support-tickets.sql` | Suporte + bucket anexos |
 
-Com o sistema rodando, acesse `/cadastro` e crie um restaurante. Ou use o modo demo (veja abaixo).
+Demais arquivos `migrate-*.sql` cobrem hub, PIN, cash, fidelidade, etc.
 
----
+### Passo 4 — Realtime
 
-## 16. Modo Desenvolvimento
+Database → Replication — habilitar: `orders`, `order_items`, `sessions`, `tables`, `close_request_participants`, `session_participants`, `payments`.
 
-Para desenvolvimento sem banco de dados, use o modo demo:
+### Passo 5 — Staff e primeiro restaurante
 
 ```bash
-NEXT_PUBLIC_DEV_BYPASS=true
+node scripts/setup-internal-staff.mjs
 ```
 
-### Acesso rápido
+Restaurante piloto: portal interno `/internal/clients/new` ou `/cadastro`.
+
+### Modo desenvolvimento
+
+Com `NEXT_PUBLIC_DEV_BYPASS=true`:
 
 | Fluxo | URL |
 |-------|-----|
-| Login admin (sem senha) | `/login` → "Entrar no Painel" |
-| Cliente direto | `/scan` → "IR PARA CHECK-IN" |
-| Check-in demo | `/demo?mesa=4` |
-| Home cliente | `/demo/home?session=demo-session-XXX` |
-
-### Dados mock disponíveis
-
-- **Restaurante:** "Restaurante Demo" (slug: `demo`)
-- **6 mesas:** 3 livres, 2 ocupadas, 1 reservada
-- **3 categorias:** Entradas, Pratos Principais, Bebidas (incluindo itens alcoólicos)
-- **2 pedidos:** 1 pendente, 1 em preparação
-- **Clientes mock** para simulação do split de conta
+| Login admin | `/login` |
+| Portal interno | `/internal` |
+| Cliente | `/scan` |
 
 ---
 
-## 17. Roadmap
+## 18. Roadmap
 
-Ver arquivo [ROADMAP.md](../ROADMAP.md) para o roadmap detalhado com status de cada feature.
+Ver [ROADMAP.md](../ROADMAP.md) para status detalhado.
 
-**Resumo:**
-
-| Fase | Prioridade | Principais items |
-|------|-----------|-----------------|
-| **Fase 1 — Lançamento** | 🔴 Alta | Stripe PIX real, onboarding de restaurante, fidelidade persistida |
-| **Fase 2 — Crescimento** | 🟡 Média | Analytics, gestão de equipe, 2FA, WhatsApp Business |
-| **Fase 3 — Escala** | 🔵 Baixa | Multi-unidades, NF-e, impressora de cozinha, API pública |
+| Fase | Foco |
+|------|------|
+| **Fechamento (Jun 2026)** | Qomanda Pay prod, NF-e automática, cobrança SaaS |
+| **Lançamento** | Onboarding self-service, fidelidade persistida |
+| **Crescimento** | Analytics, app garçom, equipe, 2FA |
+| **Escala** | Multi-unidades, integrações, reservas |
 
 ---
 
-*Documento mantido pela equipe Qomanda. Para dúvidas: contato@qomanda.com.br*
+*Documento mantido pela equipe Qomanda · contato@qomanda.com.br*
