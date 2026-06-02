@@ -6,6 +6,29 @@ Validação E2E de cada modelo operacional, dirigindo a UI real com Playwright.
 
 ---
 
+## Auditoria de persistência do painel (2026-06-02)
+
+Varredura: cada campo grava e lê do Supabase real (sem mock). Causa raiz de
+"dados não salvavam": `requireRestaurantAccess` retornava `mock-restaurant-id`
+sob `DEV_BYPASS` antes de checar o usuário real → APIs de dono atualizavam 0 linhas.
+
+| Campo / painel | API | Persiste? |
+|----------------|-----|-----------|
+| Perfil — nome | `/api/dashboard/profile` | ✅ |
+| Perfil — telefone | idem | ✅ (máscara reescrita) |
+| Perfil — logo | `/api/dashboard/profile/logo` | ✅ |
+| Pagamentos — provider/chave PIX | `/api/dashboard/gateway` | ✅ |
+| Pagamentos — modo operacional (tipo) | idem | ✅ (não bloqueia mais sem chave) |
+| Pagamentos — conta bancária (legado) | `/api/dashboard/payout/bank-account` | ✅ |
+| Fidelidade — regras | client → `loyalty_rules` | ✅ |
+| Integrações — WhatsApp | `/api/dashboard/integrations/whatsapp` | ✅ |
+| Equipe — membros | `/api/dashboard/members` | ✅ |
+
+Correções: `requireRestaurantAccess` (mock só sem login), gateway não dá 400 por
+falta de chave PIX, máscara de telefone do Perfil, `NEXT_PUBLIC_DEV_BYPASS=false`.
+
+---
+
 ## Progresso por módulo
 
 | Módulo | Status | Data |
