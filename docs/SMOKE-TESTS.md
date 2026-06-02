@@ -12,8 +12,8 @@ Validação E2E de cada modelo operacional, dirigindo a UI real com Playwright.
 |--------|--------|------|
 | **Salão com mesas** (`salao`) | ✅ PASS (12/12 etapas) | 2026-06-02 |
 | **Balcão / fast food** (`balcao`) | ✅ PASS (12/12 + bug crítico corrigido) | 2026-06-02 |
-| Salão + balcão (`salao_balcao`) | ⏳ Próximo | — |
-| Food hall / praça (`food_hall`) | 🔴 Pendente | — |
+| **Salão + balcão** (`salao_balcao`) | ✅ PASS (ambos fluxos, sem bugs) | 2026-06-02 |
+| Food hall / praça (`food_hall`) | ⏳ Próximo | — |
 
 ---
 
@@ -47,9 +47,21 @@ Fluxo completo validado: redirect `/slug`→`/balcao` → check-in leve → card
 
 ---
 
-## Como retomar (Salão + Balcão / `salao_balcao`)
+## ✅ Salão + Balcão — resultado
 
-Próximo módulo: `operational_mode: both`. Combina os dois fluxos — `/slug` deve oferecer **escolha** entre QR de mesa e balcão (não redireciona direto). Ver `[slug]/page.tsx` branch `isBothMode`. Adaptar `smoke-setup-*.js` com `restaurant_model: 'salao_balcao'`, `operational_mode: 'both'`, e seed de mesas (para o lado salão) + chave PIX (para o lado balcão).
+`operational_mode: both`. Ambos os fluxos validados num mesmo restaurante, **sem bugs**:
+- `/slug` **não redireciona** — oferece escolha "Escanear QR da mesa" **ou** "Pedir no balcão".
+- Lado salão: check-in via QR mesa (token) → pedido (Mesa 1).
+- Lado balcão: `/balcao` → check-in leve → pedido **#1** (beneficiado pelo fix de sessão do módulo balcão).
+- Dashboard mostra os dois pedidos com coluna "Local" distinta: **Mesa 1** (salão) vs **#1** (balcão).
+
+Scripts: `smoke-setup-both.js`, `smoke-e2e-both.js`.
+
+---
+
+## Como retomar (Food hall / `food_hall`)
+
+Próximo e último módulo. Conforme `docs/modulos/FOOD_HALL.md`, o food hall v1 **usa o mesmo fluxo do balcão** (preset counter, pedido #N, PIX manual). Provavelmente basta adaptar `smoke-setup-balcao.js` com `restaurant_model: 'food_hall'` e rodar o `smoke-e2e-balcao.js` (a página `/balcao` mostra título "Praça de alimentação" para esse modelo). Verificar o texto/título específico do food hall.
 
 ## Como retomar (instruções gerais)
 

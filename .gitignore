@@ -47,3 +47,7 @@ smoke-e2e.js
 # Smoke balcao (local)
 smoke-setup-balcao.js
 smoke-e2e-balcao.js
+
+# Smoke both (local)
+smoke-setup-both.js
+smoke-e2e-both.js
