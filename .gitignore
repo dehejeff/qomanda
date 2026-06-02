@@ -51,3 +51,7 @@ smoke-e2e-balcao.js
 # Smoke both (local)
 smoke-setup-both.js
 smoke-e2e-both.js
+
+# Smoke foodhall (local)
+smoke-setup-foodhall.js
+smoke-e2e-foodhall.js

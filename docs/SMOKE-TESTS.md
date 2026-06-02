@@ -13,7 +13,9 @@ Validação E2E de cada modelo operacional, dirigindo a UI real com Playwright.
 | **Salão com mesas** (`salao`) | ✅ PASS (12/12 etapas) | 2026-06-02 |
 | **Balcão / fast food** (`balcao`) | ✅ PASS (12/12 + bug crítico corrigido) | 2026-06-02 |
 | **Salão + balcão** (`salao_balcao`) | ✅ PASS (ambos fluxos, sem bugs) | 2026-06-02 |
-| Food hall / praça (`food_hall`) | ⏳ Próximo | — |
+| **Food hall / praça** (`food_hall`) | ✅ PASS (fluxo counter + título próprio) | 2026-06-02 |
+
+> **Todos os modelos disponíveis validados.** Rodízio e buffet por peso ainda são "em breve" no produto.
 
 ---
 
@@ -59,9 +61,27 @@ Scripts: `smoke-setup-both.js`, `smoke-e2e-both.js`.
 
 ---
 
-## Como retomar (Food hall / `food_hall`)
+## ✅ Food hall / praça — resultado
 
-Próximo e último módulo. Conforme `docs/modulos/FOOD_HALL.md`, o food hall v1 **usa o mesmo fluxo do balcão** (preset counter, pedido #N, PIX manual). Provavelmente basta adaptar `smoke-setup-balcao.js` com `restaurant_model: 'food_hall'` e rodar o `smoke-e2e-balcao.js` (a página `/balcao` mostra título "Praça de alimentação" para esse modelo). Verificar o texto/título específico do food hall.
+`restaurant_model: food_hall`, `operational_mode: counter`. Usa o mesmo fluxo do balcão com título próprio. Validado E2E (12/12), **sem bugs**:
+- Página `/balcao` mostra título **"Praça de alimentação"** (não "Pedido no balcão").
+- Check-in → cardápio → pedido **#1** → fila dashboard → checkout simplificado → PIX manual → segundo pedido **#2**.
+
+Scripts: `smoke-setup-foodhall.js`, `smoke-e2e-foodhall.js`.
+
+---
+
+## Resumo final (todos os módulos)
+
+| Bug/achado | Módulo | Status |
+|------------|--------|--------|
+| 3 migrações não aplicadas (cadastro 400) | Salão | ✅ corrigido (migração + rodada) |
+| Mensagens de erro cruas no cadastro | Salão | ✅ corrigido (`friendlyAuthError`) |
+| `middleware.ts` → `proxy.ts` (Next 16) | — | ✅ corrigido |
+| **Check-in balcão não chegava ao cardápio** | Balcão | ✅ **corrigido** (redirect com `?session=`) |
+| `Mesa .` sem número no pagamento dinheiro | Salão | 🔍 a confirmar (timing) |
+| Taxa de serviço ~10% no checkout | Todos | 🔍 confirmar intenção |
+| PIX manual exige config prévia da chave | Todos | 🔍 destacar no onboarding |
 
 ## Como retomar (instruções gerais)
 
