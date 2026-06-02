@@ -9,12 +9,14 @@ import { paymentMethodLabel } from '@/lib/payment-receipt'
 import { BRAZIL_BANKS } from '@/lib/brazil-banks'
 import type { PayoutBankAccountDto } from '@/app/api/dashboard/payout/bank-account/route'
 import type { OnboardStatusDto } from '@/app/api/dashboard/asaas/onboard/route'
+import type { RestaurantProfileDto } from '@/app/api/dashboard/profile/route'
 import type { WhatsAppIntegrationDto } from '@/app/api/dashboard/integrations/whatsapp/route'
 import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 
-type Tab = 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
+type Tab = 'perfil' | 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'perfil',       label: 'Perfil'      },
   { id: 'pagamentos',   label: 'Pagamentos'  },
   { id: 'fidelidade',   label: 'Fidelidade'  },
   { id: 'integracoes',  label: 'Integrações' },
@@ -89,7 +91,7 @@ const INITIAL_RULES: LoyaltyRule[] = [
 ]
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('pagamentos')
+  const [tab, setTab] = useState<Tab>('perfil')
   const [rules, setRules] = useState<LoyaltyRule[]>([])
   const [restaurantId, setRestaurantId] = useState('')
   const [addingRule, setAddingRule] = useState(false)
@@ -98,6 +100,65 @@ export default function SettingsPage() {
   const [newMinSpend, setNewMinSpend] = useState('100')
   const [newBenefitType, setNewBenefitType] = useState<LoyaltyBenefitType>('free_drink')
   const [newBenefitValue, setNewBenefitValue] = useState('')
+
+  // Perfil do restaurante
+  const [profile, setProfile] = useState<RestaurantProfileDto | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [profileName, setProfileName] = useState('')
+  const [profilePhone, setProfilePhone] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/profile')
+      const data = await res.json()
+      if (res.ok && data.profile) {
+        setProfile(data.profile as RestaurantProfileDto)
+        setProfileName(data.profile.name ?? '')
+        setProfilePhone(data.profile.phone ?? '')
+      }
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadProfile().catch(() => {}) }, [loadProfile])
+
+  async function saveProfile() {
+    setProfileSaving(true)
+    try {
+      const res = await fetch('/api/dashboard/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profileName, phone: profilePhone }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setProfile(p => p ? { ...p, name: profileName, phone: profilePhone } : p)
+      toast.success('Perfil salvo!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+  async function uploadLogo(file: File) {
+    setLogoUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/dashboard/profile/logo', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setProfile(p => p ? { ...p, logoUrl: data.logoUrl } : p)
+      toast.success('Logo atualizada!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar logo.')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
 
   const [paymentTxs, setPaymentTxs] = useState<PaymentTxRow[]>([])
   const [paymentsLoading, setPaymentsLoading] = useState(true)
@@ -524,6 +585,101 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* ── PERFIL ─────────────────────────────────────── */}
+      {tab === 'perfil' && (
+        <div className="space-y-card-gap">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
+
+            {/* Logo */}
+            <div className="bg-surface-container border border-outline-variant rounded-xl p-6 flex flex-col gap-5">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-1">Logo do restaurante</p>
+                <p className="text-xs text-on-surface-variant">Exibida no cardápio e no cabeçalho do cliente. JPG, PNG ou WebP. Máx 2 MB.</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-outline-variant flex items-center justify-center overflow-hidden bg-surface-dim">
+                  {profile?.logoUrl ? (
+                    <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[40px] text-on-surface-variant opacity-30">storefront</span>
+                  )}
+                </div>
+
+                <label className={`flex items-center gap-2 h-10 px-5 rounded-lg text-sm font-mono cursor-pointer transition-all ${
+                  logoUploading
+                    ? 'opacity-40 pointer-events-none'
+                    : 'bg-primary-container text-on-primary-container hover:opacity-90'
+                }`}>
+                  <span className="material-symbols-outlined text-[16px]">
+                    {logoUploading ? 'hourglass_top' : 'upload'}
+                  </span>
+                  {logoUploading ? 'Enviando...' : profile?.logoUrl ? 'Trocar logo' : 'Enviar logo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) uploadLogo(file)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Dados básicos */}
+            <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Dados do estabelecimento</p>
+
+              {profileLoading ? (
+                <p className="text-sm font-mono text-on-surface-variant">Carregando...</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Nome do restaurante</label>
+                    <input
+                      value={profileName}
+                      onChange={e => setProfileName(e.target.value)}
+                      placeholder="Nome visível para os clientes"
+                      className="h-10 px-3 rounded-lg text-sm outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Telefone</label>
+                    <input
+                      value={profilePhone}
+                      onChange={e => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3').replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3').replace(/(\d{2})(\d{1,5})/, '($1) $2'))}
+                      placeholder="(11) 99999-9999"
+                      inputMode="tel"
+                      className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Link do cardápio</label>
+                    <div className="h-10 px-3 rounded-lg text-sm font-mono flex items-center bg-surface-dim border border-outline-variant text-on-surface-variant">
+                      qomanda.app/<span className="text-primary">{profile?.slug ?? '...'}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={saveProfile}
+                    disabled={profileSaving || !profileName.trim()}
+                    className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 disabled:opacity-40"
+                  >
+                    {profileSaving ? 'Salvando...' : 'Salvar perfil'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── PAGAMENTOS ─────────────────────────────────── */}
       {tab === 'pagamentos' && (

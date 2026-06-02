@@ -132,12 +132,13 @@
 > Itens complementares pós-fechamento.
 
 ### Onboarding do Restaurante
-- [ ] **Fluxo de cadastro do restaurante** — tela de sign-up pública para novos clientes
-- [ ] **Wizard de configuração inicial** — nome, logo, endereço, horários
-- [ ] **Upload de logo do restaurante** — Supabase Storage
+- [x] **Fluxo de cadastro do restaurante** — tela de sign-up pública para novos clientes
+- [x] **Trial automático (14 dias)** — provisionado ao criar conta
+- [x] **Upload de logo do restaurante** — Supabase Storage + aba Perfil em Settings
+- [ ] **Wizard de configuração inicial** — onboarding guiado (nome, logo, horários)
 
 ### Fidelidade (Persistência)
-- [ ] **Salvar regras de fidelidade no Supabase** — settings → loyalty_rules (atualmente UI only)
+- [x] **Salvar regras de fidelidade no Supabase** — loyalty_rules (implementado)
 - [ ] **Exibir benefício conquistado para o garçom** — alerta no dashboard quando cliente atinge meta
 
 ---

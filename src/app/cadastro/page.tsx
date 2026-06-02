@@ -83,6 +83,9 @@ export default function CadastroPage() {
       return
     }
 
+    // Provisiona plano starter + trial de 14 dias em background (não bloqueia o redirect)
+    fetch('/api/auth/provision-trial', { method: 'POST' }).catch(() => {})
+
     toast.success('Conta criada! Bem-vindo à Qomanda 🎉')
     router.push('/dashboard')
   }
