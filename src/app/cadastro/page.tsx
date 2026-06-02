@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { CustomerSignupForm, registerCustomerAndStore } from '@/components/customer/customer-signup-form'
+import { friendlyAuthError } from '@/lib/supabase/auth-errors'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import {
@@ -76,7 +77,7 @@ export default function CadastroPage() {
     const supabase = createClient()
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
     if (authError || !authData.user) {
-      toast.error(authError?.message ?? 'Erro ao criar conta.')
+      toast.error(friendlyAuthError(authError))
       setLoading(false)
       return
     }
