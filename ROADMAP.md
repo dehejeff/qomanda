@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-05-31  
+> Última atualização: 2026-05-30  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
 
 ---
@@ -11,14 +11,16 @@
 
 | Prioridade | Entrega | Status |
 |------------|---------|--------|
-| **Agora** | Rodar migrações Supabase (portal + conta restaurante + PIX manual + modelos) | ⏳ Pendente |
-| **P0** | Garçom confirmar PIX manual + dinheiro no painel (`/dashboard/waiter/payments`) | ✅ Feito |
-| **P0** | Smoke test E2E: cadastro com modelo → PIX → pedido → confirmação | ⏳ Após migrações |
+| **Agora** | Rodar migrações Supabase pendentes (billing, nfe, tables-public-read) | ⏳ Pendente |
+| **P0** | Garçom confirmar PIX manual + dinheiro (`/garcom/pagamentos`) | ✅ Feito |
+| **P0** | App garçom mobile — pedidos, pagamentos, mesas, benefícios, fechar mesa | ✅ Feito |
+| **P0** | Smoke test E2E garçom (`/garcom`) | ✅ 16/16 |
+| **P0** | Smoke test E2E módulos cliente (salão, balcão, híbrido, food hall) | ✅ 2026-06-02 |
 | **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | 🔴 A fazer |
-| **P1** | Landing e roadmap alinhados (modelos + comissão mensal, não taxa por tx) | ✅ Feito |
-| **P1** | Deploy do build atual (PIX manual, balcão, garçom, presets) | ⏳ Pendente |
-| **P2** | Fatura automática dia 5 (boleto/PIX Qomanda) | 🔴 Fase 3 |
-| **P2** | NF-e automática + NF serviço Qomanda → restaurante | 🔴 Fase 3 |
+| **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
+| **P1** | Deploy do build atual (PIX manual, balcão, garçom, mensalidade) | ⏳ Pendente |
+| **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
+| **P2** | NF-e de serviço Qomanda → restaurante | 🔴 Fase 3 |
 | **P2** | Mercado Pago (#4 na esteira) | 🔴 Fase 3 · Q4 2026 |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
@@ -113,6 +115,7 @@
 - [x] Gestão de cardápio — criar/editar itens, foto (upload ou URL), preço promocional, sugestão do chef
 - [x] Fila de pedidos (kanban: pendente → confirmado → preparando → pronto → entregue)
 - [x] **Confirmar pagamento em dinheiro** — painel na mesa e em Pedidos · Mesa
+- [x] Settings: aba **Mensalidade** (plano, estimativa, fatura em aberto, histórico PIX)
 - [x] Settings: aba Pagamentos com histórico de transações
 - [x] Settings: aba Fidelidade (configurar regras visitas → benefício)
 - [x] Settings: aba Integrações — WhatsApp Business (credenciais Meta + teste de envio)
@@ -183,10 +186,12 @@
 - [x] Pagamentos via **conta Asaas do restaurante** (100% do valor)
 - [x] Comissão progressiva registrada por pagamento + fatura mensal (dia 5)
 - [x] Modo **balcão** — número do pedido + acompanhamento no celular
-- [x] **Painel garçom** (`/dashboard/waiter`) — fila de pedidos e mesas
+- [x] **App garçom mobile** (`/garcom`) — 4 abas: Pedidos · Pagamentos · Benefícios · Mesas
+- [x] Garçom: fila pedidos, confirmar PIX/dinheiro, ver mesas, fechar mesa, alertas fidelidade
+- [x] Redirect legado `/dashboard/waiter` → `/garcom`
 - [x] **PIX manual** — chave do restaurante, sem Asaas obrigatório
-- [ ] **Mercado Pago** — ver [esteira de gateways](#-gateways-de-pagamento--esteira-de-integrações)
-- [ ] Fatura automática (boleto/PIX) todo dia 5
+- [x] **Cobrança automática mensalidade** — cron dia 5 + PIX Asaas master + webhook
+- [ ] **Mercado Pago** — ver [esteira de gateways](#-gateways-de-pagamento--ordem-planejada-18)
 - [ ] Marketplace split Asaas (legado, opcional — não é o modelo padrão)
 
 ### 2. Notas fiscais
@@ -204,7 +209,7 @@
 - [x] Assinaturas por restaurante com trial
 - [x] Faturas manuais (registro interno)
 - [x] **Cobrança automática de mensalidade** — cron dia 5 + cobrança PIX Asaas (master) + webhook marca paga
-- [ ] Aba "Mensalidade" no dashboard do restaurante (histórico + link da fatura em aberto)
+- [x] Aba "Mensalidade" no dashboard do restaurante (histórico + link da fatura em aberto)
 - [ ] NF-e de serviço emitida junto com a fatura
 
 ### 4. Melhorias operacionais pós-lançamento
@@ -224,12 +229,12 @@
 - [x] **Trial automático (14 dias)** — provisionado ao criar conta
 - [x] **Checklist “Primeiros passos”** no dashboard Overview
 - [x] **Upload de logo do restaurante** — Supabase Storage + aba Perfil em Settings
-- [x] **Garçom confirma pagamentos** — PIX manual + dinheiro em `/dashboard/waiter/payments`
+- [x] **Garçom confirma pagamentos** — PIX manual + dinheiro em `/garcom/pagamentos`
 - [ ] **Modelo no portal interno** — cadastro de pilotos pela equipe Qomanda (P1)
 
 ### Fidelidade (Persistência)
 - [x] **Salvar regras de fidelidade no Supabase** — loyalty_rules (implementado)
-- [ ] **Exibir benefício conquistado para o garçom** — alerta no dashboard quando cliente atinge meta
+- [x] **Exibir benefício conquistado para o garçom** — aba Benefícios + alerta na fila (`/garcom/beneficios`)
 
 ---
 
@@ -243,9 +248,10 @@
 - [ ] Exportação de relatórios (CSV/PDF)
 
 ### Equipe & Permissões
-- [x] **Painel garçom** — fila de pedidos e mesas (`/dashboard/waiter`)
+- [x] **App garçom mobile** (`/garcom`) — pedidos, pagamentos, mesas, benefícios, fechar mesa
 - [x] **Gestão de equipe** (Settings → Equipe) — convite de garçons
-- [x] **Garçom confirma PIX manual e dinheiro** — fila + alerta na home garçom
+- [x] **Garçom confirma PIX manual e dinheiro** — fila + badge + alerta
+- [x] **Benefícios de fidelidade visíveis ao garçom** — aba Benefícios + banner Pedidos
 - [ ] Receber e responder alertas "Chamar Garçom"
 - [ ] Controle de acesso refinado por perfil
 - [ ] Log de atividades por colaborador
@@ -316,14 +322,14 @@
 | Dashboard — Cardápio & QR mesas | ✅ Completo | 92% |
 | Dashboard — Suporte | ✅ Completo | 85% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
-| Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
+| Dashboard — Equipe/Segurança | ⚠️ Parcial | 55% |
 | Portal Interno Qomanda | ✅ Completo | 85% |
-| App Garçom | ⚠️ Parcial | 40% |
-| Pagamentos (conta restaurante) | ⚠️ Parcial | 85% |
-| NF-e cliente (emissão) | 🔴 Faltando | 25% |
+| App Garçom (`/garcom`) | ✅ Completo | 95% |
+| Pagamentos (conta restaurante) | ⚠️ Parcial | 88% |
+| NF-e cliente (emissão) | ⚠️ Parcial | 60% |
 | NF-e serviço (Qomanda) | 🔴 Faltando | 10% |
-| Cobrança SaaS (mensalidade) | ⚠️ Parcial | 50% |
-| Fidelidade | ⚠️ Parcial | 75% |
+| Cobrança SaaS (mensalidade) | ✅ Completo | 90% |
+| Fidelidade | ✅ Completo | 90% |
 | WhatsApp | ⚠️ Parcial | 55% |
 | Onboarding restaurante | ⚠️ Parcial | 75% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
@@ -350,6 +356,7 @@
 | `migrate-owner-birthdate.sql` | Data de nascimento do titular (subconta Asaas CPF) |
 | `migrate-nfe-invoices.sql` | Notas emitidas + tipo de nota (NFC-e/NFS-e) |
 | `migrate-billing-charge.sql` | Cobrança Asaas da mensalidade + customer de billing |
+| `migrate-restaurant-members-rls.sql` | Garçom convidado lê `restaurant_members` + mesas |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

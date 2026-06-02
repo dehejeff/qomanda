@@ -109,12 +109,14 @@ Pagamento confirmado
 
 | # | Capacidade | Status | Onde |
 |---|------------|--------|------|
-| 1 | Login `/login?perfil=garcom` | ✅ | `restaurant-auth.ts` |
-| 2 | Fila pedidos (avançar status) | ✅ | `/dashboard/waiter` |
-| 3 | Ver mesas (ocupada/livre) | ✅ | `/dashboard/waiter/tables` |
-| 4 | Confirmar PIX manual + dinheiro | ✅ | `/dashboard/waiter/payments` |
-| 5 | Alerta pagamentos pendentes | ✅ | banner na fila de pedidos |
-| 6 | Push / som notificação | 🔜 | Fase 3 opcional |
+| 1 | Login `/login?perfil=garcom` → `/garcom` | ✅ | PWA mobile-first |
+| 2 | Fila pedidos (avançar status) | ✅ | `/garcom/pedidos` |
+| 3 | Ver mesas + detalhe (ocupada/fechando) | ✅ | `/garcom/mesas` |
+| 4 | Confirmar PIX manual + dinheiro | ✅ | `/garcom/pagamentos` |
+| 5 | Alerta pagamentos pendentes | ✅ | badge + banner em Pedidos |
+| 6 | Fechar mesa / solicitar fechamento | ✅ | sheet da mesa em `/garcom/mesas` |
+| 7 | Benefícios de fidelidade na comanda | ✅ | `/garcom/beneficios` + detalhe mesa |
+| 8 | Push / som notificação | 🔜 | Fase 3 opcional |
 
 ### Comercial / modelo
 
@@ -123,7 +125,7 @@ Pagamento confirmado
 | 1 | Comissão progressiva GMV digital | ✅ | `commission-tiers.ts` |
 | 2 | Cash = 0% comissão | ✅ | `isCommissionExemptMethod` |
 | 3 | Snapshot comissão por pagamento | ✅ | `payment-commission.ts` |
-| 4 | Fatura mensal dia 5 (manual) | ⚠️ | registro existe · cobrança auto 🔜 |
+| 4 | Fatura mensal dia 5 (automática) | ✅ | cron + aba Mensalidade |
 | 5 | Limite mesas por plano (20 Starter) | ⚠️ | plano define `max_tables` · enforce 🔜 |
 
 ---
@@ -152,9 +154,9 @@ Rodar **antes** do piloto:
 | 6 | Pedido 2 itens | Status na fila dashboard |
 | 7 | Garçom avança → pronto | Cliente vê status |
 | 8 | Checkout PIX manual | Pendente no painel |
-| 9 | Garçom confirma | Cliente vê confirmado |
-| 10 | Repetir dinheiro | `commission_exempt=true` |
-| 11 | Mesa quitada | Mesa livre no mapa |
+| 9 | Garçom confirma dinheiro | Cliente vê confirmado · mesa livre |
+| 10 | Garçom solicita fechamento mesa | Cliente vê banner "encerrando mesa" |
+| 11 | Garçom vê benefício fidelidade | Aba Benefícios ou detalhe da mesa |
 
 ---
 
@@ -182,7 +184,7 @@ Não bloqueiam piloto — registrados no roadmap:
 | Checkout | `src/app/(customer)/[slug]/checkout/page.tsx` |
 | Confirmar pagamento | `src/lib/confirm-payment.ts`, `/api/dashboard/payments/confirm` |
 | Mesas dono | `src/components/dashboard/table-manage-modal.tsx` |
-| Garçom | `src/app/(dashboard)/dashboard/waiter/` |
+| Garçom | `src/app/garcom/` · APIs `src/app/api/dashboard/waiter/` |
 | Comissão | `src/lib/commission-tiers.ts`, `commission-billing.ts` |
 | Onboarding | `src/lib/restaurant-onboarding.ts` |
 

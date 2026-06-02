@@ -11,6 +11,13 @@ const pwaConfig = withPWA({
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  async redirects() {
+    return [
+      { source: '/dashboard/waiter', destination: '/garcom/pedidos', permanent: false },
+      { source: '/dashboard/waiter/payments', destination: '/garcom/pagamentos', permanent: false },
+      { source: '/dashboard/waiter/tables', destination: '/garcom/mesas', permanent: false },
+    ]
+  },
   images: {
     remotePatterns: [
       {

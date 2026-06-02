@@ -1,0 +1,47 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { QomandaLogo } from '@/components/qomanda-logo'
+
+export function WaiterMobileHeader({ restaurantName }: { restaurantName: string }) {
+  const router = useRouter()
+
+  async function signOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut({ scope: 'local' })
+    router.push('/login?perfil=garcom')
+  }
+
+  return (
+    <header
+      className="sticky top-0 z-40 px-5 h-16 flex items-center justify-between"
+      style={{
+        background: 'rgba(11,19,38,0.92)',
+        borderBottom: '1px solid rgba(88,66,55,0.35)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <QomandaLogo size={28} />
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            Garçom
+          </p>
+          <p className="text-sm font-bold truncate" style={{ color: '#dae2fd' }}>
+            {restaurantName}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        className="shrink-0 p-2 rounded-xl active:scale-95 transition-transform"
+        style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)' }}
+        aria-label="Sair"
+      >
+        <span className="material-symbols-outlined text-[22px]">logout</span>
+      </button>
+    </header>
+  )
+}

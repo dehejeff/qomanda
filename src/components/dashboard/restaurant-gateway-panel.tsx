@@ -85,7 +85,10 @@ export function RestaurantGatewayPanel() {
         <h3 className="text-lg font-bold text-on-surface mt-1">Pagamentos caem 100% na sua conta</h3>
         <p className="text-sm text-on-surface-variant mt-1">
           Escolha Asaas (PIX/cartão automático) ou PIX manual direto na sua chave/conta.
-          A Qomanda cobra mensalidade + comissão progressiva na fatura mensal (dia 5).
+          A Qomanda cobra mensalidade + comissão progressiva na fatura mensal (dia 5).{' '}
+          <a href="/dashboard/settings?tab=mensalidade" className="text-primary hover:underline font-mono text-xs">
+            Ver mensalidade →
+          </a>
         </p>
       </div>
 

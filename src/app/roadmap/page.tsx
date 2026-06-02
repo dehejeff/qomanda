@@ -51,8 +51,10 @@ const PHASES = [
       {
         title: 'P0 — Operação no salão',
         items: [
-          'Garçom confirma PIX manual + dinheiro (/dashboard/waiter/payments) ✓',
+          'App garçom mobile (/garcom) — pedidos, pagamentos, mesas, benefícios, fechar mesa ✓',
+          'Garçom confirma PIX manual + dinheiro (/garcom/pagamentos) ✓',
           'Alerta de pagamento pendente na fila de pedidos ✓',
+          'Aba Mensalidade no dashboard (histórico + fatura aberta) ✓',
         ],
       },
       {

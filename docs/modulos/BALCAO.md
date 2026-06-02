@@ -103,10 +103,10 @@ Pagamento
 
 | # | Capacidade | Status | Onde |
 |---|------------|--------|------|
-| 1 | Fila com **#N** do pedido | ✅ | `/dashboard/waiter` |
-| 2 | Avançar status até entregue | ✅ | waiter page |
-| 3 | Confirmar PIX/dinheiro | ✅ | `/dashboard/waiter/payments` |
-| 4 | Alerta pagamentos pendentes | ✅ | banner na fila |
+| 1 | Fila com **#N** do pedido | ✅ | `/garcom/pedidos` |
+| 2 | Avançar status até entregue | ✅ | `/garcom/pedidos` |
+| 3 | Confirmar PIX/dinheiro | ✅ | `/garcom/pagamentos` |
+| 4 | Alerta pagamentos pendentes | ✅ | badge + banner |
 
 ### Comercial
 
@@ -115,7 +115,7 @@ Pagamento
 | 1 | 100% conta restaurante | ✅ |
 | 2 | Comissão só digital | ✅ |
 | 3 | Dinheiro 0% | ✅ |
-| 4 | Fatura dia 5 automática | 🔜 Fase 3 |
+| 4 | Fatura dia 5 automática | ✅ | cron + aba Mensalidade |
 
 ---
 
@@ -185,7 +185,7 @@ Ordem completa: [`ESTEIRA.md`](../ESTEIRA.md) · **não precisa** de `migrate-ta
 | Menu + envio | `src/app/(customer)/[slug]/menu/page.tsx` |
 | Pagamento | `src/app/(customer)/[slug]/checkout/page.tsx` |
 | Fila dono | `src/app/(dashboard)/dashboard/orders/page.tsx` |
-| Garçom | `src/app/(dashboard)/dashboard/waiter/` |
+| Garçom | `src/app/garcom/` |
 | Confirmar pagamento | `/api/dashboard/payments/confirm` |
 
 ---

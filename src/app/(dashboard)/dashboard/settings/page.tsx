@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
@@ -16,11 +17,12 @@ import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gatewa
 import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billing-panel'
 import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
 
-type Tab = 'perfil' | 'pagamentos' | 'notas' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
+type Tab = 'perfil' | 'pagamentos' | 'mensalidade' | 'notas' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'perfil',       label: 'Perfil'      },
   { id: 'pagamentos',   label: 'Pagamentos'  },
+  { id: 'mensalidade',  label: 'Mensalidade' },
   { id: 'notas',        label: 'Notas Fiscais' },
   { id: 'fidelidade',   label: 'Fidelidade'  },
   { id: 'integracoes',  label: 'Integrações' },
@@ -119,6 +121,7 @@ const INITIAL_RULES: LoyaltyRule[] = [
 ]
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('perfil')
   const [rules, setRules] = useState<LoyaltyRule[]>([])
   const [restaurantId, setRestaurantId] = useState('')
@@ -152,6 +155,12 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => { loadProfile().catch(() => {}) }, [loadProfile])
+
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    const allowed: Tab[] = ['perfil', 'pagamentos', 'mensalidade', 'notas', 'fidelidade', 'integracoes', 'seguranca', 'equipe']
+    if (t && allowed.includes(t as Tab)) setTab(t as Tab)
+  }, [searchParams])
 
   async function saveProfile() {
     setProfileSaving(true)
@@ -781,7 +790,6 @@ export default function SettingsPage() {
       {tab === 'pagamentos' && (
         <div className="space-y-card-gap">
           <RestaurantGatewayPanel />
-          <RestaurantBillingPanel />
           {/* Qomanda Pay + conta bancária (legado marketplace — opcional) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
             <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
@@ -1228,6 +1236,11 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── MENSALIDADE ────────────────────────────────── */}
+      {tab === 'mensalidade' && (
+        <RestaurantBillingPanel />
       )}
 
       {/* ── NOTAS FISCAIS ──────────────────────────────── */}

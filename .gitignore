@@ -58,3 +58,5 @@ smoke-e2e-foodhall.js
 
 # Smoke repro (local)
 smoke-repro-mesa.js
+
+scripts/smoke/.cache/

@@ -1,7 +1,7 @@
 # Qomanda — Esteira de reconstrução
 
 > Documento mestre: alinha o que conversamos, o estado do código e a ordem de execução.  
-> Atualizado: 2026-05-31
+> Atualizado: 2026-05-30
 
 ---
 
@@ -56,8 +56,11 @@ Progresso visível em: **Dashboard → Overview → “Primeiros passos”**
 
 | P | Entrega | Fase |
 |---|---------|------|
-| **Agora** | Rodar migrações + smoke test piloto | 2 |
-| **P0** | Garçom confirma PIX manual + dinheiro (`/dashboard/waiter/payments`) | 2–3 ✅ |
+| **Agora** | Rodar migrações pendentes + smoke garçom (`/garcom`) | 2 |
+| **P0** | App garçom mobile (`/garcom`) — pedidos, pagamentos, mesas, benefícios, fechar mesa | 2 ✅ |
+| **P0** | Garçom confirma PIX manual + dinheiro | 2–3 ✅ |
+| **P0** | Aba Mensalidade no dashboard (histórico + fatura aberta) | 2 ✅ |
+| **P0** | Cobrança automática mensalidade (cron dia 5) | 2 ✅ |
 | **P1** | Modelo no portal interno + deploy | 2 |
 | **P1** | Site/landing com modelos e comissão mensal | 2 ✅ |
 | **P2** | Fatura automática dia 5 | 3 |
@@ -104,24 +107,27 @@ Objetivo: restaurante operando com **PIX manual + dinheiro + balcão OU salão**
 | 2.3 | PIX manual configurado | Restaurante | Cliente vê chave no checkout |
 | 2.4 | Cardápio mínimo (10–20 itens) | Restaurante | Pedido teste OK |
 | 2.5 | QR mesas OU link balcão | Restaurante | Check-in end-to-end |
-| 2.6 | Garçom convidado (se salão) | Restaurante | Login `/login?perfil=garcom` |
-| 2.7 | Simular pagamento PIX + dinheiro | Você + cliente | Confirmação no painel |
-| 2.8 | Fechar 1ª venda real | Comercial | R$ 1.990 implantação |
+| 2.6 | Garçom convidado (se salão) | Restaurante | Login `/login?perfil=garcom` → `/garcom` |
+| 2.7 | Simular pagamento PIX + dinheiro | Você + garçom | Confirmação em `/garcom/pagamentos` |
+| 2.8 | Garçom avança pedido + fecha mesa (se salão) | Garçom | `/garcom/pedidos` + `/garcom/mesas` |
+| 2.9 | Fechar 1ª venda real | Comercial | R$ 1.990 implantação |
 
-**Não bloquear go-live:** Asaas, NF-e automática, portal interno completo, Mercado Pago.
+**Não bloquear go-live:** Asaas produção, NF-e real Focus, portal interno completo, Mercado Pago.
 
 ---
 
 ### Fase 3 — Salão maduro
 
-- [x] Garçom confirma PIX manual + dinheiro (`/dashboard/waiter/payments`)
+- [x] App garçom mobile (`/garcom`) — pedidos, pagamentos, mesas, benefícios, fechar mesa
+- [x] Garçom confirma PIX manual + dinheiro (`/garcom/pagamentos`)
 - [x] Alerta de pagamento pendente na fila de pedidos do garçom
+- [x] Benefícios de fidelidade visíveis ao garçom (`/garcom/beneficios`)
+- [x] Aba Mensalidade no dashboard (histórico + link fatura)
+- [x] Cobrança automática fatura dia 5 (cron + PIX Asaas master)
 - [ ] Push / som para pagamento pendente (opcional)
 - [ ] Rodízio (`rodizio`) — taxa fixa por pessoa no check-in
 - [ ] Relatório comissão mensal exportável (restaurante + interno)
-- [ ] Cobrança automática fatura dia 5 (boleto/PIX Qomanda)
-
----
+- [ ] NF-e de serviço emitida junto com fatura mensal
 
 ### Fase 4 — Balcão & self-service
 
@@ -245,7 +251,7 @@ Código atual: `src/lib/payment-gateway-resolve.ts`, `restaurant-gateway.ts`, `r
 | Gateway | `src/components/dashboard/restaurant-gateway-panel.tsx` |
 | Comissão | `src/lib/commission-tiers.ts`, `commission-billing.ts` |
 | Balcão | `src/app/api/checkin/counter/`, `/[slug]/balcao` |
-| Garçom | `/dashboard/waiter` |
+| Garçom | `/garcom` (mobile) · legado `/dashboard/waiter` → redirect |
 
 ---
 

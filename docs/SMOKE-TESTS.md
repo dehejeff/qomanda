@@ -37,8 +37,29 @@ falta de chave PIX, máscara de telefone do Perfil, `NEXT_PUBLIC_DEV_BYPASS=fals
 | **Balcão / fast food** (`balcao`) | ✅ PASS (12/12 + bug crítico corrigido) | 2026-06-02 |
 | **Salão + balcão** (`salao_balcao`) | ✅ PASS (ambos fluxos, sem bugs) | 2026-06-02 |
 | **Food hall / praça** (`food_hall`) | ✅ PASS (fluxo counter + título próprio) | 2026-06-02 |
+| **App Garçom** (`/garcom`) | ✅ PASS (16/16) | 2026-05-30 |
 
-> **Todos os modelos disponíveis validados.** Rodízio e buffet por peso ainda são "em breve" no produto.
+> **Todos os modelos de cliente + app garçom validados.** Rodízio e buffet por peso ainda são "em breve" no produto.
+
+---
+
+## ✅ App Garçom — resultado (2026-05-30)
+
+**16/16 passou** via `scripts/smoke/garcom-smoke.mjs` (Playwright + Supabase service role).
+
+| Passo | Resultado |
+|-------|-----------|
+| Login garçom convidado | ✅ |
+| Fila pedidos + avançar status | ✅ |
+| Benefícios fidelidade (API + UI) | ✅ |
+| Mesas + sheet + solicitar fechamento | ✅ |
+| Confirmar pagamento dinheiro | ✅ |
+| Redirect `/dashboard/waiter` → `/garcom` | ✅ |
+
+### Corrigido durante o smoke
+- **RLS `restaurant_members`** — garçom convidado não resolvia `restaurant_id` no client → fallback `/api/dashboard/waiter/me` + migração `migrate-restaurant-members-rls.sql`
+- **Mesas via API** — garçom não lia `tables` (policy owner-only) → `GET /api/dashboard/waiter/tables`
+- **Sheet mesa** — botão de fechamento coberto pelo bottom nav → `pb-32` no sheet
 
 ---
 
@@ -91,6 +112,29 @@ Scripts: `smoke-setup-both.js`, `smoke-e2e-both.js`.
 - Check-in → cardápio → pedido **#1** → fila dashboard → checkout simplificado → PIX manual → segundo pedido **#2**.
 
 Scripts: `smoke-setup-foodhall.js`, `smoke-e2e-foodhall.js`.
+
+---
+
+## App Garçom (`/garcom`) — smoke E2E
+
+Script versionado: `scripts/smoke/garcom-smoke.mjs`
+
+| # | Passo | Esperado |
+|---|-------|----------|
+| 1 | Setup service role — restaurante + garçom + mesa ocupada + pedido + pagamento cash + benefício | Dados no Supabase |
+| 2 | Login `/login?perfil=garcom` | Redirect `/garcom/pedidos` |
+| 3 | Fila de pedidos | Alerta pagamento + avançar status |
+| 4 | `/garcom/pagamentos` | Confirmar dinheiro |
+| 5 | `/garcom/beneficios` | Benefício visível por mesa |
+| 6 | `/garcom/mesas` → toque mesa | Sheet + solicitar fechamento |
+| 7 | `/dashboard/waiter` | Redirect → `/garcom` |
+
+```bash
+npm run dev   # terminal 1
+npm install --save-dev playwright
+npx playwright install chromium
+node scripts/smoke/garcom-smoke.mjs
+```
 
 ---
 

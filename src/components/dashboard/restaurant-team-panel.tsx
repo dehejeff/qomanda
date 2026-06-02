@@ -30,7 +30,7 @@ export function RestaurantTeamPanel() {
       toast.error(data.error ?? 'Erro ao convidar.')
       return
     }
-    toast.success('Garçom adicionado. Ele entra em /login → Garçom com este e-mail.')
+    toast.success('Garçom adicionado. App em /garcom ou /login?perfil=garcom')
     setEmail('')
     setName('')
     load()
@@ -39,7 +39,9 @@ export function RestaurantTeamPanel() {
   return (
     <section className="space-y-4">
       <p className="text-sm text-on-surface-variant">
-        Convide garçons pelo e-mail. Eles acessam <span className="font-mono">/login?perfil=garcom</span> com a senha da conta Supabase.
+        Convide garçons pelo e-mail. Eles acessam o app em{' '}
+        <span className="font-mono">/garcom</span> ou{' '}
+        <span className="font-mono">/login?perfil=garcom</span> no celular.
       </p>
       <form onSubmit={add} className="flex flex-col sm:flex-row gap-2">
         <input

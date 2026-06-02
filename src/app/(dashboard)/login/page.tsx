@@ -91,7 +91,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/dashboard/waiter')
+    router.push('/garcom/pedidos')
   }
 
   const inputStyle: React.CSSProperties = {
@@ -198,34 +198,32 @@ export default function LoginPage() {
         {/* ── Garçom ── */}
         {role === 'waiter' && (
           <>
-            <div className="flex items-center justify-center gap-2 py-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full"
-                style={{ background: 'rgba(249,115,22,0.12)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.25)' }}>
-                Em breve
-              </span>
-            </div>
-            <form onSubmit={handleWaiterLogin} className="space-y-4 opacity-90">
+            <form onSubmit={handleWaiterLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>E-mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="garcom@restaurante.com" autoComplete="email"
+                  placeholder="garcom@restaurante.com" required autoComplete="email"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Senha</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" autoComplete="current-password"
+                  placeholder="••••••••" required autoComplete="current-password"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
-              <button type="submit"
-                className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-                style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}>
-                <span className="material-symbols-outlined text-[18px]">room_service</span>
-                Entrar como garçom
+              <button type="submit" disabled={loading}
+                className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}>
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">room_service</span>
+                    Entrar como garçom
+                  </>
+                )}
               </button>
             </form>
             <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#584237' }}>
-              O login de garçons usará credenciais criadas pelo admin do restaurante. Disponível em uma próxima versão.
+              Credenciais criadas pelo admin em Configurações → Equipe. App otimizado para celular.
             </p>
           </>
         )}

@@ -13,7 +13,7 @@ export default async function DashboardInnerLayout({
   if (!access) redirect('/login?perfil=admin')
 
   if (WAITER_ROLES.has(access.role)) {
-    return <div className="min-h-screen bg-background">{children}</div>
+    redirect('/garcom/pedidos')
   }
 
   return (
