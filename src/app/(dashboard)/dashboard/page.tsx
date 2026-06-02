@@ -18,6 +18,7 @@ export default async function DashboardPage() {
       <OverviewLiveDashboard
         restaurantId={mockRestaurant.id}
         restaurantSlug={mockRestaurant.slug}
+        operationalMode="both"
         initial={initial}
       />
     )
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/login')
 
   const supabase = await createClient()
-  const { data: restaurant } = await supabase.from('restaurants').select('id, slug').eq('owner_id', user.id).single()
+  const { data: restaurant } = await supabase.from('restaurants').select('id, slug, operational_mode').eq('owner_id', user.id).single()
   if (!restaurant) redirect('/login')
 
   const { fetchDashboardOverview } = await import('@/lib/dashboard-fetch')
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
     <OverviewLiveDashboard
       restaurantId={restaurant.id}
       restaurantSlug={restaurant.slug}
+      operationalMode={(restaurant.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'both'}
       initial={initial}
     />
   )
