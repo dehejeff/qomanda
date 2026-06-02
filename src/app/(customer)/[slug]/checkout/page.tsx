@@ -490,8 +490,10 @@ function CashPendingScreen({
           )}
           <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
             {isPix
-              ? `Transferência PIX informada para a Mesa ${tableNumber}. Aguarde o restaurante confirmar o recebimento.`
-              : `Entregue este valor ao garçom ou caixa da Mesa ${tableNumber}.`}
+              ? `Transferência PIX informada${tableNumber ? ` para a Mesa ${tableNumber}` : ''}. Aguarde o restaurante confirmar o recebimento.`
+              : tableNumber
+                ? `Entregue este valor ao garçom ou caixa da Mesa ${tableNumber}.`
+                : `Entregue este valor ao garçom ou caixa do restaurante.`}
           </p>
         </div>
       </div>

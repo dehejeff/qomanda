@@ -79,9 +79,13 @@ Scripts: `smoke-setup-foodhall.js`, `smoke-e2e-foodhall.js`.
 | Mensagens de erro cruas no cadastro | Salão | ✅ corrigido (`friendlyAuthError`) |
 | `middleware.ts` → `proxy.ts` (Next 16) | — | ✅ corrigido |
 | **Check-in balcão não chegava ao cardápio** | Balcão | ✅ **corrigido** (redirect com `?session=`) |
-| `Mesa .` sem número no pagamento dinheiro | Salão | 🔍 a confirmar (timing) |
-| Taxa de serviço ~10% no checkout | Todos | 🔍 confirmar intenção |
-| PIX manual exige config prévia da chave | Todos | 🔍 destacar no onboarding |
+| **`Mesa .` sem número no pagamento/recibo** | Salão | ✅ **corrigido** — era RLS (ver abaixo) |
+| Taxa de serviço ~10% no checkout | Todos | ✅ não é bug — seção própria, exibida e **opcional** (toggle) |
+| PIX manual exige config prévia da chave | Todos | ✅ não é bug — onboarding já exige gateway (`gatewayReady`) |
+
+### Investigação do "Mesa ." (bug real corrigido)
+Causa raiz: a tabela `tables` tinha RLS só com policy `owner_all` — o cliente (role `anon`) recebia `table=null` no join `sessions.select('*, table:tables(number)')`, deixando `tableNumber` vazio no checkout **e nos recibos** de todos os clientes de salão.
+Fix: `supabase/migrate-tables-public-read.sql` concede a `anon` leitura de `number/status` (colunas públicas — já impressas na mesa) **sem** expor `check_in_token` (segredo anti-fraude, via grant por coluna). Dono (`authenticated`) intocado. Validado: tela de pagamento agora mostra "Mesa 1". Também: `CashPendingScreen` agora degrada com elegância se o número faltar/for balcão.
 
 ## Como retomar (instruções gerais)
 

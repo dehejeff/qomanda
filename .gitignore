@@ -55,3 +55,6 @@ smoke-e2e-both.js
 # Smoke foodhall (local)
 smoke-setup-foodhall.js
 smoke-e2e-foodhall.js
+
+# Smoke repro (local)
+smoke-repro-mesa.js
