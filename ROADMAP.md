@@ -192,16 +192,19 @@
 ### 2. Notas fiscais
 - [x] Cadastro NF-e ao cliente (Focus NFe) — portal interno + campos no restaurante
 - [x] Configuração WhatsApp para envio de NF-e — restaurante em Settings → Integrações
-- [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / Focus NFe)
-- [ ] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
-- [ ] **NF-e de serviço** — Qomanda → restaurante (mensalidade + comissão)
-- [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
+- [x] Tipo de nota por restaurante (NFC-e / NFS-e) — portal interno
+- [x] **NF-e automática** — emissão após pagamento confirmado (adapter Focus NFe + modo simulado)
+- [x] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
+- [x] Vínculo pagamento → nota fiscal (aba Notas Fiscais no painel + recibo do cliente)
+- [ ] Emissão real Focus NFe (depende do token de homologação/produção)
+- [ ] **NF-e de serviço** — Qomanda → restaurante (junto com a fatura mensal)
 
 ### 3. Cobrança SaaS (mensalidade)
 - [x] Planos comerciais (Starter / Growth / Pro / Enterprise)
 - [x] Assinaturas por restaurante com trial
 - [x] Faturas manuais (registro interno)
-- [ ] Cobrança automática de mensalidade (Asaas assinaturas ou boleto/PIX recorrente)
+- [x] **Cobrança automática de mensalidade** — cron dia 5 + cobrança PIX Asaas (master) + webhook marca paga
+- [ ] Aba "Mensalidade" no dashboard do restaurante (histórico + link da fatura em aberto)
 - [ ] NF-e de serviço emitida junto com a fatura
 
 ### 4. Melhorias operacionais pós-lançamento
@@ -342,6 +345,11 @@
 | `migrate-commercial-restaurant-account.sql` | Gateway restaurante, comissão, balcão, equipe, faturas mensais |
 | `migrate-restaurant-manual-payment.sql` | PIX manual (chave do restaurante) |
 | `migrate-restaurant-model.sql` | Modelo operacional no cadastro + preset |
+| `migrate-tables-public-read.sql` | Cliente (anon) lê número/status da mesa (sem expor token) |
+| `migrate-restaurant-logo-storage.sql` | Bucket de logo do restaurante |
+| `migrate-owner-birthdate.sql` | Data de nascimento do titular (subconta Asaas CPF) |
+| `migrate-nfe-invoices.sql` | Notas emitidas + tipo de nota (NFC-e/NFS-e) |
+| `migrate-billing-charge.sql` | Cobrança Asaas da mensalidade + customer de billing |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

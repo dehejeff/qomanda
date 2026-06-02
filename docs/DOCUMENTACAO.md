@@ -1,6 +1,11 @@
 # Qomanda — Documentação Técnica Completa
 
-> Versão 3.0 · Atualizado em 2026-05-31
+> Versão 4.0 · Atualizado em 2026-06-02
+>
+> **Novidades v4.0:** modelos operacionais por tipo (salão/balcão/salão+balcão/food hall)
+> com painel adaptado, gateway de pagamento por restaurante (PIX manual / Asaas) +
+> comissão mensal, emissão de NF-e (NFC-e/NFS-e) com envio por WhatsApp, e cobrança
+> automática da mensalidade. Ver **§19 — Módulos & Funcionalidades (v4.0)**.
 
 ---
 
@@ -24,6 +29,7 @@
 16. [Variáveis de Ambiente](#16-variáveis-de-ambiente)
 17. [Configuração Inicial (Supabase)](#17-configuração-inicial-supabase)
 18. [Roadmap](#18-roadmap)
+19. [Módulos & Funcionalidades (v4.0)](#19-módulos--funcionalidades-v40)
 
 ---
 
@@ -548,18 +554,21 @@ Staff → /internal/support → responde, altera status/prioridade
 
 ## 10. Sistema de Pagamentos (Qomanda Pay / Asaas)
 
-### 10.1 Arquitetura marketplace
+### 10.1 Modelo comercial (v4.0) — recebimento 100% no restaurante
 
-Cada restaurante possui subconta/wallet Asaas. Em cada pagamento digital:
+> **Atualização v4.0:** o modelo padrão **não usa mais split na hora da venda**.
+> O pagamento cai **100% na conta do restaurante** (PIX manual ou Asaas do próprio
+> restaurante) e a Qomanda fatura **mensalmente** (mensalidade + comissão sobre o
+> GMV digital). Ver **§19.2** (gateway por restaurante) e **§19.4** (cobrança mensal).
+> O marketplace split Asaas continua no código como **opção legada**, não padrão.
 
 ```
-Valor pago pelo cliente
-        │
-        ├─ Split Qomanda (platform_fee_percent + platform_fee_fixed)
-        └─ Repasse restaurante (wallet Asaas)
+Pagamento do cliente → conta do restaurante (PIX manual / Asaas do restaurante)
+                          │
+Qomanda fatura no dia 5 ──┴─→ mensalidade do plano + comissão % sobre GMV digital
 ```
 
-Taxas vêm do plano (`plans`) ou overrides em `restaurant_subscriptions` / `restaurants`.
+Taxas/comissão vêm do plano (`plans`) ou overrides em `restaurant_subscriptions`.
 
 ### 10.2 Modos de fechamento
 
@@ -756,22 +765,17 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 **Em modo de desenvolvimento:** a mensagem é logada no console e não enviada.
 
-### 12.2 NF-e — duas notas, emissão em construção
+### 12.2 NF-e — ao consumidor (implementado) e de serviço (planejado)
 
-**NF-e ao consumidor** (restaurante → cliente):
-- Campos em `restaurants` (Focus NFe, IE, CNAE, série, etc.)
-- Configuração pelo staff na aba **NF-e cliente**
-- Emissão automática pós-pagamento: **pendente**
+**NF-e ao consumidor** (restaurante → cliente) — **implementado** (ver §19.3):
+- Tipo por restaurante: **NFC-e** (modelo 65) ou **NFS-e**, definido no portal interno
+- Emissão automática após pagamento confirmado (`confirmPaymentRecord`)
+- Envio do link ao cliente por WhatsApp; histórico no painel + recibo do cliente
+- Adapter Focus NFe pronto; **modo simulado** quando sem token (fluxo testável)
 
 **NF-e de serviço** (Qomanda → restaurante):
-- Mensalidade + taxas de transação
-- UI preparada na aba **NF-e serviço** — emissão **pendente**
-
-**Comportamento planejado (NF-e cliente):**
-1. Pagamento confirmado → trigger de emissão
-2. Provedor (Focus NFe) processa → PDF/XML
-3. Se `whatsapp_nfe_enabled`, envio via WhatsApp
-4. Split alimentação/bebidas → duas NF-e quando configurado
+- Mensalidade + comissão — UI preparada na aba **NF-e serviço**; emissão **pendente**
+  (será emitida junto com a fatura mensal — ver §19.4)
 
 ---
 
@@ -1161,6 +1165,104 @@ Ver [ROADMAP.md](../ROADMAP.md) para status detalhado.
 | **Lançamento** | Onboarding self-service, fidelidade persistida |
 | **Crescimento** | Analytics, app garçom, equipe, 2FA |
 | **Escala** | Multi-unidades, integrações, reservas |
+
+---
+
+## 19. Módulos & Funcionalidades (v4.0)
+
+Esta seção descreve os módulos entregues, sua estrutura de arquivos e como cada um funciona.
+
+### 19.1 Modelos operacionais (tipo de restaurante)
+
+O restaurante opera em um de quatro **modelos**, que definem o fluxo do cliente e adaptam o painel.
+
+| Modelo | `restaurant_model` | `operational_mode` | Entrada do cliente |
+|--------|--------------------|--------------------|--------------------|
+| Salão com mesas | `salao` | `dine_in` | QR na mesa (`/{slug}?mesa=&t=`) |
+| Balcão / fast food | `balcao` | `counter` | Link `/{slug}/balcao` → pedido #N |
+| Salão + balcão | `salao_balcao` | `both` | `/{slug}` oferece escolha |
+| Food hall / praça | `food_hall` | `counter` | Igual balcão, título "Praça de alimentação" |
+
+**Onde se define o tipo:**
+- **Self-cadastro** (`/cadastro`): etapa de escolha do modelo (aplica preset).
+- **Portal interno** (`/internal/clients/[id]` → aba Estabelecimento): `RestaurantModelPicker`.
+
+**Preset aplicado** (`restaurantModelPresetToDb`): grava `restaurant_model`,
+`operational_mode`, `marketplace_split_enabled`. Não sobrescreve o gateway já configurado.
+
+**Painel adaptado por tipo** (a partir de `RestaurantAccess.operationalMode`):
+- **Sidebar** (`components/dashboard/sidebar.tsx`): esconde "Mesas" no balcão puro.
+- **Overview** (`overview-live-dashboard.tsx`): balcão troca "Mesas Ocupadas/Mapa de
+  Mesas" por "Pedidos Hoje" + painel "Balcão" com link de divulgação (`OverviewCounterPanel`).
+- **Página de Mesas**: aviso quando o restaurante é balcão.
+
+**Arquivos-chave:** `lib/restaurant-models.ts`, `lib/restaurant-auth.ts` (resolve
+`operationalMode`/`restaurantModel`), `components/internal/restaurant-model-picker.tsx`.
+**Specs detalhadas por modelo:** `docs/modulos/SALAO.md`, `BALCAO.md`, `SALAO_BALCAO.md`, `FOOD_HALL.md`.
+
+### 19.2 Gateway de pagamento por restaurante
+
+Cada restaurante escolhe como recebe (Settings → Pagamentos):
+- **PIX manual**: cliente vê a chave PIX no checkout, transfere e o restaurante confirma.
+- **Asaas**: PIX/cartão automáticos na conta Asaas do próprio restaurante.
+- **Dinheiro**: sempre disponível, sem comissão.
+
+O recebimento é **100% do restaurante**; a Qomanda cobra comissão na fatura mensal.
+
+**API:** `GET/POST /api/dashboard/gateway` (`requireOwnerAccess`). Campos em `restaurants`:
+`payment_gateway_provider`, `payment_gateway_api_key_encrypted`, `manual_pix_key`,
+`manual_pix_key_type`, `manual_payment_holder_name`, `operational_mode`.
+**Libs:** `restaurant-gateway.ts`, `restaurant-payment-config.ts`, `payment-gateway-resolve.ts`.
+
+> **Nota de auth (v4.0):** `requireRestaurantAccess` resolve sempre o restaurante
+> **real** do usuário autenticado; o mock (`DEV_BYPASS`) só vale sem login. Isso
+> corrigiu o bug em que escritas de dono iam para um `mock-restaurant-id` inexistente.
+
+### 19.3 NF-e — emissão + envio por WhatsApp
+
+Após o pagamento confirmado, emite a nota e envia o link ao cliente.
+
+**Fluxo:** `confirmPaymentRecord` → (se `nfe_enabled` + `nfe_auto_emit` + `nfe_status=active`)
+→ `emitNfeForPayment` → registra em `nfe_invoices` → envia WhatsApp (se `whatsapp_nfe_enabled`).
+
+- **Abstração de provedor:** `lib/nfe/types.ts` (`NfeProviderAdapter`).
+- **Adapter Focus NFe:** `lib/nfe/focus-nfe.ts` — NFC-e (modelo 65) e NFS-e, respeita
+  ambiente homologação/produção. **Modo simulado** quando não há token (grava
+  `status='simulated'`), tornando o fluxo testável ponta a ponta.
+- **Orquestrador:** `lib/nfe/emit-nfe.ts` — idempotente por pagamento; nunca lança.
+- **Tipo de nota por restaurante** (`nfe_note_type`): NFC-e ou NFS-e (portal interno).
+- **Envio WhatsApp:** `lib/send-whatsapp.ts` (mock em dev sem credenciais).
+
+**APIs:** `POST /api/dashboard/nfe/emit` (manual/retry), `GET /api/dashboard/nfe` (lista),
+`POST /api/dashboard/nfe/resend` (reenvia WhatsApp).
+**UI:** aba **Notas Fiscais** no Settings (todos os módulos) + coluna NF-e no histórico
+de transações; no lado do cliente, botão **Baixar NF-e** no hub de recibos.
+**Tabela:** `nfe_invoices` (status, note_type, danfe_url, access_key, whatsapp_sent_at…).
+
+### 19.4 Cobrança automática da mensalidade
+
+Todo dia 5, gera a fatura de cada restaurante ativo e cria a cobrança PIX na conta
+**master** da Qomanda no Asaas (billing padrão, sem marketplace).
+
+- **Cálculo:** `commission-billing.ts` (`previewRestaurantMonthlyBill`) = mensalidade do
+  plano + comissão progressiva sobre o GMV digital do mês.
+- **Geração + cobrança:** `lib/monthly-billing.ts` (`generateMonthlyInvoice`, idempotente
+  por período). Cria o restaurante como **cliente** no Asaas master (`ensureBillingCustomer`)
+  e gera a cobrança PIX (`createPixPayment`).
+- **Agendamento:** `GET/POST /api/cron/monthly-billing` protegido por `CRON_SECRET`.
+  `vercel.json` agenda GET dia 5 às 09:00 (Vercel envia o secret no header).
+- **Conciliação:** webhook Asaas (`/api/asaas/webhook`) — cobrança sem pagamento de
+  consumidor cai em `billing_invoices` e é marcada `paid`/`overdue`/`cancelled`.
+
+**Tabela:** `billing_invoices` (+ `asaas_payment_id`, `charge_method`, `invoice_url`,
+`period_year/month`, único por `restaurant_id+period_start`); `restaurants.asaas_billing_customer_id`.
+
+### 19.5 Migrações relacionadas (v4.0)
+
+Rodar no Supabase (ordem em `ROADMAP.md` § Migrações):
+`migrate-commercial-restaurant-account.sql`, `migrate-restaurant-model.sql`,
+`migrate-restaurant-manual-payment.sql`, `migrate-tables-public-read.sql`,
+`migrate-nfe-invoices.sql`, `migrate-billing-charge.sql`.
 
 ---
 
