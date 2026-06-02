@@ -29,6 +29,7 @@ import {
 import { customerAuthFetch } from '@/lib/customer-auth'
 import type { PublicPaymentConfig } from '@/lib/restaurant-payment-config'
 import { MANUAL_PIX_KEY_TYPE_LABELS } from '@/lib/restaurant-payment-config'
+import { formatServiceLocationLabel } from '@/lib/counter-orders'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -441,6 +442,7 @@ function CashPendingScreen({
   amount,
   minimumOwed,
   tableNumber,
+  isCounter = false,
   onBack,
   onCancel,
   cancelling,
@@ -449,6 +451,7 @@ function CashPendingScreen({
   amount: number
   minimumOwed?: number
   tableNumber: string
+  isCounter?: boolean
   onBack: () => void
   onCancel: () => void
   cancelling: boolean
@@ -456,6 +459,8 @@ function CashPendingScreen({
 }) {
   const extra = minimumOwed != null ? Math.max(0, roundMoney(amount - minimumOwed)) : 0
   const isPix = variant === 'pix'
+  // Local: "no balcão" (counter), "na Mesa X" (salão) ou genérico
+  const localPhrase = isCounter ? ' no balcão' : tableNumber ? ` na Mesa ${tableNumber}` : ''
 
   return (
     <div className="flex flex-col gap-5">
@@ -490,10 +495,8 @@ function CashPendingScreen({
           )}
           <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
             {isPix
-              ? `Transferência PIX informada${tableNumber ? ` para a Mesa ${tableNumber}` : ''}. Aguarde o restaurante confirmar o recebimento.`
-              : tableNumber
-                ? `Entregue este valor ao garçom ou caixa da Mesa ${tableNumber}.`
-                : `Entregue este valor ao garçom ou caixa do restaurante.`}
+              ? `Transferência PIX informada${localPhrase}. Aguarde o restaurante confirmar o recebimento.`
+              : `Entregue este valor ao garçom ou caixa${localPhrase || ' do restaurante'}.`}
           </p>
         </div>
       </div>
@@ -1411,7 +1414,7 @@ export default function CheckoutPage() {
               <div>
                 <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Mesa quitada!</p>
                 <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                  A conta da mesa {tableNumber} foi paga por completo. A mesa já está liberada para novos clientes no restaurante.
+                  A conta da {formatServiceLocationLabel(tableNumber, isCounterSession ? 'counter' : 'dine_in')} foi paga por completo. A mesa já está liberada para novos clientes no restaurante.
                 </p>
               </div>
             </div>
@@ -1419,8 +1422,8 @@ export default function CheckoutPage() {
           <div className="w-full rounded-xl p-5 flex justify-between items-center"
             style={{ background: '#171f33', border: '1px solid #334155' }}>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Mesa</p>
-              <p className="text-xl font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>Mesa {tableNumber}</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>{isCounterSession ? 'Local' : 'Mesa'}</p>
+              <p className="text-xl font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>{formatServiceLocationLabel(tableNumber, isCounterSession ? 'counter' : 'dine_in')}</p>
             </div>
             <div className="w-px h-10" style={{ background: '#584237' }} />
             <div className="text-right">
@@ -1549,6 +1552,7 @@ export default function CheckoutPage() {
             amount={pendingManualPixAmount || getAmountToPay()}
             minimumOwed={pendingManualPixMinOwed > 0.01 ? pendingManualPixMinOwed : undefined}
             tableNumber={tableNumber}
+            isCounter={isCounterSession}
             onBack={() => setStep('manual_pix')}
             onCancel={cancelManualPixPayment}
             cancelling={paying}
@@ -1618,6 +1622,7 @@ export default function CheckoutPage() {
             amount={pendingCashAmount || parseFloat(cashAmountInput) || cashMinimumOwed}
             minimumOwed={pendingCashMinOwed > 0.01 ? pendingCashMinOwed : undefined}
             tableNumber={tableNumber}
+            isCounter={isCounterSession}
             onBack={() => setStep('cash_amount')}
             onCancel={cancelCashPayment}
             cancelling={paying}
