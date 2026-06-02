@@ -2,12 +2,13 @@
 
 import type {
   NfeEnvironment,
+  NfeNoteType,
   NfeProvider,
   NfeStatus,
   NfeTaxRegime,
   RestaurantNfeInput,
 } from '@/lib/restaurant-nfe'
-import { NFE_PROVIDERS, NFE_STATUS_LABEL, NFE_TAX_REGIMES } from '@/lib/restaurant-nfe'
+import { NFE_NOTE_TYPES, NFE_PROVIDERS, NFE_STATUS_LABEL, NFE_TAX_REGIMES } from '@/lib/restaurant-nfe'
 import { RestaurantWhatsAppStatusPanel } from '@/components/internal/restaurant-whatsapp-status-panel'
 import type { RestaurantWhatsAppStatus } from '@/lib/restaurant-whatsapp'
 
@@ -15,6 +16,7 @@ export type NfeFormState = {
   nfeEnabled: boolean
   nfeStatus: NfeStatus
   nfeProvider: NfeProvider | ''
+  nfeNoteType: NfeNoteType | ''
   nfeEnvironment: NfeEnvironment
   nfeProviderToken: string
   nfeProviderCompanyId: string
@@ -33,6 +35,7 @@ export const emptyNfeForm = (): NfeFormState => ({
   nfeEnabled: false,
   nfeStatus: 'disabled',
   nfeProvider: '',
+  nfeNoteType: '',
   nfeEnvironment: 'homologacao',
   nfeProviderToken: '',
   nfeProviderCompanyId: '',
@@ -52,6 +55,7 @@ export function nfeFormToInput(form: NfeFormState): RestaurantNfeInput {
     nfeEnabled: form.nfeEnabled,
     nfeStatus: form.nfeStatus,
     nfeProvider: form.nfeProvider,
+    nfeNoteType: form.nfeNoteType,
     nfeEnvironment: form.nfeEnvironment,
     nfeProviderToken: form.nfeProviderToken,
     nfeProviderCompanyId: form.nfeProviderCompanyId,
@@ -146,6 +150,8 @@ export function RestaurantNfeFields({ form, setForm, documentType, hasExistingTo
               ]} />
             <SelectField label="Provedor / emissor" value={form.nfeProvider} onChange={v => patch({ nfeProvider: v as NfeProvider })}
               options={[{ value: '', label: 'Selecione…' }, ...NFE_PROVIDERS.map(p => ({ value: p.id, label: p.label }))]} />
+            <SelectField label="Tipo de nota ao cliente" value={form.nfeNoteType} onChange={v => patch({ nfeNoteType: v as NfeNoteType })}
+              options={[{ value: '', label: 'Selecione…' }, ...NFE_NOTE_TYPES.map(t => ({ value: t.id, label: t.label }))]} />
             <div className="flex gap-2 md:col-span-2">
               {(['homologacao', 'producao'] as const).map(env => (
                 <button

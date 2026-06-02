@@ -5,6 +5,7 @@ import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
 import { applyCommissionToPayment } from '@/lib/payment-commission'
+import { emitNfeForPayment } from '@/lib/nfe/emit-nfe'
 
 export type PaymentConfirmRow = {
   id: string
@@ -89,6 +90,21 @@ export async function confirmPaymentRecord(
 
   if (payment.customer_id) {
     await grantEarnedLoyaltyOffers(supabase, payment.customer_id, payment.restaurant_id)
+  }
+
+  // NF-e automática (best-effort, não bloqueia a confirmação). Só age se o
+  // restaurante tiver nfe_enabled + nfe_auto_emit + tipo de nota definido.
+  try {
+    const { data: r } = await supabase
+      .from('restaurants')
+      .select('nfe_enabled, nfe_auto_emit, nfe_status')
+      .eq('id', payment.restaurant_id)
+      .maybeSingle()
+    if (r?.nfe_enabled && r?.nfe_auto_emit && r?.nfe_status === 'active') {
+      await emitNfeForPayment(supabase, payment.id)
+    }
+  } catch (err) {
+    console.error('[confirmPaymentRecord] nfe auto-emit', err)
   }
 
   return { confirmationCode, sessionClosed: settlement.closed }

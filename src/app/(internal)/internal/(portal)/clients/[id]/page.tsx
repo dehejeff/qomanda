@@ -109,6 +109,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         nfeEnabled: nfe.nfe_enabled,
         nfeStatus: nfe.nfe_status,
         nfeProvider: nfe.nfe_provider ?? '',
+        nfeNoteType: nfe.nfe_note_type ?? '',
         nfeEnvironment: nfe.nfe_environment,
         nfeProviderToken: '',
         nfeProviderCompanyId: nfe.nfe_provider_company_id ?? '',

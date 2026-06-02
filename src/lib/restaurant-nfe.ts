@@ -24,10 +24,18 @@ export const NFE_TAX_REGIMES: { id: NfeTaxRegime; label: string }[] = [
   { id: 'lucro_real', label: 'Lucro Real' },
 ]
 
+export type NfeNoteType = 'nfce' | 'nfse'
+
+export const NFE_NOTE_TYPES: { id: NfeNoteType; label: string; hint: string }[] = [
+  { id: 'nfce', label: 'NFC-e (consumidor)', hint: 'Consumo no local — modelo 65. Padrão de bar/restaurante.' },
+  { id: 'nfse', label: 'NFS-e (serviço)', hint: 'Nota de serviço — varia por município.' },
+]
+
 export type RestaurantNfeInput = {
   nfeEnabled?: boolean
   nfeStatus?: NfeStatus
   nfeProvider?: NfeProvider | ''
+  nfeNoteType?: NfeNoteType | ''
   nfeEnvironment?: NfeEnvironment
   nfeProviderToken?: string
   nfeProviderCompanyId?: string
@@ -46,6 +54,7 @@ export type RestaurantNfeProfile = {
   nfe_enabled: boolean
   nfe_status: NfeStatus
   nfe_provider: NfeProvider | null
+  nfe_note_type: NfeNoteType | null
   nfe_environment: NfeEnvironment
   nfe_provider_company_id: string | null
   nfe_state_registration: string | null
@@ -63,7 +72,7 @@ export type RestaurantNfeProfile = {
 }
 
 export const NFE_PROFILE_SELECT = `
-  nfe_enabled, nfe_status, nfe_provider, nfe_environment,
+  nfe_enabled, nfe_status, nfe_provider, nfe_note_type, nfe_environment,
   nfe_provider_token_encrypted, nfe_provider_company_id,
   nfe_state_registration, nfe_municipal_registration, nfe_tax_regime, nfe_cnae,
   nfe_invoice_series, nfe_next_invoice_number,
@@ -76,6 +85,7 @@ export function nfeProfileFromRow(row: Record<string, unknown>): RestaurantNfePr
     nfe_enabled: Boolean(row.nfe_enabled),
     nfe_status: (row.nfe_status as NfeStatus) ?? 'disabled',
     nfe_provider: (row.nfe_provider as NfeProvider | null) ?? null,
+    nfe_note_type: (row.nfe_note_type as NfeNoteType | null) ?? null,
     nfe_environment: (row.nfe_environment as NfeEnvironment) ?? 'homologacao',
     nfe_provider_company_id: (row.nfe_provider_company_id as string | null) ?? null,
     nfe_state_registration: (row.nfe_state_registration as string | null) ?? null,
@@ -124,6 +134,7 @@ export function nfeFieldsToDb(input: RestaurantNfeInput, existingTokenEncrypted?
     nfe_status: status,
     nfe_environment: input.nfeEnvironment ?? 'homologacao',
     nfe_provider: input.nfeProvider || null,
+    nfe_note_type: input.nfeNoteType || null,
     nfe_provider_company_id: input.nfeProviderCompanyId?.trim() || null,
     nfe_state_registration: input.nfeStateRegistration?.trim().toUpperCase() || null,
     nfe_municipal_registration: input.nfeMunicipalRegistration?.trim() || null,
