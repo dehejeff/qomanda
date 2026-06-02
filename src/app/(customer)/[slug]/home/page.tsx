@@ -10,6 +10,7 @@ import { buildSessionBilling } from '@/lib/session-billing'
 import { leaveRestaurantSession } from '@/lib/customer-auth'
 import { SessionSettledPanel, type SessionPaymentReceipt } from '@/components/customer/session-settled-panel'
 import type { Order } from '@/types'
+import { formatServiceLocationLabel } from '@/lib/counter-orders'
 import { Loader2 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; progress: number }> = {
@@ -29,6 +30,7 @@ export default function CustomerHomePage() {
   const [restaurantName, setRestaurantName] = useState('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [tableNumber, setTableNumber] = useState('')
+  const [serviceMode, setServiceMode] = useState<string | null>(null)
   const [customerName, setCustomerName] = useState('')
   const [latestOrder, setLatestOrder] = useState<{ status: string; total: number; itemCount: number } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,6 +66,7 @@ export default function CustomerHomePage() {
       setRestaurantName((session.restaurant as any)?.name ?? '')
       setLogoUrl((session.restaurant as any)?.logo_url ?? null)
       setTableNumber((session.table as any)?.number ?? '')
+      setServiceMode((session as { service_mode?: string }).service_mode ?? null)
 
       const customerId = localStorage.getItem('qomanda_customer_id')
 
@@ -190,6 +193,8 @@ export default function CustomerHomePage() {
 
   const statusCfg = latestOrder ? (STATUS_CONFIG[latestOrder.status] ?? STATUS_CONFIG.pending) : null
   const firstName = customerName.split(' ')[0]
+  const locationLabel = formatServiceLocationLabel(tableNumber, serviceMode)
+  const isCounter = serviceMode === 'counter'
 
   return (
     <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -211,7 +216,7 @@ export default function CustomerHomePage() {
             </span>
           )}
         </div>
-        {tableNumber && (
+        {(tableNumber || isCounter) && (
         <span
           className="text-xs font-mono px-3 py-1.5 rounded-lg"
           style={{
@@ -220,7 +225,7 @@ export default function CustomerHomePage() {
             border: sessionSettled ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(249,115,22,0.2)',
           }}
         >
-          {sessionSettled ? 'Mesa quitada' : `Mesa ${tableNumber}`}
+          {sessionSettled ? (isCounter ? 'Conta quitada' : 'Mesa quitada') : locationLabel}
         </span>
         )}
       </header>
@@ -401,7 +406,7 @@ export default function CustomerHomePage() {
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>info</span>
             <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>
-              {restaurantName} · Mesa {tableNumber}
+              {restaurantName} · {locationLabel}
             </span>
           </div>
           <span

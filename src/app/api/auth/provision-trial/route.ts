@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureRestaurantBilling } from '@/lib/internal-clients'
+import { seedDefaultTablesForModel, type RestaurantModelId } from '@/lib/restaurant-models'
 
 /**
  * POST /api/auth/provision-trial
@@ -17,13 +18,17 @@ export async function POST() {
     const admin = createAdminClient()
     const { data: restaurant } = await admin
       .from('restaurants')
-      .select('id')
+      .select('id, restaurant_model')
       .eq('owner_id', user.id)
       .single()
 
     if (!restaurant) return NextResponse.json({ error: 'Restaurante não encontrado.' }, { status: 404 })
 
     await ensureRestaurantBilling(admin, restaurant.id, 'starter')
+
+    if (restaurant.restaurant_model) {
+      await seedDefaultTablesForModel(admin, restaurant.id, restaurant.restaurant_model as RestaurantModelId)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

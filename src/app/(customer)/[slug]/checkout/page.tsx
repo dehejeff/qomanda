@@ -27,6 +27,8 @@ import {
   isOfferRedeemable,
 } from '@/lib/customer-offers'
 import { customerAuthFetch } from '@/lib/customer-auth'
+import type { PublicPaymentConfig } from '@/lib/restaurant-payment-config'
+import { MANUAL_PIX_KEY_TYPE_LABELS } from '@/lib/restaurant-payment-config'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -34,7 +36,136 @@ type SessionPaymentRow = PaymentReceiptRecord & { customer_id: string | null }
 
 type CloseMode = 'individual' | 'table'
 type SplitType = 'equal' | 'custom'
-type Step      = 'mode' | 'pix' | 'card' | 'cash_amount' | 'cash_pending' | 'confirmed'
+type Step      = 'mode' | 'pix' | 'card' | 'cash_amount' | 'cash_pending' | 'manual_pix' | 'manual_pix_pending' | 'confirmed'
+
+// ── PIX manual — chave do restaurante ────────────────────────
+function ManualPixScreen({
+  suggestedAmount,
+  fixedAmount,
+  manual,
+  onSubmit,
+  onBack,
+  loading,
+}: {
+  suggestedAmount: number
+  fixedAmount: boolean
+  manual: NonNullable<PublicPaymentConfig['manual']>
+  onSubmit: (amount: number) => void
+  onBack: () => void
+  loading: boolean
+}) {
+  const [amount, setAmount] = useState(suggestedAmount.toFixed(2))
+  const [copied, setCopied] = useState(false)
+  const parsedAmt = parseFloat(amount.replace(',', '.')) || 0
+  const extraAmt = parsedAmt - suggestedAmount
+  const valid = parsedAmt >= suggestedAmount - 0.02
+
+  function copyPixKey() {
+    navigator.clipboard.writeText(manual.pixKey).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const bankLine = manual.bankAccount
+    ? [manual.bankName, manual.bankAgency ? `Ag ${manual.bankAgency}` : null, manual.bankAccount + (manual.bankAccountDigit ? `-${manual.bankAccountDigit}` : '')]
+        .filter(Boolean)
+        .join(' · ')
+    : null
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>PIX do restaurante</h2>
+      </div>
+
+      <div className="rounded-xl p-5 space-y-4"
+        style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+        {manual.holderName && (
+          <p className="text-sm font-semibold text-center" style={{ color: '#dae2fd' }}>{manual.holderName}</p>
+        )}
+        <div className="flex flex-col items-center gap-2">
+          <span className="material-symbols-outlined text-[48px]" style={{ color: '#34d399' }}>qr_code_2</span>
+          <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+            {manual.pixKeyType ? MANUAL_PIX_KEY_TYPE_LABELS[manual.pixKeyType] : 'Chave PIX'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3"
+          style={{ background: '#0b1326', border: '1px solid #334155' }}>
+          <span className="flex-1 text-sm font-mono break-all" style={{ color: '#dae2fd' }}>{manual.pixKey}</span>
+          <button onClick={copyPixKey}
+            className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
+            style={{
+              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
+              color: copied ? '#34d399' : '#f97316',
+              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.2)'}`,
+            }}>
+            <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+        </div>
+        {bankLine && (
+          <p className="text-xs text-center font-mono" style={{ color: '#a78b7d' }}>Conta: {bankLine}</p>
+        )}
+        {manual.notes && (
+          <p className="text-xs text-center leading-relaxed" style={{ color: '#e0c0b1' }}>{manual.notes}</p>
+        )}
+        <p className="text-xs text-center leading-relaxed" style={{ color: '#e0c0b1' }}>
+          Transfira o valor abaixo para esta chave. O pagamento cai direto na conta do restaurante.
+        </p>
+      </div>
+
+      <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+            {fixedAmount ? 'Valor a pagar (definido)' : 'Valor a transferir'}
+          </span>
+          {!fixedAmount && (
+            <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+              Mínimo: {formatCurrency(suggestedAmount)}
+            </span>
+          )}
+        </div>
+        {fixedAmount ? (
+          <div className="flex items-center gap-2 h-12 px-3 rounded-lg"
+            style={{ background: '#0b1326', border: '1px solid #584237' }}>
+            <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
+              {suggestedAmount.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+        ) : (
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+            <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
+              onChange={e => setAmount(e.target.value)}
+              className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
+              style={{ background: '#0b1326', border: `1px solid ${valid ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+            />
+          </div>
+        )}
+        {!fixedAmount && extraAmt > 0.01 && (
+          <p className="text-xs" style={{ color: '#34d399' }}>+{formatCurrency(extraAmt)} virará saldo da mesa.</p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSubmit(fixedAmount ? suggestedAmount : parsedAmt)}
+        disabled={loading || !valid}
+        className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+        style={{ background: '#34d399', color: '#064e3b', boxShadow: '0 8px 30px rgba(52,211,153,0.25)', fontFamily: 'Geist, sans-serif' }}
+      >
+        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Registrando...</> : (
+          <><span className="material-symbols-outlined">check_circle</span> Já transferi — avisar restaurante</>
+        )}
+      </button>
+    </div>
+  )
+}
 
 // ── PIX Screen ───────────────────────────────────────────────
 // ── PIX Screen ── Mostra QR Code real gerado pelo Asaas ─────
@@ -313,6 +444,7 @@ function CashPendingScreen({
   onBack,
   onCancel,
   cancelling,
+  variant = 'cash',
 }: {
   amount: number
   minimumOwed?: number
@@ -320,8 +452,10 @@ function CashPendingScreen({
   onBack: () => void
   onCancel: () => void
   cancelling: boolean
+  variant?: 'cash' | 'pix'
 }) {
   const extra = minimumOwed != null ? Math.max(0, roundMoney(amount - minimumOwed)) : 0
+  const isPix = variant === 'pix'
 
   return (
     <div className="flex flex-col gap-5">
@@ -329,14 +463,21 @@ function CashPendingScreen({
         <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento em dinheiro</h2>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
+          {isPix ? 'PIX enviado' : 'Pagamento em dinheiro'}
+        </h2>
       </div>
 
       <div className="flex flex-col items-center gap-4 rounded-xl p-6 text-center"
         style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
         <div className="w-16 h-16 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(249,115,22,0.12)', border: '2px solid rgba(249,115,22,0.35)' }}>
-          <span className="material-symbols-outlined text-[32px]" style={{ color: '#f97316' }}>payments</span>
+          style={{
+            background: isPix ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
+            border: `2px solid ${isPix ? 'rgba(52,211,153,0.35)' : 'rgba(249,115,22,0.35)'}`,
+          }}>
+          <span className="material-symbols-outlined text-[32px]" style={{ color: isPix ? '#34d399' : '#f97316' }}>
+            {isPix ? 'qr_code_2' : 'payments'}
+          </span>
         </div>
         <div>
           <p className="text-2xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
@@ -348,7 +489,9 @@ function CashPendingScreen({
             </p>
           )}
           <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
-            Entregue este valor ao garçom ou caixa da Mesa {tableNumber}.
+            {isPix
+              ? `Transferência PIX informada para a Mesa ${tableNumber}. Aguarde o restaurante confirmar o recebimento.`
+              : `Entregue este valor ao garçom ou caixa da Mesa ${tableNumber}.`}
           </p>
         </div>
       </div>
@@ -409,8 +552,13 @@ export default function CheckoutPage() {
   const [pendingCashPaymentId, setPendingCashPaymentId] = useState('')
   const [pendingCashAmount, setPendingCashAmount] = useState(0)
   const [pendingCashMinOwed, setPendingCashMinOwed] = useState(0)
+  const [pendingManualPixPaymentId, setPendingManualPixPaymentId] = useState('')
+  const [pendingManualPixAmount, setPendingManualPixAmount] = useState(0)
+  const [pendingManualPixMinOwed, setPendingManualPixMinOwed] = useState(0)
+  const [paymentConfig, setPaymentConfig] = useState<PublicPaymentConfig | null>(null)
   const [cashAmountInput, setCashAmountInput] = useState('')
   const [tableNumber, setTableNumber] = useState('')
+  const [isCounterSession, setIsCounterSession] = useState(false)
   const [splitAlcohol, setSplitAlcohol] = useState(false)
   const [alcoholSplitDismissed, setAlcoholSplitDismissed] = useState(false)
   const [restaurantId, setRestaurantId] = useState('')
@@ -506,7 +654,44 @@ export default function CheckoutPage() {
   const sessionFullySettled = subTotal > 0.01 && remaining <= 0.02
   const tableCreditForMe  = Math.max(0, myOpen.openTotal - myIndividualBase)
 
-  /** Mínimo que o cliente deve pagar (sem extra) — usado no fluxo de dinheiro. */
+  const usesManualPix = paymentConfig?.provider === 'manual' && paymentConfig.manualReady
+
+  const availablePaymentMethods = useMemo(() => {
+    const all = [
+      { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'     },
+      { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito'  },
+      { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito' },
+      { value: 'cash'   as PaymentMethod, icon: 'payments',    label: 'Dinheiro', disabled: splitAlcohol },
+    ]
+    if (usesManualPix) {
+      return all.filter(m => m.value === 'pix' || m.value === 'cash')
+    }
+    if (paymentConfig?.provider === 'manual' && !paymentConfig.manualReady) {
+      return all.filter(m => m.value === 'cash')
+    }
+    if (paymentConfig && paymentConfig.digitalMethods.length === 0 && !usesManualPix) {
+      return all.filter(m => m.value === 'cash')
+    }
+    return all.map(m => {
+      if (m.value === 'cash') return { ...m, disabled: Boolean(m.disabled) }
+      if (m.value === 'pix') {
+        const pixOk = usesManualPix || Boolean(paymentConfig?.digitalMethods.includes('pix'))
+        return { ...m, disabled: !pixOk }
+      }
+      if (m.value === 'debit' || m.value === 'credit') {
+        return { ...m, disabled: !paymentConfig?.digitalMethods.includes(m.value) }
+      }
+      return m
+    })
+  }, [usesManualPix, paymentConfig, splitAlcohol])
+
+  useEffect(() => {
+    if (!usesManualPix && (method === 'debit' || method === 'credit')) {
+      setMethod('pix')
+    }
+  }, [usesManualPix, method])
+
+  /** Mínimo que o cliente deve pagar (sem extra) — dinheiro e PIX manual. */
   const cashMinimumOwed = closeMode === 'individual' ? myIndividualBase : myDefinedAmount
 
   function getAmountToPay() {
@@ -531,7 +716,7 @@ export default function CheckoutPage() {
     async function load() {
       const supabase = createClient()
 
-      const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes] = await Promise.all([
+      const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes, pendingManualPixRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
         supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
@@ -539,12 +724,19 @@ export default function CheckoutPage() {
         myCustomerId
           ? supabase.from('payments').select('id, amount, status, confirmation_code').eq('session_id', sessionId).eq('customer_id', myCustomerId).eq('method', 'cash').eq('status', 'pending').maybeSingle()
           : Promise.resolve({ data: null }),
+        myCustomerId
+          ? supabase.from('payments').select('id, amount, status, confirmation_code, asaas_payment_id').eq('session_id', sessionId).eq('customer_id', myCustomerId).eq('method', 'pix').eq('status', 'pending').maybeSingle()
+          : Promise.resolve({ data: null }),
       ])
 
       const restaurant = (sessionRes.data as any)?.restaurant
       if (restaurant) {
         setRestaurantId(restaurant.id)
         setRestaurantName(restaurant.name)
+        try {
+          const cfgRes = await fetch(`/api/public/payment-config?restaurantId=${encodeURIComponent(restaurant.id)}`)
+          if (cfgRes.ok) setPaymentConfig(await cfgRes.json())
+        } catch { /* ignore */ }
       }
 
       // Ofertas do cliente neste restaurante (ativas ou já resgatadas nesta sessão)
@@ -567,6 +759,7 @@ export default function CheckoutPage() {
 
       if (!sessionRes.data) { router.replace(`/${params.slug}`); return }
       setTableNumber((sessionRes.data.table as any)?.number ?? '')
+      setIsCounterSession((sessionRes.data as { service_mode?: string }).service_mode === 'counter')
 
       const billableOrders = (ordersRes.data ?? []).filter((o: any) => o.status !== 'cancelled')
       const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
@@ -628,7 +821,14 @@ export default function CheckoutPage() {
       setCustomAmounts(Object.fromEntries(parts.map(p => [p.id, equalAmt])))
 
       const pendingCash = (pendingCashRes as { data: { id: string; amount: number } | null }).data
-      if (pendingCash) {
+      const pendingManualPixRaw = (pendingManualPixRes as { data: { id: string; amount: number; asaas_payment_id?: string | null } | null }).data
+      const pendingManualPix = pendingManualPixRaw && !pendingManualPixRaw.asaas_payment_id ? pendingManualPixRaw : null
+
+      if (pendingManualPix) {
+        setPendingManualPixPaymentId(pendingManualPix.id)
+        setPendingManualPixAmount(Number(pendingManualPix.amount))
+        setStep(prev => prev === 'confirmed' ? prev : 'manual_pix_pending')
+      } else if (pendingCash) {
         setPendingCashPaymentId(pendingCash.id)
         setPendingCashAmount(Number(pendingCash.amount))
         setStep(prev => prev === 'confirmed' ? prev : 'cash_pending')
@@ -677,6 +877,84 @@ export default function CheckoutPage() {
 
     return () => { supabase.removeChannel(ch) }
   }, [pendingCashPaymentId, customerWhatsapp, pendingCashAmount])
+
+  // Confirmação em tempo real — PIX manual
+  useEffect(() => {
+    if (!pendingManualPixPaymentId) return
+
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`manual-pix-payment-${pendingManualPixPaymentId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'payments',
+        filter: `id=eq.${pendingManualPixPaymentId}`,
+      }, (payload) => {
+        const row = payload.new as { status?: string; confirmation_code?: string; amount?: number }
+        if (row.status !== 'paid' || !row.confirmation_code) return
+
+        setConfirmationCode(row.confirmation_code)
+        setPendingManualPixPaymentId('')
+        if (row.amount) setPendingManualPixAmount(Number(row.amount))
+        setStep('confirmed')
+
+        if (customerWhatsapp) {
+          sendReceiptWhatsApp(Number(row.amount ?? pendingManualPixAmount), row.confirmation_code, 'combined')
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
+  }, [pendingManualPixPaymentId, customerWhatsapp, pendingManualPixAmount])
+
+  async function processManualPixPayment(amount: number, minimumOwed: number): Promise<void> {
+    setPaying(true)
+    try {
+      const res = await fetch('/api/payments/manual-pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          amount,
+          splitType: 'combined',
+          customerId: myCustomerId,
+          serviceFeeIncluded: includeServiceFee,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao registrar PIX manual.')
+      setPendingManualPixPaymentId(data.paymentId)
+      setPendingManualPixAmount(data.amount)
+      setPendingManualPixMinOwed(minimumOwed)
+      setStep('manual_pix_pending')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao registrar PIX manual.')
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  async function cancelManualPixPayment() {
+    if (!pendingManualPixPaymentId || !myCustomerId) return
+    setPaying(true)
+    try {
+      const res = await fetch(
+        `/api/payments/manual-pix?paymentId=${encodeURIComponent(pendingManualPixPaymentId)}&customerId=${encodeURIComponent(myCustomerId)}`,
+        { method: 'DELETE' },
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao cancelar.')
+      setPendingManualPixPaymentId('')
+      setPendingManualPixAmount(0)
+      setStep('manual_pix')
+      toast.message('Solicitação de PIX cancelada.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cancelar.')
+    } finally {
+      setPaying(false)
+    }
+  }
 
   // Recalculate equal amounts when selection changes or remaining changes
   useEffect(() => {
@@ -1045,6 +1323,16 @@ export default function CheckoutPage() {
       return
     }
 
+    if (method === 'pix' && usesManualPix) {
+      if (splitAlcohol) {
+        toast.error('PIX manual não está disponível com recibos separados.')
+        return
+      }
+      await createCloseRequest()
+      setStep('manual_pix')
+      return
+    }
+
     await createCloseRequest()
 
     // Recibos separados: processar split antes de ir para tela PIX única
@@ -1071,12 +1359,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const PAYMENT_METHODS = [
-    { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'     },
-    { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito'  },
-    { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito' },
-    { value: 'cash'   as PaymentMethod, icon: 'payments',    label: 'Dinheiro', disabled: splitAlcohol },
-  ]
+  const PAYMENT_METHODS = availablePaymentMethods
 
   useEffect(() => {
     if (step !== 'confirmed' || !tableSettled || !sessionId) return
@@ -1228,6 +1511,53 @@ export default function CheckoutPage() {
   // ── PIX / CARD / DINHEIRO ───────────────────────────────────
   const isTableMode = closeMode === 'table'
 
+  if (step === 'manual_pix' && paymentConfig?.manual) {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <header className="sticky top-0 z-40 flex items-center px-6 h-16"
+          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
+        </header>
+        <main className="flex-1 px-6 py-6 pb-28">
+          <ManualPixScreen
+            suggestedAmount={getAmountToPay()}
+            fixedAmount={isTableMode}
+            manual={paymentConfig.manual}
+            onSubmit={async (amount) => {
+              await processManualPixPayment(amount, cashMinimumOwed)
+            }}
+            onBack={() => setStep('mode')}
+            loading={paying}
+          />
+        </main>
+        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+      </div>
+    )
+  }
+
+  if (step === 'manual_pix_pending') {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <header className="sticky top-0 z-40 flex items-center px-6 h-16"
+          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
+        </header>
+        <main className="flex-1 px-6 py-6 pb-28">
+          <CashPendingScreen
+            amount={pendingManualPixAmount || getAmountToPay()}
+            minimumOwed={pendingManualPixMinOwed > 0.01 ? pendingManualPixMinOwed : undefined}
+            tableNumber={tableNumber}
+            onBack={() => setStep('manual_pix')}
+            onCancel={cancelManualPixPayment}
+            cancelling={paying}
+            variant="pix"
+          />
+        </main>
+        <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
+      </div>
+    )
+  }
+
   if (step === 'pix') {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -1331,8 +1661,8 @@ export default function CheckoutPage() {
   const showPaymentFlow = !(closeMode === 'individual' && hasPaidMyShare) && !sessionFullySettled
 
   const closeModeOptions = [
-    { mode: 'individual' as CloseMode, icon: 'person', title: 'Só a minha parte', desc: 'Pago apenas meu consumo' },
-    ...(sessionFullySettled
+    { mode: 'individual' as CloseMode, icon: 'person', title: isCounterSession ? 'Pagar meu pedido' : 'Só a minha parte', desc: isCounterSession ? 'PIX, cartão ou dinheiro' : 'Pago apenas meu consumo' },
+    ...(sessionFullySettled || isCounterSession
       ? []
       : [{ mode: 'table' as CloseMode, icon: 'groups', title: 'Fechar mesa toda', desc: 'Inicia fechamento coletivo' }]),
   ]
@@ -1346,7 +1676,9 @@ export default function CheckoutPage() {
         <button onClick={() => router.back()} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#ffb690' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Fechar Conta</h1>
+        <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
+          {isCounterSession ? 'Pagamento' : 'Fechar Conta'}
+        </h1>
       </header>
 
       <main className="flex-1 px-6 py-6 pb-56 space-y-5">

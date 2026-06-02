@@ -10,24 +10,29 @@ create table if not exists plans (
   monthly_fee           numeric(10,2) not null default 0,
   platform_fee_percent  numeric(5,2)  not null default 0,
   platform_fee_fixed    numeric(10,2) not null default 0,
+  commission_plan_discount numeric(4,2) not null default 0,
   trial_days            int           not null default 14,
   active                boolean       not null default true,
   display_order         int           not null default 0,
   created_at            timestamptz   not null default now()
 );
 
-insert into plans (id, name, max_tables, monthly_fee, platform_fee_percent, platform_fee_fixed, trial_days, display_order)
+alter table plans
+  add column if not exists commission_plan_discount numeric(4,2) not null default 0;
+
+insert into plans (id, name, max_tables, monthly_fee, platform_fee_percent, platform_fee_fixed, commission_plan_discount, trial_days, display_order)
 values
-  ('starter',    'Starter',    20,  199.00, 1.99, 0, 14, 1),
-  ('growth',     'Growth',     50,  299.00, 1.79, 0, 14, 2),
-  ('pro',        'Pro',       100,  449.00, 1.49, 0, 14, 3),
-  ('enterprise', 'Enterprise', null, 0.00, 0.00, 0, 14, 4)
+  ('starter',    'Starter',    20,  199.00, 2.99, 0, 0,   14, 1),
+  ('growth',     'Growth',     50,  299.00, 2.99, 0, 0.20, 14, 2),
+  ('pro',        'Pro',       100,  499.00, 2.99, 0, 0.40, 14, 3),
+  ('enterprise', 'Enterprise', null, 0.00, 0.00, 0, 0.60, 14, 4)
 on conflict (id) do update set
   name = excluded.name,
   max_tables = excluded.max_tables,
   monthly_fee = excluded.monthly_fee,
   platform_fee_percent = excluded.platform_fee_percent,
   platform_fee_fixed = excluded.platform_fee_fixed,
+  commission_plan_discount = excluded.commission_plan_discount,
   trial_days = excluded.trial_days,
   display_order = excluded.display_order;
 

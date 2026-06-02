@@ -4,6 +4,7 @@ import { syncCloseRequestOnPayment } from '@/lib/sync-payment-close-request'
 import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
+import { applyCommissionToPayment } from '@/lib/payment-commission'
 
 export type PaymentConfirmRow = {
   id: string
@@ -46,6 +47,22 @@ export async function confirmPaymentRecord(
   if (error) {
     throw new Error(error.message)
   }
+
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('plan_id')
+    .eq('id', payment.restaurant_id)
+    .maybeSingle()
+
+  await applyCommissionToPayment(
+    supabase,
+    payment.id,
+    payment.restaurant_id,
+    restaurant?.plan_id ?? null,
+    Number(payment.amount),
+    payment.method,
+    new Date(paidAt),
+  )
 
   await syncCloseRequestOnPayment(
     supabase,

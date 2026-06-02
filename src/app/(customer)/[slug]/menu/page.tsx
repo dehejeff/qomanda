@@ -168,12 +168,24 @@ export default function MenuPage() {
       }))
     )
 
+    const isCounter = localStorage.getItem('qomanda_service_mode') === 'counter'
+    if (isCounter) {
+      await fetch('/api/orders/counter-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, sessionId }),
+      })
+    }
+
     setCart([])
     setNotes({})
     closeItemDetail()
     setShowReview(false)
-    toast.success('Pedido enviado!')
+    toast.success(isCounter ? 'Pedido enviado! Acompanhe o número.' : 'Pedido enviado!')
     setPlacing(false)
+    if (isCounter) {
+      router.push(`/${params.slug}/pedido`)
+    }
   }
 
   function openReview() {

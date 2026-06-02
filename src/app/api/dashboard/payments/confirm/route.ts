@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
 import { normalizePaymentAmount } from '@/lib/payment-db'
+import { requireWaiterAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
+
+function isManualConfirmMethod(method: string, asaasPaymentId: string | null | undefined): boolean {
+  return method === 'cash' || (method === 'pix' && !asaasPaymentId)
+}
 
 /**
  * POST /api/dashboard/payments/confirm
- * Restaurante confirma recebimento (ex.: dinheiro na mesa).
+ * Restaurante confirma recebimento (dinheiro ou PIX manual).
+ * Owner, manager e garçom — garçom só confirma cash / PIX manual.
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Faça login no painel.' }, { status: 401 })
-    }
+    const access = await requireWaiterAccess()
 
     const body = await req.json() as { paymentId?: string; receivedAmount?: number }
     const { paymentId, receivedAmount: rawReceived } = body
@@ -28,12 +28,20 @@ export async function POST(req: NextRequest) {
 
     const { data: payment } = await admin
       .from('payments')
-      .select('id, session_id, customer_id, restaurant_id, amount, service_fee_included, status, method')
+      .select('id, session_id, customer_id, restaurant_id, amount, service_fee_included, status, method, asaas_payment_id')
       .eq('id', paymentId)
       .maybeSingle()
 
     if (!payment) {
       return NextResponse.json({ error: 'Pagamento não encontrado.' }, { status: 404 })
+    }
+
+    if (payment.restaurant_id !== access.restaurantId) {
+      return NextResponse.json({ error: 'Sem permissão para confirmar este pagamento.' }, { status: 403 })
+    }
+
+    if (access.role === 'waiter' && !isManualConfirmMethod(payment.method, payment.asaas_payment_id)) {
+      return NextResponse.json({ error: 'Garçom só confirma dinheiro ou PIX manual.' }, { status: 403 })
     }
 
     if (payment.status === 'paid') {
@@ -42,17 +50,6 @@ export async function POST(req: NextRequest) {
 
     if (payment.status !== 'pending' && payment.status !== 'processing') {
       return NextResponse.json({ error: 'Este pagamento não pode ser confirmado.' }, { status: 400 })
-    }
-
-    const { data: restaurant } = await admin
-      .from('restaurants')
-      .select('id')
-      .eq('id', payment.restaurant_id)
-      .eq('owner_id', user.id)
-      .maybeSingle()
-
-    if (!restaurant) {
-      return NextResponse.json({ error: 'Sem permissão para confirmar este pagamento.' }, { status: 403 })
     }
 
     let finalAmount = Number(payment.amount)
@@ -88,6 +85,9 @@ export async function POST(req: NextRequest) {
       sessionClosed: result.sessionClosed,
     })
   } catch (err) {
+    if (err instanceof RestaurantAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
     console.error('[Confirm Payment Error]', err)
     return NextResponse.json({ error: 'Erro ao confirmar pagamento.' }, { status: 500 })
   }

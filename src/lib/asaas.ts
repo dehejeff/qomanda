@@ -5,32 +5,47 @@
 
 import { asaasBaseUrl, getAsaasConfig } from '@/lib/asaas-config'
 
-async function request<T = unknown>(
+export type AsaasRequestContext = {
+  apiKey: string
+  environment: 'sandbox' | 'production'
+}
+
+async function resolveContext(override?: AsaasRequestContext): Promise<AsaasRequestContext> {
+  if (override) return override
+  const config = await getAsaasConfig()
+  if (!config.apiKey) throw new Error('Gateway de pagamento não configurado.')
+  return { apiKey: config.apiKey, environment: config.environment }
+}
+
+async function requestWithContext<T>(
+  ctx: AsaasRequestContext,
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const config = await getAsaasConfig()
-  if (!config.apiKey) {
-    throw new Error('Gateway de pagamento não configurado.')
-  }
-
-  const res = await fetch(`${asaasBaseUrl(config.environment)}${path}`, {
+  const res = await fetch(`${asaasBaseUrl(ctx.environment)}${path}`, {
     ...options,
     headers: {
-      access_token: config.apiKey,
+      access_token: ctx.apiKey,
       'Content-Type': 'application/json',
       ...(options.headers ?? {}),
     },
   })
 
   const data = await res.json()
-
   if (!res.ok) {
     const msg = data?.errors?.[0]?.description ?? data?.message ?? 'Erro na API Asaas'
     throw new Error(msg)
   }
-
   return data as T
+}
+
+async function request<T = unknown>(
+  path: string,
+  options: RequestInit = {},
+  ctxOverride?: AsaasRequestContext,
+): Promise<T> {
+  const ctx = await resolveContext(ctxOverride)
+  return requestWithContext<T>(ctx, path, options)
 }
 
 /** Testa credenciais sem usar cache — útil no portal interno. */
@@ -177,8 +192,9 @@ export async function createPixPayment(params: {
   value: number
   description?: string
   externalReference?: string
-  dueDate?: string // YYYY-MM-DD, default = hoje
+  dueDate?: string
   split?: AsaasSplitEntry[]
+  gateway?: AsaasRequestContext
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   return request<AsaasPayment>('/payments', {
@@ -192,7 +208,7 @@ export async function createPixPayment(params: {
       externalReference: params.externalReference,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
-  })
+  }, params.gateway)
 }
 
 /**
@@ -209,6 +225,7 @@ export async function createCreditCardPayment(params: {
   creditCardHolderInfo: AsaasCreditCardHolderInfo
   dueDate?: string
   split?: AsaasSplitEntry[]
+  gateway?: AsaasRequestContext
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   const installmentCount = params.installmentCount ?? 1
@@ -235,7 +252,7 @@ export async function createCreditCardPayment(params: {
       creditCardHolderInfo: params.creditCardHolderInfo,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
-  })
+  }, params.gateway)
 }
 
 /**
@@ -276,6 +293,7 @@ export async function createCreditCardPaymentWithToken(params: {
   externalReference?: string
   dueDate?: string
   split?: AsaasSplitEntry[]
+  gateway?: AsaasRequestContext
 }): Promise<AsaasPayment> {
   const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
   const installmentCount = params.installmentCount ?? 1
@@ -295,14 +313,17 @@ export async function createCreditCardPaymentWithToken(params: {
       creditCardToken: params.creditCardToken,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
-  })
+  }, params.gateway)
 }
 
 /**
  * Busca o QR Code PIX de uma cobrança.
  */
-export async function getPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
-  return request<AsaasPixQrCode>(`/payments/${paymentId}/pixQrCode`)
+export async function getPixQrCode(
+  paymentId: string,
+  gateway?: AsaasRequestContext,
+): Promise<AsaasPixQrCode> {
+  return request<AsaasPixQrCode>(`/payments/${paymentId}/pixQrCode`, {}, gateway)
 }
 
 /**

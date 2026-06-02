@@ -7,6 +7,7 @@ import { fetchDashboardOverview, type DashboardOverviewData } from '@/lib/dashbo
 import { useRestaurantRealtime } from '@/lib/use-restaurant-realtime'
 import { OverviewOrdersPanel } from '@/components/dashboard/overview-orders-panel'
 import { OverviewFloorMap } from '@/components/dashboard/overview-floor-map'
+import { RestaurantOnboardingPanel } from '@/components/dashboard/restaurant-onboarding-panel'
 
 type Props = {
   restaurantId: string
@@ -43,6 +44,8 @@ export function OverviewLiveDashboard({ restaurantId, restaurantSlug, initial }:
           <span className="text-xs font-mono text-on-surface">Live System</span>
         </div>
       </div>
+
+      <RestaurantOnboardingPanel />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-card-gap">
         <div className="tonal-layer-1 ghost-border p-stack-lg rounded-xl flex flex-col gap-2 relative overflow-hidden">

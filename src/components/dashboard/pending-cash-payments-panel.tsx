@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Banknote, Check, Loader2 } from 'lucide-react'
+import { Banknote, Check, Loader2, QrCode } from 'lucide-react'
 
-type PendingCashPayment = {
+type PendingPayment = {
   id: string
   amount: number
   created_at: string
+  method: 'cash' | 'pix'
   customerName: string
 }
 
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export function PendingCashPaymentsPanel({ sessionId }: Props) {
-  const [payments, setPayments] = useState<PendingCashPayment[]>([])
+  const [payments, setPayments] = useState<PendingPayment[]>([])
   const [receivedAmounts, setReceivedAmounts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
@@ -27,20 +28,25 @@ export function PendingCashPaymentsPanel({ sessionId }: Props) {
     const supabase = createClient()
     const { data } = await supabase
       .from('payments')
-      .select('id, amount, created_at, customer:customers(first_name, last_name)')
+      .select('id, amount, created_at, method, asaas_payment_id, customer:customers(first_name, last_name)')
       .eq('session_id', sessionId)
-      .eq('method', 'cash')
+      .in('method', ['cash', 'pix'])
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
 
-    const rows = (data ?? []).map((p: any) => ({
-      id: p.id,
-      amount: Number(p.amount),
-      created_at: p.created_at,
-      customerName: p.customer
-        ? `${p.customer.first_name} ${p.customer.last_name}`.trim()
-        : 'Cliente',
-    }))
+    const rows = (data ?? [])
+      .filter((p: { method: string; asaas_payment_id?: string | null }) =>
+        p.method === 'cash' || (p.method === 'pix' && !p.asaas_payment_id),
+      )
+      .map((p: any) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        created_at: p.created_at,
+        method: p.method as 'cash' | 'pix',
+        customerName: p.customer
+          ? `${p.customer.first_name} ${p.customer.last_name}`.trim()
+          : 'Cliente',
+      }))
 
     setPayments(rows)
     setReceivedAmounts(prev => {
@@ -59,7 +65,7 @@ export function PendingCashPaymentsPanel({ sessionId }: Props) {
     load()
     const supabase = createClient()
     const ch = supabase
-      .channel(`pending-cash-${sessionId}`)
+      .channel(`pending-manual-${sessionId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -97,7 +103,7 @@ export function PendingCashPaymentsPanel({ sessionId }: Props) {
       toast.success(
         Math.abs(parsed - declaredAmount) > 0.02
           ? `Confirmado ${formatCurrency(parsed)} (cliente informou ${formatCurrency(declaredAmount)})`
-          : 'Pagamento em dinheiro confirmado!',
+          : 'Pagamento confirmado!',
       )
       await load()
     } catch {
@@ -117,10 +123,19 @@ export function PendingCashPaymentsPanel({ sessionId }: Props) {
 
   if (payments.length === 0) return null
 
+  const cashCount = payments.filter(p => p.method === 'cash').length
+  const pixCount = payments.filter(p => p.method === 'pix').length
+  const label = cashCount && pixCount
+    ? 'Aguardando confirmação (dinheiro / PIX manual)'
+    : pixCount
+      ? 'Aguardando confirmação (PIX manual)'
+      : 'Aguardando confirmação (dinheiro)'
+
   return (
     <div className="space-y-2">
       <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest flex items-center gap-1.5">
-        <Banknote className="h-3 w-3" /> Aguardando confirmação (dinheiro)
+        {pixCount ? <QrCode className="h-3 w-3" /> : <Banknote className="h-3 w-3" />}
+        {label}
       </p>
       {payments.map(p => {
         const received = parseFloat(receivedAmounts[p.id]?.replace(',', '.') ?? '') || 0
@@ -135,6 +150,7 @@ export function PendingCashPaymentsPanel({ sessionId }: Props) {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-on-surface truncate">{p.customerName}</p>
                 <p className="text-xs font-mono text-on-surface-variant">
+                  {p.method === 'pix' ? 'PIX manual · ' : 'Dinheiro · '}
                   Informou {formatCurrency(p.amount)} · {new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>

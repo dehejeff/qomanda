@@ -1,6 +1,87 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-05-31
+> Última atualização: 2026-05-31  
+> **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
+
+---
+
+## 🚀 Próximas etapas (prioridade imediata)
+
+> Ordem para go-live do primeiro cliente piloto. Detalhes em [`docs/ESTEIRA.md`](docs/ESTEIRA.md) · Fase 2.
+
+| Prioridade | Entrega | Status |
+|------------|---------|--------|
+| **Agora** | Rodar migrações Supabase (portal + conta restaurante + PIX manual + modelos) | ⏳ Pendente |
+| **P0** | Garçom confirmar PIX manual + dinheiro no painel (`/dashboard/waiter/payments`) | ✅ Feito |
+| **P0** | Smoke test E2E: cadastro com modelo → PIX → pedido → confirmação | ⏳ Após migrações |
+| **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | 🔴 A fazer |
+| **P1** | Landing e roadmap alinhados (modelos + comissão mensal, não taxa por tx) | ✅ Feito |
+| **P1** | Deploy do build atual (PIX manual, balcão, garçom, presets) | ⏳ Pendente |
+| **P2** | Fatura automática dia 5 (boleto/PIX Qomanda) | 🔴 Fase 3 |
+| **P2** | NF-e automática + NF serviço Qomanda → restaurante | 🔴 Fase 3 |
+| **P2** | Mercado Pago (#4 na esteira) | 🔴 Fase 3 · Q4 2026 |
+| **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
+
+**Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
+
+---
+
+## 🍽️ Modelos operacionais (cadastro)
+
+| Modelo | ID | Status | Fluxo |
+|--------|-----|--------|-------|
+| Salão com mesas | `salao` | ✅ Disponível | QR mesa · garçom · checkout |
+| Balcão / fast food | `balcao` | ✅ Disponível | Link `/balcao` · pedido # |
+| Salão + balcão | `salao_balcao` | ✅ Disponível | Ambos fluxos |
+| **Food hall / praça** | `food_hall` | ✅ Disponível | **Mesmo fluxo do balcão** — pedido #, PIX manual, aviso “pronto” |
+| Rodízio / taxa fixa | `rodizio` | 🔜 Em breve | — |
+| Buffet por peso | `buffet_peso` | 🔜 Em breve | — |
+
+> Detalhamento: [`docs/modulos/SALAO.md`](docs/modulos/SALAO.md) · [`BALCAO.md`](docs/modulos/BALCAO.md) · [`SALAO_BALCAO.md`](docs/modulos/SALAO_BALCAO.md) · [`FOOD_HALL.md`](docs/modulos/FOOD_HALL.md)
+
+> Food hall v2 (comanda única multi-estação) fica para Fase 4; **v1 já serve praça de alimentação** com preset balcão.
+
+---
+
+## 💳 Gateways de pagamento — ordem planejada (#1–#8)
+
+> **Regra em todos os gateways:** cobrança na **conta do restaurante** (100% do valor). Comissão Qomanda sobre GMV digital, **faturada mensalmente (dia 5)** — sem split na hora da venda.  
+> Arquitetura alvo: interface `PaymentProvider` unificando checkout, webhooks e credenciais por restaurante (`payment_gateway_provider`).
+
+| # | Gateway | Métodos | Como conecta | Fase | Previsão |
+|---|---------|---------|--------------|------|----------|
+| **1** | **PIX manual** | PIX | Chave PIX do restaurante + confirmação no painel | v1 | ✅ Disponível |
+| **2** | **Dinheiro** | Cash | Cliente informa · garçom/dono confirma (0% comissão) | v1 | ✅ Disponível |
+| **3** | **Asaas** | PIX, crédito, débito | API key da **conta Asaas do restaurante** | v1 | ✅ Disponível |
+| **4** | **Mercado Pago** | PIX, crédito, débito | OAuth / credenciais do vendedor (conta MP do restaurante) | Fase 3 | Q4 2026 |
+| **5** | **PagBank** (PagSeguro) | PIX, crédito | OAuth ou token API conta vendedor | Fase 3 | Q1 2027 |
+| **6** | **Stone** | PIX, crédito | API e-commerce / link na conta Stone | Fase 4 | 2027 |
+| **7** | **Cielo** | Crédito, débito | API e-commerce (Checkout Cielo) | Fase 4 | 2027 |
+| **8** | **Getnet** (Santander) | PIX, crédito | Sob demanda (enterprise) | Backlog | A definir |
+
+### Por gateway — escopo técnico (v2+)
+
+- [ ] **Abstração `PaymentProvider`** — resolver gateway no checkout, webhooks e painel Settings
+- [ ] **Mercado Pago**
+  - [ ] OAuth connect + refresh token criptografado
+  - [ ] PIX QR dinâmico + cartão no checkout
+  - [ ] Webhook confirmação → `confirmPaymentRecord` + comissão
+  - [ ] UI Settings: conectar / desconectar conta MP
+- [ ] **PagBank**
+  - [ ] Onboarding vendedor + PIX/cartão
+  - [ ] Webhooks e reconciliação
+- [ ] **Stone**
+  - [ ] Link de pagamento ou API direta
+  - [ ] Suporte a parcelamento no checkout
+- [ ] **Cielo**
+  - [ ] Checkout transparente ou redirect
+  - [ ] Tokenização de cartão (Hub do cliente)
+
+### Fora do escopo imediato
+
+- Marketplace split Asaas (opcional, legado) — não é padrão do modelo atual
+- Maquininha física Stone/Cielo sem API — restaurante continua usando maquininha avulsa; Qomanda não cobra comissão
+- Stripe — avaliar apenas se houver demanda internacional
 
 ---
 
@@ -55,8 +136,8 @@
 - [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe
 
 ### Segurança & Pagamentos
-- [x] Integração **Qomanda Pay (Asaas)** — PIX, crédito, marketplace/split por restaurante, webhook
-- [x] Taxa da plataforma (`platform_fee_percent` + `platform_fee_fixed`) por plano/restaurante
+- [x] **Recebimento na conta do restaurante** — PIX manual, Asaas (API do restaurante), dinheiro
+- [x] Comissão progressiva sobre GMV digital — faturada mensalmente (dia 5), não split na hora
 - [x] Recibos, códigos de confirmação e histórico de pagamentos
 - [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
 - [x] Senha de 6 dígitos para cartões salvos no Hub; sessão com idle 15 min / TTL 24 h
@@ -68,7 +149,7 @@
 - [x] Realtime subscriptions (orders, sessions, tables)
 - [x] Modo dev com mock data (DEV_BYPASS)
 - [x] Tipagem TypeScript completa
-- [x] Landing page de marketing com pricing e comparativo de mercado
+- [x] Landing page — modelos operacionais, pricing com comissão mensal (não taxa por transação)
 - [x] Roadmap público, Termos de Uso e Política de Privacidade
 - [x] Migrações incrementais em `supabase/migrate-*.sql`
 
@@ -98,19 +179,22 @@
 
 > Entregas restantes para operação comercial plena. **Junho 2026**
 
-### 1. Qomanda Pay em produção
-- [x] Painel Settings → Pagamentos — restaurante cadastra conta bancária de repasse
-- [x] Onboarding Asaas (subconta/wallet) por restaurante
-- [x] Split automático com taxa da plataforma por transação
-- [ ] PIX, crédito e débito liberados automaticamente após aprovação da conta Asaas
-- [ ] Modo teste (bypass) desligável em produção
+### 1. Qomanda Pay em produção (conta do restaurante)
+- [x] Pagamentos via **conta Asaas do restaurante** (100% do valor)
+- [x] Comissão progressiva registrada por pagamento + fatura mensal (dia 5)
+- [x] Modo **balcão** — número do pedido + acompanhamento no celular
+- [x] **Painel garçom** (`/dashboard/waiter`) — fila de pedidos e mesas
+- [x] **PIX manual** — chave do restaurante, sem Asaas obrigatório
+- [ ] **Mercado Pago** — ver [esteira de gateways](#-gateways-de-pagamento--esteira-de-integrações)
+- [ ] Fatura automática (boleto/PIX) todo dia 5
+- [ ] Marketplace split Asaas (legado, opcional — não é o modelo padrão)
 
 ### 2. Notas fiscais
 - [x] Cadastro NF-e ao cliente (Focus NFe) — portal interno + campos no restaurante
 - [x] Configuração WhatsApp para envio de NF-e — restaurante em Settings → Integrações
 - [ ] **NF-e automática** — emissão após pagamento confirmado (integração SEFAZ / Focus NFe)
 - [ ] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
-- [ ] **NF-e de serviço** — Qomanda → restaurante (mensalidade + taxas tx)
+- [ ] **NF-e de serviço** — Qomanda → restaurante (mensalidade + comissão)
 - [ ] Vínculo pagamento → nota fiscal no histórico (cliente e painel)
 
 ### 3. Cobrança SaaS (mensalidade)
@@ -132,10 +216,13 @@
 > Itens complementares pós-fechamento.
 
 ### Onboarding do Restaurante
-- [x] **Fluxo de cadastro do restaurante** — tela de sign-up pública para novos clientes
+- [x] **Fluxo de cadastro** — Conta → **modelo operacional** → estabelecimento (salão, balcão, salão+balcão, **food hall**)
+- [x] **Preset automático** — `operational_mode`, gateway manual, mesas seed
 - [x] **Trial automático (14 dias)** — provisionado ao criar conta
+- [x] **Checklist “Primeiros passos”** no dashboard Overview
 - [x] **Upload de logo do restaurante** — Supabase Storage + aba Perfil em Settings
-- [ ] **Wizard de configuração inicial** — onboarding guiado (nome, logo, horários)
+- [x] **Garçom confirma pagamentos** — PIX manual + dinheiro em `/dashboard/waiter/payments`
+- [ ] **Modelo no portal interno** — cadastro de pilotos pela equipe Qomanda (P1)
 
 ### Fidelidade (Persistência)
 - [x] **Salvar regras de fidelidade no Supabase** — loyalty_rules (implementado)
@@ -153,13 +240,11 @@
 - [ ] Exportação de relatórios (CSV/PDF)
 
 ### Equipe & Permissões
-- [ ] **App Garçom** — painel mobile-first dedicado (login em `/login?role=garcom`)
-  - [ ] Confirmar pagamentos em dinheiro na mesa (notificação + confirmação em um toque)
-  - [ ] Ver pedidos e status das mesas atribuídas
-  - [ ] Receber e responder alertas "Chamar Garçom"
-  - [ ] Marcar pedidos como entregues
-- [ ] **Gestão de equipe** (Settings → Equipe) — convide garçons, cozinheiros, gerentes
-- [ ] Controle de acesso por perfil (garçom: vê mesas / cozinheiro: vê fila / gerente: vê tudo)
+- [x] **Painel garçom** — fila de pedidos e mesas (`/dashboard/waiter`)
+- [x] **Gestão de equipe** (Settings → Equipe) — convite de garçons
+- [x] **Garçom confirma PIX manual e dinheiro** — fila + alerta na home garçom
+- [ ] Receber e responder alertas "Chamar Garçom"
+- [ ] Controle de acesso refinado por perfil
 - [ ] Log de atividades por colaborador
 
 ### Segurança
@@ -174,6 +259,14 @@
 ---
 
 ## 🔵 Fase 3 — Escala (Q4 2026)
+
+### Gateways de pagamento
+> Esteira completa: [Gateways de pagamento](#-gateways-de-pagamento--esteira-de-integrações)
+
+- [ ] Abstração `PaymentProvider` no checkout e webhooks
+- [ ] **Mercado Pago** — OAuth, PIX + cartão, webhook (Q4 2026)
+- [ ] **PagBank** — conta vendedor PagSeguro (Q1 2027)
+- [ ] Cobrança automática comissão + mensalidade (dia 5)
 
 ### Multi-unidades
 - [ ] Suporte a múltiplos restaurantes por conta
@@ -199,6 +292,16 @@
 
 ---
 
+## 🟣 Fase 4 — Gateways adicionais (2027)
+
+- [ ] **Stone** — API e-commerce / link na conta do restaurante
+- [ ] **Cielo** — Checkout Cielo (crédito e débito)
+- [ ] **Getnet** — sob demanda de clientes enterprise
+- [ ] Rodízio, buffet por peso (modelos operacionais)
+- [ ] Food hall v2 — comanda única multi-estação (v1 = fluxo balcão já disponível)
+
+---
+
 ## 📊 Status Resumido
 
 | Área | Status | % Completo |
@@ -212,14 +315,14 @@
 | Dashboard — Analytics | 🔴 Faltando | 10% |
 | Dashboard — Equipe/Segurança | 🔴 Faltando | 0% |
 | Portal Interno Qomanda | ✅ Completo | 85% |
-| App Garçom | 🔴 Faltando | 5% |
-| Pagamentos (Qomanda Pay / Asaas) | ⚠️ Parcial | 80% |
+| App Garçom | ⚠️ Parcial | 40% |
+| Pagamentos (conta restaurante) | ⚠️ Parcial | 85% |
 | NF-e cliente (emissão) | 🔴 Faltando | 25% |
 | NF-e serviço (Qomanda) | 🔴 Faltando | 10% |
 | Cobrança SaaS (mensalidade) | ⚠️ Parcial | 50% |
 | Fidelidade | ⚠️ Parcial | 75% |
 | WhatsApp | ⚠️ Parcial | 55% |
-| Onboarding restaurante | 🔴 Faltando | 20% |
+| Onboarding restaurante | ⚠️ Parcial | 75% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Multi-unidades | 🔴 Faltando | 0% |
 
@@ -236,7 +339,9 @@
 | `migrate-restaurant-business-profile.sql` | Perfil empresarial (CNPJ, endereço) |
 | `migrate-restaurant-nfe.sql` | Campos NF-e ao consumidor |
 | `migrate-platform-asaas-config.sql` | Credenciais Asaas da plataforma |
-| `migrate-support-tickets.sql` | Tickets, mensagens, anexos, storage |
+| `migrate-commercial-restaurant-account.sql` | Gateway restaurante, comissão, balcão, equipe, faturas mensais |
+| `migrate-restaurant-manual-payment.sql` | PIX manual (chave do restaurante) |
+| `migrate-restaurant-model.sql` | Modelo operacional no cadastro + preset |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

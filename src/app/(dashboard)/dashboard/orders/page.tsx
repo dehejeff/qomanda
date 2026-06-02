@@ -13,6 +13,7 @@ import {
   isBillableOrder,
   type PaymentRow as BillingPaymentRow,
 } from '@/lib/session-billing'
+import { formatCounterOrderLabel } from '@/lib/counter-orders'
 import { PayBadge } from '@/components/dashboard/pay-badge'
 import { useRestaurantRealtime } from '@/lib/use-restaurant-realtime'
 
@@ -71,8 +72,19 @@ type CustomerPayment = {
 type DashboardPaymentRow = BillingPaymentRow & { session_id: string }
 
 type DashboardOrder = Order & {
+  display_number?: number | null
+  order_channel?: string | null
   session?: { table?: { number?: string } | null } | null
   customer?: { first_name?: string; last_name?: string } | null
+}
+
+function orderLocationLabel(order: DashboardOrder): string {
+  if (order.order_channel === 'counter') {
+    return formatCounterOrderLabel(order.display_number)
+  }
+  const num = order.session?.table?.number
+  if (!num || num.toUpperCase() === 'BALCAO') return 'Balcão'
+  return `Mesa ${num}`
 }
 
 function buildPaymentLookups(orders: DashboardOrder[], payments: DashboardPaymentRow[]) {
@@ -440,7 +452,7 @@ export default function OrdersPage() {
           <table className="w-full text-left border-collapse min-w-[720px]">
             <thead className="bg-surface-container-high sticky top-0 z-10">
               <tr>
-                {['Pedido', 'Cliente', 'Mesa', 'Itens', 'Total', 'Pagamento', 'Status', ''].map(h => (
+                {['Pedido', 'Cliente', 'Local', 'Itens', 'Total', 'Pagamento', 'Status', ''].map(h => (
                   <th
                     key={h || 'action'}
                     className="px-4 py-3 text-[10px] font-mono text-on-surface-variant uppercase tracking-wider"
@@ -471,7 +483,7 @@ export default function OrdersPage() {
                     hour: '2-digit',
                     minute: '2-digit',
                   })
-                  const mesa = order.session?.table?.number ?? '—'
+                  const location = orderLocationLabel(order)
                   const name = customerName(order)
                   const itemSummary = (order.items ?? [])
                     .map(i => `${i.quantity}× ${i.menu_item?.name ?? 'Item'}`)
@@ -512,7 +524,7 @@ export default function OrdersPage() {
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm font-bold font-mono text-primary">
-                        <span>{mesa}</span>
+                        <span>{location}</span>
                         {sessionPay && sessionPay.grandTotal > 0 && payInfo.display !== 'cancelled' && (
                           <p className="text-[10px] font-normal mt-0.5 whitespace-nowrap"
                             style={{ color: sessionPay.remaining <= 0.02 ? '#34d399' : '#f87171' }}>

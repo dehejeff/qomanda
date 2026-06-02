@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { QomandaLogo } from '@/components/qomanda-logo'
+import { getAvailableRestaurantModels, RESTAURANT_MODELS } from '@/lib/restaurant-models'
 
 // ── Design tokens (inline styles para não depender do Tailwind config) ──────
 const C = {
@@ -19,6 +20,35 @@ const C = {
   green:     '#34d399',
   blue:      '#7bd0ff',
 }
+
+const MODEL_BENEFITS: Record<string, string[]> = {
+  salao: [
+    'QR seguro por mesa — check-in com WhatsApp e PIN',
+    'Pedidos na mesa e fila da cozinha em tempo real',
+    'Divisão de conta, PIX manual ou Asaas, dinheiro na mesa',
+    'Painel garçom e confirmação de pagamentos',
+  ],
+  balcao: [
+    'Link do balcão — sem fila de QR na mesa',
+    'Pedido com número (#42) e aviso “pronto” no celular',
+    'PIX direto na sua chave ou Asaas na sua conta',
+    'Ideal para pagar antes de retirar',
+  ],
+  salao_balcao: [
+    'Salão com mesas + balcão no mesmo cardápio',
+    'Dois fluxos configurados automaticamente no cadastro',
+    '100% do pagamento digital na conta do restaurante',
+    'Comissão Qomanda faturada no dia 5 — não na hora da venda',
+  ],
+  food_hall: [
+    'Mesmo fluxo do balcão — ideal para praça de alimentação',
+    'Um cardápio, pedido # e aviso “pronto” no celular',
+    'PIX manual ou Asaas na conta do operador',
+    'Multi-estação no cardápio (categorias por cozinha)',
+  ],
+}
+
+const COMING_SOON_MODELS = RESTAURANT_MODELS.filter(m => m.status === 'coming_soon')
 
 const font  = { fontFamily: 'Geist, system-ui, sans-serif' }
 const mono  = { fontFamily: 'JetBrains Mono, monospace' }
@@ -49,9 +79,9 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
 }
 
 function PricingCard({
-  name, mesas, price, txFee, features, highlight = false,
+  name, mesas, price, commissionNote, features, highlight = false,
 }: {
-  name: string; mesas: string; price: string | null; txFee: string; features: string[]; highlight?: boolean
+  name: string; mesas: string; price: string | null; commissionNote: string; features: string[]; highlight?: boolean
 }) {
   return (
     <div className="rounded-2xl p-7 flex flex-col gap-6 relative transition-all hover:scale-[1.01]"
@@ -78,8 +108,8 @@ function PricingCard({
               <span className="text-5xl font-black leading-none" style={{ ...font, color: C.text }}>{price}</span>
               <span className="text-sm mb-1" style={{ color: C.muted }}>/mês</span>
             </div>
-            <p className="text-sm mt-2 font-semibold" style={{ color: highlight ? C.primary : C.blue }}>
-              + {txFee} por transação
+            <p className="text-sm mt-2 font-semibold leading-snug" style={{ color: highlight ? C.primary : C.blue }}>
+              {commissionNote}
             </p>
           </div>
         ) : (
@@ -121,16 +151,16 @@ const FAQS = [
     a: 'Não. Cada QR combina restaurante, número da mesa e um token secreto gerado pelo sistema. Só funciona na mesa correta — não dá para adivinhar ou reutilizar em outro lugar.',
   },
   {
-    q: 'Como funciona a taxa de transação?',
-    a: 'Cobramos uma pequena porcentagem apenas sobre pagamentos processados pelo Qomanda Pay (PIX, débito e crédito). Se o cliente pagar em dinheiro ou na maquininha da casa, não há taxa Qomanda.',
+    q: 'Como funciona a comissão da Qomanda?',
+    a: 'Cobramos mensalidade fixa + comissão progressiva apenas sobre vendas digitais registradas pelo app (PIX e cartão via Qomanda). O valor pago pelo cliente cai 100% na sua conta (PIX manual ou Asaas). A comissão é somada no mês e faturada todo dia 5. Dinheiro na mesa: 0% de comissão.',
   },
   {
-    q: 'Posso usar sem integrar o pagamento?',
-    a: 'Sim. Cardápio digital, pedidos e gestão de mesas funcionam de forma independente. Você ativa o Qomanda Pay quando quiser — basta cadastrar a conta bancária de repasse no painel.',
+    q: 'Preciso usar Asaas ou maquininha?',
+    a: 'Não. Você pode começar com PIX manual (sua chave PIX no checkout) e dinheiro na mesa. Quando quiser automatizar PIX e cartão, conecta a API key da sua conta Asaas — o dinheiro continua indo 100% para você.',
   },
   {
     q: 'Quanto tempo leva para configurar?',
-    a: 'Em cerca de 30 minutos você cadastra o restaurante, monta o cardápio e gera os QR Codes das mesas. Pagamentos online exigem cadastrar a conta bancária de repasse — leva poucos minutos.',
+    a: 'No cadastro você escolhe o modelo (salão, balcão ou ambos). O sistema já configura fluxo e painel. Em ~30 minutos: chave PIX ou Asaas, cardápio e QR das mesas ou link do balcão.',
   },
   {
     q: 'Como funciona a fidelidade?',
@@ -158,8 +188,8 @@ export default function LandingPage() {
             <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>Qomanda</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            {['Funcionalidades', 'Como funciona', 'Preços', 'FAQ'].map(item => (
-              <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`}
+            {['Funcionalidades', 'Modelos', 'Como funciona', 'Preços', 'FAQ'].map(item => (
+              <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`}
                 className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>
                 {item}
               </a>
@@ -197,9 +227,9 @@ export default function LandingPage() {
         {mobileMenu && (
           <div className="md:hidden flex flex-col px-5 pb-4 gap-1"
             style={{ borderTop: `1px solid ${C.border}` }}>
-            {['Funcionalidades', 'Como funciona', 'Preços', 'FAQ'].map(item => (
+            {['Funcionalidades', 'Modelos', 'Como funciona', 'Preços', 'FAQ'].map(item => (
               <a key={item}
-                href={`#${item.toLowerCase().replace(' ', '-')}`}
+                href={`#${item.toLowerCase().replace(/ /g, '-')}`}
                 onClick={() => setMobileMenu(false)}
                 className="py-3 text-sm border-b transition-colors hover:opacity-80"
                 style={{ ...mono, color: C.muted, borderColor: `${C.border}` }}>
@@ -229,17 +259,17 @@ export default function LandingPage() {
           style={{ background: 'rgba(123,208,255,0.05)', filter: 'blur(100px)' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          <Tag>Cardápio digital · Pedidos · Pagamento na mesa</Tag>
+          <Tag>Salão · Balcão · Pagamento na sua conta</Tag>
 
           <h1 className="text-[38px] sm:text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mt-6 mb-6"
             style={{ letterSpacing: '-0.03em' }}>
-            Seu cliente pede e paga<br />
-            <span style={{ color: C.primary }}>pelo celular.</span><br />
-            Você controla tudo.
+            O modelo certo<br />
+            <span style={{ color: C.primary }}>para o seu negócio.</span><br />
+            Pedido e pagamento no celular.
           </h1>
 
           <p className="text-base md:text-xl leading-relaxed max-w-2xl mx-auto mb-8 md:mb-10 px-2" style={{ color: C.muted }}>
-            QR Code seguro na mesa, cardápio digital, pedidos em tempo real e pagamento integrado — sem comissão por pedido e sem app para o cliente instalar.
+            Escolha salão, balcão ou os dois no cadastro — o sistema já vem configurado. Pagamento cai 100% na sua conta; comissão Qomanda só sobre vendas digitais, faturada mensalmente.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -264,10 +294,10 @@ export default function LandingPage() {
         {/* Stats bar */}
         <div className="relative z-10 mt-20 w-full max-w-3xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { n: '30 min', label: 'Para entrar no ar' },
-            { n: '0%', label: 'Comissão sobre pedidos' },
-            { n: 'PIX', label: 'Crédito e débito na mesa' },
-            { n: 'QR', label: 'Seguro por mesa' },
+            { n: '4', label: 'Modelos no cadastro' },
+            { n: '100%', label: 'Pagamento na sua conta' },
+            { n: '0%', label: 'Comissão em dinheiro' },
+            { n: '14d', label: 'Trial grátis' },
           ].map(s => (
             <div key={s.n} className="rounded-xl p-4 text-center"
               style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
@@ -297,8 +327,8 @@ export default function LandingPage() {
             desc="Atualize preços, categorias e disponibilidade em tempo real. O cliente vê o cardápio correto direto no celular, sem baixar app." />
           <FeatureCard icon="shopping_cart" title="Pedidos em tempo real"
             desc="O cliente monta o pedido na mesa. A cozinha recebe na fila kanban do painel — pendente, preparando, pronto, entregue." />
-          <FeatureCard icon="account_balance_wallet" title="Qomanda Pay"
-            desc="PIX, crédito e débito integrados ao Qomanda Pay. Cartão salvo com senha de 6 dígitos. Divisão de conta automática por cliente." />
+          <FeatureCard icon="account_balance_wallet" title="Recebimento na sua conta"
+            desc="PIX manual (sua chave), Asaas (sua API) ou dinheiro na mesa. Sem split na hora — comissão Qomanda faturada todo dia 5 sobre vendas digitais." />
           <FeatureCard icon="groups" title="Divisão de conta inteligente"
             desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar." />
           <FeatureCard icon="workspace_premium" title="Fidelidade e ofertas"
@@ -309,6 +339,72 @@ export default function LandingPage() {
             desc="Mapa ao vivo: mesas livres, ocupadas ou reservadas. QR Code por mesa, troca de mesa e visão operacional no dashboard." />
           <FeatureCard icon="monitoring" title="Relatórios de vendas"
             desc="Receita, ticket médio e volume de pedidos por período — semana, quinzena ou mês. Dados reais do seu fluxo, não estimativas." />
+        </div>
+      </section>
+
+      {/* ── MODELOS DE RESTAURANTE ───────────────────────────── */}
+      <section id="modelos" className="py-24 px-4 md:px-12 w-full"
+        style={{ background: C.bgCard }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <Tag color={C.primary}>Modelos operacionais</Tag>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4" style={{ letterSpacing: '-0.02em' }}>
+              Para cada tipo de restaurante,<br />um fluxo pronto
+            </h2>
+            <p className="text-lg max-w-2xl mx-auto" style={{ color: C.muted }}>
+              No cadastro você escolhe como opera. O painel, check-in e pagamento já vêm ajustados — falta só sua chave PIX ou Asaas e o cardápio.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
+            {getAvailableRestaurantModels().map(model => (
+              <div key={model.id} className="rounded-2xl p-6 flex flex-col gap-4"
+                style={{ background: C.bg, border: `1px solid ${C.borderBlu}` }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ background: `${C.primary}15` }}>
+                    <span className="material-symbols-outlined text-[22px]" style={{ color: C.primary }}>{model.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold" style={{ color: C.text }}>{model.name}</h3>
+                    <p className="text-xs" style={{ color: C.muted }}>{model.tagline}</p>
+                  </div>
+                </div>
+                <p className="text-[11px] font-mono uppercase tracking-wider" style={{ color: C.faint }}>
+                  {model.examples}
+                </p>
+                <ul className="space-y-2 flex-1">
+                  {(MODEL_BENEFITS[model.id] ?? []).map(b => (
+                    <li key={b} className="flex items-start gap-2 text-sm" style={{ color: C.text }}>
+                      <span className="material-symbols-outlined text-[15px] mt-0.5 shrink-0" style={{ color: C.green }}>check</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/cadastro"
+                  className="text-center py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  style={{ background: `${C.primary}18`, color: C.primary, border: `1px solid ${C.primary}40` }}>
+                  Começar com este modelo
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {COMING_SOON_MODELS.length > 0 && (
+            <div className="rounded-xl p-5" style={{ background: `${C.bgCard2}80`, border: `1px dashed ${C.borderBlu}` }}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ ...mono, color: C.faint }}>
+                Em breve na esteira
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {COMING_SOON_MODELS.map(m => (
+                  <span key={m.id} className="text-xs px-3 py-1.5 rounded-full"
+                    style={{ ...mono, background: C.bg, color: C.muted, border: `1px solid ${C.borderBlu}` }}>
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -327,21 +423,21 @@ export default function LandingPage() {
             {[
               {
                 step: '01',
-                icon: 'storefront',
-                title: 'Cadastre seu restaurante',
-                desc: 'Crie sua conta, adicione mesas e monte o cardápio com preços e categorias. O painel é intuitivo — sem depender de TI.',
+                icon: 'tune',
+                title: 'Escolha o modelo no cadastro',
+                desc: 'Salão com mesas, balcão fast food ou os dois. Mesas seed, fluxo de pedido e modo de pagamento já vêm configurados.',
               },
               {
                 step: '02',
-                icon: 'print',
-                title: 'Imprima os QR Codes',
-                desc: 'Cada mesa ganha um QR Code único e seguro. Imprima, plastifique e coloque na mesa. Troca de mesa? Gere outro QR no painel.',
+                icon: 'payments',
+                title: 'Configure recebimento e cardápio',
+                desc: 'Cadastre sua chave PIX (ou conecte Asaas), publique o cardápio e imprima QR das mesas ou divulgue o link do balcão.',
               },
               {
                 step: '03',
                 icon: 'trending_up',
-                title: 'Receba pedidos e pagamentos',
-                desc: 'Clientes escaneiam, pedem e pagam pelo celular. Você acompanha mesas, fila da cozinha e receita em tempo real.',
+                title: 'Atenda e receba na sua conta',
+                desc: 'Clientes pedem e pagam pelo celular. Você confirma PIX/dinheiro quando necessário. Comissão Qomanda faturada todo dia 5.',
               },
             ].map(step => (
               <div key={step.step} className="flex flex-col gap-5">
@@ -370,7 +466,7 @@ export default function LandingPage() {
             Mensalidade justa.<br />Você cresce, a gente cresce.
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: C.muted }}>
-            Cobramos uma mensalidade fixa por tamanho de operação e uma pequena taxa apenas sobre o que é processado pelo Qomanda Pay. Você nunca paga comissão sobre pedidos — só sobre pagamentos.
+            Mensalidade fixa por tamanho da operação + comissão progressiva sobre vendas digitais (PIX/cartão pelo app). Sem taxa por transação na hora — tudo faturado no dia 5. Dinheiro na mesa: 0% comissão.
           </p>
         </div>
 
@@ -400,7 +496,7 @@ export default function LandingPage() {
           </div>
           <div className="px-5 py-3" style={{ background: `${C.primary}08`, borderTop: `1px solid ${C.border}` }}>
             <p className="text-xs leading-relaxed" style={{ color: C.muted }}>
-              <span style={{ color: C.primary, fontWeight: 600 }}>Vantagem Qomanda:</span> único no Brasil a combinar cardápio digital + pedidos + pagamento integrado em um plano. Taxa de transação de 1,49–1,99% — abaixo de Square e Toast. Goomer não processa pagamento; iFood cobra 12–27% de comissão por pedido.
+              <span style={{ color: C.primary, fontWeight: 600 }}>Como funciona:</span> pagamentos digitais caem 100% na sua conta (PIX manual ou Asaas seu). A Qomanda registra o GMV digital e fatura mensalidade + comissão progressiva (2,99%→1,49%) todo dia 5. Implantação piloto R$ 1.990.
             </p>
           </div>
         </div>
@@ -410,13 +506,13 @@ export default function LandingPage() {
             name="Starter"
             mesas="20"
             price="199"
-            txFee="1,99%"
+            commissionNote="Comissão digital: 2,99% → 1,49%*"
             features={[
-              'Cardápio digital ilimitado',
-              'Pedidos em tempo real (kanban)',
-              'QR Code seguro por mesa',
-              'Painel de mesas e operação',
-              'Qomanda Pay (PIX, crédito, débito)*',
+              'Modelo salão, balcão ou ambos no cadastro',
+              'Cardápio digital e pedidos em tempo real',
+              'PIX manual ou Asaas (conta do restaurante)',
+              'Comissão progressiva — fatura dia 5',
+              'Dinheiro na mesa sem comissão',
               'Suporte por e-mail',
             ]}
           />
@@ -424,27 +520,27 @@ export default function LandingPage() {
             name="Growth"
             mesas="50"
             price="299"
-            txFee="1,79%"
+            commissionNote="Comissão digital −0,20 p.p.*"
             highlight
             features={[
               'Tudo do Starter',
               'Até 50 mesas',
               'Programa de fidelidade e ofertas',
-              'Divisão automática de conta',
-              'Relatórios de receita e ticket',
+              'Modo balcão + pedido #',
+              'Desconto na comissão sobre GMV digital',
               'Suporte prioritário',
             ]}
           />
           <PricingCard
             name="Pro"
             mesas="100"
-            price="449"
-            txFee="1,49%"
+            price="499"
+            commissionNote="Comissão digital −0,40 p.p.*"
             features={[
               'Tudo do Growth',
               'Até 100 mesas',
-              'Ofertas e cortesias personalizadas',
-              'Histórico de clientes e recibos',
+              'Painel garçom dedicado',
+              'Salão + balcão integrados',
               'Relatórios por período',
               'Gerente de conta dedicado',
             ]}
@@ -453,7 +549,7 @@ export default function LandingPage() {
             name="Enterprise"
             mesas="ilimitadas"
             price={null}
-            txFee="Negociável"
+            commissionNote="Comissão negociável"
             features={[
               'Mesas ilimitadas',
               'Multi-unidades (em breve)',
@@ -466,9 +562,9 @@ export default function LandingPage() {
         </div>
 
         <p className="text-center text-sm mt-8 max-w-xl mx-auto leading-relaxed" style={{ ...mono, color: C.faint }}>
-          Todos os planos incluem 14 dias grátis · Sem taxa de setup · Cancele quando quiser
+          14 dias grátis · Implantação piloto R$ 1.990 · Fatura mensal (dia 5)
           <br />
-          <span style={{ color: C.muted }}>* Qomanda Pay exige conta bancária cadastrada no painel para repasses.</span>
+          <span style={{ color: C.muted }}>* Comissão sobre GMV digital do mês (PIX/cartão via app). Faixas: 2,99% até R$ 15k · 2,49% até R$ 40k · 1,99% até R$ 100k · 1,49% acima. Dinheiro: 0%. Gateways: PIX manual, Asaas hoje · Mercado Pago, PagBank, Stone e Cielo no <Link href="/roadmap" className="underline" style={{ color: C.blue }}>roadmap</Link>.</span>
         </p>
       </section>
 
@@ -496,7 +592,10 @@ export default function LandingPage() {
                 ['QR Code seguro por mesa (token)', true, false, false, false],
                 ['Pedidos pelo celular do cliente', true, false, true, true],
                 ['Pagamento na mesa (PIX e cartão)', true, false, false, true],
-                ['Sem comissão por pedido', true, true, true, false],
+                ['Modo balcão / fast food', true, false, false, false],
+                ['Pagamento 100% na conta do restaurante', true, false, false, false],
+                ['Comissão mensal (não na hora da venda)', true, false, false, false],
+                ['Sem comissão em dinheiro na mesa', true, true, true, false],
                 ['Divisão de conta por cliente', true, false, false, false],
                 ['Fidelidade automática', true, false, false, false],
                 ['Relatórios de receita', true, true, false, true],
@@ -560,7 +659,7 @@ export default function LandingPage() {
             Pronto para colocar<br />seu restaurante no ar?
           </h2>
           <p className="text-lg mb-10" style={{ color: C.muted }}>
-            Teste grátis por 14 dias. Cardápio digital, pedidos na mesa e pagamento integrado — tudo em uma plataforma, sem comissão por pedido.
+            Teste grátis por 14 dias. Escolha seu modelo no cadastro — salão, balcão ou ambos. Só falta configurar PIX e publicar o cardápio.
           </p>
           <Link href="/cadastro"
             className="inline-flex items-center gap-2 px-10 py-5 rounded-xl font-bold text-lg transition-all active:scale-95 hover:opacity-90"

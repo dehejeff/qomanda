@@ -8,9 +8,14 @@ import { QomandaLogo } from '@/components/qomanda-logo'
 import { CustomerSignupForm, registerCustomerAndStore } from '@/components/customer/customer-signup-form'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import {
+  getAvailableRestaurantModels,
+  restaurantModelPresetToDb,
+  type RestaurantModelId,
+} from '@/lib/restaurant-models'
 
 type CadastroTipo = 'restaurant' | 'customer'
-type RestStep = 'account' | 'restaurant'
+type RestStep = 'account' | 'model' | 'restaurant'
 
 function parseTipo(value: string | null): CadastroTipo {
   if (value === 'cliente' || value === 'customer') return 'customer'
@@ -33,6 +38,9 @@ export default function CadastroPage() {
   const [restName, setRestName]   = useState('')
   const [restSlug, setRestSlug]   = useState('')
   const [restType, setRestType]   = useState('restaurante')
+  const [restModel, setRestModel] = useState<RestaurantModelId>('salao')
+
+  const availableModels = getAvailableRestaurantModels()
 
   useEffect(() => {
     setTipo(parseTipo(new URLSearchParams(window.location.search).get('tipo')))
@@ -52,6 +60,11 @@ export default function CadastroPage() {
     e.preventDefault()
     if (password !== confirm) { toast.error('As senhas não coincidem.'); return }
     if (password.length < 6) { toast.error('A senha deve ter pelo menos 6 caracteres.'); return }
+    setStep('model')
+  }
+
+  async function handleModelContinue(e: React.FormEvent) {
+    e.preventDefault()
     setStep('restaurant')
   }
 
@@ -68,11 +81,14 @@ export default function CadastroPage() {
       return
     }
 
+    const modelPreset = restaurantModelPresetToDb(restModel)
+
     const { error: restError } = await supabase.from('restaurants').insert({
       owner_id: authData.user.id,
       name: restName,
       slug: restSlug,
       status: 'active',
+      ...modelPreset,
     })
 
     if (restError) {
@@ -124,12 +140,16 @@ export default function CadastroPage() {
           <div className="text-center">
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>
               {isRestaurant
-                ? (step === 'account' ? 'Cadastro do restaurante' : 'Seu estabelecimento')
+                ? (step === 'account' ? 'Cadastro do restaurante'
+                  : step === 'model' ? 'Escolha o modelo'
+                  : 'Seu estabelecimento')
                 : 'Cadastro de cliente'}
             </h1>
             <p className="text-sm mt-1 max-w-[300px] mx-auto leading-relaxed" style={{ color: '#a78b7d' }}>
               {isRestaurant
-                ? (step === 'account' ? 'Conta do administrador · 14 dias grátis' : 'Conte-nos sobre seu negócio')
+                ? (step === 'account' ? 'Conta do administrador · 14 dias grátis'
+                  : step === 'model' ? 'Como seu negócio opera?'
+                  : 'Seu estabelecimento')
                 : 'Crie sua conta para acessar o hub, histórico e cartões salvos'}
             </p>
           </div>
@@ -178,25 +198,31 @@ export default function CadastroPage() {
         {/* ── Restaurante ── */}
         {tipo === 'restaurant' && (
           <>
-            <div className="flex items-center gap-3">
-              {(['account', 'restaurant'] as RestStep[]).map((s, i) => (
-                <div key={s} className="flex items-center gap-3 flex-1">
-                  <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {(['account', 'model', 'restaurant'] as RestStep[]).map((s, i) => (
+                <div key={s} className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
                       style={{
-                        background: step === s ? '#f97316' : (i === 0 && step === 'restaurant') ? '#34d399' : '#1e293b',
-                        color: step === s ? '#582200' : (i === 0 && step === 'restaurant') ? '#052e16' : '#584237',
-                        border: `1px solid ${step === s ? '#f97316' : (i === 0 && step === 'restaurant') ? '#34d399' : '#584237'}`,
+                        background: step === s ? '#f97316'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#1e293b',
+                        color: step === s ? '#582200'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#052e16' : '#584237',
+                        border: `1px solid ${step === s ? '#f97316'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#584237'}`,
                       }}>
-                      {i === 0 && step === 'restaurant' ? (
+                      {['account', 'model', 'restaurant'].indexOf(step) > i ? (
                         <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
                       ) : i + 1}
                     </div>
-                    <span className="text-xs font-mono" style={{ color: step === s ? '#dae2fd' : '#584237' }}>
-                      {s === 'account' ? 'Conta' : 'Restaurante'}
+                    <span className="text-[10px] font-mono truncate hidden sm:inline" style={{ color: step === s ? '#dae2fd' : '#584237' }}>
+                      {s === 'account' ? 'Conta' : s === 'model' ? 'Modelo' : 'Loja'}
                     </span>
                   </div>
-                  {i === 0 && <div className="flex-1 h-px" style={{ background: step === 'restaurant' ? '#34d399' : '#1e293b' }} />}
+                  {i < 2 && (
+                    <div className="flex-1 h-px min-w-[8px]"
+                      style={{ background: ['account', 'model', 'restaurant'].indexOf(step) > i ? '#34d399' : '#1e293b' }} />
+                  )}
                 </div>
               ))}
             </div>
@@ -234,6 +260,57 @@ export default function CadastroPage() {
               </form>
             )}
 
+            {step === 'model' && (
+              <form onSubmit={handleModelContinue} className="space-y-4">
+                <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+                  O sistema já configura fluxo de pedido, pagamento e painel conforme o modelo.
+                  Depois você só ajusta a chave PIX ou Asaas.
+                </p>
+                <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                  {availableModels.map(m => {
+                    const active = restModel === m.id
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setRestModel(m.id)}
+                        className="w-full text-left rounded-xl p-4 transition-all active:scale-[0.99]"
+                        style={{
+                          background: active ? 'rgba(249,115,22,0.12)' : '#131b2e',
+                          border: `1px solid ${active ? '#f97316' : '#334155'}`,
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="material-symbols-outlined text-[22px] shrink-0"
+                            style={{ color: active ? '#f97316' : '#a78b7d', fontVariationSettings: active ? "'FILL' 1" : undefined }}>
+                            {m.icon}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm" style={{ color: active ? '#ffb690' : '#dae2fd' }}>{m.name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{m.tagline}</p>
+                            <p className="text-[10px] font-mono mt-1.5" style={{ color: '#584237' }}>{m.examples}</p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setStep('account')}
+                    className="flex-1 h-12 rounded-xl font-bold text-sm"
+                    style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+                    Voltar
+                  </button>
+                  <button type="submit"
+                    className="flex-[2] h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                    style={{ background: '#f97316', color: '#582200' }}>
+                    Continuar
+                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
             {step === 'restaurant' && (
               <form onSubmit={handleRestaurantSubmit} className="space-y-4">
                 <div className="space-y-1.5">
@@ -265,7 +342,7 @@ export default function CadastroPage() {
                   </div>
                 </div>
                 <div className="flex gap-3 mt-2">
-                  <button type="button" onClick={() => setStep('account')}
+                  <button type="button" onClick={() => setStep('model')}
                     className="flex-1 h-12 rounded-xl font-bold text-sm transition-all active:scale-95"
                     style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
                     Voltar

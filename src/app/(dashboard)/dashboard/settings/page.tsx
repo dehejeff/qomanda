@@ -12,6 +12,9 @@ import type { OnboardStatusDto } from '@/app/api/dashboard/asaas/onboard/route'
 import type { RestaurantProfileDto } from '@/app/api/dashboard/profile/route'
 import type { WhatsAppIntegrationDto } from '@/app/api/dashboard/integrations/whatsapp/route'
 import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
+import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gateway-panel'
+import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billing-panel'
+import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
 
 type Tab = 'perfil' | 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
@@ -684,7 +687,9 @@ export default function SettingsPage() {
       {/* ── PAGAMENTOS ─────────────────────────────────── */}
       {tab === 'pagamentos' && (
         <div className="space-y-card-gap">
-          {/* Qomanda Pay + conta bancária */}
+          <RestaurantGatewayPanel />
+          <RestaurantBillingPanel />
+          {/* Qomanda Pay + conta bancária (legado marketplace — opcional) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
             <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -1492,10 +1497,9 @@ export default function SettingsPage() {
 
       {/* ── EQUIPE ─────────────────────────────────────── */}
       {tab === 'equipe' && (
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-12 flex flex-col items-center justify-center text-center">
-          <span className="material-symbols-outlined text-[48px] mb-3 text-on-surface-variant opacity-30">group</span>
-          <p className="text-base font-semibold text-on-surface">Equipe</p>
-          <p className="text-sm text-on-surface-variant mt-1">Em breve: convide garçons, cozinheiros e gerentes com permissões específicas.</p>
+        <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
+          <p className="text-base font-semibold text-on-surface mb-4">Equipe</p>
+          <RestaurantTeamPanel />
         </div>
       )}
     </div>

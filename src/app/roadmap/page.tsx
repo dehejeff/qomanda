@@ -10,7 +10,96 @@ const C = {
 const font = { fontFamily: 'Geist, system-ui, sans-serif' }
 const mono = { fontFamily: 'JetBrains Mono, monospace' }
 
+/** Ordem planejada de integração — mesma sequência do ROADMAP.md */
+const GATEWAY_ORDER = [
+  { order: 1, name: 'PIX manual', methods: 'PIX', connection: 'Chave PIX do restaurante + confirmação no painel', when: 'Disponível', status: 'done' as const },
+  { order: 2, name: 'Dinheiro', methods: 'Cash', connection: 'Cliente informa · garçom/caixa confirma', when: 'Disponível', status: 'done' as const },
+  { order: 3, name: 'Asaas', methods: 'PIX, crédito, débito', connection: 'API key da conta Asaas do restaurante', when: 'Disponível', status: 'done' as const },
+  { order: 4, name: 'Mercado Pago', methods: 'PIX, crédito, débito', connection: 'OAuth / credenciais do vendedor (conta MP)', when: 'Q4 2026', status: 'planned' as const },
+  { order: 5, name: 'PagBank', methods: 'PIX, crédito', connection: 'Conta PagSeguro / PagBank do restaurante', when: 'Q1 2027', status: 'planned' as const },
+  { order: 6, name: 'Stone', methods: 'PIX, crédito', connection: 'API e-commerce / link Stone', when: '2027', status: 'planned' as const },
+  { order: 7, name: 'Cielo', methods: 'Crédito, débito', connection: 'Checkout Cielo / API', when: '2027', status: 'planned' as const },
+  { order: 8, name: 'Getnet', methods: 'PIX, crédito', connection: 'Sob demanda (enterprise)', when: 'Backlog', status: 'backlog' as const },
+]
+
+const RESTAURANT_MODELS_ROADMAP = [
+  { name: 'Salão com mesas', status: 'done' as const, note: 'QR mesa · garçom · checkout' },
+  { name: 'Balcão / fast food', status: 'done' as const, note: 'Pedido # · link /balcao' },
+  { name: 'Salão + balcão', status: 'done' as const, note: 'Ambos fluxos' },
+  { name: 'Food hall / praça', status: 'done' as const, note: 'Igual balcão — pedido # · link /balcao' },
+  { name: 'Rodízio / taxa fixa', status: 'planned' as const, note: 'Em breve' },
+  { name: 'Buffet por peso', status: 'planned' as const, note: 'Em breve' },
+]
+
 const PHASES = [
+  {
+    id: 'proximas',
+    label: 'Agora',
+    title: 'Próximas etapas — Go-live piloto',
+    status: 'next',
+    color: C.red,
+    period: 'Imediato',
+    groups: [
+      {
+        title: 'Infra & validação',
+        items: [
+          'Rodar migrações Supabase (portal, conta restaurante, PIX manual, modelos)',
+          'Smoke test: cadastro com modelo → PIX manual → pedido → confirmação',
+          'Deploy do build (PIX manual, balcão, presets, onboarding)',
+        ],
+      },
+      {
+        title: 'P0 — Operação no salão',
+        items: [
+          'Garçom confirma PIX manual + dinheiro (/dashboard/waiter/payments) ✓',
+          'Alerta de pagamento pendente na fila de pedidos ✓',
+        ],
+      },
+      {
+        title: 'P1 — Comercial & interno',
+        items: [
+          'Modelo operacional no portal interno (/internal/clients/new)',
+          'Landing e roadmap alinhados (modelos + comissão mensal) ✓',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'gateways',
+    label: 'Pagamentos',
+    title: 'Gateways — ordem de integração',
+    status: 'planned',
+    color: C.amber,
+    period: 'v1 disponível · v2 em diante',
+    groups: [
+      {
+        title: 'Regra em todos',
+        items: [
+          '100% do valor na conta do restaurante',
+          'Comissão Qomanda faturada todo dia 5 (sem split na hora)',
+          'Um gateway ativo por restaurante no Settings',
+        ],
+      },
+      {
+        title: 'Próximo na fila',
+        items: [
+          '4 · Mercado Pago — OAuth, PIX + cartão (Q4 2026)',
+          '5 · PagBank — conta PagSeguro (Q1 2027)',
+          '6 · Stone — API e-commerce (2027)',
+          '7 · Cielo — checkout crédito/débito (2027)',
+          '8 · Getnet — backlog enterprise',
+        ],
+      },
+      {
+        title: 'Arquitetura',
+        items: [
+          'Interface PaymentProvider unificada',
+          'Webhooks → confirmPaymentRecord + comissão',
+          'Credenciais criptografadas por restaurante',
+        ],
+      },
+    ],
+  },
   {
     id: 'mvp',
     label: 'MVP',
@@ -48,11 +137,12 @@ const PHASES = [
         ],
       },
       {
-        title: 'Qomanda Pay (Asaas)',
+        title: 'Recebimento na conta do restaurante',
         items: [
-          'PIX, crédito e débito via Asaas',
-          'Marketplace com split — taxa da plataforma por restaurante',
-          'Onboarding de subconta/wallet por restaurante',
+          'PIX manual (chave do restaurante) — sem Asaas obrigatório',
+          'Asaas na conta do restaurante (PIX e cartão automáticos)',
+          'Dinheiro na mesa — 0% comissão Qomanda',
+          'Comissão progressiva faturada mensalmente (dia 5)',
           'Webhook de confirmação de pagamentos',
         ],
       },
@@ -74,12 +164,13 @@ const PHASES = [
     period: 'Próximo · Junho 2026',
     groups: [
       {
-        title: '1 · Pagamento self-service',
+        title: '1 · Recebimento & comissão',
         items: [
-          'Settings → Pagamentos: cadastrar conta bancária de repasse ✓',
-          'Onboarding Asaas e split automático por plano ✓',
-          'Aprovação da conta e liberação PIX/cartão em produção',
-          'Desligar modo teste (bypass) em produção',
+          'PIX manual + Asaas (conta do restaurante) ✓',
+          'Comissão mensal sobre GMV digital — fatura dia 5 ✓',
+          'Modo balcão + pedido # ✓',
+          'Garçom confirma PIX/dinheiro no painel (P0)',
+          'Fatura automática dia 5 (boleto/PIX Qomanda)',
         ],
       },
       {
@@ -88,7 +179,7 @@ const PHASES = [
           'Cadastro NF-e ao consumidor (Focus NFe) — configuração ✓',
           'WhatsApp para envio de NF-e — configuração pelo restaurante ✓',
           'Emissão automática após pagamento confirmado',
-          'NF-e de serviço Qomanda → restaurante (mensalidade + taxas)',
+          'NF-e de serviço Qomanda → restaurante (mensalidade + comissão)',
           'Histórico pagamento ↔ nota fiscal',
         ],
       },
@@ -114,9 +205,10 @@ const PHASES = [
       {
         title: 'Onboarding do Restaurante',
         items: [
-          'Fluxo de cadastro público para novos clientes',
-          'Wizard de configuração inicial (nome, logo, horários)',
-          'Upload de logo do restaurante via Supabase Storage',
+          'Cadastro com escolha de modelo (salão / balcão / ambos) ✓',
+          'Preset automático + checklist no dashboard ✓',
+          'Upload de logo do restaurante ✓',
+          'Modelo no portal interno para pilotos (P1)',
         ],
       },
       {
@@ -209,12 +301,13 @@ const STATUS_SUMMARY = [
   { label: 'Dashboard — Operação',          pct: 95, color: C.green  },
   { label: 'Dashboard — Cardápio & QR',     pct: 92, color: C.green  },
   { label: 'Dashboard — Suporte',           pct: 85, color: C.green  },
-  { label: 'Qomanda Pay (Asaas / split)',   pct: 80, color: C.amber  },
+  { label: 'Gateways (manual + Asaas)', pct: 70, color: C.amber  },
+  { label: 'Gateways (MP, PagBank, Stone…)', pct: 0, color: C.red    },
   { label: 'NF-e (emissão automática)',     pct: 25, color: C.red    },
   { label: 'Fidelidade',                    pct: 75, color: C.amber  },
   { label: 'WhatsApp (config + envio NF-e)', pct: 55, color: C.amber  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
-  { label: 'Onboarding restaurante',        pct: 20, color: C.red    },
+  { label: 'Onboarding restaurante',        pct: 75, color: C.amber  },
 ]
 
 export default function RoadmapPage() {
@@ -259,6 +352,75 @@ export default function RoadmapPage() {
           <p className="text-lg max-w-xl" style={{ color: C.muted }}>
             Transparência total sobre o estado do produto. Veja o que está pronto, o que está em construção e o que planejamos para o futuro.
           </p>
+        </div>
+
+        {/* Ordem planejada — gateways #1–#8 (tabela completa) */}
+        <div className="rounded-2xl p-6 mb-10 overflow-hidden" style={{ background: C.bgCard, border: `2px solid ${C.amber}40` }}>
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ ...mono, color: C.amber }}>
+                Pagamentos · Ordem planejada #1–#8
+              </p>
+              <h2 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>
+                Esteira de gateways de integração
+              </h2>
+              <p className="text-sm mt-2 max-w-xl" style={{ color: C.muted }}>
+                Sequência oficial #1–#8. Itens 1–3 já operacionais; 4–8 entram nesta ordem. Sempre na conta do restaurante — comissão Qomanda no dia 5.
+              </p>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${C.borderBlu}` }}>
+            <table className="w-full text-sm" style={{ minWidth: 640 }}>
+              <thead>
+                <tr style={{ background: C.bgCard2 }}>
+                  <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>#</th>
+                  <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Gateway</th>
+                  <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wider hidden sm:table-cell" style={{ color: C.muted }}>Métodos</th>
+                  <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wider hidden md:table-cell" style={{ color: C.muted }}>Conexão</th>
+                  <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Previsão</th>
+                </tr>
+              </thead>
+              <tbody>
+                {GATEWAY_ORDER.map(row => (
+                  <tr key={row.order} style={{ borderTop: `1px solid ${C.borderBlu}` }}>
+                    <td className="px-4 py-3 font-mono font-bold" style={{ color: C.amber }}>{row.order}</td>
+                    <td className="px-4 py-3 font-semibold" style={{ color: C.text }}>
+                      {row.name}
+                      {row.status === 'done' && (
+                        <span className="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${C.green}20`, color: C.green }}>ativo</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell" style={{ color: C.muted }}>{row.methods}</td>
+                    <td className="px-4 py-3 hidden md:table-cell text-xs" style={{ color: C.muted }}>{row.connection}</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: row.status === 'done' ? C.green : C.amber }}>{row.when}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Modelos operacionais */}
+        <div className="rounded-2xl p-6 mb-16" style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ ...mono, color: C.primary }}>
+            Modelos operacionais
+          </p>
+          <h2 className="text-xl font-black mb-4">Tipos de restaurante no cadastro</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {RESTAURANT_MODELS_ROADMAP.map(m => (
+              <div key={m.name} className="flex items-start gap-3 rounded-lg px-4 py-3"
+                style={{ background: C.bgCard2, border: `1px solid ${C.borderBlu}` }}>
+                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5"
+                  style={{ color: m.status === 'done' ? C.green : C.faint }}>
+                  {m.status === 'done' ? 'check_circle' : 'schedule'}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: C.text }}>{m.name}</p>
+                  <p className="text-xs mt-0.5" style={{ color: C.muted }}>{m.note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Progress overview */}

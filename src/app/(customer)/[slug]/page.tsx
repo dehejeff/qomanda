@@ -52,6 +52,7 @@ export default function CheckInPage() {
   const tokenParam = searchParams.get('t')
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('dine_in')
   const [loading, setLoading]       = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
   const [checkedIn, setCheckedIn]   = useState(false)
@@ -136,9 +137,14 @@ export default function CheckInPage() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('restaurants')
-        .select('id, name, slug, logo_url, status')  // sem credenciais sensíveis
+        .select('id, name, slug, logo_url, status, operational_mode')
         .eq('slug', params.slug).eq('status', 'active').single()
       if (error || !data) { toast.error('Restaurante não encontrado.'); setLoading(false); return }
+      if (data.operational_mode === 'counter' && !mesaParam && !tokenParam) {
+        router.replace(`/${params.slug}/balcao`)
+        return
+      }
+      setOperationalMode((data.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'dine_in')
       setRestaurant(data as unknown as Restaurant)
       setLoading(false)
     }
@@ -400,24 +406,29 @@ export default function CheckInPage() {
     )
   }
 
-  // ── QR obrigatório ─────────────────────────────────────────
+  // ── QR obrigatório (ou hub salão+balcão) ───────────────────
   if (!tableVerified) {
+    const isBothMode = operationalMode === 'both'
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center relative"
         style={{ background: '#0b1326', color: '#dae2fd' }}>
         <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
           style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
         <div className="relative z-10 max-w-sm w-full space-y-6 flex flex-col items-center">
-          <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>qr_code_scanner</span>
+          <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>
+            {isBothMode ? 'layers' : 'qr_code_scanner'}
+          </span>
           <div className="w-full text-center">
             <h1 className="text-xl font-bold mb-2" style={{ fontFamily: 'Geist, sans-serif' }}>
               {restaurant.name}
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
-              {verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.'}
+              {isBothMode
+                ? 'Escolha como quer pedir: mesa no salão (QR) ou fila no balcão.'
+                : (verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.')}
             </p>
           </div>
-          {!verifyError && (
+          {!verifyError && !isBothMode && (
             <div className="rounded-xl p-4 w-full text-center text-xs leading-relaxed"
               style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
               <span className="material-symbols-outlined block mx-auto mb-2 text-[20px]" style={{ color: '#7bd0ff' }}>info</span>
@@ -428,8 +439,22 @@ export default function CheckInPage() {
             className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
             style={{ background: '#f97316', color: '#582200' }}>
             <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
-            Escanear QR da mesa
+            {isBothMode ? 'Escanear QR da mesa' : 'Escanear QR da mesa'}
           </Link>
+          {isBothMode && (
+            <>
+              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#584237' }}>ou</p>
+              <Link href={`/${params.slug}/balcao`}
+                className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+                style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+                <span className="material-symbols-outlined text-[20px]">storefront</span>
+                Pedir no balcão
+              </Link>
+              <p className="text-[11px] leading-relaxed px-2" style={{ color: '#584237' }}>
+                No balcão você recebe um número (#42) e aviso quando ficar pronto — sem QR de mesa.
+              </p>
+            </>
+          )}
           <TestTableCheckInLink />
           {savedCustomerId && (
             <Link href="/hub" className="block w-full text-center text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>

@@ -276,7 +276,7 @@ export async function buildInternalOverview(admin: SupabaseClient): Promise<Inte
     const since = thirtyDaysAgo.toISOString()
     const { data: payments } = await admin
       .from('payments')
-      .select('amount, restaurant_id, status, paid_at, method')
+      .select('amount, restaurant_id, status, paid_at, method, commission_amount')
       .eq('status', 'paid')
       .gte('paid_at', since)
 
@@ -287,12 +287,15 @@ export async function buildInternalOverview(admin: SupabaseClient): Promise<Inte
     for (const p of paid) {
       const amount = Number(p.amount)
       stats.gmvLast30Days += amount
-      const feeCfg = feeByRestaurant.get(p.restaurant_id)
-      if (!feeCfg) continue
-      // Taxa tx incide sobre pagamentos digitais (PIX/cartão), não dinheiro
       if (p.method === 'cash' || p.method === 'offer') continue
       gmvDigital += amount
-      txRevenue += amount * (feeCfg.percent / 100)
+      const storedCommission = Number((p as { commission_amount?: number }).commission_amount ?? 0)
+      if (storedCommission > 0) {
+        txRevenue += storedCommission
+      } else {
+        const feeCfg = feeByRestaurant.get(p.restaurant_id)
+        if (feeCfg) txRevenue += amount * (feeCfg.percent / 100)
+      }
     }
 
     stats.platformPaymentsLast30Days = paid.length

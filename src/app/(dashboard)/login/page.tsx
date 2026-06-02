@@ -74,7 +74,15 @@ export default function LoginPage() {
 
   async function handleWaiterLogin(e: React.FormEvent) {
     e.preventDefault()
-    toast.info('Painel do garçom em breve. Em breve você entrará por aqui com e-mail e senha.')
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      toast.error('E-mail ou senha incorretos.')
+      setLoading(false)
+      return
+    }
+    router.push('/dashboard/waiter')
   }
 
   const inputStyle: React.CSSProperties = {
