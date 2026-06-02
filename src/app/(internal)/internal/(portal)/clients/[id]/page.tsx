@@ -22,6 +22,8 @@ import {
   type NfeFormState,
 } from '@/components/internal/restaurant-nfe-fields'
 import { RestaurantServiceNfePanel } from '@/components/internal/restaurant-service-nfe-panel'
+import { RestaurantModelPicker } from '@/components/internal/restaurant-model-picker'
+import type { RestaurantModelId } from '@/lib/restaurant-models'
 
 type TabId = 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico'
 
@@ -57,6 +59,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [nfeForm, setNfeForm] = useState<NfeFormState>(emptyNfeForm)
   const [tradeName, setTradeName] = useState('')
   const [slug, setSlug] = useState('')
+  const [restaurantModel, setRestaurantModel] = useState<RestaurantModelId | null>(null)
 
   const [billingForm, setBillingForm] = useState({
     status: 'active' as 'active' | 'inactive',
@@ -80,6 +83,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       setPlans(plansRes.plans ?? [])
       setTradeName(c.name)
       setSlug(c.slug)
+      setRestaurantModel((c.restaurant_model as RestaurantModelId | null) ?? null)
       const p = c.profile
       setBusinessForm({
         businessType: p.business_type ?? 'restaurante',
@@ -142,6 +146,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify({
           restaurantName: tradeName,
           slug,
+          ...(restaurantModel ? { restaurantModel } : {}),
           status: billingForm.status,
           planId: billingForm.planId,
           subscriptionStatus: billingForm.subscriptionStatus,
@@ -241,15 +246,27 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         <InternalFormTabs tabs={TABS} active={tab} onChange={id => setTab(id as TabId)} />
 
         {tab === 'estabelecimento' && (
-          <RestaurantBusinessFields
-            embedded
-            form={businessForm}
-            setForm={setBusinessForm}
-            tradeName={tradeName}
-            setTradeName={setTradeName}
-            slug={slug}
-            setSlug={setSlug}
-          />
+          <div className="space-y-6">
+            <section className="space-y-3">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Modelo operacional</p>
+                <p className="text-sm text-on-surface-variant mt-1">
+                  Define o fluxo do cliente (mesa/QR, balcão por número ou ambos) e o painel.
+                  Ajusta o modo operacional automaticamente.
+                </p>
+              </div>
+              <RestaurantModelPicker value={restaurantModel} onChange={setRestaurantModel} />
+            </section>
+            <RestaurantBusinessFields
+              embedded
+              form={businessForm}
+              setForm={setBusinessForm}
+              tradeName={tradeName}
+              setTradeName={setTradeName}
+              slug={slug}
+              setSlug={setSlug}
+            />
+          </div>
         )}
 
         {tab === 'nfe_cliente' && (

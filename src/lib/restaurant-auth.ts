@@ -5,12 +5,16 @@ import type { User } from '@supabase/supabase-js'
 
 export type RestaurantRole = 'owner' | 'waiter' | 'kitchen' | 'manager'
 
+export type OperationalMode = 'dine_in' | 'counter' | 'both'
+
 export type RestaurantAccess = {
   user: User
   restaurantId: string
   restaurantName: string
   role: RestaurantRole
   isOwner: boolean
+  operationalMode: OperationalMode
+  restaurantModel: string | null
 }
 
 export class RestaurantAuthError extends Error {
@@ -41,7 +45,7 @@ export async function requireRestaurantAccess(
 
     const { data: owned } = await admin
       .from('restaurants')
-      .select('id, name')
+      .select('id, name, operational_mode, restaurant_model')
       .eq('owner_id', user.id)
       .maybeSingle()
 
@@ -56,12 +60,14 @@ export async function requireRestaurantAccess(
         restaurantName: owned.name,
         role,
         isOwner: true,
+        operationalMode: (owned.operational_mode as OperationalMode) ?? 'both',
+        restaurantModel: owned.restaurant_model ?? null,
       }
     }
 
     const { data: member } = await admin
       .from('restaurant_members')
-      .select('restaurant_id, role, user_id, restaurants ( name )')
+      .select('restaurant_id, role, user_id, restaurants ( name, operational_mode, restaurant_model )')
       .eq('email', user.email.toLowerCase())
       .eq('active', true)
       .maybeSingle()
@@ -78,15 +84,16 @@ export async function requireRestaurantAccess(
           .eq('email', user.email.toLowerCase())
           .eq('restaurant_id', member.restaurant_id)
       }
-      const restaurantName = (Array.isArray(member.restaurants)
-        ? member.restaurants[0]?.name
-        : (member.restaurants as { name?: string } | null)?.name) ?? 'Restaurante'
+      const rest = (Array.isArray(member.restaurants) ? member.restaurants[0] : member.restaurants) as
+        { name?: string; operational_mode?: string; restaurant_model?: string } | null
       return {
         user,
         restaurantId: member.restaurant_id,
-        restaurantName,
+        restaurantName: rest?.name ?? 'Restaurante',
         role,
         isOwner: false,
+        operationalMode: (rest?.operational_mode as OperationalMode) ?? 'both',
+        restaurantModel: rest?.restaurant_model ?? null,
       }
     }
 
@@ -102,6 +109,8 @@ export async function requireRestaurantAccess(
       restaurantName: mockRestaurant.name,
       role: 'owner',
       isOwner: true,
+      operationalMode: 'both',
+      restaurantModel: 'salao_balcao',
     }
   }
 

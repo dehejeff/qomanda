@@ -28,6 +28,7 @@ export default function TablesPage() {
   const [deleting, setDeleting] = useState(false)
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null)
   const [manageTable, setManageTable] = useState<RestaurantTable | null>(null)
+  const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('both')
 
   useEffect(() => {
     if (DEV_BYPASS) {
@@ -46,12 +47,13 @@ export default function TablesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: r } = await supabase.from('restaurants').select('id, slug, name').eq('owner_id', user.id).single()
+      const { data: r } = await supabase.from('restaurants').select('id, slug, name, operational_mode').eq('owner_id', user.id).single()
       if (!r) return
 
       setRestaurantSlug(r.slug)
       setRestaurantName(r.name ?? '')
       setRestaurantId(r.id)
+      setOperationalMode((r.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'both')
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
@@ -147,6 +149,15 @@ export default function TablesPage() {
   return (
     <>
       <div className="space-y-stack-lg">
+        {operationalMode === 'counter' && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <span className="material-symbols-outlined text-[20px] text-amber-400 shrink-0">info</span>
+            <p className="text-sm text-amber-100/90 leading-relaxed">
+              Seu restaurante está no modo <strong>Balcão</strong> — pedidos por número, sem mesas físicas.
+              Esta tela não é necessária. Para usar mesas, mude para <strong>Salão</strong> ou <strong>Salão + balcão</strong> em Settings → Pagamentos.
+            </p>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center gap-3">
           <div>

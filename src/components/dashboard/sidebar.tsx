@@ -6,18 +6,30 @@ import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { QomandaLogo } from '@/components/qomanda-logo'
 
-const NAV_ITEMS = [
+type OperationalMode = 'dine_in' | 'counter' | 'both'
+
+// `modes` = em quais tipos de restaurante o item aparece. Ausente = sempre.
+const NAV_ITEMS: { href: string; icon: string; label: string; modes?: OperationalMode[] }[] = [
   { href: '/dashboard',           icon: 'dashboard',        label: 'Overview' },
   { href: '/dashboard/reports',   icon: 'analytics',        label: 'Relatórios' },
   { href: '/dashboard/orders',    icon: 'receipt_long',     label: 'Pedidos' },
   { href: '/dashboard/customers',   icon: 'groups',           label: 'Clientes' },
   { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },
-  { href: '/dashboard/tables',      icon: 'table_restaurant', label: 'Mesas' },
+  // Mesas só faz sentido para salão (dine_in) e salão+balcão (both); balcão puro não tem mesas.
+  { href: '/dashboard/tables',      icon: 'table_restaurant', label: 'Mesas', modes: ['dine_in', 'both'] },
 ]
 
-export function DashboardSidebar({ restaurantName }: { restaurantName: string }) {
+export function DashboardSidebar({
+  restaurantName,
+  operationalMode = 'both',
+}: {
+  restaurantName: string
+  operationalMode?: OperationalMode
+}) {
   const pathname = usePathname()
   const router = useRouter()
+
+  const navItems = NAV_ITEMS.filter(item => !item.modes || item.modes.includes(operationalMode))
 
   async function handleLogout() {
     if (DEV_BYPASS) { router.push('/'); return }
@@ -41,7 +53,7 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 flex-grow">
-          {NAV_ITEMS.map(({ href, icon, label }) => {
+          {navItems.map(({ href, icon, label }) => {
             const active = href === '/dashboard'
               ? pathname === href
               : pathname === href || pathname.startsWith(`${href}/`)
@@ -103,7 +115,7 @@ export function DashboardSidebar({ restaurantName }: { restaurantName: string })
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container border-t border-outline-variant flex">
-        {NAV_ITEMS.map(({ href, icon, label }) => {
+        {navItems.map(({ href, icon, label }) => {
           const active = pathname === href
           return (
             <Link

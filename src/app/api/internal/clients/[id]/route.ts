@@ -11,6 +11,7 @@ import {
   validateRestaurantNfe,
   type RestaurantNfeInput,
 } from '@/lib/restaurant-nfe'
+import { getRestaurantModel, restaurantModelPresetToDb, type RestaurantModelId } from '@/lib/restaurant-models'
 import type { Plan, SubscriptionStatus } from '@/types/internal'
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -42,6 +43,7 @@ type PatchBody = RestaurantBusinessInput & RestaurantNfeInput & {
   platformFeeFixedOverride?: number | null
   asaasOnboardingStatus?: 'pending' | 'submitted' | 'approved' | 'rejected'
   subscriptionNotes?: string
+  restaurantModel?: RestaurantModelId
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
@@ -62,6 +64,19 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.slug != null) restaurantPatch.slug = body.slug.trim().toLowerCase()
     if (body.status != null) restaurantPatch.status = body.status
     if (body.asaasOnboardingStatus != null) restaurantPatch.asaas_onboarding_status = body.asaasOnboardingStatus
+
+    // Modelo operacional (salão/balcão/etc) → aplica preset (modo + gateway padrão)
+    if (body.restaurantModel != null) {
+      if (!getRestaurantModel(body.restaurantModel)) {
+        return NextResponse.json({ error: 'Modelo de restaurante inválido.' }, { status: 400 })
+      }
+      const preset = restaurantModelPresetToDb(body.restaurantModel)
+      // Não sobrescreve um gateway já configurado pelo restaurante:
+      // só define restaurant_model + operational_mode (e marketplace flag).
+      restaurantPatch.restaurant_model = preset.restaurant_model
+      restaurantPatch.operational_mode = preset.operational_mode
+      restaurantPatch.marketplace_split_enabled = preset.marketplace_split_enabled
+    }
 
     const hasBusinessFields = body.documentType != null || body.documentNumber != null || body.addressStreet != null
     if (hasBusinessFields) {

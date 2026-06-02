@@ -75,6 +75,8 @@ export interface InternalClientListItem {
 export interface InternalClientDetail extends InternalClientListItem {
   address: string | null
   owner_id: string
+  restaurant_model: string | null
+  operational_mode: string | null
   asaas_onboarding_status: string | null
   subscription: RestaurantSubscription | null
   recent_invoices: BillingInvoice[]

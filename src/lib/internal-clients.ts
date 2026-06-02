@@ -117,6 +117,7 @@ export async function fetchClientDetail(admin: SupabaseClient, id: string): Prom
     .from('restaurants')
     .select(`
       id, name, slug, status, phone, address, plan_id, created_at, owner_id,
+      restaurant_model, operational_mode,
       platform_fee_percent, platform_fee_fixed,
       bank_account, payout_configured_at,
       asaas_wallet_id, asaas_onboarding_status,
@@ -180,6 +181,8 @@ export async function fetchClientDetail(admin: SupabaseClient, id: string): Prom
     ...listItem,
     address: r.address,
     owner_id: r.owner_id,
+    restaurant_model: (r.restaurant_model as string | null) ?? null,
+    operational_mode: (r.operational_mode as string | null) ?? 'both',
     asaas_onboarding_status: r.asaas_onboarding_status,
     subscription: sub,
     recent_invoices: (invoices ?? []) as BillingInvoice[],
