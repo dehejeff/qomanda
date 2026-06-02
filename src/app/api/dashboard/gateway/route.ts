@@ -67,12 +67,9 @@ export async function POST(req: NextRequest) {
       }))
     }
 
-    if (body.provider === 'manual' && body.manualPixKey !== undefined && !body.manualPixKey?.trim()) {
-      const hasExisting = Boolean(existing.manualPixKey?.trim())
-      if (!hasExisting) {
-        return NextResponse.json({ error: 'Informe a chave PIX para pagamento manual.' }, { status: 400 })
-      }
-    }
+    // Sem chave PIX, o provider manual fica "não configurado" (só dinheiro no checkout),
+    // mas NÃO bloqueamos o save — senão o dono não consegue nem mudar o modo operacional.
+    // O painel já mostra "Informe a chave PIX para ativar".
 
     if (body.provider !== undefined) {
       Object.assign(patch, gatewayFieldsToDb({

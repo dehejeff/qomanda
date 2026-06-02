@@ -655,7 +655,20 @@ export default function SettingsPage() {
                     <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Telefone</label>
                     <input
                       value={profilePhone}
-                      onChange={e => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3').replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3').replace(/(\d{2})(\d{1,5})/, '($1) $2'))}
+                      onChange={e => {
+                        const d = e.target.value.replace(/\D/g, '').slice(0, 11)
+                        let v = d
+                        if (d.length > 6) {
+                          v = d.length > 10
+                            ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+                            : `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+                        } else if (d.length > 2) {
+                          v = `(${d.slice(0, 2)}) ${d.slice(2)}`
+                        } else if (d.length > 0) {
+                          v = `(${d.slice(0, 2)}`
+                        }
+                        setProfilePhone(v)
+                      }}
                       placeholder="(11) 99999-9999"
                       inputMode="tel"
                       className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary"
