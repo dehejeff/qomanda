@@ -43,3 +43,7 @@ next-env.d.ts
 # Smoke test scripts (local)
 smoke-setup.js
 smoke-e2e.js
+
+# Smoke balcao (local)
+smoke-setup-balcao.js
+smoke-e2e-balcao.js

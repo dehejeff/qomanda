@@ -11,8 +11,8 @@ Validação E2E de cada modelo operacional, dirigindo a UI real com Playwright.
 | Módulo | Status | Data |
 |--------|--------|------|
 | **Salão com mesas** (`salao`) | ✅ PASS (12/12 etapas) | 2026-06-02 |
-| **Balcão / fast food** (`balcao`) | ⏳ Próximo | — |
-| Salão + balcão (`salao_balcao`) | 🔴 Pendente | — |
+| **Balcão / fast food** (`balcao`) | ✅ PASS (12/12 + bug crítico corrigido) | 2026-06-02 |
+| Salão + balcão (`salao_balcao`) | ⏳ Próximo | — |
 | Food hall / praça (`food_hall`) | 🔴 Pendente | — |
 
 ---
@@ -34,7 +34,24 @@ Fluxo completo validado: cadastro → login → mesas → check-in (token real) 
 
 ---
 
-## Como retomar amanhã (Balcão)
+## ✅ Balcão / fast food — resultado
+
+Fluxo completo validado: redirect `/slug`→`/balcao` → check-in leve → cardápio → pedido **#1** → fila do dashboard → checkout simplificado (sem "fechar mesa toda", mostra "Pagar meu pedido") → PIX manual com chave + copia-e-cola → segundo pedido incrementa para **#2**.
+
+### Corrigido nesta sessão
+- 🔴 **BUG CRÍTICO:** check-in do balcão redirecionava para `/menu?balcao=1` (sem `?session=`). O menu exige `?session=` e jogava o cliente de volta para `/{slug}` → `/balcao` (loop) — **cliente do balcão nunca chegava ao cardápio**. Fix: `balcao/page.tsx` agora redireciona para `/menu?session=${sessionId}` (o `service_mode=counter` continua via localStorage). Confirmado em runtime antes e depois do fix.
+
+### Achados
+- 🔍 Mesma taxa de serviço ~10% do salão aplica no balcão (R$ 32 → R$ 35,20). Confirmar intenção.
+- ✅ PIX manual aparece corretamente quando `manual_pix_key` configurada (diferente do salão, onde não testamos com chave).
+
+---
+
+## Como retomar (Salão + Balcão / `salao_balcao`)
+
+Próximo módulo: `operational_mode: both`. Combina os dois fluxos — `/slug` deve oferecer **escolha** entre QR de mesa e balcão (não redireciona direto). Ver `[slug]/page.tsx` branch `isBothMode`. Adaptar `smoke-setup-*.js` com `restaurant_model: 'salao_balcao'`, `operational_mode: 'both'`, e seed de mesas (para o lado salão) + chave PIX (para o lado balcão).
+
+## Como retomar (instruções gerais)
 
 ### 1. Pré-requisitos do ambiente
 ```powershell

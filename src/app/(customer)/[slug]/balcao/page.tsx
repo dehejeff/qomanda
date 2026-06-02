@@ -57,7 +57,8 @@ export default function BalcaoPage() {
       localStorage.setItem('qomanda_session_id', data.sessionId)
       localStorage.setItem('qomanda_customer_id', data.customerId)
       localStorage.setItem('qomanda_service_mode', 'counter')
-      router.push(`/${slug}/menu?balcao=1`)
+      // O menu identifica a sessão por ?session= (modo balcão usa localStorage p/ service_mode)
+      router.push(`/${slug}/menu?session=${data.sessionId}`)
     } finally {
       setLoading(false)
     }
