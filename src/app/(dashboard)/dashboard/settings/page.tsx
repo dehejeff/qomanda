@@ -16,16 +16,41 @@ import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gatewa
 import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billing-panel'
 import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
 
-type Tab = 'perfil' | 'pagamentos' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
+type Tab = 'perfil' | 'pagamentos' | 'notas' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'perfil',       label: 'Perfil'      },
   { id: 'pagamentos',   label: 'Pagamentos'  },
+  { id: 'notas',        label: 'Notas Fiscais' },
   { id: 'fidelidade',   label: 'Fidelidade'  },
   { id: 'integracoes',  label: 'Integrações' },
   { id: 'seguranca',    label: 'Segurança'   },
   { id: 'equipe',       label: 'Equipe'      },
 ]
+
+type NfeInvoiceRow = {
+  id: string
+  paymentId: string | null
+  noteType: 'nfce' | 'nfse'
+  status: string
+  amount: number
+  number: string | null
+  danfeUrl: string | null
+  environment: string
+  whatsappSentAt: string | null
+  errorMessage: string | null
+  createdAt: string
+  customerName: string | null
+}
+
+const NFE_STATUS_META: Record<string, { label: string; className: string }> = {
+  issued:    { label: 'Emitida',     className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+  processing:{ label: 'Processando', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+  simulated: { label: 'Simulada',    className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  pending:   { label: 'Pendente',    className: 'bg-surface-container-high text-on-surface-variant border-outline-variant' },
+  error:     { label: 'Erro',        className: 'bg-red-500/10 text-red-400 border-red-500/20' },
+  cancelled: { label: 'Cancelada',   className: 'bg-surface-container-high text-on-surface-variant border-outline-variant' },
+}
 
 const MOCK_TRANSACTIONS = [
   { id: 'TRX-99281-Q', date: '24 Out, 2023', time: '14:20', amount: 450.20,  status: 'paid',    method: 'credit', label: 'Crédito' },
@@ -162,6 +187,61 @@ export default function SettingsPage() {
       setLogoUploading(false)
     }
   }
+
+  // Notas fiscais
+  const [nfeInvoices, setNfeInvoices] = useState<NfeInvoiceRow[]>([])
+  const [nfeLoading, setNfeLoading] = useState(true)
+  const [nfeBusyId, setNfeBusyId] = useState<string | null>(null)
+
+  const loadNfe = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/nfe')
+      const data = await res.json()
+      if (res.ok) setNfeInvoices((data.invoices ?? []) as NfeInvoiceRow[])
+    } finally {
+      setNfeLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadNfe().catch(() => {}) }, [loadNfe])
+
+  async function resendNfe(invoiceId: string) {
+    setNfeBusyId(invoiceId)
+    try {
+      const res = await fetch('/api/dashboard/nfe/resend', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(data.mock ? 'WhatsApp simulado (dev) — veja o console.' : 'Nota reenviada por WhatsApp!')
+      loadNfe()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reenviar.')
+    } finally {
+      setNfeBusyId(null)
+    }
+  }
+
+  async function emitNfe(paymentId: string) {
+    setNfeBusyId(paymentId)
+    try {
+      const res = await fetch('/api/dashboard/nfe/emit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success('NF-e emitida! Veja em Notas Fiscais.')
+      loadNfe()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao emitir NF-e.')
+    } finally {
+      setNfeBusyId(null)
+    }
+  }
+
+  const nfeByPayment = new Set(nfeInvoices.map(i => i.paymentId).filter(Boolean) as string[])
 
   const [paymentTxs, setPaymentTxs] = useState<PaymentTxRow[]>([])
   const [paymentsLoading, setPaymentsLoading] = useState(true)
@@ -1073,7 +1153,7 @@ export default function SettingsPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-surface-container-low">
-                    {['Data', 'Referência', 'Cliente', 'Valor', 'Status', 'Método'].map((h) => (
+                    {['Data', 'Referência', 'Cliente', 'Valor', 'Status', 'Método', 'NF-e'].map((h) => (
                       <th key={h} className="px-6 py-3 text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
                         {h}
                       </th>
@@ -1109,6 +1189,28 @@ export default function SettingsPage() {
                           {tx.label}
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        {tx.status === 'paid' && tx.method !== 'offer' ? (
+                          nfeByPayment.has(tx.id) ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-mono text-emerald-400">
+                              <span className="material-symbols-outlined text-[16px]">task_alt</span>
+                              Emitida
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => emitNfe(tx.id)}
+                              disabled={nfeBusyId === tx.id}
+                              className="flex items-center gap-1 text-xs font-mono text-primary hover:underline disabled:opacity-40"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                              {nfeBusyId === tx.id ? 'Emitindo…' : 'Emitir'}
+                            </button>
+                          )
+                        ) : (
+                          <span className="text-xs text-on-surface-variant opacity-40">—</span>
+                        )}
+                      </td>
                     </tr>
                     )
                   })}
@@ -1123,6 +1225,97 @@ export default function SettingsPage() {
                 {txSearch.trim() ? ' (filtradas)' : ''}
               </p>
             </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── NOTAS FISCAIS ──────────────────────────────── */}
+      {tab === 'notas' && (
+        <div className="space-y-card-gap">
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-6 flex gap-5 items-start">
+            <div className="p-3 rounded-lg bg-primary/10 shrink-0">
+              <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-base font-semibold text-on-surface mb-1">Notas Fiscais</h2>
+              <p className="text-sm text-on-surface-variant leading-relaxed">
+                Notas emitidas automaticamente após cada pagamento confirmado (quando a NF-e está ativa)
+                e enviadas ao cliente por WhatsApp. Configure o emissor e o tipo de nota com a equipe Qomanda.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant">
+              <h3 className="text-sm font-semibold text-on-surface">Histórico de notas</h3>
+              <p className="text-xs text-on-surface-variant">Últimas 100 notas emitidas neste estabelecimento.</p>
+            </div>
+            {nfeLoading ? (
+              <div className="py-16 text-center text-sm font-mono text-on-surface-variant">Carregando notas…</div>
+            ) : nfeInvoices.length === 0 ? (
+              <div className="py-16 text-center">
+                <span className="material-symbols-outlined text-[40px] text-on-surface-variant opacity-30 mb-2 block">receipt_long</span>
+                <p className="text-sm font-mono text-on-surface-variant">Nenhuma nota emitida ainda.</p>
+                <p className="text-xs text-on-surface-variant mt-1">As notas aparecem aqui após pagamentos confirmados.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-surface-container-low">
+                      {['Data', 'Cliente', 'Tipo', 'Valor', 'Status', 'WhatsApp', 'Ações'].map(h => (
+                        <th key={h} className="px-6 py-3 text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/30">
+                    {nfeInvoices.map(inv => {
+                      const meta = NFE_STATUS_META[inv.status] ?? NFE_STATUS_META.pending
+                      return (
+                        <tr key={inv.id} className="hover:bg-surface-container-high transition-colors">
+                          <td className="px-6 py-4 text-sm text-on-surface">{new Date(inv.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="px-6 py-4 text-sm text-on-surface-variant">{inv.customerName ?? '—'}</td>
+                          <td className="px-6 py-4 text-xs font-mono uppercase text-on-surface-variant">{inv.noteType === 'nfce' ? 'NFC-e' : 'NFS-e'}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-on-surface">{formatCurrency(inv.amount)}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono border ${meta.className}`} title={inv.errorMessage ?? undefined}>
+                              {meta.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-mono text-on-surface-variant">
+                            {inv.whatsappSentAt
+                              ? <span className="text-emerald-400">enviado</span>
+                              : <span className="opacity-50">—</span>}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {inv.danfeUrl && (
+                                <a href={inv.danfeUrl} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs font-mono text-primary hover:underline">
+                                  <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                                  DANFE
+                                </a>
+                              )}
+                              {['issued', 'processing', 'simulated'].includes(inv.status) && (
+                                <button
+                                  type="button"
+                                  onClick={() => resendNfe(inv.id)}
+                                  disabled={nfeBusyId === inv.id}
+                                  className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-on-surface disabled:opacity-40"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">send</span>
+                                  {nfeBusyId === inv.id ? 'Enviando…' : 'Reenviar'}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
