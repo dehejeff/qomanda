@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getServerUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DEV_BYPASS, mockTables, mockOrders, mockRestaurant } from '@/lib/dev-mock'
 import { sortTablesByNumber } from '@/lib/sort-tables'
@@ -23,10 +23,10 @@ export default async function DashboardPage() {
     )
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getServerUser()
   if (!user) redirect('/login')
 
+  const supabase = await createClient()
   const { data: restaurant } = await supabase.from('restaurants').select('id, slug').eq('owner_id', user.id).single()
   if (!restaurant) redirect('/login')
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getServerUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { StaffUser } from '@/types/internal'
 import type { User } from '@supabase/supabase-js'
@@ -44,8 +44,7 @@ export async function requireStaff(): Promise<StaffContext> {
     }
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getServerUser()
   if (!user) throw new StaffAuthError('Não autenticado.', 401)
 
   const admin = createAdminClient()

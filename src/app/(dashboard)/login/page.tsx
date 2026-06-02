@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { isInvalidRefreshTokenError } from '@/lib/supabase/auth-errors'
 import { CustomerLoginForm } from '@/components/customer/customer-login-form'
 
 type AccessRole = 'customer' | 'admin' | 'waiter'
@@ -49,6 +50,14 @@ export default function LoginPage() {
   useEffect(() => {
     const param = new URLSearchParams(window.location.search).get('perfil')
     setRole(parseRole(param))
+
+    // Limpa cookies de sessão corrompidos (refresh token inválido)
+    const supabase = createClient()
+    void supabase.auth.getUser().then(({ error }) => {
+      if (error && isInvalidRefreshTokenError(error)) {
+        void supabase.auth.signOut({ scope: 'local' })
+      }
+    })
   }, [])
 
   useEffect(() => {

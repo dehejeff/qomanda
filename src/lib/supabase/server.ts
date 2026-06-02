@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { clearStaleAuthSession, isInvalidRefreshTokenError } from '@/lib/supabase/auth-errors'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -22,4 +23,15 @@ export async function createClient() {
       },
     }
   )
+}
+
+/** getUser com limpeza automática de refresh token inválido (server components / routes). */
+export async function getServerUser() {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error && isInvalidRefreshTokenError(error)) {
+    await clearStaleAuthSession(supabase)
+    return { user: null, error }
+  }
+  return { user, error }
 }
