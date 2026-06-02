@@ -45,7 +45,26 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (!internalPayment) {
-      // Pagamento não encontrado — pode ser de outro sistema ou webhook duplicado
+      // Pode ser uma cobrança de MENSALIDADE (fatura SaaS Qomanda → restaurante)
+      const { data: invoice } = await supabase
+        .from('billing_invoices')
+        .select('id, status')
+        .eq('asaas_payment_id', payment.id)
+        .maybeSingle()
+
+      if (invoice) {
+        const st: AsaasPaymentStatus = payment.status
+        if (isPaymentConfirmed(st) && invoice.status !== 'paid') {
+          await supabase.from('billing_invoices')
+            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', invoice.id)
+          console.log(`[Asaas Webhook] Mensalidade paga: fatura ${invoice.id}`)
+        } else if (st === 'OVERDUE') {
+          await supabase.from('billing_invoices').update({ status: 'overdue' }).eq('id', invoice.id)
+        } else if (st === 'REFUNDED' || st === 'REFUND_REQUESTED') {
+          await supabase.from('billing_invoices').update({ status: 'cancelled' }).eq('id', invoice.id)
+        }
+      }
       return NextResponse.json({ ok: true })
     }
 
