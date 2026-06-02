@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export type ReceiptNfe = {
+  status: string
+  noteType: 'nfce' | 'nfse'
+  danfeUrl: string | null
+}
+
 export type ReceiptRow = {
   id: string
   amount: number
@@ -15,6 +21,7 @@ export type ReceiptRow = {
   logoUrl: string | null
   tableNumber: string
   sessionId: string
+  nfe: ReceiptNfe | null
 }
 
 export type ReceiptRestaurantSummary = {
@@ -62,6 +69,25 @@ export async function fetchCustomerReceipts(
     .order('paid_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 
+  // Notas fiscais por pagamento (mais recente vence)
+  const paymentIds = (payments ?? []).map(p => p.id)
+  const nfeByPayment = new Map<string, ReceiptNfe>()
+  if (paymentIds.length > 0) {
+    const { data: notes } = await supabase
+      .from('nfe_invoices')
+      .select('payment_id, status, note_type, danfe_url, created_at')
+      .in('payment_id', paymentIds)
+      .order('created_at', { ascending: false })
+    for (const n of notes ?? []) {
+      if (!n.payment_id || nfeByPayment.has(n.payment_id)) continue
+      nfeByPayment.set(n.payment_id, {
+        status: n.status,
+        noteType: n.note_type,
+        danfeUrl: n.danfe_url ?? null,
+      })
+    }
+  }
+
   return (payments ?? []).map(p => {
     type Sess = {
       id: string
@@ -90,6 +116,7 @@ export async function fetchCustomerReceipts(
       logoUrl: rest?.logo_url ?? null,
       tableNumber: table?.number ?? '—',
       sessionId: p.session_id,
+      nfe: nfeByPayment.get(p.id) ?? null,
     }
   })
 }

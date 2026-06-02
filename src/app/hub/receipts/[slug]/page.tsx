@@ -138,13 +138,36 @@ function HubReceiptsRestaurantContent() {
               </div>
               <div className="space-y-2">
                 {day.receipts.map(r => (
-                  <PaymentReceiptCard
-                    key={r.id}
-                    payment={r}
-                    context={{ restaurantName: r.restaurantName, tableNumber: r.tableNumber }}
-                    variant="customer"
-                    compact
-                  />
+                  <div key={r.id} className="space-y-1.5">
+                    <PaymentReceiptCard
+                      payment={r}
+                      context={{ restaurantName: r.restaurantName, tableNumber: r.tableNumber }}
+                      variant="customer"
+                      compact
+                    />
+                    {r.nfe && (
+                      r.nfe.danfeUrl ? (
+                        <a
+                          href={r.nfe.danfeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-mono font-bold transition-all active:scale-[0.98]"
+                          style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', color: '#34d399' }}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                          Baixar {r.nfe.noteType === 'nfce' ? 'NF-e' : 'NFS-e'}
+                        </a>
+                      ) : (
+                        <div
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-mono"
+                          style={{ background: '#131b2e', border: '1px dashed #334155', color: '#a78b7d' }}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">hourglass_top</span>
+                          {r.nfe.status === 'error' ? 'Nota fiscal indisponível' : 'Nota fiscal em processamento'}
+                        </div>
+                      )
+                    )}
+                  </div>
                 ))}
               </div>
             </section>
