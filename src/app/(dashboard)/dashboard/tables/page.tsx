@@ -148,7 +148,8 @@ export default function TablesPage() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
     const token = table.check_in_token
     if (!token) {
-      return `${base.replace(/\/$/, '')}/${restaurantSlug}?mesa=${table.number}`
+      console.warn(`[Tables] Mesa ${table.number} sem check_in_token — regenere o QR após migração.`)
+      return null
     }
     return buildTableCheckInUrl(base, restaurantSlug, table.number, token)
   }
@@ -264,8 +265,13 @@ export default function TablesPage() {
                     className={`relative aspect-square rounded-lg flex flex-col items-center justify-center border transition-all ${s.cardClass}`}
                     onClick={() => {
                       if (isConfirming) return
-                      if (table.status === 'free') setQrTable(table)
-                      else setManageTable(table)
+                      if (table.status === 'free') {
+                        if (!getQrUrl(table)) {
+                          toast.error('Mesa sem token de QR. Rode a migração de tokens ou recrie a mesa.')
+                          return
+                        }
+                        setQrTable(table)
+                      } else setManageTable(table)
                     }}
                   >
                     {isConfirming ? (
@@ -329,10 +335,10 @@ export default function TablesPage() {
       </div>
 
       {/* QR Code Modal — mesas livres */}
-      {qrTable && (
+      {qrTable && getQrUrl(qrTable) && (
         <TableQrModal
           table={qrTable}
-          url={getQrUrl(qrTable)}
+          url={getQrUrl(qrTable)!}
           restaurantName={restaurantName || undefined}
           onClose={() => setQrTable(null)}
         />

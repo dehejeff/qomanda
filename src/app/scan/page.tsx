@@ -2,58 +2,74 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
+import { parseCheckInTargetFromQr } from '@/lib/table-checkin-url'
 
-type ScanStatus = 'starting' | 'scanning' | 'detected' | 'no-support' | 'denied'
+type ScanStatus = 'starting' | 'scanning' | 'detected' | 'invalid' | 'no-support' | 'denied'
 
 export default function ScanPage() {
-  const router = useRouter()
-  const videoRef   = useRef<HTMLVideoElement>(null)
-  const streamRef  = useRef<MediaStream | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scannedRef = useRef(false)
+  const startCameraRef = useRef<(() => Promise<void>) | null>(null)
 
   const [status, setStatus] = useState<ScanStatus>('starting')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [redirectPath, setRedirectPath] = useState<string | null>(null)
 
   const stopCamera = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
       streamRef.current = null
     }
   }, [])
 
+  const resetScan = useCallback((message?: string) => {
+    scannedRef.current = false
+    setRedirectPath(null)
+    setErrorMessage(message ?? null)
+    setStatus(message ? 'invalid' : 'starting')
+    void startCameraRef.current?.()
+  }, [])
+
+  const navigateToCheckIn = useCallback((path: string) => {
+    setRedirectPath(path)
+    setStatus('detected')
+    if ('vibrate' in navigator) navigator.vibrate(200)
+
+    // Navegação completa — mais confiável que router.push após getUserMedia (iOS/PWA).
+    window.setTimeout(() => {
+      window.location.assign(path)
+    }, 400)
+
+    // Fallback se a navegação não ocorrer (ex.: bloqueio do browser).
+    window.setTimeout(() => {
+      if (window.location.pathname + window.location.search !== path) {
+        setErrorMessage('Toque em "Continuar para a mesa" abaixo se não redirecionar automaticamente.')
+      }
+    }, 3500)
+  }, [])
+
   const handleDetected = useCallback((rawValue: string) => {
     if (scannedRef.current) return
     scannedRef.current = true
     stopCamera()
-    setStatus('detected')
-    if ('vibrate' in navigator) navigator.vibrate(200)
 
-    setTimeout(() => {
-      try {
-        const url = new URL(rawValue)
-        const hasToken = url.searchParams.has('t')
-        const hasMesa = url.searchParams.has('mesa')
-        if (!hasToken || !hasMesa) {
-          scannedRef.current = false
-          setStatus('scanning')
-          return
-        }
-        router.push(url.pathname + url.search)
-      } catch {
-        if (rawValue.startsWith('/') && rawValue.includes('t=') && rawValue.includes('mesa=')) {
-          router.push(rawValue)
-        } else {
-          scannedRef.current = false
-          setStatus('scanning')
-        }
-      }
-    }, 900)
-  }, [stopCamera, router])
+    const path = parseCheckInTargetFromQr(rawValue)
+    if (!path) {
+      resetScan('QR Code inválido. Use o código fixado na mesa do restaurante (com mesa e token seguros).')
+      return
+    }
+
+    navigateToCheckIn(path)
+  }, [stopCamera, resetScan, navigateToCheckIn])
 
   useEffect(() => {
     if (!('BarcodeDetector' in window)) {
@@ -63,6 +79,7 @@ export default function ScanPage() {
 
     async function start() {
       try {
+        stopCamera()
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
         })
@@ -72,10 +89,11 @@ export default function ScanPage() {
           await videoRef.current.play()
         }
         setStatus('scanning')
+        setErrorMessage(null)
 
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+        const detector = new (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => { detect: (v: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector({ formats: ['qr_code'] })
         intervalRef.current = setInterval(async () => {
-          if (!videoRef.current) return
+          if (!videoRef.current || scannedRef.current) return
           try {
             const codes = await detector.detect(videoRef.current)
             if (codes.length > 0) handleDetected(codes[0].rawValue)
@@ -86,24 +104,23 @@ export default function ScanPage() {
       }
     }
 
+    startCameraRef.current = start
     start()
     return stopCamera
   }, [handleDetected, stopCamera])
 
   const isDetected = status === 'detected'
-  const hasError   = status === 'no-support' || status === 'denied'
+  const hasError = status === 'no-support' || status === 'denied' || status === 'invalid'
 
   return (
     <div className="relative h-screen w-full flex flex-col overflow-hidden"
       style={{ background: '#060e20', color: '#dae2fd' }}>
 
-      {/* Camera feed */}
       <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover"
         muted playsInline aria-hidden="true" />
       <div className="absolute inset-0"
         style={{ background: 'rgba(11,19,38,0.72)', backdropFilter: 'blur(2px)' }} />
 
-      {/* Header */}
       <header className="relative z-10 flex justify-between items-center px-6 h-16 shrink-0"
         style={{ background: 'rgba(23,31,51,0.85)', borderBottom: '1px solid rgba(88,66,55,0.4)' }}>
         <Link href="/hub" className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
@@ -116,7 +133,6 @@ export default function ScanPage() {
         <div className="w-8" />
       </header>
 
-      {/* Scanner area */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8">
         <div className="text-center mb-10">
           <h1 className="text-2xl font-semibold mb-2">Escaneie a Mesa</h1>
@@ -125,7 +141,6 @@ export default function ScanPage() {
           </p>
         </div>
 
-        {/* Viewfinder */}
         <div className="relative w-64 h-64" style={{ boxShadow: '0 0 24px rgba(249,115,22,0.18)' }}>
           <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl" style={{ borderColor: '#f97316' }} />
           <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl" style={{ borderColor: '#f97316' }} />
@@ -145,11 +160,35 @@ export default function ScanPage() {
         </div>
 
         {isDetected && (
-          <p className="mt-6 text-sm font-semibold" style={{ color: '#ffb690' }}>
-            Mesa identificada! Redirecionando...
-          </p>
+          <div className="mt-6 text-center space-y-3 max-w-[300px]">
+            <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>
+              Mesa identificada! Redirecionando...
+            </p>
+            {redirectPath && (
+              <a href={redirectPath}
+                className="inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-mono font-bold active:scale-95 transition-all"
+                style={{ background: '#f97316', color: '#fff' }}>
+                Continuar para a mesa
+              </a>
+            )}
+            {errorMessage && (
+              <p className="text-xs leading-relaxed" style={{ color: '#e0c0b1' }}>{errorMessage}</p>
+            )}
+          </div>
         )}
-        {hasError && (
+
+        {status === 'invalid' && errorMessage && (
+          <div className="mt-6 text-center max-w-[300px] space-y-3">
+            <p className="text-sm leading-relaxed" style={{ color: '#fca5a5' }}>{errorMessage}</p>
+            <button type="button" onClick={() => resetScan()}
+              className="w-full h-11 rounded-xl text-sm font-mono font-bold"
+              style={{ background: '#131b2e', border: '1px solid #584237', color: '#ffb690' }}>
+              Escanear novamente
+            </button>
+          </div>
+        )}
+
+        {hasError && status !== 'invalid' && (
           <div className="mt-6 text-center max-w-[280px] space-y-3">
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
               {status === 'no-support'
@@ -163,7 +202,7 @@ export default function ScanPage() {
           </div>
         )}
 
-        {!isDetected && !hasError && (
+        {!isDetected && status !== 'invalid' && !hasError && (
           <div className="mt-10">
             <TestTableCheckInLink />
           </div>
@@ -175,7 +214,6 @@ export default function ScanPage() {
         )}
       </main>
 
-      {/* Bottom nav */}
       <Suspense fallback={null}>
         <HubBottomNav active="scan" />
       </Suspense>
