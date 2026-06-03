@@ -145,7 +145,10 @@ export default function TablesPage() {
   }
 
   function getQrUrl(table: RestaurantTable) {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+    const base =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
     const token = table.check_in_token
     if (!token) {
       console.warn(`[Tables] Mesa ${table.number} sem check_in_token — regenere o QR após migração.`)
