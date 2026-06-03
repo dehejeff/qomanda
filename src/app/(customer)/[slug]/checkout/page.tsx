@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { PaymentMethod } from '@/types'
-import type { AsaasPaymentRequest, AsaasPaymentResponse } from '@/app/api/asaas/payments/route'
 import { formatCurrency, generateConfirmationCode } from '@/lib/utils'
 import { splitConsumptionByAlcohol, splitPaymentAmounts } from '@/lib/alcohol-split'
 import { buildReceiptWhatsAppMessage, type PaymentReceiptRecord } from '@/lib/payment-receipt'
@@ -1157,37 +1156,69 @@ export default function CheckoutPage() {
   }
 
   /**
-   * Inicia o pagamento via Asaas (ou modo teste sem gateway).
-   * Retorna true se foi direto para a tela de confirmação.
+   * Inicia pagamento digital (Asaas ou Mercado Pago).
    */
   async function submitPayment(
     amount: number,
     splitType: 'food' | 'alcohol' | 'combined',
     cardPayload?: CardPaymentPayload,
-  ): Promise<AsaasPaymentResponse> {
+  ): Promise<{
+    paymentId: string
+    confirmationCode: string
+    pixQrCodeImage?: string
+    pixPayload?: string
+    pixExpiration?: string
+    status: 'pending' | 'paid'
+    sessionClosed?: boolean
+  }> {
     if (method === 'cash') {
       throw new Error('Pagamento em dinheiro usa fluxo separado.')
     }
-    const payload: AsaasPaymentRequest = {
-      sessionId: sessionId!,
-      amount,
-      method,
-      splitType,
-      customerId: myCustomerId,
-      serviceFeeIncluded: includeServiceFee,
-      ...(cardPayload ?? {}),
-    }
 
-    const res = await customerAuthFetch('/api/asaas/payments', {
+    const usesMp = paymentConfig?.provider === 'mercado_pago'
+    const endpoint = usesMp ? '/api/mercadopago/payments' : '/api/asaas/payments'
+
+    const payload = usesMp
+      ? {
+          sessionId: sessionId!,
+          amount,
+          method,
+          splitType,
+          customerId: myCustomerId,
+          serviceFeeIncluded: includeServiceFee,
+          installmentCount: cardPayload?.installmentCount,
+          cardToken: cardPayload?.cardToken,
+          paymentMethodId: cardPayload?.mpPaymentMethodId,
+        }
+      : {
+          sessionId: sessionId!,
+          amount,
+          method,
+          splitType,
+          customerId: myCustomerId,
+          serviceFeeIncluded: includeServiceFee,
+          ...(cardPayload ?? {}),
+        }
+
+    const res = await customerAuthFetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
 
-    const data: AsaasPaymentResponse = await res.json()
-    if (!res.ok) throw new Error((data as any).error ?? 'Erro ao processar pagamento.')
+    const data = await res.json()
+    if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Erro ao processar pagamento.')
     if (data.sessionClosed) setTableSettled(true)
-    return data
+
+    return {
+      paymentId: data.paymentId,
+      confirmationCode: data.confirmationCode ?? '',
+      pixQrCodeImage: data.pixQrCodeImage,
+      pixPayload: data.pixPayload,
+      pixExpiration: data.pixExpiration,
+      status: data.status,
+      sessionClosed: data.sessionClosed,
+    }
   }
 
   function alcoholPaymentAmounts() {
@@ -1293,7 +1324,9 @@ export default function CheckoutPage() {
         return
       }
 
-      const res = await fetch(`/api/asaas/payments?id=${pixPaymentId}`)
+      const res = await fetch(
+        `${paymentConfig?.provider === 'mercado_pago' ? '/api/mercadopago/payments' : '/api/asaas/payments'}?id=${pixPaymentId}`,
+      )
       const data = await res.json()
 
       const code = data.confirmation_code || generateConfirmationCode()
@@ -1647,6 +1680,8 @@ export default function CheckoutPage() {
             customerId={myCustomerId}
             suggestedAmount={getAmountToPay()}
             fixedAmount={isTableMode}
+            gatewayProvider={paymentConfig?.provider === 'mercado_pago' ? 'mercado_pago' : 'asaas'}
+            mercadoPagoPublicKey={paymentConfig?.mercadoPagoPublicKey}
             onConfirm={async (amount, payload) => {
               const confirmed = await processPayment(amount, payload)
               if (confirmed) setStep('confirmed')

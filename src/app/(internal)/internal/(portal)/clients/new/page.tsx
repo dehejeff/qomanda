@@ -22,11 +22,14 @@ import {
   type NfeFormState,
 } from '@/components/internal/restaurant-nfe-fields'
 import { RestaurantServiceNfePanel } from '@/components/internal/restaurant-service-nfe-panel'
+import { RestaurantModelPicker } from '@/components/internal/restaurant-model-picker'
+import { getRestaurantModel, type RestaurantModelId } from '@/lib/restaurant-models'
 
-type TabId = 'acesso' | 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico'
+type TabId = 'acesso' | 'modelo' | 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'acesso', label: 'Acesso' },
+  { id: 'modelo', label: 'Modelo' },
   { id: 'estabelecimento', label: 'Estabelecimento' },
   { id: 'nfe_cliente', label: 'NF-e cliente' },
   { id: 'plano', label: 'Plano Qomanda' },
@@ -53,6 +56,7 @@ export default function NewClientPage() {
   const [nfeForm, setNfeForm] = useState<NfeFormState>(emptyNfeForm)
   const [planId, setPlanId] = useState('starter')
   const [notes, setNotes] = useState('')
+  const [restaurantModel, setRestaurantModel] = useState<RestaurantModelId>('salao')
 
   useEffect(() => {
     fetch('/api/internal/plans').then(r => r.json()).then(d => setPlans(d.plans ?? []))
@@ -72,6 +76,12 @@ export default function NewClientPage() {
     if (!ownerName.trim() || !ownerEmail.trim() || !ownerPassword || ownerPassword.length < 6) {
       toast.error('Preencha nome, e-mail e senha do responsável (mín. 6 caracteres).')
       setTab('acesso')
+      return
+    }
+
+    if (!getRestaurantModel(restaurantModel) || getRestaurantModel(restaurantModel)?.status !== 'available') {
+      toast.error('Selecione um modelo operacional disponível.')
+      setTab('modelo')
       return
     }
 
@@ -104,6 +114,7 @@ export default function NewClientPage() {
           slug,
           planId,
           notes,
+          restaurantModel,
           ...businessInput,
           ...nfeInput,
         }),
@@ -120,6 +131,7 @@ export default function NewClientPage() {
   }
 
   const selectedPlan = plans.find(p => p.id === planId)
+  const selectedModel = getRestaurantModel(restaurantModel)
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -127,7 +139,12 @@ export default function NewClientPage() {
         <Link href="/internal/clients" className="text-xs font-mono text-on-surface-variant hover:text-on-surface">← Clientes</Link>
         <h1 className="text-2xl font-black text-on-surface mt-2">Novo cliente</h1>
         <p className="text-sm text-on-surface-variant mt-1">
-          Cadastro do restaurante em etapas: acesso, estabelecimento, NF-e ao consumidor, plano e NF-e de serviço Qomanda.
+          Cadastro em etapas: acesso → modelo operacional → estabelecimento → NF-e → plano.
+          {selectedModel && (
+            <span className="block mt-1 text-primary font-mono text-xs">
+              Modelo selecionado: {selectedModel.name}
+            </span>
+          )}
         </p>
       </div>
 
@@ -157,6 +174,38 @@ export default function NewClientPage() {
               <OwnerField label="E-mail do responsável (login)" value={ownerEmail} onChange={setOwnerEmail} type="email" placeholder="joao@restaurante.com" autoComplete="off" name="new-client-owner-email" />
               <OwnerField label="Senha inicial" value={ownerPassword} onChange={setOwnerPassword} type="password" placeholder="Mín. 6 caracteres" autoComplete="new-password" name="new-client-owner-password" className="md:col-span-2" />
             </div>
+          </section>
+        )}
+
+        {tab === 'modelo' && (
+          <section className="space-y-4">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Modelo operacional</p>
+              <p className="text-sm text-on-surface-variant mt-1">
+                Como o negócio opera? O preset define salão/balcão, gateway manual e mesas iniciais — igual ao cadastro público.
+              </p>
+            </div>
+            <RestaurantModelPicker value={restaurantModel} onChange={setRestaurantModel} />
+            {selectedModel && (
+              <div className="rounded-lg border border-outline-variant bg-surface-dim px-4 py-3 space-y-2">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                  Após o cadastro, o restaurante precisa
+                </p>
+                <ul className="text-xs text-on-surface-variant space-y-1">
+                  {selectedModel.setupSteps.map(step => (
+                    <li key={step} className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      {step}
+                    </li>
+                  ))}
+                </ul>
+                {selectedModel.preset.seedTableCount > 0 && (
+                  <p className="text-[10px] font-mono text-primary pt-1">
+                    {selectedModel.preset.seedTableCount} mesas serão criadas automaticamente.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         )}
 

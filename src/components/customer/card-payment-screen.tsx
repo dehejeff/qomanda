@@ -7,6 +7,8 @@ import type { SavedPaymentMethodDto } from '@/app/api/customer/payment-methods/r
 import { formatCardBrand } from '@/lib/payment-methods'
 import { customerAuthFetch } from '@/lib/customer-auth'
 import { formatCurrency } from '@/lib/utils'
+import { createMercadoPagoCardToken } from '@/lib/mercadopago-browser'
+import { toast } from 'sonner'
 
 export type CardPaymentPayload = {
   paymentMethodId?: string
@@ -14,13 +16,18 @@ export type CardPaymentPayload = {
   creditCard?: AsaasPaymentRequest['creditCard']
   creditCardHolderInfo?: AsaasPaymentRequest['creditCardHolderInfo']
   installmentCount?: number
+  /** Mercado Pago — token gerado no browser */
+  cardToken?: string
+  mpPaymentMethodId?: string
 }
 
 type Props = {
   customerId: string | null
   suggestedAmount: number
   fixedAmount: boolean
-  onConfirm: (amount: number, payload?: CardPaymentPayload) => void
+  gatewayProvider?: 'asaas' | 'mercado_pago' | null
+  mercadoPagoPublicKey?: string | null
+  onConfirm: (amount: number, payload?: CardPaymentPayload) => void | Promise<void>
   onBack: () => void
   loading: boolean
 }
@@ -37,10 +44,14 @@ export function CardPaymentScreen({
   customerId,
   suggestedAmount,
   fixedAmount,
+  gatewayProvider = 'asaas',
+  mercadoPagoPublicKey,
   onConfirm,
   onBack,
   loading,
 }: Props) {
+  const usesMercadoPago = gatewayProvider === 'mercado_pago'
+  const [tokenizing, setTokenizing] = useState(false)
   const [savedCards, setSavedCards] = useState<SavedPaymentMethodDto[]>([])
   const [loadingCards, setLoadingCards] = useState(!!customerId)
   const [mode, setMode] = useState<'saved' | 'new'>('saved')
@@ -65,7 +76,7 @@ export function CardPaymentScreen({
   const canPaySaved = !!selectedId && (fixedAmount || parsedAmt >= suggestedAmount)
 
   useEffect(() => {
-    if (!customerId) {
+    if (!customerId || usesMercadoPago) {
       setLoadingCards(false)
       setMode('new')
       return
@@ -89,7 +100,7 @@ export function CardPaymentScreen({
         setMode('new')
         setLoadingCards(false)
       })
-  }, [customerId])
+  }, [customerId, usesMercadoPago])
 
   const inputSt: React.CSSProperties = {
     background: '#0b1326', border: '1px solid #334155', color: '#dae2fd',
@@ -98,13 +109,41 @@ export function CardPaymentScreen({
   const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#f97316' }
   const onBlur  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#334155' }
 
-  function handlePay() {
-    if (mode === 'saved' && selectedId) {
-      onConfirm(parsedAmt, { paymentMethodId: selectedId, installmentCount: installments })
+  async function handlePay() {
+    if (mode === 'saved' && selectedId && !usesMercadoPago) {
+      await onConfirm(parsedAmt, { paymentMethodId: selectedId, installmentCount: installments })
       return
     }
 
-    onConfirm(parsedAmt, {
+    if (usesMercadoPago) {
+      if (!mercadoPagoPublicKey) {
+        toast.error('Mercado Pago não configurado para tokenizar cartão.')
+        return
+      }
+      setTokenizing(true)
+      try {
+        const [mm, yy] = expiry.split('/')
+        const { token, paymentMethodId } = await createMercadoPagoCardToken(mercadoPagoPublicKey, {
+          cardNumber: cardNumber.replace(/\s/g, ''),
+          cardholderName: cardName,
+          expiryMonth: mm ?? '',
+          expiryYear: `20${yy ?? ''}`,
+          securityCode: cvv,
+        })
+        await onConfirm(parsedAmt, {
+          installmentCount: installments,
+          cardToken: token,
+          mpPaymentMethodId: paymentMethodId,
+        })
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Erro ao processar cartão.')
+      } finally {
+        setTokenizing(false)
+      }
+      return
+    }
+
+    await onConfirm(parsedAmt, {
       saveCard,
       installmentCount: installments,
       creditCard: {
@@ -122,6 +161,8 @@ export function CardPaymentScreen({
       },
     })
   }
+
+  const payBusy = loading || tokenizing
 
   const amountBlock = (
     <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
@@ -184,7 +225,7 @@ export function CardPaymentScreen({
         </div>
       ) : (
         <>
-          {savedCards.length > 0 && (
+          {savedCards.length > 0 && !usesMercadoPago && (
             <div className="flex gap-2">
               <button type="button" onClick={() => setMode('saved')}
                 className="flex-1 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all"
@@ -278,7 +319,7 @@ export function CardPaymentScreen({
                 </div>
               </div>
 
-              {customerId && (
+              {customerId && !usesMercadoPago && (
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" checked={saveCard} onChange={e => setSaveCard(e.target.checked)}
                     className="mt-0.5 accent-orange-500" />
@@ -297,10 +338,10 @@ export function CardPaymentScreen({
 
       <button
         onClick={handlePay}
-        disabled={loading || loadingCards || (mode === 'saved' ? !canPaySaved : !newCardValid)}
+        disabled={payBusy || loadingCards || (mode === 'saved' && !usesMercadoPago ? !canPaySaved : !newCardValid)}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
         style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
-        {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
+        {payBusy ? <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</> : (
           <><span className="material-symbols-outlined">lock</span> Confirmar Pagamento</>
         )}
       </button>

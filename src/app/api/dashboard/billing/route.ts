@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
 import { previewRestaurantMonthlyBill } from '@/lib/commission-billing'
 import { COMMISSION_TIERS, SETUP_FEE_PILOT } from '@/lib/commission-tiers'
+import { fetchPlanChangeHistory, type PlanChangeDto } from '@/lib/plan-change-history'
+
+export type { PlanChangeDto }
 
 export type BillingInvoiceDto = {
   id: string
@@ -58,7 +61,7 @@ export async function GET() {
     const year = prev.getFullYear()
     const month = prev.getMonth() + 1
 
-    const [currentMonth, previousMonth, restaurantRes, invoicesRes] = await Promise.all([
+    const [currentMonth, previousMonth, restaurantRes, invoicesRes, planChanges] = await Promise.all([
       previewRestaurantMonthlyBill(admin, access.restaurantId, now.getFullYear(), now.getMonth() + 1),
       previewRestaurantMonthlyBill(admin, access.restaurantId, year, month),
       admin
@@ -81,6 +84,7 @@ export async function GET() {
         .eq('restaurant_id', access.restaurantId)
         .order('period_start', { ascending: false })
         .limit(24),
+      fetchPlanChangeHistory(admin, access.restaurantId),
     ])
 
     const subRaw = restaurantRes.data?.subscription
@@ -126,6 +130,7 @@ export async function GET() {
       subscription,
       invoices,
       openInvoice,
+      planChanges,
       note: 'Pagamentos digitais caem 100% na sua conta. Mensalidade + comissão faturadas todo dia 5.',
     })
   } catch (err) {

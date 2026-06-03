@@ -60,7 +60,7 @@ const PHASES = [
       {
         title: 'P1 — Comercial & interno',
         items: [
-          'Modelo operacional no portal interno (/internal/clients/new)',
+          'Modelo operacional no portal interno (/internal/clients/new) ✓',
           'Landing e roadmap alinhados (modelos + comissão mensal) ✓',
         ],
       },
@@ -210,7 +210,7 @@ const PHASES = [
           'Cadastro com escolha de modelo (salão / balcão / ambos) ✓',
           'Preset automático + checklist no dashboard ✓',
           'Upload de logo do restaurante ✓',
-          'Modelo no portal interno para pilotos (P1)',
+          'Modelo no portal interno para pilotos (P1) ✓',
         ],
       },
       {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getMercadoPagoPublicKey } from '@/lib/mercadopago'
 import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
 
 export type ManualPixKeyType = 'cpf' | 'cnpj' | 'email' | 'phone' | 'random'
@@ -15,9 +16,12 @@ export type ManualPaymentPublic = {
 }
 
 export type PublicPaymentConfig = {
-  provider: 'manual' | 'asaas' | null
+  provider: 'manual' | 'asaas' | 'mercado_pago' | null
   manualReady: boolean
   asaasReady: boolean
+  mercadoPagoReady: boolean
+  /** Chave pública MP — usada no checkout para tokenizar cartão (sem expor access token). */
+  mercadoPagoPublicKey: string | null
   manual: ManualPaymentPublic | null
   /** Métodos digitais disponíveis no checkout */
   digitalMethods: Array<'pix' | 'debit' | 'credit'>
@@ -28,6 +32,10 @@ export function isManualPaymentConfigured(row: {
   manual_pix_key?: string | null
 }): boolean {
   return row.payment_gateway_provider === 'manual' && Boolean(row.manual_pix_key?.trim())
+}
+
+function digitalGatewayReady(provider: PublicPaymentConfig['provider'], gatewayConnected: boolean): boolean {
+  return gatewayConnected && (provider === 'asaas' || provider === 'mercado_pago')
 }
 
 export async function loadPublicPaymentConfig(
@@ -54,12 +62,25 @@ export async function loadPublicPaymentConfig(
   ])
 
   const row = restaurantRes.data
-  const provider = (row?.payment_gateway_provider as 'manual' | 'asaas' | null) ?? gateway.provider
+  const provider = (row?.payment_gateway_provider as PublicPaymentConfig['provider']) ?? gateway.provider
   const manualReady = isManualPaymentConfigured({
     payment_gateway_provider: provider,
     manual_pix_key: row?.manual_pix_key,
   })
   const asaasReady = gateway.connected && gateway.provider === 'asaas'
+  const mercadoPagoReady = gateway.connected && gateway.provider === 'mercado_pago'
+
+  let mercadoPagoPublicKey: string | null = null
+  if (mercadoPagoReady && gateway.apiKey) {
+    try {
+      mercadoPagoPublicKey = await getMercadoPagoPublicKey({
+        accessToken: gateway.apiKey,
+        environment: gateway.environment,
+      })
+    } catch {
+      mercadoPagoPublicKey = null
+    }
+  }
 
   let manual: ManualPaymentPublic | null = null
   if (manualReady && row?.manual_pix_key) {
@@ -75,12 +96,13 @@ export async function loadPublicPaymentConfig(
     }
   }
 
-  const effectiveProvider = provider ?? (asaasReady ? 'asaas' : manualReady ? 'manual' : null)
+  const effectiveProvider = provider
+    ?? (asaasReady ? 'asaas' : mercadoPagoReady ? 'mercado_pago' : manualReady ? 'manual' : null)
 
   const digitalMethods: PublicPaymentConfig['digitalMethods'] =
     effectiveProvider === 'manual'
       ? manualReady ? ['pix'] : []
-      : asaasReady || effectiveProvider === 'asaas'
+      : digitalGatewayReady(effectiveProvider, asaasReady || mercadoPagoReady)
         ? ['pix', 'debit', 'credit']
         : []
 
@@ -88,6 +110,8 @@ export async function loadPublicPaymentConfig(
     provider: effectiveProvider,
     manualReady,
     asaasReady,
+    mercadoPagoReady,
+    mercadoPagoPublicKey,
     manual,
     digitalMethods,
   }

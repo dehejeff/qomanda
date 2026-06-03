@@ -4,6 +4,7 @@ import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
 import { gatewayFieldsToDb, loadRestaurantGateway } from '@/lib/restaurant-gateway'
 import { manualFieldsToDb } from '@/lib/restaurant-payment-config'
 import { asaasBaseUrl } from '@/lib/asaas-config'
+import { testMercadoPagoConnection } from '@/lib/mercadopago'
 
 export async function GET() {
   try {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   try {
     const access = await requireOwnerAccess()
     const body = await req.json() as {
-      provider?: 'manual' | 'asaas' | null
+      provider?: 'manual' | 'asaas' | 'mercado_pago' | null
       apiKey?: string | null
       environment?: 'sandbox' | 'production'
       operationalMode?: 'dine_in' | 'counter' | 'both'
@@ -95,8 +96,22 @@ export async function POST(req: NextRequest) {
     if (body.testConnection) {
       const refreshed = await loadRestaurantGateway(admin, access.restaurantId)
       if (!refreshed.apiKey) {
-        return NextResponse.json({ error: 'Informe a API key do Asaas.' }, { status: 400 })
+        const label = refreshed.provider === 'mercado_pago' ? 'access token do Mercado Pago' : 'API key do Asaas'
+        return NextResponse.json({ error: `Informe o ${label}.` }, { status: 400 })
       }
+
+      if (refreshed.provider === 'mercado_pago') {
+        const result = await testMercadoPagoConnection({
+          accessToken: refreshed.apiKey,
+          environment: refreshed.environment,
+        })
+        return NextResponse.json({
+          ok: true,
+          nickname: result.nickname,
+          publicKey: result.publicKey,
+        })
+      }
+
       const res = await fetch(`${asaasBaseUrl(refreshed.environment)}/finance/balance`, {
         headers: { access_token: refreshed.apiKey },
       })

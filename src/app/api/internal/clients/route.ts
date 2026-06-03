@@ -12,6 +12,12 @@ import {
   type RestaurantNfeInput,
 } from '@/lib/restaurant-nfe'
 import type { Plan } from '@/types/internal'
+import {
+  getRestaurantModel,
+  restaurantModelPresetToDb,
+  seedDefaultTablesForModel,
+  type RestaurantModelId,
+} from '@/lib/restaurant-models'
 
 function slugify(v: string) {
   return v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -41,6 +47,7 @@ type CreateClientBody = RestaurantBusinessInput & RestaurantNfeInput & {
   planId?: string
   status?: 'active' | 'inactive'
   notes?: string
+  restaurantModel?: RestaurantModelId
 }
 
 export async function POST(req: Request) {
@@ -58,6 +65,19 @@ export async function POST(req: Request) {
     if (ownerPassword.length < 6) return NextResponse.json({ error: 'Senha com no mínimo 6 caracteres.' }, { status: 400 })
     if (!restaurantName) return NextResponse.json({ error: 'Nome fantasia é obrigatório.' }, { status: 400 })
     if (!slug) return NextResponse.json({ error: 'Slug inválido.' }, { status: 400 })
+
+    const modelId = body.restaurantModel
+    if (!modelId) {
+      return NextResponse.json({ error: 'Selecione o modelo operacional.' }, { status: 400 })
+    }
+    const modelDef = getRestaurantModel(modelId)
+    if (!modelDef) {
+      return NextResponse.json({ error: 'Modelo operacional inválido.' }, { status: 400 })
+    }
+    if (modelDef.status !== 'available') {
+      return NextResponse.json({ error: 'Este modelo ainda não está disponível.' }, { status: 400 })
+    }
+    const modelPreset = restaurantModelPresetToDb(modelId)
 
     const businessError = validateRestaurantBusiness(body)
     if (businessError) return NextResponse.json({ error: businessError }, { status: 400 })
@@ -97,6 +117,7 @@ export async function POST(req: Request) {
         plan_id: planId,
         platform_fee_percent: fees.platform_fee_percent,
         platform_fee_fixed: fees.platform_fee_fixed,
+        ...modelPreset,
         ...businessDb,
         ...nfeDb,
       })
@@ -125,11 +146,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Erro ao criar assinatura.' }, { status: 500 })
     }
 
+    await seedDefaultTablesForModel(admin, restaurant.id, modelId)
+
     return NextResponse.json({
       ok: true,
       restaurantId: restaurant.id,
       slug,
       ownerEmail,
+      restaurantModel: modelId,
       createdBy: user.id,
     }, { status: 201 })
   } catch (err) {

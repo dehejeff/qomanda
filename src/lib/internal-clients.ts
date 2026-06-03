@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { BUSINESS_PROFILE_SELECT, profileFromRow } from '@/lib/restaurant-profile'
 import { nfeProfileFromRow } from '@/lib/restaurant-nfe'
 import { whatsAppStatusFromRow } from '@/lib/restaurant-whatsapp'
+import { fetchPlanChangeHistory } from '@/lib/plan-change-history'
 import type {
   BillingInvoice,
   InternalClientDetail,
@@ -158,6 +159,8 @@ export async function fetchClientDetail(admin: SupabaseClient, id: string): Prom
     .order('created_at', { ascending: false })
     .limit(12)
 
+  const planChanges = await fetchPlanChangeHistory(admin, id)
+
   const subRaw = Array.isArray(r.subscription) ? r.subscription[0] : r.subscription
   const planRaw = subRaw?.plan
   const embeddedPlan = (Array.isArray(planRaw) ? planRaw[0] : planRaw) as Plan | null | undefined
@@ -186,6 +189,7 @@ export async function fetchClientDetail(admin: SupabaseClient, id: string): Prom
     asaas_onboarding_status: r.asaas_onboarding_status,
     subscription: sub,
     recent_invoices: (invoices ?? []) as BillingInvoice[],
+    plan_changes: planChanges,
     profile: profileFromRow(r as Record<string, unknown>),
     nfe: nfeProfileFromRow(r as Record<string, unknown>),
     whatsapp: whatsAppStatusFromRow(r as Record<string, unknown>),

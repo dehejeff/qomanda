@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { StaffAuthError, requireStaff } from '@/lib/staff-auth'
 import { fetchClientDetail, resolveEffectiveFees, addDays } from '@/lib/internal-clients'
+import { recordPlanChange } from '@/lib/plan-change-history'
 import {
   businessFieldsToDb,
   validateRestaurantBusiness,
@@ -49,7 +50,7 @@ type PatchBody = RestaurantBusinessInput & RestaurantNfeInput & {
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
-    const { admin } = await requireStaff()
+    const { user, admin } = await requireStaff()
     const body = (await req.json()) as PatchBody
 
     const { data: existing } = await admin
@@ -94,19 +95,49 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       Object.assign(restaurantPatch, nfeFieldsToDb(body, existing.nfe_provider_token_encrypted))
     }
 
-    let plan: Plan | null = null
-    const planId = body.planId ?? existing.plan_id
-    if (planId) {
-      const { data } = await admin.from('plans').select('*').eq('id', planId).single()
-      plan = data as Plan | null
-      restaurantPatch.plan_id = planId
-    }
-
     const { data: sub } = await admin
       .from('restaurant_subscriptions')
-      .select('*')
+      .select('*, plan:plans(*)')
       .eq('restaurant_id', id)
       .maybeSingle()
+
+    const newPlanId = body.planId ?? existing.plan_id
+    const planChanged = Boolean(body.planId && body.planId !== existing.plan_id)
+
+    let plan: Plan | null = null
+    if (newPlanId) {
+      const { data } = await admin.from('plans').select('*').eq('id', newPlanId).single()
+      plan = data as Plan | null
+      if (planChanged) restaurantPatch.plan_id = newPlanId
+      else if (body.planId != null) restaurantPatch.plan_id = newPlanId
+    }
+
+    if (planChanged && plan) {
+      const oldPlanId = existing.plan_id ?? sub?.plan_id ?? 'starter'
+      const { data: oldPlanRow } = await admin.from('plans').select('*').eq('id', oldPlanId).maybeSingle()
+      const oldPlan = oldPlanRow as Plan | null
+      const subPlan = (Array.isArray(sub?.plan) ? sub.plan[0] : sub?.plan) as Plan | null | undefined
+
+      const oldMonthlyFee = Number(
+        sub?.monthly_fee_override ?? subPlan?.monthly_fee ?? oldPlan?.monthly_fee ?? 199,
+      )
+      const newMonthlyFee = Number(plan.monthly_fee)
+
+      const logResult = await recordPlanChange(admin, {
+        restaurantId: id,
+        subscriptionId: sub?.id ?? null,
+        fromPlanId: oldPlanId,
+        toPlanId: plan.id,
+        oldMonthlyFee,
+        newMonthlyFee,
+        changedBy: user.id,
+        source: 'internal_portal',
+        notes: body.subscriptionNotes?.trim() || `Alterado no portal interno por ${user.email ?? 'staff'}`,
+      })
+      if (!logResult.ok) {
+        return NextResponse.json({ error: 'Erro ao registrar histórico de plano.' }, { status: 500 })
+      }
+    }
 
     const overrides = {
       platform_fee_percent_override: body.platformFeePercentOverride ?? sub?.platform_fee_percent_override,
@@ -139,12 +170,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       if (Object.keys(subPatch).length > 1) {
         await admin.from('restaurant_subscriptions').update(subPatch).eq('restaurant_id', id)
       }
-    } else if (planId && plan) {
+    } else if (newPlanId && plan) {
       const now = new Date()
       const trialEnds = addDays(now, plan.trial_days ?? 14)
       await admin.from('restaurant_subscriptions').insert({
         restaurant_id: id,
-        plan_id: planId,
+        plan_id: newPlanId,
         status: body.subscriptionStatus ?? 'trialing',
         trial_ends_at: trialEnds.toISOString(),
         current_period_start: now.toISOString(),

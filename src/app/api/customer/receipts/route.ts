@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   fetchCustomerReceipts,
-  groupReceiptsByRestaurant,
+  groupReceiptsByRestaurantWithLifetime,
   groupReceiptsByDay,
 } from '@/lib/customer-receipts-server'
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(detail)
     }
 
-    const restaurants = groupReceiptsByRestaurant(receipts)
+    const restaurants = await groupReceiptsByRestaurantWithLifetime(supabase, customerId, receipts)
     return NextResponse.json({
       totalReceipts: receipts.length,
       restaurants,

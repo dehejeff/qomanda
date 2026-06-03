@@ -9,6 +9,7 @@ import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
+import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
 
 const STATUS_CONFIG: Record<string, { label: string; cardClass: string; labelClass: string; icon: string }> = {
@@ -29,6 +30,20 @@ export default function TablesPage() {
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null)
   const [manageTable, setManageTable] = useState<RestaurantTable | null>(null)
   const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('both')
+  const [planName, setPlanName] = useState('Starter')
+  const [maxTables, setMaxTables] = useState<number | null>(20)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+
+  async function loadPlanLimits() {
+    try {
+      const res = await fetch('/api/dashboard/tables')
+      if (res.ok) {
+        const data = await res.json()
+        setPlanName(data.planName ?? 'Starter')
+        setMaxTables(data.maxTables ?? null)
+      }
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (DEV_BYPASS) {
@@ -57,6 +72,7 @@ export default function TablesPage() {
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
+      void loadPlanLimits()
 
       ch = supabase.channel('tables-status')
         .on('postgres_changes', {
@@ -88,13 +104,26 @@ export default function TablesPage() {
       setAdding(false)
       return
     }
-    const supabase = createClient()
-    const next = nextTableNumber(tables)
-    const { data, error } = await supabase.from('tables').insert({ restaurant_id: restaurantId, number: next, status: 'free' }).select().single()
-    if (error) { toast.error('Erro ao adicionar mesa'); setAdding(false); return }
-    setTables(prev => sortTablesByNumber([...prev, data as RestaurantTable]))
-    toast.success(`Mesa ${next} criada!`)
+
+    const res = await fetch('/api/dashboard/tables', { method: 'POST' })
+    const data = await res.json()
     setAdding(false)
+
+    if (res.status === 403 && data.code === 'TABLE_LIMIT_REACHED') {
+      setPlanName(data.planName ?? planName)
+      setMaxTables(data.maxTables ?? maxTables)
+      setUpgradeModalOpen(true)
+      return
+    }
+
+    if (!res.ok) {
+      toast.error(data.error ?? 'Erro ao adicionar mesa')
+      return
+    }
+
+    setTables(prev => sortTablesByNumber([...prev, data.table as RestaurantTable]))
+    void loadPlanLimits()
+    toast.success(`Mesa ${data.table.number} criada!`)
   }
 
   async function deleteTable(id: string) {
@@ -162,7 +191,14 @@ export default function TablesPage() {
         <div className="flex justify-between items-center gap-3">
           <div>
             <h2 className="text-2xl md:text-3xl font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Mesas</h2>
-            <p className="text-sm text-on-surface-variant mt-0.5">{tables.length} mesas cadastradas</p>
+            <p className="text-sm text-on-surface-variant mt-0.5">
+              {tables.length} mesas cadastradas
+              {maxTables != null && (
+                <span className="font-mono text-xs ml-2">
+                  · {tables.length}/{maxTables} ({planName})
+                </span>
+              )}
+            </p>
           </div>
           <button
             onClick={addTable}
@@ -310,6 +346,20 @@ export default function TablesPage() {
           onClose={() => setManageTable(null)}
           onTableUpdated={handleTableUpdated}
           onTableSwitched={handleTableSwitched}
+        />
+      )}
+
+      {maxTables != null && (
+        <PlanUpgradeModal
+          open={upgradeModalOpen}
+          onClose={() => setUpgradeModalOpen(false)}
+          planName={planName}
+          maxTables={maxTables}
+          currentCount={tables.length}
+          onUpgraded={async () => {
+            await loadPlanLimits()
+            await addTable()
+          }}
         />
       )}
     </>

@@ -162,6 +162,14 @@ export default function SettingsPage() {
     if (t && allowed.includes(t as Tab)) setTab(t as Tab)
   }, [searchParams])
 
+  useEffect(() => {
+    if (tab !== 'notas') return
+    if (typeof window === 'undefined') return
+    if (window.location.hash === '#nfe-notas') {
+      document.getElementById('nfe-notas')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [tab])
+
   async function saveProfile() {
     setProfileSaving(true)
     try {
@@ -1259,10 +1267,13 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+          <div id="nfe-notas" className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden scroll-mt-24">
             <div className="px-6 py-4 border-b border-outline-variant">
               <h3 className="text-sm font-semibold text-on-surface">Histórico de notas</h3>
-              <p className="text-xs text-on-surface-variant">Últimas 100 notas emitidas neste estabelecimento.</p>
+              <p className="text-xs text-on-surface-variant">
+                Últimas 100 notas emitidas neste estabelecimento. Baixe os PDFs (DANFE) para seu arquivo —
+                após 90 dias as notas são removidas da base Qomanda (você recebe avisos com 20, 15 e 5 dias de antecedência).
+              </p>
             </div>
             {nfeLoading ? (
               <div className="py-16 text-center text-sm font-mono text-on-surface-variant">Carregando notas…</div>

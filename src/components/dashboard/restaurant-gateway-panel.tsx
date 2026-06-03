@@ -16,11 +16,13 @@ type GatewayState = {
   manualConfigured: boolean
 }
 
+type GatewayProvider = 'manual' | 'asaas' | 'mercado_pago'
+
 export function RestaurantGatewayPanel() {
   const [loading, setLoading] = useState(true)
   const [gateway, setGateway] = useState<GatewayState | null>(null)
   const [operationalMode, setOperationalMode] = useState('both')
-  const [provider, setProvider] = useState<'manual' | 'asaas'>('asaas')
+  const [provider, setProvider] = useState<GatewayProvider>('asaas')
   const [apiKey, setApiKey] = useState('')
   const [environment, setEnvironment] = useState<'sandbox' | 'production'>('sandbox')
   const [manualPixKey, setManualPixKey] = useState('')
@@ -36,7 +38,8 @@ export function RestaurantGatewayPanel() {
       setGateway(data.gateway)
       setOperationalMode(data.operationalMode ?? 'both')
       setEnvironment(data.gateway?.environment ?? 'sandbox')
-      setProvider(data.gateway?.provider === 'manual' ? 'manual' : 'asaas')
+      const p = data.gateway?.provider
+      setProvider(p === 'manual' || p === 'mercado_pago' ? p : 'asaas')
       setManualPixKey(data.gateway?.manualPixKey ?? '')
       setManualPixKeyType(data.gateway?.manualPixKeyType ?? 'random')
       setManualHolderName(data.gateway?.manualPaymentHolderName ?? '')
@@ -54,7 +57,7 @@ export function RestaurantGatewayPanel() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         provider,
-        apiKey: provider === 'asaas' ? (apiKey || undefined) : undefined,
+        apiKey: provider !== 'manual' ? (apiKey || undefined) : undefined,
         environment,
         operationalMode,
         testConnection: test,
@@ -70,13 +73,22 @@ export function RestaurantGatewayPanel() {
       toast.error(data.error ?? 'Erro ao salvar.')
       return
     }
-    if (test) toast.success(`Conexão OK · saldo R$ ${Number(data.balance ?? 0).toFixed(2)}`)
-    else toast.success('Configurações salvas.')
+    if (test) {
+      if (provider === 'mercado_pago') {
+        toast.success(`Conexão OK · conta ${data.nickname ?? 'Mercado Pago'}`)
+      } else {
+        toast.success(`Conexão OK · saldo R$ ${Number(data.balance ?? 0).toFixed(2)}`)
+      }
+    } else {
+      toast.success('Configurações salvas.')
+    }
     setApiKey('')
     load()
   }
 
   if (loading) return <p className="text-sm text-on-surface-variant font-mono">Carregando gateway…</p>
+
+  const digitalProvider = provider === 'manual' ? null : provider
 
   return (
     <section className="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-4">
@@ -84,7 +96,7 @@ export function RestaurantGatewayPanel() {
         <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Gateway do restaurante</p>
         <h3 className="text-lg font-bold text-on-surface mt-1">Pagamentos caem 100% na sua conta</h3>
         <p className="text-sm text-on-surface-variant mt-1">
-          Escolha Asaas (PIX/cartão automático) ou PIX manual direto na sua chave/conta.
+          PIX manual, Asaas ou Mercado Pago — escolha onde receber PIX e cartão.
           A Qomanda cobra mensalidade + comissão progressiva na fatura mensal (dia 5).{' '}
           <a href="/dashboard/settings?tab=mensalidade" className="text-primary hover:underline font-mono text-xs">
             Ver mensalidade →
@@ -107,7 +119,7 @@ export function RestaurantGatewayPanel() {
 
       <div>
         <label className="text-xs font-mono text-on-surface-variant">Forma de recebimento digital</label>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => setProvider('manual')}
@@ -118,7 +130,7 @@ export function RestaurantGatewayPanel() {
             }`}
           >
             <span className="font-semibold block">PIX manual</span>
-            <span className="text-xs opacity-80">Cliente transfere para sua chave PIX ou conta</span>
+            <span className="text-xs opacity-80">Transferência para sua chave PIX</span>
           </button>
           <button
             type="button"
@@ -130,7 +142,19 @@ export function RestaurantGatewayPanel() {
             }`}
           >
             <span className="font-semibold block">Asaas</span>
-            <span className="text-xs opacity-80">PIX e cartão automáticos na sua conta Asaas</span>
+            <span className="text-xs opacity-80">PIX e cartão na conta Asaas</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setProvider('mercado_pago')}
+            className={`px-4 py-3 rounded-lg border text-left text-sm transition-colors ${
+              provider === 'mercado_pago'
+                ? 'border-primary bg-primary/10 text-on-surface'
+                : 'border-outline-variant text-on-surface-variant'
+            }`}
+          >
+            <span className="font-semibold block">Mercado Pago</span>
+            <span className="text-xs opacity-80">PIX e cartão na conta MP</span>
           </button>
         </div>
       </div>
@@ -193,13 +217,15 @@ export function RestaurantGatewayPanel() {
         <div className="space-y-4 rounded-lg border border-outline-variant p-4 bg-surface-dim/50">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-mono text-on-surface-variant">Ambiente Asaas</label>
+              <label className="text-xs font-mono text-on-surface-variant">
+                Ambiente {provider === 'mercado_pago' ? 'Mercado Pago' : 'Asaas'}
+              </label>
               <select
                 value={environment}
                 onChange={e => setEnvironment(e.target.value as 'sandbox' | 'production')}
                 className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm"
               >
-                <option value="sandbox">Sandbox</option>
+                <option value="sandbox">Sandbox / teste</option>
                 <option value="production">Produção</option>
               </select>
             </div>
@@ -211,14 +237,30 @@ export function RestaurantGatewayPanel() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-mono text-on-surface-variant">API key Asaas (conta do restaurante)</label>
+            <label className="text-xs font-mono text-on-surface-variant">
+              {provider === 'mercado_pago'
+                ? 'Access token Mercado Pago (conta do restaurante)'
+                : 'API key Asaas (conta do restaurante)'}
+            </label>
             <input
               type="password"
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              placeholder={gateway?.connected ? '•••• (deixe vazio para manter)' : '$aact_...'}
+              placeholder={
+                gateway?.connected
+                  ? '•••• (deixe vazio para manter)'
+                  : provider === 'mercado_pago'
+                    ? 'APP_USR-... ou TEST-...'
+                    : '$aact_...'
+              }
               className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm font-mono"
             />
+            {provider === 'mercado_pago' && (
+              <p className="text-[10px] font-mono text-on-surface-variant mt-2">
+                Gere em Mercado Pago → Suas integrações → Credenciais.
+                Configure o webhook: <code className="text-primary">/api/mercadopago/webhook</code>
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -227,7 +269,7 @@ export function RestaurantGatewayPanel() {
         <button type="button" disabled={saving} onClick={() => save(false)} className="px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold">
           Salvar
         </button>
-        {provider === 'asaas' && (
+        {digitalProvider && (
           <button type="button" disabled={saving} onClick={() => save(true)} className="px-4 py-2 rounded-lg border border-outline-variant text-sm">
             Testar conexão
           </button>

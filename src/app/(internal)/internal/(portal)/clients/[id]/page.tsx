@@ -23,14 +23,17 @@ import {
 } from '@/components/internal/restaurant-nfe-fields'
 import { RestaurantServiceNfePanel } from '@/components/internal/restaurant-service-nfe-panel'
 import { RestaurantModelPicker } from '@/components/internal/restaurant-model-picker'
+import { PlanChangeHistoryTable } from '@/components/billing/plan-change-history-table'
+import { FinancialAuditPanel } from '@/components/internal/financial-audit-panel'
 import type { RestaurantModelId } from '@/lib/restaurant-models'
 
-type TabId = 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico'
+type TabId = 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico' | 'auditoria'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'estabelecimento', label: 'Estabelecimento' },
   { id: 'nfe_cliente', label: 'NF-e cliente' },
   { id: 'plano', label: 'Plano Qomanda' },
+  { id: 'auditoria', label: 'Auditoria' },
   { id: 'nfe_servico', label: 'NF-e serviço' },
 ]
 
@@ -322,6 +325,20 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 className="mt-1.5 w-full px-3 py-2 rounded-lg text-sm bg-surface-dim border border-outline-variant text-on-surface outline-none focus:border-primary resize-none"
               />
             </div>
+
+            <div className="pt-2 border-t border-outline-variant space-y-3">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Histórico</p>
+                <h4 className="text-sm font-semibold text-on-surface mt-1">Alterações de plano</h4>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Upgrades pelo restaurante ou alterações feitas aqui — com rateio para a fatura.
+                </p>
+              </div>
+              <PlanChangeHistoryTable
+                changes={client.plan_changes ?? []}
+                emptyMessage="Nenhuma alteração de plano registrada."
+              />
+            </div>
           </section>
         )}
 
@@ -342,8 +359,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           />
         )}
 
+        {tab === 'auditoria' && clientId && <FinancialAuditPanel clientId={clientId} />}
+
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-outline-variant">
-          {tab !== 'nfe_servico' ? (
+          {tab !== 'nfe_servico' && tab !== 'auditoria' ? (
             <p className="text-xs text-on-surface-variant">
               Próximo:{' '}
               <button
@@ -354,13 +373,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 {TABS[TABS.findIndex(t => t.id === tab) + 1]?.label}
               </button>
             </p>
+          ) : tab === 'auditoria' ? (
+            <p className="text-xs text-on-surface-variant">Somente leitura — log imutável de pedidos e pagamentos.</p>
           ) : (
             <p className="text-xs text-on-surface-variant">Revise as outras abas antes de salvar.</p>
           )}
+          {tab !== 'auditoria' && (
           <button type="submit" disabled={saving} className="h-10 px-6 rounded-lg text-sm font-mono font-bold bg-primary-container text-on-primary-container hover:opacity-90 disabled:opacity-50 flex items-center gap-2 shrink-0">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             Salvar alterações
           </button>
+          )}
         </div>
       </form>
     </div>

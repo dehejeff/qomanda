@@ -4,6 +4,8 @@ import {
   commissionForMonthlyGmv,
   PLAN_COMMISSION_DISCOUNT,
 } from '@/lib/commission-tiers'
+import { monthlyFeeForBillingPeriod } from '@/lib/plan-proration'
+import { digitalGmvForMonthWithFallback } from '@/lib/restaurant-monthly-stats'
 
 export async function digitalGmvForMonth(
   admin: SupabaseClient,
@@ -59,7 +61,12 @@ export async function previewRestaurantMonthlyBill(
   restaurantId: string,
   year: number,
   month: number,
-): Promise<ReturnType<typeof buildMonthlyInvoicePreview> & { periodYear: number; periodMonth: number }> {
+): Promise<ReturnType<typeof buildMonthlyInvoicePreview> & {
+  periodYear: number
+  periodMonth: number
+  prorationApplied?: boolean
+  prorationNote?: string
+}> {
   const { data: r } = await admin
     .from('restaurants')
     .select('plan_id, subscription:restaurant_subscriptions ( monthly_fee_override, plan:plans ( monthly_fee ) )')
@@ -69,15 +76,36 @@ export async function previewRestaurantMonthlyBill(
   const subRaw = Array.isArray(r?.subscription) ? r.subscription[0] : r?.subscription
   const planRaw = (subRaw as { plan?: unknown } | null)?.plan
   const plan = (Array.isArray(planRaw) ? planRaw[0] : planRaw) as { monthly_fee?: number } | null
-  const monthlyFee = Number(
+  const monthlyFeeBase = Number(
     (subRaw as { monthly_fee_override?: number } | null)?.monthly_fee_override
     ?? plan?.monthly_fee
     ?? 199,
   )
 
-  const gmvDigital = await digitalGmvForMonth(admin, restaurantId, year, month)
+  const { monthlyFee, prorationApplied, prorationNote } = await monthlyFeeForBillingPeriod(
+    admin,
+    restaurantId,
+    year,
+    month,
+    monthlyFeeBase,
+  )
+
+  const liveGmv = await digitalGmvForMonth(admin, restaurantId, year, month)
+  const gmvDigital = await digitalGmvForMonthWithFallback(
+    admin,
+    restaurantId,
+    year,
+    month,
+    liveGmv,
+  )
   const preview = buildMonthlyInvoicePreview(monthlyFee, gmvDigital, r?.plan_id ?? 'starter')
-  return { ...preview, periodYear: year, periodMonth: month }
+  return {
+    ...preview,
+    periodYear: year,
+    periodMonth: month,
+    prorationApplied,
+    prorationNote,
+  }
 }
 
 export { commissionForMonthlyGmv, PLAN_COMMISSION_DISCOUNT }

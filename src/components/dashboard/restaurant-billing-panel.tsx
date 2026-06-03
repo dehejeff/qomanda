@@ -5,7 +5,9 @@ import { Loader2, ExternalLink } from 'lucide-react'
 import type {
   BillingInvoiceDto,
   BillingSubscriptionDto,
+  PlanChangeDto,
 } from '@/app/api/dashboard/billing/route'
+import { PlanChangeHistoryTable } from '@/components/billing/plan-change-history-table'
 
 type MonthPreview = {
   monthlyFee: number
@@ -15,6 +17,8 @@ type MonthPreview = {
   effectiveAvgRate: number
   periodYear?: number
   periodMonth?: number
+  prorationApplied?: boolean
+  prorationNote?: string
 }
 
 type BillingData = {
@@ -25,6 +29,7 @@ type BillingData = {
   subscription?: BillingSubscriptionDto | null
   invoices?: BillingInvoiceDto[]
   openInvoice?: BillingInvoiceDto | null
+  planChanges?: PlanChangeDto[]
   note?: string
 }
 
@@ -204,6 +209,11 @@ export function RestaurantBillingPanel() {
             {' '}(GMV {brl(data.previousMonth.gmvDigital)} · comissão {brl(data.previousMonth.commissionTotal)})
           </p>
         )}
+        {data.currentMonth.prorationApplied && data.currentMonth.prorationNote && (
+          <p className="text-xs text-primary font-mono">
+            Mensalidade com rateio proporcional ({data.currentMonth.prorationNote}) neste mês.
+          </p>
+        )}
       </section>
 
       {/* Faixas comissão */}
@@ -220,6 +230,22 @@ export function RestaurantBillingPanel() {
           <p className="text-xs text-on-surface-variant mt-3">Dinheiro na mesa: 0% comissão.</p>
         </section>
       )}
+
+      {/* Histórico de upgrades de plano */}
+      <section className="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-4">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Alterações de plano</p>
+          <h3 className="text-lg font-bold text-on-surface mt-1">Histórico de upgrades</h3>
+          <p className="text-xs text-on-surface-variant mt-1">
+            Cada mudança de plano gera rateio proporcional na mensalidade do mês.
+          </p>
+        </div>
+        <PlanChangeHistoryTable
+          changes={data.planChanges ?? []}
+          showSource={false}
+          emptyMessage="Nenhum upgrade de plano registrado ainda."
+        />
+      </section>
 
       {/* Histórico de faturas */}
       <section className="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-4">

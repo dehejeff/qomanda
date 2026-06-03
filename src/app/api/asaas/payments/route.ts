@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
 
     if (!gateway && (method === 'pix' || method === 'debit' || method === 'credit')) {
       return NextResponse.json({
-        error: 'Gateway de pagamento não configurado. Conecte o Asaas ou use PIX manual.',
+        error: 'Gateway de pagamento não configurado. Conecte Asaas, Mercado Pago ou use PIX manual.',
       }, { status: 400 })
     }
 

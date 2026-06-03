@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { decryptSecret, encryptSecret, maskSecret } from '@/lib/secret-crypto'
 
-export type PaymentGatewayProvider = 'manual' | 'asaas'
+export type PaymentGatewayProvider = 'manual' | 'asaas' | 'mercado_pago'
 
 export type ManualPixKeyType = 'cpf' | 'cnpj' | 'email' | 'phone' | 'random'
 

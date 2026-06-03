@@ -26,15 +26,31 @@ export default function InternalLoginPage() {
       return
     }
 
-    const res = await fetch('/api/internal/overview')
+    router.refresh()
+
+    let res = await fetch('/api/internal/overview')
+    if (res.status === 401) {
+      await new Promise(r => setTimeout(r, 400))
+      router.refresh()
+      res = await fetch('/api/internal/overview')
+    }
+
     if (!res.ok) {
       await supabase.auth.signOut()
-      toast.error('Esta conta não tem acesso ao portal interno.')
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      if (res.status === 403) {
+        toast.error('Esta conta não tem acesso ao portal interno.')
+      } else if (res.status === 401) {
+        toast.error('Sessão não validada. Atualize a página e tente de novo.')
+      } else {
+        toast.error(body.error ?? 'Erro ao entrar no portal interno.')
+      }
       setLoading(false)
       return
     }
 
     router.push('/internal')
+    router.refresh()
   }
 
   return (

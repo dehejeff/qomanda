@@ -16,12 +16,12 @@
 | **P0** | App garçom mobile — pedidos, pagamentos, mesas, benefícios, fechar mesa | ✅ Feito |
 | **P0** | Smoke test E2E garçom (`/garcom`) | ✅ 16/16 |
 | **P0** | Smoke test E2E módulos cliente (salão, balcão, híbrido, food hall) | ✅ 2026-06-02 |
-| **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | 🔴 A fazer |
+| **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | ✅ Feito |
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
 | **P1** | Deploy do build atual (PIX manual, balcão, garçom, mensalidade) | ⏳ Pendente |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | 🔴 Fase 3 |
-| **P2** | Mercado Pago (#4 na esteira) | 🔴 Fase 3 · Q4 2026 |
+| **P2** | Mercado Pago (#4 na esteira) | 🟡 v1 (access token + PIX/cartão) |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
 **Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
@@ -55,7 +55,7 @@
 | **1** | **PIX manual** | PIX | Chave PIX do restaurante + confirmação no painel | v1 | ✅ Disponível |
 | **2** | **Dinheiro** | Cash | Cliente informa · garçom/dono confirma (0% comissão) | v1 | ✅ Disponível |
 | **3** | **Asaas** | PIX, crédito, débito | API key da **conta Asaas do restaurante** | v1 | ✅ Disponível |
-| **4** | **Mercado Pago** | PIX, crédito, débito | OAuth / credenciais do vendedor (conta MP do restaurante) | Fase 3 | Q4 2026 |
+| **4** | **Mercado Pago** | PIX, crédito, débito | Access token da conta MP do restaurante | v1 | ✅ Disponível |
 | **5** | **PagBank** (PagSeguro) | PIX, crédito | OAuth ou token API conta vendedor | Fase 3 | Q1 2027 |
 | **6** | **Stone** | PIX, crédito | API e-commerce / link na conta Stone | Fase 4 | 2027 |
 | **7** | **Cielo** | Crédito, débito | API e-commerce (Checkout Cielo) | Fase 4 | 2027 |
@@ -230,7 +230,7 @@
 - [x] **Checklist “Primeiros passos”** no dashboard Overview
 - [x] **Upload de logo do restaurante** — Supabase Storage + aba Perfil em Settings
 - [x] **Garçom confirma pagamentos** — PIX manual + dinheiro em `/garcom/pagamentos`
-- [ ] **Modelo no portal interno** — cadastro de pilotos pela equipe Qomanda (P1)
+- [x] **Modelo no portal interno** — cadastro de pilotos pela equipe Qomanda (P1)
 
 ### Fidelidade (Persistência)
 - [x] **Salvar regras de fidelidade no Supabase** — loyalty_rules (implementado)

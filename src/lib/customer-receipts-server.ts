@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { fetchCustomerRestaurantLifetimeTotals } from '@/lib/restaurant-monthly-stats'
 
 export type ReceiptNfe = {
   status: string
@@ -31,6 +32,9 @@ export type ReceiptRestaurantSummary = {
   logoUrl: string | null
   receiptCount: number
   totalAmount: number
+  /** Total histórico (inclui recibos já purgados) */
+  lifetimeTotal: number
+  lifetimePaymentCount: number
   lastReceiptAt: string
 }
 
@@ -57,11 +61,15 @@ export async function fetchCustomerReceipts(
     .from('payments')
     .select(`
       id, amount, method, split_type, service_fee_included,
-      confirmation_code, paid_at, created_at, session_id,
+      confirmation_code, paid_at, created_at, session_id, restaurant_id,
       session:sessions(
         id,
         table:tables(number),
         restaurant:restaurants(id, name, slug, logo_url)
+      ),
+      snapshot:payment_receipt_snapshots(
+        restaurant_name, restaurant_slug, logo_url, table_number,
+        restaurant_id, confirmation_code, paid_at, amount, method, split_type, service_fee_included
       )
     `)
     .eq('customer_id', customerId)
@@ -94,6 +102,21 @@ export async function fetchCustomerReceipts(
       table: { number: string } | { number: string }[] | null
       restaurant: { id: string; name: string; slug: string; logo_url: string | null } | { id: string; name: string; slug: string; logo_url: string | null }[] | null
     }
+    type Snap = {
+      restaurant_name: string
+      restaurant_slug: string
+      logo_url: string | null
+      table_number: string
+      restaurant_id: string
+      confirmation_code: string | null
+      paid_at: string
+      amount: number
+      method: string
+      split_type: string
+      service_fee_included: boolean
+    }
+    const snapRaw = p.snapshot as Snap | Snap[] | null
+    const snap = Array.isArray(snapRaw) ? snapRaw[0] : snapRaw
     const sessRaw = p.session as Sess | Sess[] | null
     const sess = Array.isArray(sessRaw) ? sessRaw[0] : sessRaw
     const tableRaw = sess?.table
@@ -103,31 +126,35 @@ export async function fetchCustomerReceipts(
 
     return {
       id: p.id,
-      amount: Number(p.amount),
-      method: p.method,
-      split_type: p.split_type as ReceiptRow['split_type'],
-      service_fee_included: p.service_fee_included,
-      confirmation_code: p.confirmation_code,
-      paid_at: p.paid_at,
+      amount: snap ? Number(snap.amount) : Number(p.amount),
+      method: snap?.method ?? p.method,
+      split_type: (snap?.split_type ?? p.split_type) as ReceiptRow['split_type'],
+      service_fee_included: snap?.service_fee_included ?? p.service_fee_included,
+      confirmation_code: snap?.confirmation_code ?? p.confirmation_code,
+      paid_at: snap?.paid_at ?? p.paid_at,
       created_at: p.created_at,
-      restaurantName: rest?.name ?? 'Restaurante',
-      restaurantSlug: rest?.slug ?? '',
-      restaurantId: rest?.id ?? '',
-      logoUrl: rest?.logo_url ?? null,
-      tableNumber: table?.number ?? '—',
+      restaurantName: snap?.restaurant_name ?? rest?.name ?? 'Restaurante',
+      restaurantSlug: snap?.restaurant_slug ?? rest?.slug ?? '',
+      restaurantId: snap?.restaurant_id ?? rest?.id ?? p.restaurant_id ?? '',
+      logoUrl: snap?.logo_url ?? rest?.logo_url ?? null,
+      tableNumber: snap?.table_number ?? table?.number ?? '—',
       sessionId: p.session_id,
       nfe: nfeByPayment.get(p.id) ?? null,
     }
   })
 }
 
-export function groupReceiptsByRestaurant(receipts: ReceiptRow[]): ReceiptRestaurantSummary[] {
+export function groupReceiptsByRestaurant(
+  receipts: ReceiptRow[],
+  lifetimeByRestaurant?: Map<string, { totalSpent: number; paymentCount: number; lastPaymentAt: string | null }>,
+): ReceiptRestaurantSummary[] {
   const map = new Map<string, ReceiptRestaurantSummary>()
 
   for (const r of receipts) {
     const key = r.restaurantId || r.restaurantSlug
     if (!key) continue
     const at = r.paid_at ?? r.created_at
+    const lifetime = lifetimeByRestaurant?.get(r.restaurantId)
     const existing = map.get(key)
     if (!existing) {
       map.set(key, {
@@ -137,6 +164,8 @@ export function groupReceiptsByRestaurant(receipts: ReceiptRow[]): ReceiptRestau
         logoUrl: r.logoUrl,
         receiptCount: 1,
         totalAmount: r.amount,
+        lifetimeTotal: lifetime?.totalSpent ?? r.amount,
+        lifetimePaymentCount: lifetime?.paymentCount ?? 1,
         lastReceiptAt: at,
       })
     } else {
@@ -148,9 +177,38 @@ export function groupReceiptsByRestaurant(receipts: ReceiptRow[]): ReceiptRestau
     }
   }
 
+  // Restaurantes só no histórico agregado (recibos detalhados expirados)
+  if (lifetimeByRestaurant) {
+    for (const [restaurantId, totals] of lifetimeByRestaurant) {
+      if (map.has(restaurantId)) continue
+      const sample = receipts.find(r => r.restaurantId === restaurantId)
+      if (sample) continue
+      // Sem recibo recente — omitir da lista principal (só totais no perfil futuro)
+    }
+  }
+
   return [...map.values()].sort(
     (a, b) => new Date(b.lastReceiptAt).getTime() - new Date(a.lastReceiptAt).getTime(),
   )
+}
+
+export async function groupReceiptsByRestaurantWithLifetime(
+  supabase: SupabaseClient,
+  customerId: string,
+  receipts: ReceiptRow[],
+): Promise<ReceiptRestaurantSummary[]> {
+  const lifetime = await fetchCustomerRestaurantLifetimeTotals(supabase, customerId)
+  const grouped = groupReceiptsByRestaurant(receipts, lifetime)
+
+  for (const row of grouped) {
+    const lt = lifetime.get(row.restaurantId)
+    if (lt) {
+      row.lifetimeTotal = lt.totalSpent
+      row.lifetimePaymentCount = lt.paymentCount
+    }
+  }
+
+  return grouped
 }
 
 export function groupReceiptsByDay(receipts: ReceiptRow[], slug: string, dateFilter?: string): {

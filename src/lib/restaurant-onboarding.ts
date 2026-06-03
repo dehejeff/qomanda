@@ -43,6 +43,7 @@ export async function computeRestaurantOnboarding(
   const gatewayReady =
     (gateway.provider === 'manual' && gateway.manualConfigured)
     || (gateway.provider === 'asaas' && gateway.connected)
+    || (gateway.provider === 'mercado_pago' && gateway.connected)
 
   const menuCount = menuRes.count ?? 0
   const tableCount = tablesRes.count ?? 0
@@ -57,7 +58,7 @@ export async function computeRestaurantOnboarding(
     },
     {
       id: 'gateway',
-      label: 'Configurar recebimento (PIX manual ou Asaas)',
+      label: 'Configurar recebimento (PIX manual, Asaas ou Mercado Pago)',
       done: gatewayReady,
       href: '/dashboard/settings?tab=pagamentos',
     },

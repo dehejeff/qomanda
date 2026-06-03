@@ -79,11 +79,22 @@ function HubReceiptsContent() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{r.name}</p>
                   <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
-                    {r.receiptCount} recibo{r.receiptCount !== 1 ? 's' : ''} · último em {formatDate(r.lastReceiptAt)}
+                    {r.receiptCount} recibo{r.receiptCount !== 1 ? 's' : ''} recente{r.receiptCount !== 1 ? 's' : ''}
+                    {r.lifetimePaymentCount > r.receiptCount && (
+                      <> · {r.lifetimePaymentCount} no total</>
+                    )}
+                    {' · '}último em {formatDate(r.lastReceiptAt)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-bold" style={{ color: '#34d399' }}>{formatCurrency(r.totalAmount)}</p>
+                  <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                    {formatCurrency(r.lifetimeTotal > r.totalAmount ? r.lifetimeTotal : r.totalAmount)}
+                  </p>
+                  {r.lifetimeTotal > r.totalAmount && (
+                    <p className="text-[10px]" style={{ color: '#584237' }}>
+                      {formatCurrency(r.totalAmount)} últimos 90d
+                    </p>
+                  )}
                   <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>chevron_right</span>
                 </div>
               </Link>

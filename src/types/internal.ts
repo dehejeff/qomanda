@@ -72,6 +72,8 @@ export interface InternalClientListItem {
   digital_status: 'inactive' | 'pending' | 'active'
 }
 
+import type { PlanChangeDto } from '@/lib/plan-change-history'
+
 export interface InternalClientDetail extends InternalClientListItem {
   address: string | null
   owner_id: string
@@ -80,6 +82,7 @@ export interface InternalClientDetail extends InternalClientListItem {
   asaas_onboarding_status: string | null
   subscription: RestaurantSubscription | null
   recent_invoices: BillingInvoice[]
+  plan_changes: PlanChangeDto[]
   profile: import('@/lib/restaurant-profile').RestaurantBusinessProfile
   nfe: import('@/lib/restaurant-nfe').RestaurantNfeProfile
   whatsapp: import('@/lib/restaurant-whatsapp').RestaurantWhatsAppStatus

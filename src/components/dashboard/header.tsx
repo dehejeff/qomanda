@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
+import { DashboardNotificationBell } from '@/components/dashboard/dashboard-notification-bell'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':           'Overview',
@@ -50,9 +51,7 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-3 md:gap-6 shrink-0">
         <div className="hidden sm:flex items-center gap-4 text-on-surface-variant">
-          <button type="button" className="hover:text-primary transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
+          <DashboardNotificationBell />
           <Link href="/dashboard/support" className="hover:text-primary transition-colors" title="Suporte">
             <span className="material-symbols-outlined">help</span>
           </Link>

@@ -1,5 +1,6 @@
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
+import { DashboardNotificationBanner } from '@/components/dashboard/dashboard-notification-banner'
 
 export default function OwnerDashboardLayout({
   children,
@@ -17,6 +18,7 @@ export default function OwnerDashboardLayout({
       <DashboardSidebar restaurantName={restaurantName} operationalMode={operationalMode} />
       <DashboardHeader restaurantName={restaurantName} userInitials={userInitials} />
       <main className="md:ml-[260px] pt-24 px-4 md:px-8 pb-24 md:pb-8 min-h-screen">
+        <DashboardNotificationBanner />
         {children}
       </main>
     </div>
