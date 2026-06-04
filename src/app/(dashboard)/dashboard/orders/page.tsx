@@ -16,6 +16,7 @@ import {
 import { formatCounterOrderLabel } from '@/lib/counter-orders'
 import { PayBadge } from '@/components/dashboard/pay-badge'
 import { useRestaurantRealtime } from '@/lib/use-restaurant-realtime'
+import { useDashboardSearchOptional } from '@/components/dashboard/dashboard-search-context'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -202,8 +203,23 @@ function customerName(order: DashboardOrder) {
   return [c.first_name, c.last_name].filter(Boolean).join(' ')
 }
 
+function orderMatchesSearch(order: DashboardOrder, rawQuery: string): boolean {
+  const q = rawQuery.trim().toLowerCase()
+  if (!q) return true
+  const haystack = [
+    customerName(order),
+    orderLocationLabel(order),
+    order.id,
+    String(order.display_number ?? ''),
+    STATUS_LABEL[order.status] ?? order.status,
+  ].join(' ').toLowerCase()
+  return haystack.includes(q)
+}
+
 export default function OrdersPage() {
   const router = useRouter()
+  const dashboardSearch = useDashboardSearchOptional()
+  const searchQuery = dashboardSearch?.query ?? ''
   const [orders, setOrders] = useState<DashboardOrder[]>([])
   const [payments, setPayments] = useState<DashboardPaymentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -285,8 +301,11 @@ export default function OrdersPage() {
   }, [selectedDate])
 
   const filteredOrders = useMemo(
-    () => (statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)),
-    [orders, statusFilter],
+    () => {
+      const byStatus = statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)
+      return byStatus.filter(o => orderMatchesSearch(o, searchQuery))
+    },
+    [orders, statusFilter, searchQuery],
   )
 
   const { sessionById, customerByKey } = useMemo(

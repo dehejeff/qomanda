@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { DashboardNotificationBell } from '@/components/dashboard/dashboard-notification-bell'
+import { useDashboardSearch } from '@/components/dashboard/dashboard-search-context'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':           'Overview',
@@ -25,6 +27,11 @@ export function DashboardHeader({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { query, setQuery } = useDashboardSearch()
+
+  useEffect(() => {
+    setQuery('')
+  }, [pathname, setQuery])
 
   async function handleLogout() {
     if (DEV_BYPASS) { router.push('/'); return }
@@ -42,9 +49,23 @@ export function DashboardHeader({
         <div className="relative w-full hidden md:block">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] pointer-events-none">search</span>
           <input
+            id="dashboard-panel-search"
+            name="dashboard-panel-search"
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            readOnly
+            aria-label="Buscar no painel"
+            data-1p-ignore
+            data-lpignore="true"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onFocus={e => e.currentTarget.removeAttribute('readonly')}
             className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary-container transition-all font-mono"
             placeholder="Buscar pedidos, mesas…"
-            type="text"
           />
         </div>
       </div>
