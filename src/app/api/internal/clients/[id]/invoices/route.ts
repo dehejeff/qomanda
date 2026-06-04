@@ -73,6 +73,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       .single()
 
     if (error) throw error
+
+    // Pagamento registrado manualmente → emite NF-e de serviço (degradável/idempotente).
+    if (body.markPaid && invoice) {
+      const { emitServiceNfeForInvoice } = await import('@/lib/nfe/emit-service-nfe')
+      await emitServiceNfeForInvoice(admin, invoice.id, { requirePaid: true })
+    }
+
     return NextResponse.json({ ok: true, invoice }, { status: 201 })
   } catch (err) {
     if (err instanceof StaffAuthError) {

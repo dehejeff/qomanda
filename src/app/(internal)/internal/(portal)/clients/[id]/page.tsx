@@ -346,6 +346,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <RestaurantServiceNfePanel
             embedded
             mode="manage"
+            clientId={clientId!}
             legalName={businessForm.legalName}
             documentNumber={businessForm.documentNumber}
             documentType={businessForm.documentType}

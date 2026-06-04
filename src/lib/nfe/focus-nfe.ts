@@ -92,11 +92,15 @@ function buildFocusPayload(input: NfeEmitInput): Record<string, unknown> {
       })),
     }
   }
-  // NFS-e (serviço) — estrutura simplificada
+  // NFS-e (serviço) — estrutura simplificada. Tomador pode ser CPF (consumidor)
+  // ou CNPJ (restaurante, na NF-e de serviço Qomanda→restaurante).
+  const tomadorDoc = doc
+    ? (doc.length > 11 ? { cnpj: doc } : { cpf: doc })
+    : null
   return {
     data_emissao: new Date().toISOString().slice(0, 10),
     prestador: { cnpj: input.restaurant.cnpj?.replace(/\D/g, '') },
-    ...(doc ? { tomador: { cpf: doc, razao_social: input.customer?.name ?? 'Consumidor' } } : {}),
+    ...(tomadorDoc ? { tomador: { ...tomadorDoc, razao_social: input.customer?.name ?? 'Consumidor' } } : {}),
     servico: {
       discriminacao: input.items.map(i => `${i.quantity}x ${i.description}`).join(' · ') || 'Serviço de alimentação',
       valor_servicos: round2(input.amount),
