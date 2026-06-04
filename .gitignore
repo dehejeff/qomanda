@@ -60,3 +60,6 @@ smoke-e2e-foodhall.js
 smoke-repro-mesa.js
 
 scripts/smoke/.cache/
+
+# Claude runtime
+.claude/scheduled_tasks.lock
