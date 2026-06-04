@@ -1,15 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
 import {
-  isMobileClient,
+  buildCheckInRedirectApiUrl,
+  parseCheckInPath,
   parseCheckInTargetFromQr,
-  resolveCheckInAbsoluteUrl,
 } from '@/lib/table-checkin-url'
 
 type ScanStatus = 'starting' | 'scanning' | 'detected' | 'invalid' | 'denied'
@@ -17,13 +18,15 @@ type ScanStatus = 'starting' | 'scanning' | 'detected' | 'invalid' | 'denied'
 const SCANNER_ID = 'qomanda-qr-reader'
 
 export default function ScanPage() {
+  const router = useRouter()
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const scannedRef = useRef(false)
   const startScannerRef = useRef<(() => Promise<void>) | null>(null)
 
   const [status, setStatus] = useState<ScanStatus>('starting')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
+  const [checkInPath, setCheckInPath] = useState<string | null>(null)
+  const [redirectApiUrl, setRedirectApiUrl] = useState<string | null>(null)
   const [tableLabel, setTableLabel] = useState<string | null>(null)
 
   const stopScanner = useCallback(async () => {
@@ -36,11 +39,17 @@ export default function ScanPage() {
     } catch {
       /* ignore cleanup errors */
     }
+    const el = document.getElementById(SCANNER_ID)
+    if (el) {
+      el.innerHTML = ''
+      el.style.pointerEvents = 'none'
+    }
   }, [])
 
   const resetScan = useCallback(async (message?: string) => {
     scannedRef.current = false
-    setRedirectUrl(null)
+    setCheckInPath(null)
+    setRedirectApiUrl(null)
     setTableLabel(null)
     setErrorMessage(message ?? null)
     setStatus(message ? 'invalid' : 'starting')
@@ -59,31 +68,20 @@ export default function ScanPage() {
       return
     }
 
-    const absoluteUrl = resolveCheckInAbsoluteUrl(path)
-    const parsed = new URL(absoluteUrl)
-    const mesa = parsed.searchParams.get('mesa')
-    if (!parsed.searchParams.get('t')) {
+    const parsed = parseCheckInPath(path)
+    if (!parsed?.token) {
       await resetScan('QR desatualizado. Peça ao restaurante um novo código na mesa.')
       return
     }
 
-    setTableLabel(mesa)
-    setRedirectUrl(absoluteUrl)
+    const apiUrl = buildCheckInRedirectApiUrl(parsed)
+    setTableLabel(parsed.mesa)
+    setCheckInPath(path)
+    setRedirectApiUrl(apiUrl)
     setStatus('detected')
     setErrorMessage(null)
     if ('vibrate' in navigator) navigator.vibrate(200)
-
-    // Mobile/PWA bloqueia redirect automático após câmera — exige toque no botão.
-    if (!isMobileClient()) {
-      window.setTimeout(() => {
-        window.location.assign(absoluteUrl)
-      }, 300)
-    }
   }, [stopScanner, resetScan])
-
-  const goToCheckIn = useCallback((url: string) => {
-    window.location.assign(url)
-  }, [])
 
   useEffect(() => {
     async function start() {
@@ -112,20 +110,29 @@ export default function ScanPage() {
 
   const isDetected = status === 'detected'
   const hasError = status === 'denied' || status === 'invalid'
+  const parsed = checkInPath ? parseCheckInPath(checkInPath) : null
 
   return (
     <div className="relative h-[100dvh] w-full flex flex-col overflow-hidden"
       style={{ background: '#060e20', color: '#dae2fd' }}>
 
-      <div
-        id={SCANNER_ID}
-        className={`absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full${isDetected ? ' hidden pointer-events-none' : ''}`}
-        aria-hidden={isDetected}
-      />
-      <div className="absolute inset-0 z-[1]"
-        style={{ background: 'rgba(11,19,38,0.55)', backdropFilter: 'blur(1px)' }} />
+      {!isDetected && (
+        <>
+          <div
+            id={SCANNER_ID}
+            className="absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full"
+            aria-hidden="false"
+          />
+          <div className="absolute inset-0 z-[1] pointer-events-none"
+            style={{ background: 'rgba(11,19,38,0.55)', backdropFilter: 'blur(1px)' }} />
+        </>
+      )}
 
-      <header className="relative z-10 flex justify-between items-center px-6 h-16 shrink-0"
+      {isDetected && (
+        <div className="absolute inset-0 z-0" style={{ background: '#060e20' }} />
+      )}
+
+      <header className="relative z-20 flex justify-between items-center px-6 h-16 shrink-0"
         style={{ background: 'rgba(23,31,51,0.85)', borderBottom: '1px solid rgba(88,66,55,0.4)' }}>
         <Link href="/hub" className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
           <span className="material-symbols-outlined">arrow_back</span>
@@ -137,12 +144,12 @@ export default function ScanPage() {
         <div className="w-8" />
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-6 pb-28">
+      <main className="relative z-30 flex-1 flex flex-col items-center justify-center px-6 py-6 pb-28">
         {!isDetected && (
           <div className="text-center mb-6">
             <h1 className="text-2xl font-semibold mb-2">Escaneie a Mesa</h1>
             <p className="text-sm max-w-[280px] mx-auto leading-relaxed" style={{ color: '#e0c0b1' }}>
-              Aponte para o QR Code fixado na mesa. No iPhone, toque em &quot;Entrar na mesa&quot; após a leitura.
+              Aponte para o QR Code fixado na mesa e toque em Entrar na mesa.
             </p>
           </div>
         )}
@@ -159,29 +166,46 @@ export default function ScanPage() {
           </div>
         )}
 
-        {isDetected && redirectUrl && (
+        {isDetected && parsed && (
           <div className="text-center space-y-5 max-w-[320px] w-full">
             <span className="material-symbols-outlined block mx-auto"
               style={{ fontSize: 72, color: '#f97316', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             <div>
               <h2 className="text-xl font-semibold">Mesa {tableLabel ?? ''} identificada</h2>
               <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
-                {isMobileClient()
-                  ? 'Toque no botão abaixo para abrir o restaurante.'
-                  : 'Abrindo o restaurante… se não redirecionar, toque no botão.'}
+                Toque no botão para abrir o restaurante e fazer check-in.
               </p>
             </div>
+
+            {/* Link nativo — mais confiável que JS após uso da câmera no mobile */}
             <a
-              href={redirectUrl}
-              onClick={(e) => {
-                e.preventDefault()
-                goToCheckIn(redirectUrl)
-              }}
+              href={checkInPath ?? `/${parsed.slug}?mesa=${encodeURIComponent(parsed.mesa)}&t=${encodeURIComponent(parsed.token ?? '')}`}
               className="flex items-center justify-center gap-2 w-full h-14 rounded-xl text-base font-bold active:scale-[0.98] transition-transform"
               style={{ background: '#f97316', color: '#fff' }}
             >
               Entrar na mesa
             </a>
+
+            {redirectApiUrl && (
+              <a
+                href={redirectApiUrl}
+                className="block w-full text-center text-xs font-mono underline underline-offset-2 py-2"
+                style={{ color: '#ffb690' }}
+              >
+                Não abriu? Toque aqui
+              </a>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (checkInPath) router.push(checkInPath)
+              }}
+              className="w-full text-xs font-mono py-2"
+              style={{ color: '#a78b7d' }}
+            >
+              Tentar abrir dentro do app
+            </button>
           </div>
         )}
 
@@ -220,9 +244,11 @@ export default function ScanPage() {
         )}
       </main>
 
-      <Suspense fallback={null}>
-        <HubBottomNav active="scan" />
-      </Suspense>
+      {!isDetected && (
+        <Suspense fallback={null}>
+          <HubBottomNav active="scan" />
+        </Suspense>
+      )}
 
       <style>{`
         @keyframes scan-line {
