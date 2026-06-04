@@ -7,6 +7,7 @@ import {
 } from '@/lib/mercadopago'
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
 import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
+import { claimWebhookEvent, finishWebhookEvent } from '@/lib/webhook-idempotency'
 
 /**
  * POST /api/mercadopago/webhook
@@ -55,20 +56,39 @@ export async function POST(req: NextRequest) {
       gatewayPaymentId,
     )
 
-    if (isMercadoPagoPaymentApproved(mpPayment.status) && internalPayment.status !== 'paid') {
-      const { confirmationCode } = await confirmPaymentRecord(supabase, {
-        ...internalPayment,
-        amount: Number(internalPayment.amount),
-      })
-      console.log(`[MP Webhook] Pagamento confirmado: ${internalPayment.id} → ${confirmationCode}`)
+    // Idempotência: dedupe por (pagamento + status atual). Transições reais
+    // (pending→approved) processam; entregas repetidas do mesmo estado, não.
+    const claim = await claimWebhookEvent(supabase, {
+      provider: 'mercado_pago',
+      eventId: `${gatewayPaymentId}:${mpPayment.status}`,
+      eventType: body?.action ?? body?.type ?? 'payment',
+      payload: { body, mpStatus: mpPayment.status },
+    })
+    if (!claim.proceed) {
+      return NextResponse.json({ ok: true, duplicate: true })
     }
 
-    if (isMercadoPagoPaymentRefunded(mpPayment.status)) {
-      await supabase.from('payments').update({ status: 'refunded' }).eq('id', internalPayment.id)
-    }
+    try {
+      if (isMercadoPagoPaymentApproved(mpPayment.status) && internalPayment.status !== 'paid') {
+        const { confirmationCode } = await confirmPaymentRecord(supabase, {
+          ...internalPayment,
+          amount: Number(internalPayment.amount),
+        })
+        console.log(`[MP Webhook] Pagamento confirmado: ${internalPayment.id} → ${confirmationCode}`)
+      }
 
-    if (mpPayment.status === 'rejected' || mpPayment.status === 'cancelled') {
-      await supabase.from('payments').update({ status: 'failed' }).eq('id', internalPayment.id)
+      if (isMercadoPagoPaymentRefunded(mpPayment.status)) {
+        await supabase.from('payments').update({ status: 'refunded' }).eq('id', internalPayment.id)
+      }
+
+      if (mpPayment.status === 'rejected' || mpPayment.status === 'cancelled') {
+        await supabase.from('payments').update({ status: 'failed' }).eq('id', internalPayment.id)
+      }
+
+      await finishWebhookEvent(supabase, claim.eventRowId, 'processed')
+    } catch (procErr) {
+      await finishWebhookEvent(supabase, claim.eventRowId, 'error', procErr instanceof Error ? procErr.message : String(procErr))
+      throw procErr
     }
 
     return NextResponse.json({ ok: true })

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
 import { getAsaasConfig } from '@/lib/asaas-config'
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
+import { claimWebhookEvent, finishWebhookEvent } from '@/lib/webhook-idempotency'
 
 /**
  * POST /api/asaas/webhook
@@ -15,6 +16,7 @@ import { confirmPaymentRecord } from '@/lib/confirm-payment'
  * Valide pelo token configurado na variável ASAAS_WEBHOOK_TOKEN.
  */
 export async function POST(req: NextRequest) {
+  let eventRowId: string | null = null
   try {
     // Validação básica do token (opcional mas recomendada)
     const token = req.headers.get('asaas-access-token')
@@ -36,6 +38,20 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createAdminClient()
+
+    // Idempotência: dedupe por (pagamento + status). Entregas repetidas do mesmo
+    // estado são ignoradas; transições (pending→received) ainda processam.
+    const eventId = String(body.id ?? `${event}:${payment.id}:${payment.status}`)
+    const claim = await claimWebhookEvent(supabase, {
+      provider: 'asaas',
+      eventId,
+      eventType: event,
+      payload: body,
+    })
+    if (!claim.proceed) {
+      return NextResponse.json({ ok: true, duplicate: true })
+    }
+    eventRowId = claim.eventRowId
 
     // Busca o pagamento interno pelo asaas_payment_id
     const { data: internalPayment } = await supabase
@@ -65,6 +81,7 @@ export async function POST(req: NextRequest) {
           await supabase.from('billing_invoices').update({ status: 'cancelled' }).eq('id', invoice.id)
         }
       }
+      await finishWebhookEvent(supabase, eventRowId, 'processed')
       return NextResponse.json({ ok: true })
     }
 
@@ -93,9 +110,15 @@ export async function POST(req: NextRequest) {
         .eq('id', internalPayment.id)
     }
 
+    await finishWebhookEvent(supabase, eventRowId, 'processed')
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[Asaas Webhook Error]', err)
+    if (eventRowId) {
+      try {
+        await finishWebhookEvent(createAdminClient(), eventRowId, 'error', err instanceof Error ? err.message : String(err))
+      } catch { /* ignore */ }
+    }
     // Retorna 200 para evitar que o Asaas reenvie o webhook em loop
     return NextResponse.json({ ok: true })
   }
