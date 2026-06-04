@@ -23,7 +23,7 @@
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
 | **P1** | Supabase Pro + região **sa-east-1** + connection pooler (Supavisor) | ⏳ Planejado |
-| **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ⏳ Planejado |
+| **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
 | **P1** | Observabilidade — Sentry + alertas (5xx, fila, Supabase) | ⏳ Planejado |
@@ -353,7 +353,7 @@
 
 - [ ] **Supabase Pro** + projeto em **sa-east-1** (São Paulo) — latência BR e limites de Realtime/conexões
 - [ ] **Connection pooler** (Supavisor, porta 6543) em todas as API routes server-side — evita `too many connections`
-- [ ] **Fila assíncrona** — desacoplar `emitNfeForPayment` + `sendRestaurantWhatsApp` do fluxo de confirmação de pagamento
+- [x] **Fila assíncrona** — `async_jobs` + worker `/api/cron/process-jobs` (retry/backoff); `confirmPaymentRecord` enfileira `nfe_emit` (NF-e + WhatsApp) em vez de aguardar inline
 - [ ] **Webhooks** Asaas/MP — responder 200 rápido, processar na fila, idempotência por `event_id`
 - [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5)
 - [ ] **Sentry** nas API routes + alerta e-mail/Slack em erro 5xx
@@ -449,6 +449,7 @@ Cliente confirma pagamento
 | `migrate-realtime-notifications.sql` | Adiciona `restaurant_notifications` à publicação `supabase_realtime` (entrega realtime do sino/banner) |
 | `migrate-webhook-events.sql` | Idempotência de webhooks (Asaas/Mercado Pago) — dedupe por `(provider, event_id)` |
 | `migrate-mercadopago-oauth.sql` | Colunas OAuth do Mercado Pago (refresh token, public key, user id, via) |
+| `migrate-async-jobs.sql` | Fila de jobs assíncronos (NF-e/WhatsApp) consumida pelo cron process-jobs |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.

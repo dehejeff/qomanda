@@ -5,7 +5,7 @@ import { closeSessionIfSettled } from '@/lib/close-session-if-settled'
 import { notifyPaymentCoverage } from '@/lib/notify-payment-coverage'
 import { grantEarnedLoyaltyOffers } from '@/lib/grant-loyalty-offers'
 import { applyCommissionToPayment } from '@/lib/payment-commission'
-import { emitNfeForPayment } from '@/lib/nfe/emit-nfe'
+import { enqueueJob } from '@/lib/job-queue'
 
 export type PaymentConfirmRow = {
   id: string
@@ -92,20 +92,11 @@ export async function confirmPaymentRecord(
     await grantEarnedLoyaltyOffers(supabase, payment.customer_id, payment.restaurant_id)
   }
 
-  // NF-e automática (best-effort, não bloqueia a confirmação). Só age se o
-  // restaurante tiver nfe_enabled + nfe_auto_emit + tipo de nota definido.
-  try {
-    const { data: r } = await supabase
-      .from('restaurants')
-      .select('nfe_enabled, nfe_auto_emit, nfe_status')
-      .eq('id', payment.restaurant_id)
-      .maybeSingle()
-    if (r?.nfe_enabled && r?.nfe_auto_emit && r?.nfe_status === 'active') {
-      await emitNfeForPayment(supabase, payment.id)
-    }
-  } catch (err) {
-    console.error('[confirmPaymentRecord] nfe auto-emit', err)
-  }
+  // NF-e automática (+ WhatsApp) vão para a FILA ASSÍNCRONA — não bloqueiam a
+  // confirmação do pagamento nem falham o checkout se o provedor estiver lento.
+  // O worker (/api/cron/process-jobs) gateia nfe_enabled/auto_emit/status e
+  // emitNfeForPayment é idempotente. Enfileirar nunca lança.
+  await enqueueJob(supabase, 'nfe_emit', { paymentId: payment.id })
 
   return { confirmationCode, sessionClosed: settlement.closed }
 }

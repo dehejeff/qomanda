@@ -707,6 +707,18 @@ emitServiceNfeForInvoice(admin, billingInvoiceId, { requirePaid })
 - Config do prestador: `src/lib/nfe/qomanda-fiscal.ts` (`QOMANDA_NFE_TOKEN`, `QOMANDA_CNPJ`, `QOMANDA_NFE_ENVIRONMENT`, `QOMANDA_NFE_CNAE`, `QOMANDA_LEGAL_NAME`, `QOMANDA_NFE_SERVICE_DESCRIPTION`).
 - API interna: `GET/POST /api/internal/clients/[id]/service-nfe` (listar / emitir manual).
 
+### 10.8.1 Fila assíncrona (NF-e + WhatsApp fora do request)
+
+`confirmPaymentRecord` **não emite NF-e inline** — enfileira um job e responde na
+hora, para o checkout não travar/falhar se o provedor fiscal/WhatsApp estiver lento.
+
+- Tabela `async_jobs` (status, attempts, `run_after`, last_error) + `lib/job-queue.ts`
+  (`enqueueJob` best-effort, `processDueJobs` com claim otimista + retry/backoff
+  exponencial 30s→2min→8min…). `run_after` usa relógio do app (evita skew com o DB).
+- Worker: `GET/POST /api/cron/process-jobs` (auth `CRON_SECRET`), agendado a cada
+  minuto no `vercel.json`. Handler `nfe_emit` chama `emitNfeForPayment` (idempotente).
+- Degradável: sem a tabela, `enqueueJob` falha silenciosamente sem quebrar o pagamento.
+
 ### 10.9 Chamar Garçom (notificação realtime)
 
 ```

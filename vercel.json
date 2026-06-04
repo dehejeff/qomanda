@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/process-jobs",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/monthly-billing",
       "schedule": "0 9 5 * *"
     },
