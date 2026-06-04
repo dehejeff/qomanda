@@ -64,8 +64,17 @@ export async function findCustomerActiveSession(
 /** Navegação completa para o app do restaurante (confiável após check-in no mobile/PWA). */
 export function navigateToCustomerHome(slug: string, sessionId: string) {
   if (typeof window === 'undefined') return
+  localStorage.setItem('qomanda_session_id', sessionId)
   const path = `/${slug}/home?session=${encodeURIComponent(sessionId)}`
-  window.location.assign(path)
+  window.location.replace(path)
+}
+
+/** session na URL ou última sessão salva neste aparelho. */
+export function resolveCustomerSessionId(searchParams?: Pick<URLSearchParams, 'get'> | null): string | null {
+  const fromUrl = searchParams?.get('session') ?? null
+  if (fromUrl) return fromUrl
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('qomanda_session_id')
 }
 
 /** Persiste identidade do cliente no localStorage (browser). */

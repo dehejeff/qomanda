@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
@@ -13,7 +13,18 @@ import { PinInput } from '@/components/customer/pin-input'
 import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin, setupLoginPin } from '@/lib/customer-login-client'
 import { CustomerPinSetupForm } from '@/components/customer/customer-pin-setup-form'
-import { navigateToCustomerHome, persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
+import {
+  findCustomerActiveSession,
+  navigateToCustomerHome,
+  persistCustomerAuth,
+  setCustomerSessionToken,
+} from '@/lib/customer-auth'
+import {
+  clearPendingTableCheckIn,
+  readPendingTableCheckIn,
+  readTableCheckInQuery,
+  stashPendingTableCheckIn,
+} from '@/lib/table-checkin-url'
 import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
 import Link from 'next/link'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
@@ -48,8 +59,15 @@ export default function CheckInPage() {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const mesaParam = searchParams.get('mesa')
-  const tokenParam = searchParams.get('t')
+  const queryFromUrl = readTableCheckInQuery(searchParams)
+  const pendingQr = queryFromUrl.mesa && queryFromUrl.token
+    ? null
+    : readPendingTableCheckIn(params.slug)
+  const mesaParam = queryFromUrl.mesa ?? pendingQr?.mesa ?? null
+  const tokenParam = queryFromUrl.token ?? pendingQr?.token ?? null
+
+  const autoQuickCheckInRef = useRef(false)
+  const [resumingSession, setResumingSession] = useState(false)
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('dine_in')
@@ -122,6 +140,7 @@ export default function CheckInPage() {
         }
         setTableStatus(data.tableStatus ?? 'free')
         setVerifyError(null)
+        stashPendingTableCheckIn(params.slug, mesaParam, tokenParam)
       } catch {
         setVerifyError('Não foi possível validar a mesa. Tente escanear novamente.')
       } finally {
@@ -149,7 +168,32 @@ export default function CheckInPage() {
       setLoading(false)
     }
     loadRestaurant()
-  }, [params.slug])
+  }, [params.slug, mesaParam, tokenParam, router])
+
+  useEffect(() => {
+    if (mesaParam && tokenParam) return
+    if (loading || verifyLoading || !restaurant) return
+
+    const customerId = localStorage.getItem('qomanda_customer_id')
+    if (!customerId) return
+
+    let cancelled = false
+    setResumingSession(true)
+
+    async function resumeOpenSession() {
+      try {
+        const supabase = createClient()
+        const active = await findCustomerActiveSession(supabase, customerId!)
+        if (cancelled || !active || active.slug !== params.slug) return
+        navigateToCustomerHome(params.slug, active.sessionId)
+      } finally {
+        if (!cancelled) setResumingSession(false)
+      }
+    }
+
+    void resumeOpenSession()
+    return () => { cancelled = true }
+  }, [mesaParam, tokenParam, loading, verifyLoading, restaurant, params.slug])
 
   async function handleCheckIn() {
     if (!restaurant || !tableToken) return
@@ -204,8 +248,9 @@ export default function CheckInPage() {
     localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
     setCheckedIn(true)
     setCheckingIn(false)
+    clearPendingTableCheckIn()
     toast.success(`Bem-vindo, ${name}!`)
-    window.setTimeout(() => navigateToCustomerHome(params.slug, sessionId), 400)
+    navigateToCustomerHome(params.slug, sessionId)
   }
 
   async function handleWhatsAppLogin() {
@@ -369,9 +414,10 @@ export default function CheckInPage() {
     localStorage.setItem('qomanda_customer_id', customerId)
     setCheckedIn(true)
     setCheckingIn(false)
+    clearPendingTableCheckIn()
     const first = savedCustomerName.split(' ')[0] || 'Cliente'
     toast.success(`Bem-vindo de volta, ${first}!`)
-    window.setTimeout(() => navigateToCustomerHome(params.slug, sessionId), 400)
+    navigateToCustomerHome(params.slug, sessionId)
   }
 
   const tableLabel = tableNumber ? tableNumber.padStart(2, '0') : '—'
@@ -385,8 +431,15 @@ export default function CheckInPage() {
   const statusLabel = tableStatus === 'occupied' ? 'EM USO' : tableStatus === 'reserved' ? 'RESERVADA' : 'DISPONÍVEL'
   const statusColor = tableStatus === 'occupied' ? '#f97316' : tableStatus === 'reserved' ? '#a78b7d' : '#34d399'
 
+  useEffect(() => {
+    if (autoQuickCheckInRef.current) return
+    if (!canQuickCheckIn || checkingIn || checkedIn) return
+    autoQuickCheckInRef.current = true
+    void handleQuickCheckIn()
+  }, [canQuickCheckIn, checkingIn, checkedIn])
+
   // ── Loading ──────────────────────────────────────────────
-  if (loading || verifyLoading) {
+  if (loading || verifyLoading || resumingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />

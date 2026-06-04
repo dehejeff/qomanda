@@ -21,6 +21,56 @@ export function parseTableCheckInSearchParams(search: string): { mesa: string | 
   }
 }
 
+export type TableCheckInQuery = { mesa: string | null; token: string | null }
+
+/** Lê mesa/token da URL (router + window.location — câmera nativa no mobile). */
+export function readTableCheckInQuery(searchParams?: Pick<URLSearchParams, 'get'> | null): TableCheckInQuery {
+  const fromRouter = {
+    mesa: searchParams?.get('mesa') ?? null,
+    token: searchParams?.get('t') ?? searchParams?.get('token') ?? null,
+  }
+  if (typeof window === 'undefined') return fromRouter
+
+  const qs = new URLSearchParams(window.location.search)
+  return {
+    mesa: fromRouter.mesa ?? qs.get('mesa'),
+    token: fromRouter.token ?? qs.get('t') ?? qs.get('token'),
+  }
+}
+
+const PENDING_CHECKIN_KEY = 'qomanda_pending_table_checkin'
+const PENDING_TTL_MS = 30 * 60 * 1000
+
+export function stashPendingTableCheckIn(slug: string, mesa: string, token: string) {
+  if (typeof sessionStorage === 'undefined') return
+  sessionStorage.setItem(
+    PENDING_CHECKIN_KEY,
+    JSON.stringify({ slug, mesa, t: token, at: Date.now() }),
+  )
+}
+
+export function readPendingTableCheckIn(slug: string): TableCheckInQuery | null {
+  if (typeof sessionStorage === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(PENDING_CHECKIN_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw) as { slug?: string; mesa?: string; t?: string; at?: number }
+    if (data.slug !== slug || !data.mesa || !data.t) return null
+    if (typeof data.at === 'number' && Date.now() - data.at > PENDING_TTL_MS) {
+      sessionStorage.removeItem(PENDING_CHECKIN_KEY)
+      return null
+    }
+    return { mesa: data.mesa, token: data.t }
+  } catch {
+    return null
+  }
+}
+
+export function clearPendingTableCheckIn() {
+  if (typeof sessionStorage === 'undefined') return
+  sessionStorage.removeItem(PENDING_CHECKIN_KEY)
+}
+
 function cleanQrPayload(rawValue: string): string {
   return rawValue.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
 }
@@ -89,4 +139,35 @@ export function parseCheckInTargetFromQr(rawValue: string): string | null {
   const params = new URLSearchParams({ mesa })
   if (token) params.set('t', token)
   return `/${slug}?${params.toString()}`
+}
+
+export type ParsedCheckInPath = {
+  slug: string
+  mesa: string
+  token: string | null
+}
+
+export function parseCheckInPath(relativePath: string): ParsedCheckInPath | null {
+  try {
+    const url = new URL(relativePath.startsWith('/') ? relativePath : `/${relativePath}`, 'https://qomanda.local')
+    const slug = url.pathname.split('/').filter(Boolean)[0]
+    const mesa = url.searchParams.get('mesa')
+    const token = url.searchParams.get('t') ?? url.searchParams.get('token')
+    if (!slug || !mesa) return null
+    return { slug, mesa, token }
+  } catch {
+    return null
+  }
+}
+
+/** URL interna de redirect (302) — mais confiável que location.assign em PWA. */
+export function buildCheckInRedirectApiUrl(parsed: ParsedCheckInPath, origin?: string): string | null {
+  if (!parsed.token) return null
+  const base = (origin ?? (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '')
+  const params = new URLSearchParams({
+    slug: parsed.slug,
+    mesa: parsed.mesa,
+    t: parsed.token,
+  })
+  return `${base}/api/checkin/redirect?${params.toString()}`
 }

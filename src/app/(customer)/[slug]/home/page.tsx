@@ -7,7 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { buildSessionBilling } from '@/lib/session-billing'
-import { leaveRestaurantSession } from '@/lib/customer-auth'
+import {
+  findCustomerActiveSession,
+  leaveRestaurantSession,
+  navigateToCustomerHome,
+  resolveCustomerSessionId,
+} from '@/lib/customer-auth'
 import { SessionSettledPanel, type SessionPaymentReceipt } from '@/components/customer/session-settled-panel'
 import type { Order } from '@/types'
 import { formatServiceLocationLabel } from '@/lib/counter-orders'
@@ -25,7 +30,7 @@ export default function CustomerHomePage() {
   const params = useParams<{ slug: string }>()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const sessionId = searchParams.get('session')
+  const sessionId = resolveCustomerSessionId(searchParams)
 
   const [restaurantName, setRestaurantName] = useState('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -46,7 +51,10 @@ export default function CustomerHomePage() {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
     const name = localStorage.getItem('qomanda_customer_name') ?? 'Cliente'
     setCustomerName(name)
-  }, [sessionId, params.slug, router])
+    if (!searchParams.get('session') && sessionId) {
+      window.history.replaceState(null, '', `/${params.slug}/home?session=${encodeURIComponent(sessionId)}`)
+    }
+  }, [sessionId, params.slug, router, searchParams])
 
   useEffect(() => {
     if (!sessionId) return
@@ -59,7 +67,18 @@ export default function CustomerHomePage() {
         .eq('id', sessionId)
         .single()
 
-      if (!session) { router.replace(`/${params.slug}`); return }
+      if (!session) {
+        const customerId = localStorage.getItem('qomanda_customer_id')
+        if (customerId) {
+          const active = await findCustomerActiveSession(supabase, customerId)
+          if (active?.slug === params.slug) {
+            navigateToCustomerHome(params.slug, active.sessionId)
+            return
+          }
+        }
+        router.replace(`/${params.slug}`)
+        return
+      }
 
       const sessionClosed = session.status === 'closed'
 
