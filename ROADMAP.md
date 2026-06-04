@@ -152,7 +152,7 @@
 - [x] Cadastro de perfil empresarial (CNPJ/CPF, endereço, ViaCEP)
 - [x] Configuração NF-e ao consumidor (Focus NFe, status, leitura WhatsApp)
 - [x] Painel NF-e de serviço (Qomanda → restaurante) — estrutura UI, emissão em breve
-- [x] **Cobrança** — painel consolidado de mensalidades: status por cliente (paga / a vencer / em atraso com dias) + KPIs + emitir boleto/PIX + marcar paga
+- [x] **Cobrança** — painel consolidado de mensalidades: status por cliente (paga / a vencer / em atraso com dias) + KPIs + emitir boleto/PIX + marcar paga + **e-mail automático ao gerar/atrasar** (cron diário) + **exportação CSV**
 - [x] **Suporte** — fila interna de tickets com resposta staff e anexos
 - [x] **Gateway Pay** — configuração Asaas da plataforma (credenciais criptografadas)
 - [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe
@@ -451,6 +451,7 @@ Cliente confirma pagamento
 | `migrate-webhook-events.sql` | Idempotência de webhooks (Asaas/Mercado Pago) — dedupe por `(provider, event_id)` |
 | `migrate-mercadopago-oauth.sql` | Colunas OAuth do Mercado Pago (refresh token, public key, user id, via) |
 | `migrate-async-jobs.sql` | Fila de jobs assíncronos (NF-e/WhatsApp) consumida pelo cron process-jobs |
+| `migrate-billing-reminders.sql` | `last_reminder_at` em billing_invoices (throttle do lembrete de atraso) |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.

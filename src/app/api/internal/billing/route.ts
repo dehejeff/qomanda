@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { StaffAuthError, requireStaff } from '@/lib/staff-auth'
 import { fetchInternalBilling } from '@/lib/internal-billing'
 import { generateMonthlyInvoice, chargeInvoice, type SaasBillingType } from '@/lib/monthly-billing'
+import { sendBillingChargeEmail } from '@/lib/internal-billing-email'
 import { brToday } from '@/lib/date-tz'
 
 export async function GET() {
@@ -44,14 +45,17 @@ export async function POST(req: NextRequest) {
         const ch = await chargeInvoice(admin, gen.invoiceId, billingType)
         invoiceUrl = ch.invoiceUrl ?? null
       }
-      return NextResponse.json({ ok: true, invoiceId: gen.invoiceId, invoiceUrl })
+      // E-mail de cobrança ao cliente (best-effort, não bloqueia a resposta).
+      const emailed = await sendBillingChargeEmail(admin, gen.invoiceId)
+      return NextResponse.json({ ok: true, invoiceId: gen.invoiceId, invoiceUrl, emailed: emailed.ok })
     }
 
     if (body.action === 'charge') {
       if (!body.invoiceId) return NextResponse.json({ error: 'invoiceId obrigatório.' }, { status: 400 })
       const ch = await chargeInvoice(admin, body.invoiceId, billingType)
       if (!ch.ok) return NextResponse.json({ error: reasonLabel(ch.reason) }, { status: 422 })
-      return NextResponse.json({ ok: true, invoiceUrl: ch.invoiceUrl ?? null })
+      const emailed = await sendBillingChargeEmail(admin, body.invoiceId)
+      return NextResponse.json({ ok: true, invoiceUrl: ch.invoiceUrl ?? null, emailed: emailed.ok })
     }
 
     if (body.action === 'mark_paid') {

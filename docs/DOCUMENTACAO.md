@@ -523,6 +523,14 @@ aberto, em atraso, a vencer, pagas no mês). Ações via `POST /api/internal/bil
 A cobrança automática mensal (cron dia 5) continua gerando faturas; o painel permite
 emissão/acompanhamento sob demanda.
 
+**E-mail de cobrança** (`internal-billing-email.ts`): ao gerar/emitir a cobrança, envia
+e-mail ao responsável (conta ou contato comercial) com valor, vencimento e link. O cron
+diário `/api/cron/billing-reminders` (12h) reenvia para faturas **em atraso**, no máximo
+1x/dia por fatura (`last_reminder_at`), e marca a fatura como `overdue`.
+
+**Exportação CSV**: `GET /api/internal/billing/export` (staff) baixa a planilha (com BOM
+p/ Excel) de todos os clientes — status, dias em atraso, valor, vencimento, método.
+
 ### 8.5 NF-e — duas notas distintas
 
 | Tipo | Emissor → Destinatário | Onde configurar |

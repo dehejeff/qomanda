@@ -82,19 +82,28 @@ export default function InternalBillingPage() {
           <h1 className="text-2xl font-black text-on-surface">Cobrança</h1>
           <p className="text-sm text-on-surface-variant mt-1">Status de pagamento das mensalidades dos clientes.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Emitir como</span>
-          <div className="flex rounded-lg overflow-hidden border border-outline-variant">
-            {(['BOLETO', 'PIX'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setBillingType(t)}
-                className={`px-3 py-1.5 text-xs font-mono ${billingType === t ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'}`}
-              >
-                {t === 'BOLETO' ? 'Boleto' : 'PIX'}
-              </button>
-            ))}
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/internal/billing/export"
+            className="px-3 py-1.5 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:text-on-surface flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[16px]">download</span>
+            Exportar CSV
+          </a>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Emitir como</span>
+            <div className="flex rounded-lg overflow-hidden border border-outline-variant">
+              {(['BOLETO', 'PIX'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setBillingType(t)}
+                  className={`px-3 py-1.5 text-xs font-mono ${billingType === t ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'}`}
+                >
+                  {t === 'BOLETO' ? 'Boleto' : 'PIX'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

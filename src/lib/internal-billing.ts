@@ -35,6 +35,35 @@ export type InternalBillingData = {
 
 const DUE_SOON_DAYS = 5
 
+const STATUS_CSV_LABEL: Record<BillingDerivedStatus, string> = {
+  overdue: 'Em atraso', due_soon: 'A vencer', open: 'Em aberto',
+  paid: 'Paga', none: 'Sem fatura', cancelled: 'Cancelada',
+}
+
+function csvEscape(value: string | number | null | undefined): string {
+  if (value == null) return ''
+  const s = String(value)
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+/** Gera o CSV (com BOM p/ Excel) da visão de cobrança. */
+export function buildBillingCsv(rows: BillingClientRow[]): string {
+  const header = ['Cliente', 'Plano', 'Assinatura', 'Status', 'Dias em atraso', 'Valor', 'Vencimento', 'Pago em', 'Método', 'Cobrança emitida']
+  const lines = rows.map(r => [
+    r.name,
+    r.planName ?? '',
+    r.subscriptionStatus ?? '',
+    STATUS_CSV_LABEL[r.status],
+    r.status === 'overdue' ? r.daysOverdue : '',
+    r.amount != null ? r.amount.toFixed(2).replace('.', ',') : '',
+    r.dueDate ?? '',
+    r.paidAt ? r.paidAt.slice(0, 10) : '',
+    r.chargeMethod ?? '',
+    r.hasCharge ? 'sim' : 'não',
+  ].map(csvEscape).join(','))
+  return '﻿' + [header.join(','), ...lines].join('\n')
+}
+
 function dayDiff(fromDateStr: string, toDateStr: string): number {
   return Math.round((brMidnight(toDateStr).getTime() - brMidnight(fromDateStr).getTime()) / 86_400_000)
 }
