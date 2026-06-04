@@ -22,11 +22,11 @@
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
-| **P1** | Supabase Pro + região **sa-east-1** + connection pooler (Supavisor) | ⏳ Planejado |
+| **P0** | **Fixar região Supabase `sa-east-1` (SP) + connection pooler (Supavisor)** — prioridade de go-live | ▶️ Próximo |
 | **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
-| **P1** | Observabilidade — Sentry + alertas (5xx, fila, Supabase) | 🔧 Em andamento — base degradável pronta (`docs/OBSERVABILITY-WIP.md`); falta wiring + DSN |
+| **P0** | **Finalizar observabilidade — Sentry + alertas (5xx, fila, Supabase)** — prioridade de go-live | 🔧 Em andamento — base degradável pronta (`docs/OBSERVABILITY-WIP.md`); falta wiring + DSN |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
@@ -350,14 +350,19 @@
 | Monitoramento | **Sentry** + dashboards Vercel/Supabase | 0 |
 | Workers dedicados | Railway / Fly.io (só se fila + Vercel não bastarem) | 2 |
 
+> **Decisão de arquitetura (2026-06-04):** avaliamos migrar para o GCP e **decidimos
+> permanecer em Vercel + Supabase**. Ganho de performance/segurança não vem da nuvem e
+> sim de **região (sa-east-1) + pooler + observabilidade**; migrar exigiria reescrever
+> Auth/RLS/Realtime/Storage (alto custo e risco) sem ganho real no porte atual. GCP/Railway/Fly
+> só entram em escala (Fase 2), e como híbrido para workers — não troca total.
+
 ### Fase 0 — Piloto → ~20 restaurantes (prioridade imediata)
 
-- [ ] **Supabase Pro** + projeto em **sa-east-1** (São Paulo) — latência BR e limites de Realtime/conexões
-- [ ] **Connection pooler** (Supavisor, porta 6543) em todas as API routes server-side — evita `too many connections`
+- [ ] **▶️ Supabase em `sa-east-1` (São Paulo) + connection pooler (Supavisor, 6543)** — *prioridade de go-live escolhida*; latência BR, limites de Realtime/conexões, evita `too many connections`
 - [x] **Fila assíncrona** — `async_jobs` + worker `/api/cron/process-jobs` (retry/backoff); `confirmPaymentRecord` enfileira `nfe_emit` (NF-e + WhatsApp) em vez de aguardar inline
 - [ ] **Webhooks** Asaas/MP — responder 200 rápido, processar na fila, idempotência por `event_id`
 - [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5)
-- [ ] **Sentry** nas API routes + alerta e-mail/Slack em erro 5xx
+- [ ] **▶️ Finalizar Sentry** — wiring em jobs/webhooks + DSN + alerta e-mail/Slack em erro 5xx — *prioridade de go-live escolhida* (base pronta: `docs/OBSERVABILITY-WIP.md`)
 - [ ] **Runbook** — modo degradado (pagamento OK, NF-e/WhatsApp na fila se provedor cair)
 
 **Capacidade esperada:** dezenas a ~100 restaurantes no horário de pico, com pooler + fila + Pro.
