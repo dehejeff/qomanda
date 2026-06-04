@@ -196,6 +196,7 @@ declare
   v_pay int := 0;
   v_ord int := 0;
   v_items int := 0;
+  v_tmp int := 0;
 begin
   if p_retention_days < 30 then
     raise exception 'Retenção mínima é 30 dias.';
@@ -262,7 +263,8 @@ begin
   delete from payments
   where created_at < v_cutoff
     and status in ('pending', 'processing');
-  get diagnostics v_pay = v_pay + row_count;
+  get diagnostics v_tmp = row_count;
+  v_pay := v_pay + v_tmp;
 
   perform set_config('qomanda.retention_purge', '', true);
 
