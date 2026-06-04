@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-03  
+> Última atualização: 2026-06-04  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
 
 ---
@@ -24,11 +24,12 @@
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
 | **P1** | Supabase Pro + região **sa-east-1** + connection pooler (Supavisor) | ⏳ Planejado |
 | **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ⏳ Planejado |
-| **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ⏳ Planejado |
+| **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
+| **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
 | **P1** | Observabilidade — Sentry + alertas (5xx, fila, Supabase) | ⏳ Planejado |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
-| **P2** | NF-e de serviço Qomanda → restaurante | 🔴 Fase 3 |
+| **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
 | **P2** | Mercado Pago OAuth connect (v1 access token já disponível) | 🟡 Fase 3 |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
@@ -217,8 +218,8 @@
 - [x] **NF-e automática** — emissão após pagamento confirmado (adapter Focus NFe + modo simulado)
 - [x] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
 - [x] Vínculo pagamento → nota fiscal (aba Notas Fiscais no painel + recibo do cliente)
-- [ ] Emissão real Focus NFe (depende do token de homologação/produção)
-- [ ] **NF-e de serviço** — Qomanda → restaurante (junto com a fatura mensal)
+- [x] **NF-e de serviço** — Qomanda → restaurante, emitida ao pagar a fatura mensal (modo simulado; real via env `QOMANDA_NFE_*`)
+- [ ] Emissão real Focus NFe (depende do token de homologação/produção — cliente e serviço)
 
 ### 3. Cobrança SaaS (mensalidade)
 - [x] Planos comerciais (Starter / Growth / Pro / Enterprise)
@@ -226,11 +227,11 @@
 - [x] Faturas manuais (registro interno)
 - [x] **Cobrança automática de mensalidade** — cron dia 5 + cobrança PIX Asaas (master) + webhook marca paga
 - [x] Aba "Mensalidade" no dashboard do restaurante (histórico + link da fatura em aberto)
-- [ ] NF-e de serviço emitida junto com a fatura
+- [x] NF-e de serviço emitida ao pagar a fatura (webhook Asaas + "Registrar pagamento" interno)
 
 ### 4. Melhorias operacionais pós-lançamento
-- [ ] Webhook de pagamentos robusto — retry, idempotência e logs de erro
-- [ ] **Chamar Garçom** — botão no home do cliente envia notificação para o dashboard
+- [x] **Webhook de pagamentos robusto** — idempotência (tabela `webhook_events`) + logs de erro/retry (Asaas + Mercado Pago)
+- [x] **Chamar Garçom** — botão no home do cliente → notificação realtime (sino no dashboard + banner no app do garçom)
 - [ ] E-mail de notificação em novos tickets de suporte
 
 ---
@@ -409,7 +410,7 @@ Cliente confirma pagamento
 | Gateways (#1–4 disponíveis) | ✅ Completo | 85% |
 | Gateways (#5–8 planejados) | 🔴 Faltando | 0% |
 | NF-e cliente (emissão) | ⚠️ Parcial | 65% |
-| NF-e serviço (Qomanda) | 🔴 Faltando | 10% |
+| NF-e serviço (Qomanda) | ⚠️ Parcial | 70% |
 | Cobrança SaaS (mensalidade) | ✅ Completo | 90% |
 | Fidelidade | ✅ Completo | 90% |
 | WhatsApp | ⚠️ Parcial | 60% |
@@ -441,6 +442,10 @@ Cliente confirma pagamento
 | `migrate-nfe-invoices.sql` | Notas emitidas + tipo de nota (NFC-e/NFS-e) |
 | `migrate-billing-charge.sql` | Cobrança Asaas da mensalidade + customer de billing |
 | `migrate-restaurant-members-rls.sql` | Garçom convidado lê `restaurant_members` + mesas |
+| `migrate-call-waiter.sql` | Chamar Garçom — tipo `call_waiter` em `restaurant_notifications` + RLS equipe |
+| `migrate-realtime-notifications.sql` | Adiciona `restaurant_notifications` à publicação `supabase_realtime` (entrega realtime do sino/banner) |
+| `migrate-webhook-events.sql` | Idempotência de webhooks (Asaas/Mercado Pago) — dedupe por `(provider, event_id)` |
+| `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

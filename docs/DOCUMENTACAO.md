@@ -93,9 +93,9 @@ A **Qomanda** é uma plataforma SaaS de cardápio digital e pagamento integrado 
           ┌────────────────┼────────────────┐
           │                │                │
     ┌─────▼─────┐   ┌──────▼──────┐  ┌─────▼──────┐
-    │  Asaas    │   │  WhatsApp   │  │  Focus NFe │
-    │ Qomanda   │   │  Business   │  │  (NF-e     │
-    │ Pay/split │   │  API (Meta) │  │  em breve) │
+    │  Asaas /  │   │  WhatsApp   │  │  Focus NFe │
+    │  Mercado  │   │  Business   │  │ (cliente + │
+    │  Pago     │   │  API (Meta) │  │  serviço)  │
     └───────────┘   └─────────────┘  └────────────┘
 ```
 
@@ -516,9 +516,11 @@ Tabelas:
 | Tipo | Emissor → Destinatário | Onde configurar |
 |------|------------------------|-----------------|
 | **NF-e cliente** | Restaurante → consumidor | Aba NF-e cliente (interno) + Focus NFe |
-| **NF-e serviço** | Qomanda → restaurante | Aba NF-e serviço (emissão em breve) |
+| **NF-e serviço** | Qomanda → restaurante | Aba NF-e serviço (emissão ao pagar a fatura) |
 
 WhatsApp para envio de NF-e ao consumidor: restaurante configura em **Settings → Integrações**; staff vê apenas status.
+
+A **NF-e de serviço** é emitida automaticamente quando a fatura de mensalidade é paga (ver §10.8). A aba mostra o status real por fatura, botão de emissão manual e link do PDF.
 
 ---
 
@@ -679,6 +681,45 @@ Onboarding de repasse: `POST /api/dashboard/asaas/onboard` + cadastro bancário 
 
 Modo bypass para testes: `src/lib/payment-bypass.ts` (desligar em produção).
 
+### 10.8 Webhooks idempotentes + NF-e de serviço
+
+**Idempotência** (`src/lib/webhook-idempotency.ts` + tabela `webhook_events`):
+
+- `claimWebhookEvent(admin, { provider, eventId, ... })` grava o evento como `processing` (dedupe por `(provider, event_id)`). Entrega já `processed` → retorna `proceed=false` (ignora); `error`/`processing` → reprocessa e incrementa `attempts`.
+- `finishWebhookEvent(admin, rowId, status)` marca `processed`/`error`.
+- **Chave de dedupe** — Asaas: `evento:payment:status`; Mercado Pago: `payment:status` (após buscar o status no gateway). Só entregas do **mesmo estado** são ignoradas; transições reais (ex.: `pending → approved`) processam.
+- Ambos os webhooks retornam `200` mesmo em erro (evita reenvio em loop); o erro fica registrado em `webhook_events`.
+
+**NF-e de serviço** (Qomanda → restaurante) — emitida quando a fatura de mensalidade é paga:
+
+```
+billing_invoices.status = 'paid'
+    │  (webhook Asaas da mensalidade  OU  "Registrar pagamento" no portal interno)
+    ▼
+emitServiceNfeForInvoice(admin, billingInvoiceId, { requirePaid })
+    │  prestador = Qomanda (env QOMANDA_NFE_*) · tomador = CNPJ do restaurante
+    ├─ sem credenciais → grava 'simulated' (fluxo testável)
+    ├─ com credenciais → NFS-e via Focus NFe (adapter compartilhado)
+    └─ e-mail do PDF ao e-mail comercial do restaurante
+```
+
+- Tabela `service_nfe_invoices` — **1 nota por fatura** (`unique(billing_invoice_id)`), idempotente.
+- Config do prestador: `src/lib/nfe/qomanda-fiscal.ts` (`QOMANDA_NFE_TOKEN`, `QOMANDA_CNPJ`, `QOMANDA_NFE_ENVIRONMENT`, `QOMANDA_NFE_CNAE`, `QOMANDA_LEGAL_NAME`, `QOMANDA_NFE_SERVICE_DESCRIPTION`).
+- API interna: `GET/POST /api/internal/clients/[id]/service-nfe` (listar / emitir manual).
+
+### 10.9 Chamar Garçom (notificação realtime)
+
+```
+Cliente (home) → POST /api/customer/call-waiter { sessionId }
+    │  throttle 90s por sessão · grava restaurant_notifications type='call_waiter'
+    ▼
+realtime (postgres_changes, INSERT, restaurant_id)
+    ├─ App do garçom: WaiterCallsBanner (toast + banner "Atender")
+    └─ Dashboard: DashboardNotificationBell (toast + chime + badge)
+```
+
+> ⚠️ A entrega realtime exige a tabela na publicação `supabase_realtime` (`migrate-realtime-notifications.sql`). Sem isso o `channel` assina mas **não** recebe eventos.
+
 ---
 
 ## 11. Programa de Fidelidade
@@ -765,7 +806,7 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 **Em modo de desenvolvimento:** a mensagem é logada no console e não enviada.
 
-### 12.2 NF-e — ao consumidor (implementado) e de serviço (planejado)
+### 12.2 NF-e — ao consumidor e de serviço (ambas implementadas)
 
 **NF-e ao consumidor** (restaurante → cliente) — **implementado** (ver §19.3):
 - Tipo por restaurante: **NFC-e** (modelo 65) ou **NFS-e**, definido no portal interno
@@ -773,9 +814,10 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 - Envio do link ao cliente por WhatsApp; histórico no painel + recibo do cliente
 - Adapter Focus NFe pronto; **modo simulado** quando sem token (fluxo testável)
 
-**NF-e de serviço** (Qomanda → restaurante):
-- Mensalidade + comissão — UI preparada na aba **NF-e serviço**; emissão **pendente**
-  (será emitida junto com a fatura mensal — ver §19.4)
+**NF-e de serviço** (Qomanda → restaurante) — **implementado** (ver §10.8):
+- Mensalidade + comissão — emitida ao pagar a fatura (webhook Asaas ou "Registrar pagamento" interno)
+- Prestador = Qomanda (env `QOMANDA_NFE_*`); tomador = CNPJ do restaurante
+- **Modo simulado** sem credenciais; e-mail do PDF ao restaurante; aba **NF-e serviço** mostra status real + emissão manual
 
 ---
 
@@ -996,7 +1038,8 @@ Rotas legadas Stripe (`/api/payments`, `/api/stripe/webhook`) permanecem como st
 | GET | `/api/internal/overview` | KPIs e séries do overview |
 | GET/POST | `/api/internal/clients` | Listar / criar clientes |
 | GET/PATCH | `/api/internal/clients/[id]` | Detalhe / atualizar cliente |
-| GET/POST | `/api/internal/clients/[id]/invoices` | Faturas de mensalidade |
+| GET/POST | `/api/internal/clients/[id]/invoices` | Faturas de mensalidade (POST `markPaid` emite NF-e serviço) |
+| GET/POST | `/api/internal/clients/[id]/service-nfe` | NF-e de serviço (listar / emitir manual) |
 | GET | `/api/internal/plans` | Catálogo de planos |
 | GET/PATCH/POST | `/api/internal/gateway` | Config Asaas plataforma |
 | GET | `/api/internal/support/tickets` | Fila de tickets |
@@ -1015,7 +1058,9 @@ Rotas legadas Stripe (`/api/payments`, `/api/stripe/webhook`) permanecem como st
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | POST/GET | `/api/asaas/payments` | Criar/consultar cobrança |
-| POST | `/api/asaas/webhook` | Confirmação Asaas |
+| POST | `/api/asaas/webhook` | Confirmação Asaas (idempotente; pagto consumidor + mensalidade → NF-e serviço) |
+| POST | `/api/mercadopago/webhook` | Confirmação Mercado Pago (idempotente) |
+| POST | `/api/customer/call-waiter` | Cliente chama o garçom (notificação realtime) |
 
 ### `POST /api/checkin` ⚠️ server-side
 
@@ -1100,6 +1145,14 @@ NEXT_PUBLIC_DEV_BYPASS=true        # apenas dev local
 # Portal interno
 QOMANDA_STAFF_EMAILS=ops@qomanda.com
 PLATFORM_SECRETS_KEY=              # credenciais gateway plataforma (64 hex)
+
+# NF-e de serviço (Qomanda → restaurante) — opcional; sem isto roda em modo simulado
+QOMANDA_NFE_TOKEN=                 # token Focus NFe da Qomanda (prestador)
+QOMANDA_CNPJ=                      # CNPJ da Qomanda
+QOMANDA_NFE_ENVIRONMENT=homologacao  # ou producao
+QOMANDA_NFE_CNAE=                  # opcional
+QOMANDA_LEGAL_NAME=Qomanda Tecnologia
+QOMANDA_NFE_SERVICE_DESCRIPTION=Assinatura e taxas da plataforma Qomanda
 ```
 
 ---
@@ -1252,17 +1305,41 @@ Todo dia 5, gera a fatura de cada restaurante ativo e cria a cobrança PIX na co
 - **Agendamento:** `GET/POST /api/cron/monthly-billing` protegido por `CRON_SECRET`.
   `vercel.json` agenda GET dia 5 às 09:00 (Vercel envia o secret no header).
 - **Conciliação:** webhook Asaas (`/api/asaas/webhook`) — cobrança sem pagamento de
-  consumidor cai em `billing_invoices` e é marcada `paid`/`overdue`/`cancelled`.
+  consumidor cai em `billing_invoices` e é marcada `paid`/`overdue`/`cancelled`. Ao marcar
+  `paid`, dispara a **NF-e de serviço** (§19.6).
 
 **Tabela:** `billing_invoices` (+ `asaas_payment_id`, `charge_method`, `invoice_url`,
 `period_year/month`, único por `restaurant_id+period_start`); `restaurants.asaas_billing_customer_id`.
 
-### 19.5 Migrações relacionadas (v4.0)
+### 19.6 Webhooks idempotentes · NF-e de serviço · Chamar Garçom
+
+**Webhooks idempotentes** (`lib/webhook-idempotency.ts` + `webhook_events`):
+- `claimWebhookEvent`/`finishWebhookEvent` deduplicam por `(provider, event_id)`. Asaas usa
+  `evento:payment:status`; Mercado Pago `payment:status`. Reentrega do mesmo estado é
+  ignorada (`duplicate:true`); transição real reprocessa. Erros ficam logados na tabela.
+
+**NF-e de serviço** (Qomanda → restaurante) — `lib/nfe/emit-service-nfe.ts`:
+- Gatilho automático ao marcar `billing_invoices.paid` (webhook Asaas + "Registrar
+  pagamento" interno) e manual via `POST /api/internal/clients/[id]/service-nfe`.
+- Prestador = Qomanda (`lib/nfe/qomanda-fiscal.ts`, env `QOMANDA_NFE_*`); tomador = CNPJ do
+  restaurante. Reusa o `FocusNfeAdapter` (NFS-e). **Simulado** sem credenciais.
+- `service_nfe_invoices` (único por `billing_invoice_id`); e-mail do PDF ao restaurante.
+- **UI:** aba **NF-e serviço** do cliente interno — status real, botão emitir, link PDF.
+
+**Chamar Garçom** (notificação realtime) — `POST /api/customer/call-waiter`:
+- Grava `restaurant_notifications type='call_waiter'` (throttle 90s/sessão). Entrega por
+  `postgres_changes` ao **app do garçom** (`WaiterCallsBanner`) e ao **dashboard**
+  (`DashboardNotificationBell`: toast + chime + badge).
+- Exige a tabela na publicação `supabase_realtime` (`migrate-realtime-notifications.sql`).
+
+### 19.7 Migrações relacionadas (v4.0)
 
 Rodar no Supabase (ordem em `ROADMAP.md` § Migrações):
 `migrate-commercial-restaurant-account.sql`, `migrate-restaurant-model.sql`,
 `migrate-restaurant-manual-payment.sql`, `migrate-tables-public-read.sql`,
-`migrate-nfe-invoices.sql`, `migrate-billing-charge.sql`.
+`migrate-nfe-invoices.sql`, `migrate-billing-charge.sql`,
+`migrate-call-waiter.sql`, `migrate-realtime-notifications.sql`,
+`migrate-webhook-events.sql`, `migrate-service-nfe.sql`.
 
 ---
 
