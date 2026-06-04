@@ -152,6 +152,7 @@
 - [x] Cadastro de perfil empresarial (CNPJ/CPF, endereço, ViaCEP)
 - [x] Configuração NF-e ao consumidor (Focus NFe, status, leitura WhatsApp)
 - [x] Painel NF-e de serviço (Qomanda → restaurante) — estrutura UI, emissão em breve
+- [x] **Cobrança** — painel consolidado de mensalidades: status por cliente (paga / a vencer / em atraso com dias) + KPIs + emitir boleto/PIX + marcar paga
 - [x] **Suporte** — fila interna de tickets com resposta staff e anexos
 - [x] **Gateway Pay** — configuração Asaas da plataforma (credenciais criptografadas)
 - [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe

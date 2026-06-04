@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: '/internal',          icon: 'dashboard',   label: 'Overview' },
   { href: '/internal/clients',  icon: 'storefront',  label: 'Clientes' },
   { href: '/internal/clients/new', icon: 'person_add', label: 'Novo cliente' },
+  { href: '/internal/billing',  icon: 'receipt_long', label: 'Cobrança' },
   { href: '/internal/support',  icon: 'support_agent', label: 'Suporte' },
   { href: '/internal/gateway',  icon: 'account_balance', label: 'Gateway Pay' },
 ]

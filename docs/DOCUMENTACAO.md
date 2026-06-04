@@ -487,6 +487,7 @@ node scripts/setup-internal-staff.mjs
 | Clientes | `/internal/clients` | Listagem de restaurantes |
 | Novo cliente | `/internal/clients/new` | Cadastro completo (abas) |
 | Cliente | `/internal/clients/[id]` | Edição: estabelecimento, NF-e, plano, NF-e serviço |
+| Cobrança | `/internal/billing` | Status de pagamento das mensalidades + emitir boleto/PIX |
 | Suporte | `/internal/support` | Fila de tickets |
 | Gateway Pay | `/internal/gateway` | Credenciais Asaas da plataforma |
 
@@ -507,9 +508,20 @@ Tabelas:
 - `plans` — catálogo comercial (Starter R$ 199 / 1,99%, etc.)
 - `restaurant_subscriptions` — assinatura (trialing, active, …)
 - `restaurants.plan_id`, `platform_fee_percent`, `platform_fee_fixed` — taxas efetivas para split
-- `billing_invoices` — faturas de mensalidade (registro manual hoje)
+- `billing_invoices` — faturas de mensalidade (status, due_date, paid_at, asaas_payment_id, invoice_url)
 
 `ensureRestaurantBilling()` em `internal-clients.ts` repara clientes criados sem plano/assinatura.
+
+**Painel de Cobrança** (`/internal/billing`, lib `internal-billing.ts`): visão consolidada de
+todos os clientes com assinatura, com status derivado por data no fuso BR — **paga**,
+**a vencer** (≤5 dias), **em atraso** (com nº de dias) ou **sem fatura** — e KPIs (em
+aberto, em atraso, a vencer, pagas no mês). Ações via `POST /api/internal/billing`:
+- `generate` — cria a fatura do mês + cobrança Asaas (boleto ou PIX) — `generateMonthlyInvoice`
+- `charge` — emite a cobrança de uma fatura existente sem cobrança — `chargeInvoice`
+- `mark_paid` — concilia manualmente + dispara a NF-e de serviço
+
+A cobrança automática mensal (cron dia 5) continua gerando faturas; o painel permite
+emissão/acompanhamento sob demanda.
 
 ### 8.5 NF-e — duas notas distintas
 

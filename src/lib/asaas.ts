@@ -95,6 +95,7 @@ export interface AsaasPayment {
   description?: string
   externalReference?: string
   invoiceUrl?: string
+  bankSlipUrl?: string
 }
 
 export interface AsaasPixQrCode {
@@ -207,6 +208,34 @@ export async function createPixPayment(params: {
       description: params.description ?? 'Qomanda — Pagamento de mesa',
       externalReference: params.externalReference,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
+    }),
+  }, params.gateway)
+}
+
+/**
+ * Cria uma cobrança genérica escolhendo o meio (PIX, Boleto, etc.).
+ * Usada na cobrança da mensalidade SaaS (boleto/PIX para o restaurante).
+ * Retorna invoiceUrl (página de pagamento) e bankSlipUrl (boleto, quando aplicável).
+ */
+export async function createCharge(params: {
+  customerId: string
+  value: number
+  billingType: AsaasBillingType
+  description?: string
+  externalReference?: string
+  dueDate?: string
+  gateway?: AsaasRequestContext
+}): Promise<AsaasPayment> {
+  const dueDate = params.dueDate ?? new Date().toISOString().slice(0, 10)
+  return request<AsaasPayment>('/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: params.customerId,
+      billingType: params.billingType,
+      value: params.value,
+      dueDate,
+      description: params.description ?? 'Qomanda — Mensalidade',
+      externalReference: params.externalReference,
     }),
   }, params.gateway)
 }
