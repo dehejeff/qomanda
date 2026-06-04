@@ -83,30 +83,42 @@ export default function ScanPage() {
     if ('vibrate' in navigator) navigator.vibrate(200)
   }, [stopScanner, resetScan])
 
+  const onQrDecodedRef = useRef(onQrDecoded)
+  onQrDecodedRef.current = onQrDecoded
+
   useEffect(() => {
+    let mounted = true
+
     async function start() {
       try {
         await stopScanner()
+        if (!mounted) return
         const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false })
         scannerRef.current = scanner
 
         await scanner.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 240, height: 240 }, aspectRatio: 1 },
-          decoded => { void onQrDecoded(decoded) },
+          decoded => { void onQrDecodedRef.current(decoded) },
           () => {},
         )
-        setStatus('scanning')
-        setErrorMessage(null)
+        if (mounted) {
+          setStatus('scanning')
+          setErrorMessage(null)
+        }
       } catch {
-        setStatus('denied')
+        if (mounted) setStatus('denied')
       }
     }
 
     startScannerRef.current = start
-    start()
-    return () => { void stopScanner() }
-  }, [onQrDecoded, stopScanner])
+    void start()
+    return () => {
+      mounted = false
+      void stopScanner()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- câmera só na montagem
+  }, [])
 
   const isDetected = status === 'detected'
   const hasError = status === 'denied' || status === 'invalid'
@@ -154,7 +166,7 @@ export default function ScanPage() {
           </div>
         )}
 
-        {!isDetected && status === 'scanning' && (
+        {!isDetected && (status === 'starting' || status === 'scanning') && (
           <div className="relative w-64 h-64 pointer-events-none" style={{ boxShadow: '0 0 24px rgba(249,115,22,0.18)' }}>
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl" style={{ borderColor: '#f97316' }} />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl" style={{ borderColor: '#f97316' }} />

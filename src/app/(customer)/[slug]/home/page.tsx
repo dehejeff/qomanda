@@ -7,12 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
 import { formatCurrency } from '@/lib/utils'
 import { buildSessionBilling } from '@/lib/session-billing'
-import {
-  findCustomerActiveSession,
-  leaveRestaurantSession,
-  navigateToCustomerHome,
-  resolveCustomerSessionId,
-} from '@/lib/customer-auth'
+import { leaveRestaurantSession, resolveCustomerSessionId } from '@/lib/customer-auth'
 import { SessionSettledPanel, type SessionPaymentReceipt } from '@/components/customer/session-settled-panel'
 import type { Order } from '@/types'
 import { formatServiceLocationLabel } from '@/lib/counter-orders'
@@ -62,31 +57,35 @@ export default function CustomerHomePage() {
     async function load() {
       const supabase = createClient()
       try {
-      const { data: session } = await supabase
-        .from('sessions')
-        .select('status, *, restaurant:restaurants(*), table:tables(*)')
-        .eq('id', sessionId)
-        .single()
+        const { data: session, error: sessionError } = await supabase
+          .from('sessions')
+          .select('id, status, restaurant_id, table_id, service_mode')
+          .eq('id', sessionId)
+          .single()
 
-      if (!session) {
-        const customerId = localStorage.getItem('qomanda_customer_id')
-        if (customerId) {
-          const active = await findCustomerActiveSession(supabase, customerId)
-          if (active?.slug === params.slug && active.sessionId !== sessionId) {
-            navigateToCustomerHome(params.slug, active.sessionId)
-            return
-          }
+        if (sessionError || !session) {
+          localStorage.removeItem('qomanda_session_id')
+          router.replace(`/${params.slug}`)
+          return
         }
-        router.replace(`/${params.slug}`)
-        return
-      }
 
-      const sessionClosed = session.status === 'closed'
+        const [{ data: restaurant }, { data: table }] = await Promise.all([
+          supabase
+            .from('restaurants')
+            .select('name, logo_url')
+            .eq('id', session.restaurant_id)
+            .single(),
+          session.table_id
+            ? supabase.from('tables').select('number').eq('id', session.table_id).single()
+            : Promise.resolve({ data: null }),
+        ])
 
-      setRestaurantName((session.restaurant as any)?.name ?? '')
-      setLogoUrl((session.restaurant as any)?.logo_url ?? null)
-      setTableNumber((session.table as any)?.number ?? '')
-      setServiceMode((session as { service_mode?: string }).service_mode ?? null)
+        const sessionClosed = session.status === 'closed'
+
+        setRestaurantName(restaurant?.name ?? '')
+        setLogoUrl(restaurant?.logo_url ?? null)
+        setTableNumber(table?.number ?? '')
+        setServiceMode((session as { service_mode?: string }).service_mode ?? null)
 
       const customerId = localStorage.getItem('qomanda_customer_id')
 

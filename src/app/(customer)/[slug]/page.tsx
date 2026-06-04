@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
@@ -18,6 +18,7 @@ import {
   navigateToCustomerHome,
   persistCustomerAuth,
   setCustomerSessionToken,
+  type CustomerActiveSession,
 } from '@/lib/customer-auth'
 import {
   clearPendingTableCheckIn,
@@ -66,8 +67,7 @@ export default function CheckInPage() {
   const mesaParam = queryFromUrl.mesa ?? pendingQr?.mesa ?? null
   const tokenParam = queryFromUrl.token ?? pendingQr?.token ?? null
 
-  const autoQuickCheckInRef = useRef(false)
-  const [resumingSession, setResumingSession] = useState(false)
+  const [openSession, setOpenSession] = useState<CustomerActiveSession | null>(null)
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('dine_in')
@@ -172,37 +172,26 @@ export default function CheckInPage() {
 
   useEffect(() => {
     if (mesaParam && tokenParam) {
-      setResumingSession(false)
+      setOpenSession(null)
       return
     }
-    if (loading || verifyLoading || !restaurant) return
+    if (loading || !restaurant) return
 
     const customerId = localStorage.getItem('qomanda_customer_id')
     if (!customerId) {
-      setResumingSession(false)
+      setOpenSession(null)
       return
     }
 
     let cancelled = false
-    setResumingSession(true)
-
-    async function resumeOpenSession() {
-      try {
-        const supabase = createClient()
-        const active = await findCustomerActiveSession(supabase, customerId!)
-        if (cancelled || !active || active.slug !== params.slug) return
-        navigateToCustomerHome(params.slug, active.sessionId)
-      } finally {
-        if (!cancelled) setResumingSession(false)
-      }
+    async function loadOpenSession() {
+      const supabase = createClient()
+      const active = await findCustomerActiveSession(supabase, customerId!)
+      if (!cancelled && active?.slug === params.slug) setOpenSession(active)
     }
-
-    void resumeOpenSession()
-    return () => {
-      cancelled = true
-      setResumingSession(false)
-    }
-  }, [mesaParam, tokenParam, loading, verifyLoading, restaurant, params.slug])
+    void loadOpenSession()
+    return () => { cancelled = true }
+  }, [mesaParam, tokenParam, loading, restaurant, params.slug])
 
   async function handleCheckIn() {
     if (!restaurant || !tableToken) return
@@ -401,10 +390,7 @@ export default function CheckInPage() {
   }
 
   async function handleQuickCheckIn() {
-    if (!restaurant || !savedCustomerId || !tableToken) {
-      autoQuickCheckInRef.current = false
-      return
-    }
+    if (!restaurant || !savedCustomerId || !tableToken) return
     setCheckingIn(true)
 
     const res = await fetch('/api/checkin', {
@@ -418,7 +404,6 @@ export default function CheckInPage() {
       toast.error(err.error ?? 'Erro no check-in rápido. Preencha seus dados.')
       setShowFullForm(true)
       setCheckingIn(false)
-      autoQuickCheckInRef.current = false
       return
     }
 
@@ -444,15 +429,8 @@ export default function CheckInPage() {
   const statusLabel = tableStatus === 'occupied' ? 'EM USO' : tableStatus === 'reserved' ? 'RESERVADA' : 'DISPONÍVEL'
   const statusColor = tableStatus === 'occupied' ? '#f97316' : tableStatus === 'reserved' ? '#a78b7d' : '#34d399'
 
-  useEffect(() => {
-    if (!restaurant || !canQuickCheckIn || checkingIn || checkedIn) return
-    if (autoQuickCheckInRef.current) return
-    autoQuickCheckInRef.current = true
-    void handleQuickCheckIn()
-  }, [restaurant, canQuickCheckIn, checkingIn, checkedIn])
-
   // ── Loading ──────────────────────────────────────────────
-  if (loading || verifyLoading || resumingSession || checkingIn) {
+  if (loading || verifyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
@@ -507,6 +485,16 @@ export default function CheckInPage() {
             <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
             {isBothMode ? 'Escanear QR da mesa' : 'Escanear QR da mesa'}
           </Link>
+          {openSession && (
+            <button
+              type="button"
+              onClick={() => navigateToCustomerHome(params.slug, openSession.sessionId)}
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+              style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+              <span className="material-symbols-outlined text-[20px]">table_restaurant</span>
+              Continuar na mesa {openSession.tableNumber}
+            </button>
+          )}
           {isBothMode && (
             <>
               <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#584237' }}>ou</p>
