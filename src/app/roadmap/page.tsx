@@ -223,6 +223,59 @@ const PHASES = [
     ],
   },
   {
+    id: 'infra',
+    label: 'Infra',
+    title: 'Infraestrutura & escala',
+    status: 'next',
+    color: C.amber,
+    period: 'Piloto → 100+ restaurantes',
+    groups: [
+      {
+        title: 'Decisão — manter Vercel + Supabase',
+        items: [
+          'App Next.js na Vercel Pro — escala HTTP/SSR automaticamente',
+          'Supabase Pro (sa-east-1) — Postgres, Auth, Realtime, Storage',
+          'Gargalo atual: NF-e + WhatsApp síncronos no confirm-payment, não a Vercel',
+        ],
+      },
+      {
+        title: 'Fase 0 — Agora (~20 restaurantes)',
+        items: [
+          'Supabase Pro + região sa-east-1 + connection pooler (Supavisor)',
+          'Fila assíncrona — NF-e (Focus) e WhatsApp fora do request de pagamento',
+          'Webhooks idempotentes — Asaas e Mercado Pago (event_id + fila)',
+          'Sentry + alertas em erro 5xx (API routes e jobs)',
+          'Runbook — pagamento OK mesmo se NF-e/WhatsApp atrasarem',
+        ],
+      },
+      {
+        title: 'Fase 1 — Crescimento (~100 restaurantes)',
+        items: [
+          'Upstash Redis — rate limit, cache de cardápio, locks',
+          'WhatsApp em fila com throttle por restaurante (limites Meta)',
+          'Teste de carga — 10 restaurantes × 20 mesas em paralelo',
+          'Monitoramento Postgres — índices, CPU, conexões',
+        ],
+      },
+      {
+        title: 'Fase 2 — Escala (100+ restaurantes)',
+        items: [
+          'Workers dedicados (Railway/Fly) se fila + Vercel limitarem',
+          'Postgres dedicado (Neon/RDS) se Supabase atingir teto',
+          'Read replica / warehouse para analytics pesado',
+        ],
+      },
+      {
+        title: 'Fora do escopo imediato',
+        items: [
+          'Kubernetes ou VPS única “por segurança”',
+          'Microserviços separados (pedidos, pagamentos, NF-e)',
+          'Multi-cloud desde o dia 1',
+        ],
+      },
+    ],
+  },
+  {
     id: 'fase1',
     label: 'Fase 1',
     title: 'Lançamento',
@@ -338,6 +391,8 @@ const STATUS_SUMMARY = [
   { label: 'Fidelidade',                    pct: 90, color: C.green  },
   { label: 'WhatsApp (config + envio NF-e)', pct: 60, color: C.amber  },
   { label: 'Onboarding restaurante',        pct: 92, color: C.green  },
+  { label: 'Infraestrutura & escala',       pct: 20, color: C.amber  },
+  { label: 'Observabilidade (Sentry)',      pct: 10, color: C.red    },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
 ]
 
@@ -457,7 +512,7 @@ export default function RoadmapPage() {
         {/* Progress overview */}
         <div className="rounded-2xl p-6 mb-16" style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ ...mono, color: C.muted }}>
-            Status do produto · Junho 2026 (atualizado 04/06)
+            Status do produto · Junho 2026 (atualizado 03/06)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STATUS_SUMMARY.map(s => (

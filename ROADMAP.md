@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-04  
+> Última atualização: 2026-06-03  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
 
 ---
@@ -22,6 +22,11 @@
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
+| **P1** | Supabase Pro + região **sa-east-1** + connection pooler (Supavisor) | ⏳ Planejado |
+| **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ⏳ Planejado |
+| **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ⏳ Planejado |
+| **P1** | Observabilidade — Sentry + alertas (5xx, fila, Supabase) | ⏳ Planejado |
+| **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | 🔴 Fase 3 |
 | **P2** | Mercado Pago OAuth connect (v1 access token já disponível) | 🟡 Fase 3 |
@@ -324,6 +329,69 @@
 
 ---
 
+## 🏗️ Infraestrutura & escala
+
+> **Decisão de arquitetura (2026-06):** manter **Vercel** (app Next.js) + **Supabase** (Postgres, Auth, Realtime, Storage). O gargalo não é a hospedagem do frontend — é processamento síncrono (NF-e + WhatsApp no `confirm-payment`), conexões Postgres em serverless e falta de fila/observabilidade.  
+> Detalhes técnicos: [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md) § Arquitetura.
+
+### Stack alvo por camada
+
+| Camada | Tecnologia | Fase |
+|--------|------------|------|
+| App (SSR, API routes, PWA) | **Vercel Pro** | 0 — manter |
+| Banco, Auth, Realtime, Storage | **Supabase Pro** (sa-east-1) | 0 |
+| Trabalho pesado (NF-e, WhatsApp, retries) | **Fila** — Inngest, Trigger.dev ou Upstash QStash | 0 |
+| Cache / rate limit | **Upstash Redis** | 1 (~30+ restaurantes) |
+| Monitoramento | **Sentry** + dashboards Vercel/Supabase | 0 |
+| Workers dedicados | Railway / Fly.io (só se fila + Vercel não bastarem) | 2 |
+
+### Fase 0 — Piloto → ~20 restaurantes (prioridade imediata)
+
+- [ ] **Supabase Pro** + projeto em **sa-east-1** (São Paulo) — latência BR e limites de Realtime/conexões
+- [ ] **Connection pooler** (Supavisor, porta 6543) em todas as API routes server-side — evita `too many connections`
+- [ ] **Fila assíncrona** — desacoplar `emitNfeForPayment` + `sendRestaurantWhatsApp` do fluxo de confirmação de pagamento
+- [ ] **Webhooks** Asaas/MP — responder 200 rápido, processar na fila, idempotência por `event_id`
+- [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5)
+- [ ] **Sentry** nas API routes + alerta e-mail/Slack em erro 5xx
+- [ ] **Runbook** — modo degradado (pagamento OK, NF-e/WhatsApp na fila se provedor cair)
+
+**Capacidade esperada:** dezenas a ~100 restaurantes no horário de pico, com pooler + fila + Pro.
+
+### Fase 1 — Crescimento (~20–100 restaurantes)
+
+- [ ] **Upstash Redis** — rate limit por IP/restaurante, cache de cardápio, locks de idempotência
+- [ ] **Índices e monitoramento** Postgres — `orders`, `payments`, `sessions`; alertas CPU/conexões no Supabase
+- [ ] **WhatsApp em fila** — throttle por restaurante (limites Meta)
+- [ ] **Teste de carga** (k6/Artillery) — 10 restaurantes × 20 mesas pedindo + pagando em paralelo
+- [ ] **CDN** — imagens do cardápio (Vercel/Supabase Storage já cobrem; revisar cache headers)
+
+### Fase 2 — Escala (~100+ restaurantes)
+
+- [ ] **Workers dedicados** — Railway/Fly/AWS ECS só para webhooks e jobs, se serverless limitar
+- [ ] **Postgres dedicado** (Neon/RDS) — se Supabase atingir limite; migrar gradualmente
+- [ ] **Read replica / warehouse** — analytics pesado fora do OLTP (BigQuery, Metabase)
+- [ ] **Multi-região** — só se expandir fora do Brasil
+
+### Explicitamente fora do escopo imediato
+
+- Migrar Next.js para Kubernetes “por segurança”
+- VPS única self-managed (sem auto-scale)
+- Microserviços separados por domínio (pedidos, pagamentos, NF-e)
+- Multi-cloud desde o dia 1
+
+### Fluxo alvo (pagamento → NF-e → WhatsApp)
+
+```
+Cliente confirma pagamento
+  → API Vercel atualiza payment (paid) no Supabase
+  → Enfileira jobs: emit_nfe, send_whatsapp
+  → Responde 200 ao cliente (rápido)
+  → Worker/fila chama Focus NFe + Meta WhatsApp com retry
+  → Atualiza nfe_invoices no Supabase
+```
+
+---
+
 ## 📊 Status Resumido
 
 | Área | Status | % Completo |
@@ -347,6 +415,8 @@
 | WhatsApp | ⚠️ Parcial | 60% |
 | Onboarding restaurante | ✅ Completo | 92% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
+| Infraestrutura & escala | ⚠️ Parcial | 20% |
+| Observabilidade (Sentry, alertas) | 🔴 Faltando | 10% |
 | Multi-unidades | 🔴 Faltando | 0% |
 
 ---
