@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 import { useWaiterPendingCount } from './use-waiter-pending-count'
 import { useWaiterLoyaltyCount } from './use-waiter-loyalty-count'
 
-type Tab = 'pedidos' | 'pagamentos' | 'beneficios' | 'mesas'
+type Tab = 'pedidos' | 'pagamentos' | 'pedir' | 'beneficios' | 'mesas'
 
 function resolveTab(pathname: string): Tab {
   if (pathname.startsWith('/garcom/pagamentos')) return 'pagamentos'
+  if (pathname.startsWith('/garcom/pedido')) return 'pedir'
   if (pathname.startsWith('/garcom/beneficios')) return 'beneficios'
   if (pathname.startsWith('/garcom/mesas')) return 'mesas'
   return 'pedidos'
@@ -54,6 +55,7 @@ export function WaiterBottomNav({ showPayments = true }: { showPayments?: boolea
     >
       {navItem('pedidos', '/garcom/pedidos', 'receipt_long', 'Pedidos', pendingCount > 0 ? pendingCount : undefined)}
       {showPayments && navItem('pagamentos', '/garcom/pagamentos', 'payments', 'Pagamentos', pendingCount > 0 && current !== 'pagamentos' ? pendingCount : undefined)}
+      {showPayments && navItem('pedir', '/garcom/pedido', 'restaurant_menu', 'Pedir')}
       {navItem('beneficios', '/garcom/beneficios', 'redeem', 'Benefícios', loyaltyCount > 0 ? loyaltyCount : undefined)}
       {navItem('mesas', '/garcom/mesas', 'table_restaurant', 'Mesas')}
     </nav>

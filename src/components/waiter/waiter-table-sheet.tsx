@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
@@ -38,6 +39,7 @@ export function WaiterTableSheet({
   onUpdated: () => void
 }) {
   const { role } = useWaiterApp()
+  const router = useRouter()
   const [detail, setDetail] = useState<TableDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [closing, setClosing] = useState(false)
@@ -166,6 +168,18 @@ export function WaiterTableSheet({
                 </p>
                 <WaiterLoyaltyInlineList alerts={detail.loyaltyAlerts} />
               </section>
+            )}
+
+            {role !== 'kitchen' && detail.session.status === 'open' && (
+              <button
+                type="button"
+                onClick={() => router.push(`/garcom/pedido?session=${detail.session!.id}`)}
+                className="w-full h-12 rounded-xl font-bold text-sm font-mono flex items-center justify-center gap-2 active:scale-[0.98]"
+                style={{ background: '#131b2e', color: '#ffb690', border: '1px solid rgba(249,115,22,0.4)' }}
+              >
+                <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
+                Fazer pedido
+              </button>
             )}
 
             {canClose && (
