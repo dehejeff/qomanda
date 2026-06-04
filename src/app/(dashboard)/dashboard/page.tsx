@@ -5,6 +5,8 @@ import { sortTablesByNumber } from '@/lib/sort-tables'
 import { OverviewLiveDashboard } from '@/components/dashboard/overview-live-dashboard'
 import type { DashboardOverviewData } from '@/lib/dashboard-fetch'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   if (DEV_BYPASS) {
     const tables = sortTablesByNumber(mockTables)

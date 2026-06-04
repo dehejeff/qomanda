@@ -171,6 +171,42 @@ export function getAvailableRestaurantModels(): RestaurantModelDef[] {
   return RESTAURANT_MODELS.filter(m => m.status === 'available')
 }
 
+/** Mapeia modo operacional → modelo padrão (preserva food_hall no balcão). */
+export function restaurantModelIdForOperationalMode(
+  mode: OperationalMode,
+  currentModel?: RestaurantModelId | string | null,
+): RestaurantModelId {
+  if (currentModel === 'food_hall' && mode === 'counter') return 'food_hall'
+  switch (mode) {
+    case 'dine_in':
+      return 'salao'
+    case 'counter':
+      return 'balcao'
+    case 'both':
+      return 'salao_balcao'
+  }
+}
+
+export function resolveRestaurantModelContext(
+  modelId: RestaurantModelId | string | null | undefined,
+  operationalMode: OperationalMode | string | null | undefined,
+): {
+  modelId: RestaurantModelId | null
+  model: RestaurantModelDef | null
+  operationalMode: OperationalMode
+} {
+  const mode = (operationalMode as OperationalMode) ?? 'both'
+  const effectiveId = modelId
+    ? (modelId as RestaurantModelId)
+    : restaurantModelIdForOperationalMode(mode, modelId)
+  const model = getRestaurantModel(effectiveId)
+  return {
+    modelId: model?.id ?? null,
+    model,
+    operationalMode: mode,
+  }
+}
+
 /** Campos aplicados na criação do restaurante a partir do modelo escolhido. */
 export function restaurantModelPresetToDb(modelId: RestaurantModelId): Record<string, unknown> {
   const model = getRestaurantModel(modelId)

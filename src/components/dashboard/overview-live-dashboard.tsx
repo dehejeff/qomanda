@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { fetchDashboardOverview, type DashboardOverviewData } from '@/lib/dashboard-fetch'
@@ -17,7 +17,8 @@ type Props = {
   initial: DashboardOverviewData
 }
 
-export function OverviewLiveDashboard({ restaurantId, restaurantSlug, operationalMode = 'both', initial }: Props) {
+export function OverviewLiveDashboard({ restaurantId, restaurantSlug, operationalMode: initialMode = 'both', initial }: Props) {
+  const [operationalMode, setOperationalMode] = useState(initialMode)
   const [stats, setStats] = useState(initial.stats)
   const [tables, setTables] = useState(initial.tables)
   const [orders, setOrders] = useState(initial.orders)
@@ -31,6 +32,15 @@ export function OverviewLiveDashboard({ restaurantId, restaurantSlug, operationa
   }, [restaurantId])
 
   useRestaurantRealtime(restaurantId, refresh)
+
+  useEffect(() => {
+    fetch('/api/dashboard/onboarding')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.operationalMode) setOperationalMode(data.operationalMode)
+      })
+      .catch(() => {})
+  }, [])
 
   const capacityPct = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
   const isCounter = operationalMode === 'counter'

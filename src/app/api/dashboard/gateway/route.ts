@@ -5,6 +5,7 @@ import { gatewayFieldsToDb, loadRestaurantGateway } from '@/lib/restaurant-gatew
 import { manualFieldsToDb } from '@/lib/restaurant-payment-config'
 import { asaasBaseUrl } from '@/lib/asaas-config'
 import { testMercadoPagoConnection } from '@/lib/mercadopago'
+import { restaurantModelIdForOperationalMode } from '@/lib/restaurant-models'
 
 export async function GET() {
   try {
@@ -14,13 +15,14 @@ export async function GET() {
 
     const { data: r } = await admin
       .from('restaurants')
-      .select('operational_mode, marketplace_split_enabled')
+      .select('operational_mode, restaurant_model, marketplace_split_enabled')
       .eq('id', access.restaurantId)
       .single()
 
     return NextResponse.json({
       gateway: cfg,
       operationalMode: r?.operational_mode ?? 'both',
+      restaurantModel: r?.restaurant_model ?? null,
       marketplaceSplitEnabled: Boolean(r?.marketplace_split_enabled),
     })
   } catch (err) {
@@ -52,7 +54,18 @@ export async function POST(req: NextRequest) {
 
     const patch: Record<string, unknown> = {}
 
-    if (body.operationalMode) patch.operational_mode = body.operationalMode
+    if (body.operationalMode) {
+      patch.operational_mode = body.operationalMode
+      const { data: current } = await admin
+        .from('restaurants')
+        .select('restaurant_model')
+        .eq('id', access.restaurantId)
+        .single()
+      patch.restaurant_model = restaurantModelIdForOperationalMode(
+        body.operationalMode,
+        current?.restaurant_model,
+      )
+    }
 
     if (
       body.manualPixKey !== undefined
@@ -90,7 +103,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (Object.keys(patch).length) {
-      await admin.from('restaurants').update(patch).eq('id', access.restaurantId)
+      const { error: updateError } = await admin
+        .from('restaurants')
+        .update(patch)
+        .eq('id', access.restaurantId)
+      if (updateError) {
+        console.error('[Gateway POST] update', updateError)
+        return NextResponse.json({ error: 'Erro ao salvar configurações.' }, { status: 500 })
+      }
     }
 
     if (body.testConnection) {

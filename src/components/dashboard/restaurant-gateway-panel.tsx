@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { MANUAL_PIX_KEY_TYPE_LABELS, type ManualPixKeyType } from '@/lib/restaurant-payment-config'
 
@@ -19,6 +20,7 @@ type GatewayState = {
 type GatewayProvider = 'manual' | 'asaas' | 'mercado_pago'
 
 export function RestaurantGatewayPanel() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [gateway, setGateway] = useState<GatewayState | null>(null)
   const [operationalMode, setOperationalMode] = useState('both')
@@ -83,7 +85,8 @@ export function RestaurantGatewayPanel() {
       toast.success('Configurações salvas.')
     }
     setApiKey('')
-    load()
+    await load()
+    router.refresh()
   }
 
   if (loading) return <p className="text-sm text-on-surface-variant font-mono">Carregando gateway…</p>

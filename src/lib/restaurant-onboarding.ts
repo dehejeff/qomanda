@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getRestaurantModel, type RestaurantModelId } from '@/lib/restaurant-models'
+import {
+  resolveRestaurantModelContext,
+  type OperationalMode,
+  type RestaurantModelId,
+} from '@/lib/restaurant-models'
 import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
 
 export type OnboardingCheckItem = {
@@ -13,6 +17,7 @@ export type OnboardingCheckItem = {
 export type OnboardingState = {
   modelId: RestaurantModelId | null
   modelName: string | null
+  operationalMode: OperationalMode
   progressPercent: number
   items: OnboardingCheckItem[]
   completed: boolean
@@ -29,8 +34,10 @@ export async function computeRestaurantOnboarding(
     .eq('id', restaurantId)
     .single()
 
-  const modelId = (restaurant?.restaurant_model as RestaurantModelId | null) ?? null
-  const model = getRestaurantModel(modelId)
+  const { modelId, model, operationalMode } = resolveRestaurantModelContext(
+    restaurant?.restaurant_model,
+    restaurant?.operational_mode,
+  )
   const slug = restaurant?.slug ?? ''
 
   const [gateway, menuRes, tablesRes, membersRes] = await Promise.all([
@@ -47,14 +54,16 @@ export async function computeRestaurantOnboarding(
 
   const menuCount = menuRes.count ?? 0
   const tableCount = tablesRes.count ?? 0
-  const needsTables = (model?.preset.seedTableCount ?? 0) > 0 || model?.preset.primaryEntry !== 'balcao'
+  const needsTables = operationalMode === 'dine_in' || operationalMode === 'both'
+  const needsCounterLink = operationalMode === 'counter' || operationalMode === 'both'
+  const modelChosen = Boolean(restaurant?.restaurant_model) || operationalMode !== 'both'
 
   const items: OnboardingCheckItem[] = [
     {
       id: 'model',
       label: model ? `Modelo: ${model.name}` : 'Escolher modelo operacional',
-      done: Boolean(modelId),
-      href: modelId ? undefined : '/dashboard/settings',
+      done: modelChosen,
+      href: modelChosen ? undefined : '/dashboard/settings?tab=pagamentos',
     },
     {
       id: 'gateway',
@@ -70,7 +79,7 @@ export async function computeRestaurantOnboarding(
     },
   ]
 
-  if (needsTables && restaurant?.operational_mode !== 'counter') {
+  if (needsTables) {
     items.push({
       id: 'tables',
       label: 'Mesas cadastradas (QR Code)',
@@ -79,19 +88,12 @@ export async function computeRestaurantOnboarding(
     })
   }
 
-  if (model?.preset.primaryEntry === 'balcao') {
+  if (needsCounterLink && slug) {
     items.push({
       id: 'balcao_link',
-      label: 'Link do balcão testado',
+      label: operationalMode === 'both' ? 'Link do balcão testado' : 'Link do balcão disponível',
       done: Boolean(slug),
-      href: slug ? `/${slug}/balcao` : undefined,
-    })
-  } else if (model?.preset.primaryEntry === 'both') {
-    items.push({
-      id: 'balcao_link',
-      label: 'Link do balcão testado',
-      done: Boolean(slug),
-      href: slug ? `/${slug}/balcao` : undefined,
+      href: `/${slug}/balcao`,
     })
   }
 
@@ -113,9 +115,9 @@ export async function computeRestaurantOnboarding(
 
   const primaryLinks: { label: string; href: string }[] = []
   if (slug) {
-    if (model?.preset.primaryEntry === 'balcao') {
+    if (operationalMode === 'counter') {
       primaryLinks.push({ label: 'Abrir balcão', href: `/${slug}/balcao` })
-    } else if (model?.preset.primaryEntry === 'mesa_qr') {
+    } else if (operationalMode === 'dine_in') {
       primaryLinks.push({ label: 'Ver mesas', href: '/dashboard/tables' })
     } else {
       primaryLinks.push({ label: 'Mesas', href: '/dashboard/tables' })
@@ -126,6 +128,7 @@ export async function computeRestaurantOnboarding(
   return {
     modelId,
     modelName: model?.name ?? null,
+    operationalMode,
     progressPercent,
     items,
     completed,
