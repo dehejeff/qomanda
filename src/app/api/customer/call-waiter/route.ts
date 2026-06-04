@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const THROTTLE_SECONDS = 90
+// Anti-duplo-toque: só bloqueia se já existe um chamado AINDA NÃO ATENDIDO
+// (read_at null) recente. Depois que o garçom atende, um novo chamado alerta
+// de novo; e mesmo sem atender, após a janela curta o cliente pode rechamar.
+const THROTTLE_SECONDS = 25
 
 /**
  * POST /api/customer/call-waiter  { sessionId, note? }
@@ -34,7 +37,8 @@ export async function POST(req: NextRequest) {
     const isCounter = (tableNumber ?? '').toUpperCase() === 'BALCAO'
     const localLabel = isCounter ? 'Balcão' : tableNumber ? `Mesa ${tableNumber}` : 'Mesa'
 
-    // Throttle: já há um chamado recente desta sessão ainda não lido?
+    // Throttle: já há um chamado recente desta sessão AINDA NÃO ATENDIDO?
+    // (read_at null) — evita spam de toques repetidos enquanto ninguém atendeu.
     const since = new Date(Date.now() - THROTTLE_SECONDS * 1000).toISOString()
     const { data: recent } = await admin
       .from('restaurant_notifications')
@@ -42,6 +46,8 @@ export async function POST(req: NextRequest) {
       .eq('restaurant_id', session.restaurant_id)
       .eq('type', 'call_waiter')
       .eq('session_id', sessionId)
+      .is('read_at', null)
+      .is('dismissed_at', null)
       .gte('created_at', since)
       .maybeSingle()
 

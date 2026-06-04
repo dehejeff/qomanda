@@ -54,6 +54,8 @@ export default function CustomerHomePage() {
       if (!res.ok) throw new Error(data.error)
       setWaiterCalledAt(Date.now())
       toast.success(data.throttled ? (data.message ?? 'Garçom já avisado.') : 'Garçom a caminho! 🙋')
+      // Reverte o feedback após alguns segundos para permitir chamar de novo.
+      setTimeout(() => setWaiterCalledAt(null), 5000)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível chamar o garçom.')
     } finally {
@@ -319,26 +321,6 @@ export default function CustomerHomePage() {
           </h1>
         </div>
 
-        {/* Chamar garçom — só no salão (mesa), enquanto a conta está aberta */}
-        {!sessionSettled && !isCounter && (
-          <button
-            type="button"
-            onClick={callWaiter}
-            disabled={callingWaiter}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60"
-            style={{
-              background: waiterCalledAt ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
-              border: `1px solid ${waiterCalledAt ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.3)'}`,
-              color: waiterCalledAt ? '#34d399' : '#ffb690',
-            }}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {callingWaiter ? 'hourglass_top' : waiterCalledAt ? 'check_circle' : 'room_service'}
-            </span>
-            {callingWaiter ? 'Chamando…' : waiterCalledAt ? 'Garçom avisado!' : 'Chamar garçom'}
-          </button>
-        )}
-
         {/* Mesa quitada — código de saída */}
         {sessionSettled && (
           <SessionSettledPanel
@@ -429,35 +411,53 @@ export default function CustomerHomePage() {
                 desc: 'Pagar e encerrar',
                 accent: '#34d399',
               }]),
-              {
-                href: '#',
-                icon: 'support_agent',
+              ...(!sessionSettled && !isCounter ? [{
+                action: 'callWaiter' as const,
+                icon: callingWaiter ? 'hourglass_top' : waiterCalledAt ? 'check_circle' : 'support_agent',
                 label: 'Chamar Garçom',
-                desc: 'Em breve',
-                accent: '#a78b7d',
-                disabled: true,
-              },
-            ].map(item => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex flex-col gap-3 p-4 rounded-xl transition-all active:scale-95 ${item.disabled ? 'opacity-40 pointer-events-none' : ''}`}
-                style={{ background: '#1e293b', border: '1px solid #334155' }}
-              >
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{ background: `${item.accent}18` }}
-                >
-                  <span className="material-symbols-outlined text-[22px]" style={{ color: item.accent }}>
-                    {item.icon}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{item.label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{item.desc}</p>
-                </div>
-              </Link>
-            ))}
+                desc: callingWaiter ? 'Chamando…' : waiterCalledAt ? 'Garçom avisado!' : 'Toque para chamar',
+                accent: waiterCalledAt ? '#34d399' : '#f97316',
+              }] : []),
+            ].map(item => {
+              const content = (
+                <>
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: `${item.accent}18` }}
+                  >
+                    <span className="material-symbols-outlined text-[22px]" style={{ color: item.accent }}>
+                      {item.icon}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{item.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{item.desc}</p>
+                  </div>
+                </>
+              )
+              const cardClass = 'flex flex-col gap-3 p-4 rounded-xl transition-all active:scale-95 text-left'
+              const cardStyle = { background: '#1e293b', border: '1px solid #334155' } as const
+
+              if ('action' in item && item.action === 'callWaiter') {
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={callWaiter}
+                    disabled={callingWaiter}
+                    className={`${cardClass} disabled:opacity-70`}
+                    style={cardStyle}
+                  >
+                    {content}
+                  </button>
+                )
+              }
+              return (
+                <Link key={item.label} href={item.href} className={cardClass} style={cardStyle}>
+                  {content}
+                </Link>
+              )
+            })}
           </div>
         </div>
 
