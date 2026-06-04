@@ -5,11 +5,13 @@ import { DashboardSearchProvider } from '@/components/dashboard/dashboard-search
 
 export default function OwnerDashboardLayout({
   children,
+  restaurantId,
   restaurantName,
   userInitials,
   operationalMode = 'both',
 }: {
   children: React.ReactNode
+  restaurantId: string
   restaurantName: string
   userInitials: string
   operationalMode?: 'dine_in' | 'counter' | 'both'
@@ -18,7 +20,7 @@ export default function OwnerDashboardLayout({
     <DashboardSearchProvider>
       <div className="min-h-screen bg-background">
         <DashboardSidebar restaurantName={restaurantName} operationalMode={operationalMode} />
-        <DashboardHeader restaurantName={restaurantName} userInitials={userInitials} />
+        <DashboardHeader restaurantId={restaurantId} restaurantName={restaurantName} userInitials={userInitials} />
         <main className="md:ml-[260px] pt-24 px-4 md:px-8 pb-24 md:pb-8 min-h-screen">
           <DashboardNotificationBanner />
           {children}

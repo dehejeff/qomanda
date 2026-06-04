@@ -2,12 +2,48 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 import type { RestaurantNotificationDto } from '@/lib/nfe-retention-reminders'
 
 const SEVERITY_STYLE: Record<string, string> = {
   info: 'text-sky-400',
   warning: 'text-amber-400',
   critical: 'text-red-400',
+}
+
+/** Ícone + link/rótulo da ação por tipo de notificação. */
+function notificationView(n: RestaurantNotificationDto): { icon: string; href: string | null; cta: string } {
+  if (n.type === 'call_waiter') {
+    return { icon: 'room_service', href: '/dashboard/tables', cta: 'Ver mesas →' }
+  }
+  return {
+    icon: n.severity === 'critical' ? 'warning' : 'info',
+    href: n.link,
+    cta: 'Ver NF-e →',
+  }
+}
+
+/** Beep curto via Web Audio — sem asset. Silencioso se o navegador bloquear. */
+function playCallChime() {
+  try {
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.frequency.setValueAtTime(1175, ctx.currentTime + 0.12)
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.36)
+    osc.onended = () => ctx.close().catch(() => {})
+  } catch { /* navegador pode exigir gesto do usuário — silencia */ }
 }
 
 function formatWhen(iso: string) {
@@ -19,7 +55,7 @@ function formatWhen(iso: string) {
   })
 }
 
-export function DashboardNotificationBell() {
+export function DashboardNotificationBell({ restaurantId }: { restaurantId: string }) {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<RestaurantNotificationDto[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -43,6 +79,31 @@ export function DashboardNotificationBell() {
     const interval = setInterval(load, 60_000)
     return () => clearInterval(interval)
   }, [load])
+
+  // Realtime: chamado de garçom chega na hora (toast + som), sem esperar o polling.
+  useEffect(() => {
+    if (!restaurantId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`dashboard-notifications-${restaurantId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'restaurant_notifications',
+        filter: `restaurant_id=eq.${restaurantId}`,
+      }, (payload) => {
+        const row = payload.new as { type?: string; metadata?: { localLabel?: string } }
+        if (row.type === 'call_waiter') {
+          const label = row.metadata?.localLabel ?? 'Mesa'
+          playCallChime()
+          toast(`🙋 ${label} está chamando o garçom`, { duration: 10_000 })
+        }
+        load()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [restaurantId, load])
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -108,7 +169,9 @@ export function DashboardNotificationBell() {
             ) : notifications.length === 0 ? (
               <p className="text-sm text-on-surface-variant p-6 text-center">Nenhuma notificação.</p>
             ) : (
-              notifications.map(n => (
+              notifications.map(n => {
+                const view = notificationView(n)
+                return (
                 <div
                   key={n.id}
                   className={`px-4 py-3 border-b border-outline-variant last:border-0 ${
@@ -117,22 +180,24 @@ export function DashboardNotificationBell() {
                 >
                   <div className="flex items-start gap-2">
                     <span
-                      className={`material-symbols-outlined text-[18px] shrink-0 mt-0.5 ${SEVERITY_STYLE[n.severity] ?? 'text-on-surface-variant'}`}
+                      className={`material-symbols-outlined text-[18px] shrink-0 mt-0.5 ${
+                        n.type === 'call_waiter' ? 'text-amber-400' : SEVERITY_STYLE[n.severity] ?? 'text-on-surface-variant'
+                      }`}
                     >
-                      {n.severity === 'critical' ? 'warning' : 'info'}
+                      {view.icon}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-on-surface">{n.title}</p>
                       <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{n.body}</p>
                       <p className="text-[10px] text-on-surface-variant mt-1 font-mono">{formatWhen(n.createdAt)}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {n.link && (
+                        {view.href && (
                           <Link
-                            href={n.link}
+                            href={view.href}
                             onClick={() => { if (!n.readAt) markRead(n.id); setOpen(false) }}
                             className="text-xs font-mono text-primary hover:opacity-80"
                           >
-                            Ver NF-e →
+                            {view.cta}
                           </Link>
                         )}
                         {!n.readAt && (
@@ -148,7 +213,8 @@ export function DashboardNotificationBell() {
                     </div>
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

@@ -19,9 +19,11 @@ const PAGE_TITLES: Record<string, string> = {
 }
 
 export function DashboardHeader({
+  restaurantId,
   restaurantName,
   userInitials,
 }: {
+  restaurantId: string
   restaurantName: string
   userInitials: string
 }) {
@@ -72,7 +74,7 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-3 md:gap-6 shrink-0">
         <div className="hidden sm:flex items-center gap-4 text-on-surface-variant">
-          <DashboardNotificationBell />
+          <DashboardNotificationBell restaurantId={restaurantId} />
           <Link href="/dashboard/support" className="hover:text-primary transition-colors" title="Suporte">
             <span className="material-symbols-outlined">help</span>
           </Link>
