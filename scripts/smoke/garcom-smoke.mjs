@@ -16,6 +16,14 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { chromium } from 'playwright'
 
+// Node < 22 não tem WebSocket nativo; supabase-js (realtime) exige um. Polyfill via ws.
+if (typeof globalThis.WebSocket === 'undefined') {
+  try {
+    const ws = await import('ws')
+    globalThis.WebSocket = ws.default ?? ws.WebSocket
+  } catch { /* sem ws — segue (realtime nao usado neste script) */ }
+}
+
 const BASE = process.env.BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'
 const PASSWORD = process.env.SMOKE_PASSWORD ?? 'SmokeTest2026!'
 const STAMP = Date.now()
