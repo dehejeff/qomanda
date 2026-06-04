@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { MANUAL_PIX_KEY_TYPE_LABELS, type ManualPixKeyType } from '@/lib/restaurant-payment-config'
 
@@ -15,12 +15,15 @@ type GatewayState = {
   manualPaymentHolderName: string | null
   manualPaymentNotes: string | null
   manualConfigured: boolean
+  mpConnectedVia: 'oauth' | 'manual' | null
+  mpUserId: string | null
 }
 
 type GatewayProvider = 'manual' | 'asaas' | 'mercado_pago'
 
 export function RestaurantGatewayPanel() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [gateway, setGateway] = useState<GatewayState | null>(null)
   const [operationalMode, setOperationalMode] = useState('both')
@@ -32,6 +35,8 @@ export function RestaurantGatewayPanel() {
   const [manualHolderName, setManualHolderName] = useState('')
   const [manualNotes, setManualNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [mpOAuthAvailable, setMpOAuthAvailable] = useState(false)
+  const [showManualToken, setShowManualToken] = useState(false)
 
   async function load() {
     const res = await fetch('/api/dashboard/gateway')
@@ -40,6 +45,7 @@ export function RestaurantGatewayPanel() {
       setGateway(data.gateway)
       setOperationalMode(data.operationalMode ?? 'both')
       setEnvironment(data.gateway?.environment ?? 'sandbox')
+      setMpOAuthAvailable(Boolean(data.mpOAuthAvailable))
       const p = data.gateway?.provider
       setProvider(p === 'manual' || p === 'mercado_pago' ? p : 'asaas')
       setManualPixKey(data.gateway?.manualPixKey ?? '')
@@ -51,6 +57,32 @@ export function RestaurantGatewayPanel() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Feedback do retorno do OAuth Mercado Pago (?mp=connected|error)
+  useEffect(() => {
+    const mp = searchParams.get('mp')
+    if (!mp) return
+    if (mp === 'connected') toast.success('Mercado Pago conectado!')
+    else if (mp === 'error') toast.error(searchParams.get('mp_msg') ?? 'Falha ao conectar o Mercado Pago.')
+    const url = new URL(window.location.href)
+    url.searchParams.delete('mp'); url.searchParams.delete('mp_msg')
+    window.history.replaceState(null, '', url.toString())
+  }, [searchParams])
+
+  async function disconnectMercadoPago() {
+    if (!confirm('Desconectar o Mercado Pago? Os pagamentos digitais ficarão indisponíveis até reconectar.')) return
+    setSaving(true)
+    const res = await fetch('/api/dashboard/gateway', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disconnectMercadoPago: true }),
+    })
+    setSaving(false)
+    if (!res.ok) { toast.error('Erro ao desconectar.'); return }
+    toast.success('Mercado Pago desconectado.')
+    await load()
+    router.refresh()
+  }
 
   async function save(test = false) {
     setSaving(true)
@@ -216,13 +248,98 @@ export function RestaurantGatewayPanel() {
             Status: {gateway?.manualConfigured ? 'PIX manual configurado' : 'Informe a chave PIX para ativar'}
           </p>
         </div>
+      ) : provider === 'mercado_pago' ? (
+        <div className="space-y-4 rounded-lg border border-outline-variant p-4 bg-surface-dim/50">
+          {gateway?.connected ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                  Mercado Pago conectado
+                </p>
+                <p className="text-xs text-on-surface-variant mt-1 font-mono">
+                  {gateway.mpConnectedVia === 'oauth' ? 'Via OAuth' : 'Via token manual'}
+                  {gateway.mpUserId ? ` · conta #${gateway.mpUserId}` : ''}
+                  {gateway.apiKeyMasked ? ` · ${gateway.apiKeyMasked}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={disconnectMercadoPago}
+                className="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-mono disabled:opacity-50"
+              >
+                Desconectar
+              </button>
+            </div>
+          ) : mpOAuthAvailable ? (
+            <>
+              <p className="text-sm text-on-surface-variant">
+                Conecte sua conta Mercado Pago em um clique. Os pagamentos (PIX e cartão) caem direto na sua conta.
+              </p>
+              <a
+                href="/api/dashboard/gateway/mercadopago/connect"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold"
+                style={{ background: '#009ee3', color: '#fff' }}
+              >
+                <span className="material-symbols-outlined text-[18px]">link</span>
+                Conectar com Mercado Pago
+              </a>
+            </>
+          ) : (
+            <p className="text-xs text-on-surface-variant">
+              Conexão em um clique indisponível (defina <code className="text-primary">MERCADO_PAGO_CLIENT_ID/SECRET</code>).
+              Use o token manual abaixo.
+            </p>
+          )}
+
+          {/* Fallback: token manual (sempre disponível) */}
+          {!gateway?.connected && (
+            <div className="pt-2 border-t border-outline-variant">
+              <button
+                type="button"
+                onClick={() => setShowManualToken(v => !v)}
+                className="text-xs font-mono text-primary hover:opacity-80"
+              >
+                {showManualToken ? '− Ocultar token manual' : '+ Inserir token manualmente'}
+              </button>
+              {showManualToken && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="text-xs font-mono text-on-surface-variant">Ambiente</label>
+                    <select
+                      value={environment}
+                      onChange={e => setEnvironment(e.target.value as 'sandbox' | 'production')}
+                      className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm"
+                    >
+                      <option value="sandbox">Sandbox / teste</option>
+                      <option value="production">Produção</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono text-on-surface-variant">Access token Mercado Pago</label>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={e => setApiKey(e.target.value)}
+                      placeholder="APP_USR-... ou TEST-..."
+                      className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm font-mono"
+                    />
+                    <p className="text-[10px] font-mono text-on-surface-variant mt-2">
+                      Gere em Mercado Pago → Suas integrações → Credenciais.
+                      Webhook: <code className="text-primary">/api/mercadopago/webhook</code>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="space-y-4 rounded-lg border border-outline-variant p-4 bg-surface-dim/50">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-mono text-on-surface-variant">
-                Ambiente {provider === 'mercado_pago' ? 'Mercado Pago' : 'Asaas'}
-              </label>
+              <label className="text-xs font-mono text-on-surface-variant">Ambiente Asaas</label>
               <select
                 value={environment}
                 onChange={e => setEnvironment(e.target.value as 'sandbox' | 'production')}
@@ -240,30 +357,14 @@ export function RestaurantGatewayPanel() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-mono text-on-surface-variant">
-              {provider === 'mercado_pago'
-                ? 'Access token Mercado Pago (conta do restaurante)'
-                : 'API key Asaas (conta do restaurante)'}
-            </label>
+            <label className="text-xs font-mono text-on-surface-variant">API key Asaas (conta do restaurante)</label>
             <input
               type="password"
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              placeholder={
-                gateway?.connected
-                  ? '•••• (deixe vazio para manter)'
-                  : provider === 'mercado_pago'
-                    ? 'APP_USR-... ou TEST-...'
-                    : '$aact_...'
-              }
+              placeholder={gateway?.connected ? '•••• (deixe vazio para manter)' : '$aact_...'}
               className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm font-mono"
             />
-            {provider === 'mercado_pago' && (
-              <p className="text-[10px] font-mono text-on-surface-variant mt-2">
-                Gere em Mercado Pago → Suas integrações → Credenciais.
-                Configure o webhook: <code className="text-primary">/api/mercadopago/webhook</code>
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -272,7 +373,7 @@ export function RestaurantGatewayPanel() {
         <button type="button" disabled={saving} onClick={() => save(false)} className="px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold">
           Salvar
         </button>
-        {digitalProvider && (
+        {digitalProvider && (gateway?.connected || provider === 'asaas' || (provider === 'mercado_pago' && showManualToken)) && (
           <button type="button" disabled={saving} onClick={() => save(true)} className="px-4 py-2 rounded-lg border border-outline-variant text-sm">
             Testar conexão
           </button>

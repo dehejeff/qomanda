@@ -1153,6 +1153,11 @@ QOMANDA_NFE_ENVIRONMENT=homologacao  # ou producao
 QOMANDA_NFE_CNAE=                  # opcional
 QOMANDA_LEGAL_NAME=Qomanda Tecnologia
 QOMANDA_NFE_SERVICE_DESCRIPTION=Assinatura e taxas da plataforma Qomanda
+
+# Mercado Pago OAuth (onboarding por restaurante) — opcional; sem isto, só token manual
+# Redirect URI a cadastrar no app MP: https://qomanda.app/api/dashboard/gateway/mercadopago/callback
+MERCADO_PAGO_CLIENT_ID=
+MERCADO_PAGO_CLIENT_SECRET=
 ```
 
 ---

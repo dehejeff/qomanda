@@ -30,7 +30,7 @@
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
-| **P2** | Mercado Pago OAuth connect (v1 access token já disponível) | 🟡 Fase 3 |
+| **P2** | Mercado Pago OAuth connect | 🟢 Código pronto · falta app MP + domínio qomanda.app |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
 **Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
@@ -77,9 +77,11 @@
   - [x] Access token + PIX/cartão no checkout
   - [x] Webhook confirmação → `confirmPaymentRecord` + comissão
   - [x] UI Settings: credenciais MP (token manual)
-- [ ] **Mercado Pago (OAuth)**
-  - [ ] OAuth connect + refresh token criptografado
-  - [ ] UI Settings: conectar / desconectar conta MP
+- [~] **Mercado Pago (OAuth)** — código pronto (2026-06-04), aguardando app no MP
+  - [x] OAuth connect + callback + state assinado (HMAC) + refresh token criptografado
+  - [x] UI Settings: conectar / desconectar conta MP (token manual vira fallback)
+  - [ ] **Criar app no Mercado Pago + definir `MERCADO_PAGO_CLIENT_ID/SECRET` no `.env`**
+  - [ ] **Cadastrar Redirect URI `https://qomanda.app/api/dashboard/gateway/mercadopago/callback`** (fazer quando o domínio qomanda.app estiver ativo)
 - [ ] **PagBank**
   - [ ] Onboarding vendedor + PIX/cartão
   - [ ] Webhooks e reconciliação
@@ -208,7 +210,7 @@
 - [x] **PIX manual** — chave do restaurante, sem Asaas obrigatório
 - [x] **Mercado Pago** — access token + PIX/cartão no checkout (v1)
 - [x] **Cobrança automática mensalidade** — cron dia 5 + PIX Asaas master + webhook
-- [ ] **Mercado Pago OAuth** — connect/desconnect na UI (substituir token manual)
+- [~] **Mercado Pago OAuth** — connect/desconectar na UI pronto; falta criar o app no MP + `MERCADO_PAGO_CLIENT_ID/SECRET` + Redirect URI no domínio qomanda.app
 - [ ] Marketplace split Asaas (legado, opcional — não é o modelo padrão)
 
 ### 2. Notas fiscais
@@ -445,6 +447,7 @@ Cliente confirma pagamento
 | `migrate-call-waiter.sql` | Chamar Garçom — tipo `call_waiter` em `restaurant_notifications` + RLS equipe |
 | `migrate-realtime-notifications.sql` | Adiciona `restaurant_notifications` à publicação `supabase_realtime` (entrega realtime do sino/banner) |
 | `migrate-webhook-events.sql` | Idempotência de webhooks (Asaas/Mercado Pago) — dedupe por `(provider, event_id)` |
+| `migrate-mercadopago-oauth.sql` | Colunas OAuth do Mercado Pago (refresh token, public key, user id, via) |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.

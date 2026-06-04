@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
-import { gatewayFieldsToDb, loadRestaurantGateway } from '@/lib/restaurant-gateway'
+import { gatewayFieldsToDb, loadRestaurantGateway, mercadoPagoDisconnectPatch } from '@/lib/restaurant-gateway'
 import { manualFieldsToDb } from '@/lib/restaurant-payment-config'
 import { asaasBaseUrl } from '@/lib/asaas-config'
 import { testMercadoPagoConnection } from '@/lib/mercadopago'
+import { isMercadoPagoOAuthConfigured } from '@/lib/mercadopago-oauth'
 import { restaurantModelIdForOperationalMode } from '@/lib/restaurant-models'
 
 export async function GET() {
@@ -24,6 +25,7 @@ export async function GET() {
       operationalMode: r?.operational_mode ?? 'both',
       restaurantModel: r?.restaurant_model ?? null,
       marketplaceSplitEnabled: Boolean(r?.marketplace_split_enabled),
+      mpOAuthAvailable: isMercadoPagoOAuthConfigured(),
     })
   } catch (err) {
     if (err instanceof RestaurantAuthError) {
@@ -47,10 +49,25 @@ export async function POST(req: NextRequest) {
       manualPixKeyType?: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random' | null
       manualPaymentHolderName?: string | null
       manualPaymentNotes?: string | null
+      disconnectMercadoPago?: boolean
     }
 
     const admin = createAdminClient()
     const existing = await loadRestaurantGateway(admin, access.restaurantId)
+
+    // Desconectar Mercado Pago: limpa tokens (OAuth ou manual) e mantém provider.
+    if (body.disconnectMercadoPago) {
+      const { error } = await admin
+        .from('restaurants')
+        .update(mercadoPagoDisconnectPatch())
+        .eq('id', access.restaurantId)
+      if (error) {
+        console.error('[Gateway POST] disconnect mp', error)
+        return NextResponse.json({ error: 'Erro ao desconectar.' }, { status: 500 })
+      }
+      const cfg = await loadRestaurantGateway(admin, access.restaurantId)
+      return NextResponse.json({ ok: true, gateway: cfg })
+    }
 
     const patch: Record<string, unknown> = {}
 
@@ -92,6 +109,10 @@ export async function POST(req: NextRequest) {
         apiKey: body.apiKey === '' ? null : body.apiKey,
         existingEncrypted: existing.apiKey ? 'set' : null,
       }))
+      // Token colado manualmente para MP → marca a via (distingue do OAuth).
+      if (body.provider === 'mercado_pago' && body.apiKey?.trim()) {
+        patch.mp_connected_via = 'manual'
+      }
     } else if (body.apiKey?.trim()) {
       Object.assign(patch, gatewayFieldsToDb({
         provider: existing.provider ?? 'asaas',

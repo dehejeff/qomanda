@@ -17,6 +17,9 @@ export type RestaurantGatewayConfig = {
   manualPaymentHolderName: string | null
   manualPaymentNotes: string | null
   manualConfigured: boolean
+  mpConnectedVia: 'oauth' | 'manual' | null
+  mpUserId: string | null
+  mpPublicKey: string | null
 }
 
 export async function loadRestaurantGateway(
@@ -35,7 +38,10 @@ export async function loadRestaurantGateway(
       manual_pix_key_type,
       manual_payment_holder_name,
       manual_payment_notes,
-      manual_payment_configured_at
+      manual_payment_configured_at,
+      mp_connected_via,
+      mp_user_id,
+      mp_public_key
     `)
     .eq('id', restaurantId)
     .single()
@@ -53,6 +59,9 @@ export async function loadRestaurantGateway(
       manualPaymentHolderName: null,
       manualPaymentNotes: null,
       manualConfigured: false,
+      mpConnectedVia: null,
+      mpUserId: null,
+      mpPublicKey: null,
       apiKey: null,
     }
   }
@@ -78,7 +87,23 @@ export async function loadRestaurantGateway(
     manualPaymentHolderName: data.manual_payment_holder_name,
     manualPaymentNotes: data.manual_payment_notes,
     manualConfigured: Boolean(data.manual_pix_key?.trim()),
+    mpConnectedVia: (data.mp_connected_via as 'oauth' | 'manual' | null) ?? null,
+    mpUserId: data.mp_user_id ?? null,
+    mpPublicKey: data.mp_public_key ?? null,
     apiKey,
+  }
+}
+
+/** Campos a limpar ao desconectar o Mercado Pago. */
+export function mercadoPagoDisconnectPatch(): Record<string, unknown> {
+  return {
+    payment_gateway_api_key_encrypted: null,
+    payment_gateway_connected_at: null,
+    mp_refresh_token_encrypted: null,
+    mp_public_key: null,
+    mp_user_id: null,
+    mp_token_expires_at: null,
+    mp_connected_via: null,
   }
 }
 
