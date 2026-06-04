@@ -12,6 +12,7 @@ import { SessionSettledPanel, type SessionPaymentReceipt } from '@/components/cu
 import type { Order } from '@/types'
 import { formatServiceLocationLabel } from '@/lib/counter-orders'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; progress: number }> = {
   pending:   { label: 'Aguardando confirmação', color: '#f59e0b', icon: 'pending',       progress: 15  },
@@ -37,6 +38,28 @@ export default function CustomerHomePage() {
   const [closeInvite, setCloseInvite] = useState<{ requestId: string; initiatorName: string; amountOwed: number } | null>(null)
   const [sessionSettled, setSessionSettled] = useState(false)
   const [myPayments, setMyPayments] = useState<SessionPaymentReceipt[]>([])
+  const [callingWaiter, setCallingWaiter] = useState(false)
+  const [waiterCalledAt, setWaiterCalledAt] = useState<number | null>(null)
+
+  async function callWaiter() {
+    if (!sessionId || callingWaiter) return
+    setCallingWaiter(true)
+    try {
+      const res = await fetch('/api/customer/call-waiter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setWaiterCalledAt(Date.now())
+      toast.success(data.throttled ? (data.message ?? 'Garçom já avisado.') : 'Garçom a caminho! 🙋')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível chamar o garçom.')
+    } finally {
+      setCallingWaiter(false)
+    }
+  }
 
   function handleLeaveRestaurant() {
     leaveRestaurantSession(router, params.slug)
@@ -295,6 +318,26 @@ export default function CustomerHomePage() {
             Olá, <span style={{ color: '#ffb690' }}>{firstName}!</span>
           </h1>
         </div>
+
+        {/* Chamar garçom — só no salão (mesa), enquanto a conta está aberta */}
+        {!sessionSettled && !isCounter && (
+          <button
+            type="button"
+            onClick={callWaiter}
+            disabled={callingWaiter}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{
+              background: waiterCalledAt ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
+              border: `1px solid ${waiterCalledAt ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.3)'}`,
+              color: waiterCalledAt ? '#34d399' : '#ffb690',
+            }}
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {callingWaiter ? 'hourglass_top' : waiterCalledAt ? 'check_circle' : 'room_service'}
+            </span>
+            {callingWaiter ? 'Chamando…' : waiterCalledAt ? 'Garçom avisado!' : 'Chamar garçom'}
+          </button>
+        )}
 
         {/* Mesa quitada — código de saída */}
         {sessionSettled && (

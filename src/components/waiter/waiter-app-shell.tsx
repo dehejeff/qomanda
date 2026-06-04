@@ -4,6 +4,7 @@ import { createContext, useContext } from 'react'
 import type { RestaurantRole } from '@/lib/restaurant-auth'
 import { WaiterMobileHeader } from './waiter-mobile-header'
 import { WaiterBottomNav } from './waiter-bottom-nav'
+import { WaiterCallsBanner } from './waiter-calls-banner'
 
 type WaiterAppContext = {
   role: RestaurantRole
@@ -40,7 +41,10 @@ export function WaiterAppShell({
           style={{ background: 'rgba(249,115,22,0.06)', filter: 'blur(80px)' }}
         />
         <WaiterMobileHeader restaurantName={restaurantName} />
-        <main className="relative z-10 px-5 pt-4 pb-28">{children}</main>
+        <main className="relative z-10 px-5 pt-4 pb-28">
+          {showPayments && <WaiterCallsBanner />}
+          {children}
+        </main>
         <WaiterBottomNav showPayments={showPayments} />
       </div>
     </Ctx.Provider>
