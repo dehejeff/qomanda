@@ -171,11 +171,17 @@ export default function CheckInPage() {
   }, [params.slug, mesaParam, tokenParam, router])
 
   useEffect(() => {
-    if (mesaParam && tokenParam) return
+    if (mesaParam && tokenParam) {
+      setResumingSession(false)
+      return
+    }
     if (loading || verifyLoading || !restaurant) return
 
     const customerId = localStorage.getItem('qomanda_customer_id')
-    if (!customerId) return
+    if (!customerId) {
+      setResumingSession(false)
+      return
+    }
 
     let cancelled = false
     setResumingSession(true)
@@ -192,7 +198,10 @@ export default function CheckInPage() {
     }
 
     void resumeOpenSession()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      setResumingSession(false)
+    }
   }, [mesaParam, tokenParam, loading, verifyLoading, restaurant, params.slug])
 
   async function handleCheckIn() {
@@ -392,7 +401,10 @@ export default function CheckInPage() {
   }
 
   async function handleQuickCheckIn() {
-    if (!restaurant || !savedCustomerId || !tableToken) return
+    if (!restaurant || !savedCustomerId || !tableToken) {
+      autoQuickCheckInRef.current = false
+      return
+    }
     setCheckingIn(true)
 
     const res = await fetch('/api/checkin', {
@@ -406,6 +418,7 @@ export default function CheckInPage() {
       toast.error(err.error ?? 'Erro no check-in rápido. Preencha seus dados.')
       setShowFullForm(true)
       setCheckingIn(false)
+      autoQuickCheckInRef.current = false
       return
     }
 
@@ -432,14 +445,14 @@ export default function CheckInPage() {
   const statusColor = tableStatus === 'occupied' ? '#f97316' : tableStatus === 'reserved' ? '#a78b7d' : '#34d399'
 
   useEffect(() => {
+    if (!restaurant || !canQuickCheckIn || checkingIn || checkedIn) return
     if (autoQuickCheckInRef.current) return
-    if (!canQuickCheckIn || checkingIn || checkedIn) return
     autoQuickCheckInRef.current = true
     void handleQuickCheckIn()
-  }, [canQuickCheckIn, checkingIn, checkedIn])
+  }, [restaurant, canQuickCheckIn, checkingIn, checkedIn])
 
   // ── Loading ──────────────────────────────────────────────
-  if (loading || verifyLoading || resumingSession) {
+  if (loading || verifyLoading || resumingSession || checkingIn) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />

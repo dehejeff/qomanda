@@ -61,6 +61,7 @@ export default function CustomerHomePage() {
 
     async function load() {
       const supabase = createClient()
+      try {
       const { data: session } = await supabase
         .from('sessions')
         .select('status, *, restaurant:restaurants(*), table:tables(*)')
@@ -71,7 +72,7 @@ export default function CustomerHomePage() {
         const customerId = localStorage.getItem('qomanda_customer_id')
         if (customerId) {
           const active = await findCustomerActiveSession(supabase, customerId)
-          if (active?.slug === params.slug) {
+          if (active?.slug === params.slug && active.sessionId !== sessionId) {
             navigateToCustomerHome(params.slug, active.sessionId)
             return
           }
@@ -149,7 +150,9 @@ export default function CustomerHomePage() {
         setLatestOrder(null)
       }
 
-      setLoading(false)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
 
