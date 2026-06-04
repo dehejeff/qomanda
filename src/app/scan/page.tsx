@@ -7,7 +7,7 @@ import { QomandaLogo } from '@/components/qomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
 import {
-  isMobileSafariLike,
+  isMobileClient,
   parseCheckInTargetFromQr,
   resolveCheckInAbsoluteUrl,
 } from '@/lib/table-checkin-url'
@@ -60,20 +60,30 @@ export default function ScanPage() {
     }
 
     const absoluteUrl = resolveCheckInAbsoluteUrl(path)
-    const mesa = new URL(absoluteUrl).searchParams.get('mesa')
+    const parsed = new URL(absoluteUrl)
+    const mesa = parsed.searchParams.get('mesa')
+    if (!parsed.searchParams.get('t')) {
+      await resetScan('QR desatualizado. Peça ao restaurante um novo código na mesa.')
+      return
+    }
+
     setTableLabel(mesa)
     setRedirectUrl(absoluteUrl)
     setStatus('detected')
     setErrorMessage(null)
     if ('vibrate' in navigator) navigator.vibrate(200)
 
-    // iOS bloqueia redirect automático após câmera — exige toque no botão.
-    if (!isMobileSafariLike()) {
+    // Mobile/PWA bloqueia redirect automático após câmera — exige toque no botão.
+    if (!isMobileClient()) {
       window.setTimeout(() => {
-        window.location.href = absoluteUrl
+        window.location.assign(absoluteUrl)
       }, 300)
     }
   }, [stopScanner, resetScan])
+
+  const goToCheckIn = useCallback((url: string) => {
+    window.location.assign(url)
+  }, [])
 
   useEffect(() => {
     async function start() {
@@ -109,7 +119,7 @@ export default function ScanPage() {
 
       <div
         id={SCANNER_ID}
-        className="absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full"
+        className={`absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full${isDetected ? ' hidden pointer-events-none' : ''}`}
         aria-hidden={isDetected}
       />
       <div className="absolute inset-0 z-[1]"
@@ -156,13 +166,17 @@ export default function ScanPage() {
             <div>
               <h2 className="text-xl font-semibold">Mesa {tableLabel ?? ''} identificada</h2>
               <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
-                {isMobileSafariLike()
+                {isMobileClient()
                   ? 'Toque no botão abaixo para abrir o restaurante.'
                   : 'Abrindo o restaurante… se não redirecionar, toque no botão.'}
               </p>
             </div>
             <a
               href={redirectUrl}
+              onClick={(e) => {
+                e.preventDefault()
+                goToCheckIn(redirectUrl)
+              }}
               className="flex items-center justify-center gap-2 w-full h-14 rounded-xl text-base font-bold active:scale-[0.98] transition-transform"
               style={{ background: '#f97316', color: '#fff' }}
             >

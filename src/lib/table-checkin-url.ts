@@ -39,6 +39,14 @@ export function isMobileSafariLike(): boolean {
   return iOS && webkit
 }
 
+/** Celular/tablet — navegação automática após câmera costuma ser bloqueada (iOS/Android/PWA). */
+export function isMobileClient(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true
+  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+}
+
 /**
  * Extrai rota interna `/{slug}?mesa=&t=` a partir do conteúdo lido no QR.
  * Aceita QR legado só com `mesa` (sem token) — abre a página do restaurante.

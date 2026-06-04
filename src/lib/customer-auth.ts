@@ -61,6 +61,13 @@ export async function findCustomerActiveSession(
   return null
 }
 
+/** Navegação completa para o app do restaurante (confiável após check-in no mobile/PWA). */
+export function navigateToCustomerHome(slug: string, sessionId: string) {
+  if (typeof window === 'undefined') return
+  const path = `/${slug}/home?session=${encodeURIComponent(sessionId)}`
+  window.location.assign(path)
+}
+
 /** Persiste identidade do cliente no localStorage (browser). */
 export function persistCustomerAuth(
   customerId: string,

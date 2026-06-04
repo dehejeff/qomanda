@@ -13,7 +13,7 @@ import { PinInput } from '@/components/customer/pin-input'
 import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
 import { loginWithWhatsApp, verifyLoginPin, setupLoginPin } from '@/lib/customer-login-client'
 import { CustomerPinSetupForm } from '@/components/customer/customer-pin-setup-form'
-import { persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
+import { navigateToCustomerHome, persistCustomerAuth, setCustomerSessionToken } from '@/lib/customer-auth'
 import type { CheckInVerifyResponse } from '@/app/api/checkin/verify/route'
 import Link from 'next/link'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
@@ -205,7 +205,7 @@ export default function CheckInPage() {
     setCheckedIn(true)
     setCheckingIn(false)
     toast.success(`Bem-vindo, ${name}!`)
-    setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
+    window.setTimeout(() => navigateToCustomerHome(params.slug, sessionId), 400)
   }
 
   async function handleWhatsAppLogin() {
@@ -236,7 +236,7 @@ export default function CheckInPage() {
 
         if (data.activeSession?.slug === params.slug) {
           toast.success(`PIN criado! Bem-vindo, ${data.firstName}!`)
-          router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+          navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
         }
         toast.success(`PIN criado! Olá, ${data.firstName}! Faça check-in na mesa.`)
@@ -273,7 +273,7 @@ export default function CheckInPage() {
 
         if (data.activeSession?.slug === params.slug) {
           toast.success(`Bem-vindo de volta, ${data.firstName}!`)
-          router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+          navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
         }
         toast.success(`Olá, ${data.firstName}! Faça check-in na mesa.`)
@@ -334,7 +334,7 @@ export default function CheckInPage() {
 
       if (data.activeSession?.slug === params.slug) {
         toast.success(`Bem-vindo de volta, ${data.firstName}!`)
-        router.push(`/${params.slug}/home?session=${data.activeSession.sessionId}`)
+        navigateToCustomerHome(params.slug, data.activeSession.sessionId)
         return
       }
 
@@ -371,7 +371,7 @@ export default function CheckInPage() {
     setCheckingIn(false)
     const first = savedCustomerName.split(' ')[0] || 'Cliente'
     toast.success(`Bem-vindo de volta, ${first}!`)
-    setTimeout(() => router.push(`/${params.slug}/home?session=${sessionId}`), 700)
+    window.setTimeout(() => navigateToCustomerHome(params.slug, sessionId), 400)
   }
 
   const tableLabel = tableNumber ? tableNumber.padStart(2, '0') : '—'
