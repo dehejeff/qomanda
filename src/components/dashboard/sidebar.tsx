@@ -11,7 +11,7 @@ type OperationalMode = 'dine_in' | 'counter' | 'both'
 // `modes` = em quais tipos de restaurante o item aparece. Ausente = sempre.
 const NAV_ITEMS: { href: string; icon: string; label: string; modes?: OperationalMode[] }[] = [
   { href: '/dashboard',           icon: 'dashboard',        label: 'Overview' },
-  { href: '/dashboard/reports',   icon: 'analytics',        label: 'Relatórios' },
+  { href: '/dashboard/reports',   icon: 'analytics',        label: 'Analytics' },
   { href: '/dashboard/orders',    icon: 'receipt_long',     label: 'Pedidos' },
   { href: '/dashboard/customers',   icon: 'groups',           label: 'Clientes' },
   { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },

@@ -53,10 +53,10 @@ export type ReportData = {
   daily: DailyPoint[]
 }
 
-type PaymentRow = { amount: number; paid_at: string | null; created_at: string }
-type OrderRow = { id: string; status: string; created_at: string }
+export type PaymentRow = { amount: number; paid_at: string | null; created_at: string; method?: string }
+export type OrderRow = { id: string; status: string; created_at: string }
 
-function buildDailySeries(range: ReportRange, payments: PaymentRow[], orders: OrderRow[]): DailyPoint[] {
+export function buildDailySeries(range: ReportRange, payments: PaymentRow[], orders: OrderRow[]): DailyPoint[] {
   const byDay = new Map<string, DailyPoint>()
 
   // Inicializa todos os dias do intervalo com zero (eixo contínuo), no fuso do Brasil.

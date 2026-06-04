@@ -261,9 +261,10 @@
 ## 🟡 Fase 2 — Crescimento (Q3 2026)
 
 ### Analytics
-- [ ] Gráfico de receita por período (diário/semanal/mensal) no dashboard do restaurante
-- [ ] Ranking de pratos mais pedidos
-- [ ] Análise de horário de pico
+- [x] Gráfico de receita por período (diário/semanal/mensal) no dashboard do restaurante
+- [x] Ranking de pratos mais pedidos
+- [x] Análise de horário de pico (faturamento por hora + dia da semana, fuso BR)
+- [x] Métodos de pagamento (breakdown por PIX/cartão/dinheiro)
 - [ ] Ticket médio por mesa e por cliente
 - [ ] Exportação de relatórios (CSV/PDF)
 
@@ -405,7 +406,7 @@ Cliente confirma pagamento
 | Dashboard — Operação | ✅ Completo | 96% |
 | Dashboard — Cardápio & QR mesas | ✅ Completo | 94% |
 | Dashboard — Suporte | ✅ Completo | 85% |
-| Dashboard — Analytics | 🔴 Faltando | 10% |
+| Dashboard — Analytics | ✅ Completo | 80% |
 | Dashboard — Equipe/Segurança | ⚠️ Parcial | 70% |
 | Portal Interno Qomanda | ✅ Completo | 85% |
 | App Garçom (`/garcom`) | ✅ Completo | 95% |
