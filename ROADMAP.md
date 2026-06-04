@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-05-30  
+> Última atualização: 2026-06-04  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
 
 ---
@@ -11,17 +11,20 @@
 
 | Prioridade | Entrega | Status |
 |------------|---------|--------|
-| **Agora** | Rodar migrações Supabase pendentes (billing, nfe, tables-public-read) | ⏳ Pendente |
+| **Agora** | Rodar migrações Supabase pendentes em produção (se ainda não aplicadas) | ⏳ Verificar |
 | **P0** | Garçom confirmar PIX manual + dinheiro (`/garcom/pagamentos`) | ✅ Feito |
 | **P0** | App garçom mobile — pedidos, pagamentos, mesas, benefícios, fechar mesa | ✅ Feito |
+| **P0** | Check-in QR mobile — scanner html5-qrcode, redirect `/api/checkin/redirect`, retomada de sessão | ✅ Feito |
+| **P0** | Modo operacional (salão/balcão/ambos) sincronizado Settings → Overview | ✅ Feito |
 | **P0** | Smoke test E2E garçom (`/garcom`) | ✅ 16/16 |
 | **P0** | Smoke test E2E módulos cliente (salão, balcão, híbrido, food hall) | ✅ 2026-06-02 |
 | **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | ✅ Feito |
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
-| **P1** | Deploy do build atual (PIX manual, balcão, garçom, mensalidade) | ⏳ Pendente |
+| **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
+| **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | 🔴 Fase 3 |
-| **P2** | Mercado Pago (#4 na esteira) | 🟡 v1 (access token + PIX/cartão) |
+| **P2** | Mercado Pago OAuth connect (v1 access token já disponível) | 🟡 Fase 3 |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
 **Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
@@ -64,10 +67,12 @@
 ### Por gateway — escopo técnico (v2+)
 
 - [ ] **Abstração `PaymentProvider`** — resolver gateway no checkout, webhooks e painel Settings
-- [ ] **Mercado Pago**
+- [x] **Mercado Pago (v1)**
+  - [x] Access token + PIX/cartão no checkout
+  - [x] Webhook confirmação → `confirmPaymentRecord` + comissão
+  - [x] UI Settings: credenciais MP (token manual)
+- [ ] **Mercado Pago (OAuth)**
   - [ ] OAuth connect + refresh token criptografado
-  - [ ] PIX QR dinâmico + cartão no checkout
-  - [ ] Webhook confirmação → `confirmPaymentRecord` + comissão
   - [ ] UI Settings: conectar / desconectar conta MP
 - [ ] **PagBank**
   - [ ] Onboarding vendedor + PIX/cartão
@@ -90,7 +95,9 @@
 ## ✅ MVP — Implementado
 
 ### Plataforma Cliente (PWA)
-- [x] Scanner de QR Code (BarcodeDetector API + fallback manual)
+- [x] Scanner de QR Code — html5-qrcode (iOS/Android) + fallback manual
+- [x] Redirect de check-in no servidor (`/api/checkin/redirect`) para mobile pós-câmera
+- [x] Retomada de sessão e check-in rápido para clientes recorrentes
 - [x] Check-in com captura de nome, sobrenome e WhatsApp
 - [x] QR Code por mesa com token único (`?mesa=&t=`) — anti-fraude entre restaurantes
 - [x] Identificação única de cliente por WhatsApp (upsert)
@@ -100,7 +107,7 @@
 - [x] Pedidos direto do celular com carrinho e stepper de quantidade
 - [x] Acompanhamento de pedidos com barra de progresso animada
 - [x] Checkout com divisão de conta automática
-- [x] Telas de pagamento: PIX, Débito, Crédito, **Dinheiro** (confirmação manual pelo restaurante)
+- [x] Telas de pagamento: PIX (manual, Asaas, **Mercado Pago**), Débito, Crédito, **Dinheiro**
 - [x] Tela de confirmação com código de validação
 - [x] Perfil do cliente — editar dados, encerrar mesa (sem consumo em aberto), ir ao Hub
 - [x] Área Hub do cliente (visitas, recibos, cartões, fidelidade)
@@ -109,11 +116,14 @@
 
 ### Painel Administrativo (Dashboard)
 - [x] Login com autenticação Supabase
-- [x] Overview em tempo real (mesas ocupadas, pedidos abertos, receita do dia)
+- [x] Overview em tempo real — adaptado ao modo operacional (salão / balcão / ambos)
+- [x] Checklist “Primeiros passos” no Overview
+- [x] Modo operacional editável em Settings → Pagamentos (sincroniza `restaurant_model`)
 - [x] Mapa de mesas com status (livre/ocupada/reservada)
 - [x] QR Code por mesa — download e impressão com número visível (Mesa X / T-XX)
 - [x] Gestão de cardápio — criar/editar itens, foto (upload ou URL), preço promocional, sugestão do chef
 - [x] Fila de pedidos (kanban: pendente → confirmado → preparando → pronto → entregue)
+- [x] **Busca no header** — filtra pedidos na fila (`/dashboard/orders`)
 - [x] **Confirmar pagamento em dinheiro** — painel na mesa e em Pedidos · Mesa
 - [x] Settings: aba **Mensalidade** (plano, estimativa, fatura em aberto, histórico PIX)
 - [x] Settings: aba Pagamentos com histórico de transações
@@ -139,7 +149,7 @@
 - [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe
 
 ### Segurança & Pagamentos
-- [x] **Recebimento na conta do restaurante** — PIX manual, Asaas (API do restaurante), dinheiro
+- [x] **Recebimento na conta do restaurante** — PIX manual, Asaas, **Mercado Pago**, dinheiro
 - [x] Comissão progressiva sobre GMV digital — faturada mensalmente (dia 5), não split na hora
 - [x] Recibos, códigos de confirmação e histórico de pagamentos
 - [x] Pagamento de um cliente por outro (pool da mesa + WhatsApp ao beneficiário)
@@ -190,8 +200,9 @@
 - [x] Garçom: fila pedidos, confirmar PIX/dinheiro, ver mesas, fechar mesa, alertas fidelidade
 - [x] Redirect legado `/dashboard/waiter` → `/garcom`
 - [x] **PIX manual** — chave do restaurante, sem Asaas obrigatório
+- [x] **Mercado Pago** — access token + PIX/cartão no checkout (v1)
 - [x] **Cobrança automática mensalidade** — cron dia 5 + PIX Asaas master + webhook
-- [ ] **Mercado Pago** — ver [esteira de gateways](#-gateways-de-pagamento--ordem-planejada-18)
+- [ ] **Mercado Pago OAuth** — connect/desconnect na UI (substituir token manual)
 - [ ] Marketplace split Asaas (legado, opcional — não é o modelo padrão)
 
 ### 2. Notas fiscais
@@ -229,6 +240,7 @@
 - [x] **Trial automático (14 dias)** — provisionado ao criar conta
 - [x] **Checklist “Primeiros passos”** no dashboard Overview
 - [x] **Upload de logo do restaurante** — Supabase Storage + aba Perfil em Settings
+- [x] **Modo operacional editável** — Settings → Pagamentos (reflete no Overview e checklist)
 - [x] **Garçom confirma pagamentos** — PIX manual + dinheiro em `/garcom/pagamentos`
 - [x] **Modelo no portal interno** — cadastro de pilotos pela equipe Qomanda (P1)
 
@@ -270,12 +282,13 @@
 ## 🔵 Fase 3 — Escala (Q4 2026)
 
 ### Gateways de pagamento
-> Esteira completa: [Gateways de pagamento](#-gateways-de-pagamento--esteira-de-integrações)
+> Esteira completa: [Gateways de pagamento](#-gateways-de-pagamento--ordem-planejada-18)
 
 - [ ] Abstração `PaymentProvider` no checkout e webhooks
-- [ ] **Mercado Pago** — OAuth, PIX + cartão, webhook (Q4 2026)
+- [x] **Mercado Pago v1** — access token, PIX + cartão, webhook (2026-06)
+- [ ] **Mercado Pago OAuth** — connect na UI, refresh token criptografado
 - [ ] **PagBank** — conta vendedor PagSeguro (Q1 2027)
-- [ ] Cobrança automática comissão + mensalidade (dia 5)
+- [x] Cobrança automática comissão + mensalidade (dia 5)
 
 ### Multi-unidades
 - [ ] Suporte a múltiplos restaurantes por conta
@@ -293,7 +306,7 @@
 - [ ] Calendário de reservas no dashboard
 
 ### Produto
-- [ ] **PWA instalável** — ícone na tela inicial do cliente (manifest + service worker)
+- [ ] **PWA instalável** — manifest + service worker (parcial)
 - [ ] Multi-cardápio por turno (almoço / jantar / happy hour)
 - [ ] Modo Quiosque para tablets nas mesas
 - [ ] Reembolsos e disputas no painel
@@ -315,23 +328,24 @@
 
 | Área | Status | % Completo |
 |---|---|---|
-| Cliente — Fluxo principal | ✅ Completo | 98% |
-| Cliente — Pagamento | ⚠️ Parcial | 88% |
+| Cliente — Fluxo principal | ✅ Completo | 99% |
+| Cliente — Pagamento | ✅ Completo | 92% |
 | Cliente — Hub & segurança | ✅ Completo | 90% |
-| Dashboard — Operação | ✅ Completo | 95% |
-| Dashboard — Cardápio & QR mesas | ✅ Completo | 92% |
+| Dashboard — Operação | ✅ Completo | 96% |
+| Dashboard — Cardápio & QR mesas | ✅ Completo | 94% |
 | Dashboard — Suporte | ✅ Completo | 85% |
 | Dashboard — Analytics | 🔴 Faltando | 10% |
-| Dashboard — Equipe/Segurança | ⚠️ Parcial | 55% |
+| Dashboard — Equipe/Segurança | ⚠️ Parcial | 70% |
 | Portal Interno Qomanda | ✅ Completo | 85% |
 | App Garçom (`/garcom`) | ✅ Completo | 95% |
-| Pagamentos (conta restaurante) | ⚠️ Parcial | 88% |
-| NF-e cliente (emissão) | ⚠️ Parcial | 60% |
+| Gateways (#1–4 disponíveis) | ✅ Completo | 85% |
+| Gateways (#5–8 planejados) | 🔴 Faltando | 0% |
+| NF-e cliente (emissão) | ⚠️ Parcial | 65% |
 | NF-e serviço (Qomanda) | 🔴 Faltando | 10% |
 | Cobrança SaaS (mensalidade) | ✅ Completo | 90% |
 | Fidelidade | ✅ Completo | 90% |
-| WhatsApp | ⚠️ Parcial | 55% |
-| Onboarding restaurante | ⚠️ Parcial | 75% |
+| WhatsApp | ⚠️ Parcial | 60% |
+| Onboarding restaurante | ✅ Completo | 92% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Multi-unidades | 🔴 Faltando | 0% |
 

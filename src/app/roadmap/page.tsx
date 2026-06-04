@@ -15,7 +15,7 @@ const GATEWAY_ORDER = [
   { order: 1, name: 'PIX manual', methods: 'PIX', connection: 'Chave PIX do restaurante + confirmação no painel', when: 'Disponível', status: 'done' as const },
   { order: 2, name: 'Dinheiro', methods: 'Cash', connection: 'Cliente informa · garçom/caixa confirma', when: 'Disponível', status: 'done' as const },
   { order: 3, name: 'Asaas', methods: 'PIX, crédito, débito', connection: 'API key da conta Asaas do restaurante', when: 'Disponível', status: 'done' as const },
-  { order: 4, name: 'Mercado Pago', methods: 'PIX, crédito, débito', connection: 'OAuth / credenciais do vendedor (conta MP)', when: 'Q4 2026', status: 'planned' as const },
+  { order: 4, name: 'Mercado Pago', methods: 'PIX, crédito, débito', connection: 'Access token da conta MP do restaurante', when: 'Disponível', status: 'done' as const },
   { order: 5, name: 'PagBank', methods: 'PIX, crédito', connection: 'Conta PagSeguro / PagBank do restaurante', when: 'Q1 2027', status: 'planned' as const },
   { order: 6, name: 'Stone', methods: 'PIX, crédito', connection: 'API e-commerce / link Stone', when: '2027', status: 'planned' as const },
   { order: 7, name: 'Cielo', methods: 'Crédito, débito', connection: 'Checkout Cielo / API', when: '2027', status: 'planned' as const },
@@ -35,33 +35,34 @@ const PHASES = [
   {
     id: 'proximas',
     label: 'Agora',
-    title: 'Próximas etapas — Go-live piloto',
+    title: 'Go-live piloto — restante',
     status: 'next',
     color: C.red,
-    period: 'Imediato',
+    period: 'Junho 2026',
     groups: [
       {
         title: 'Infra & validação',
         items: [
-          'Rodar migrações Supabase (portal, conta restaurante, PIX manual, modelos)',
-          'Smoke test: cadastro com modelo → PIX manual → pedido → confirmação',
-          'Deploy do build (PIX manual, balcão, presets, onboarding)',
+          'Smoke test E2E — salão, balcão, híbrido, food hall, garçom ✓',
+          'Deploy contínuo na Vercel (qomanda-mu.vercel.app) ✓',
+          'Rodar migrações Supabase pendentes em produção (se ainda não aplicadas)',
         ],
       },
       {
         title: 'P0 — Operação no salão',
         items: [
-          'App garçom mobile (/garcom) — pedidos, pagamentos, mesas, benefícios, fechar mesa ✓',
+          'App garçom mobile (/garcom) — pedidos, pagamentos, mesas, benefícios ✓',
           'Garçom confirma PIX manual + dinheiro (/garcom/pagamentos) ✓',
-          'Alerta de pagamento pendente na fila de pedidos ✓',
-          'Aba Mensalidade no dashboard (histórico + fatura aberta) ✓',
+          'Check-in por QR — scanner mobile, redirect e retomada de sessão ✓',
+          'Modo operacional (salão/balcão/ambos) salvo e refletido no Overview ✓',
         ],
       },
       {
         title: 'P1 — Comercial & interno',
         items: [
-          'Modelo operacional no portal interno (/internal/clients/new) ✓',
+          'Modelo operacional no portal interno (/internal/clients) ✓',
           'Landing e roadmap alinhados (modelos + comissão mensal) ✓',
+          'Busca no header do dashboard (filtra pedidos) ✓',
         ],
       },
     ],
@@ -85,11 +86,11 @@ const PHASES = [
       {
         title: 'Próximo na fila',
         items: [
-          '4 · Mercado Pago — OAuth, PIX + cartão (Q4 2026)',
           '5 · PagBank — conta PagSeguro (Q1 2027)',
           '6 · Stone — API e-commerce (2027)',
           '7 · Cielo — checkout crédito/débito (2027)',
           '8 · Getnet — backlog enterprise',
+          'OAuth Mercado Pago (hoje: access token manual)',
         ],
       },
       {
@@ -113,13 +114,14 @@ const PHASES = [
       {
         title: 'Plataforma Cliente (PWA)',
         items: [
-          'Scanner de QR Code com fallback manual',
+          'Scanner QR (html5-qrcode) + redirect check-in (/api/checkin/redirect)',
           'Check-in + QR por mesa com token único anti-fraude',
+          'Retomada de sessão e check-in rápido para clientes recorrentes',
           'PIN de 4 dígitos; setup para contas legadas',
           'Home com status de pedido em tempo real',
           'Cardápio com fotos, promoções e sugestão do chef',
           'Pedidos, checkout e divisão de conta',
-          'Pagamento PIX, débito, crédito e dinheiro (confirmação pelo restaurante)',
+          'Pagamento PIX (manual, Asaas, Mercado Pago), cartão e dinheiro',
           'Perfil — encerrar mesa e acesso ao Hub',
           'Hub do cliente: visitas, recibos, cartões, fidelidade',
         ],
@@ -127,15 +129,25 @@ const PHASES = [
       {
         title: 'Painel Administrativo',
         items: [
-          'Overview em tempo real (mesas, pedidos, receita)',
+          'Overview em tempo real — adaptado ao modo (salão / balcão / ambos)',
+          'Modo operacional em Settings → Pagamentos (sincroniza restaurant_model)',
           'QR Code por mesa — download e impressão com número visível',
           'Cardápio — criar/editar, foto, promo, sugestão do chef',
-          'Fila de pedidos em tempo real (kanban)',
+          'Fila de pedidos em tempo real (kanban) + busca no header',
           'Confirmar pagamento em dinheiro (mesa e pedidos da mesa)',
-          'Settings: Pagamentos, Fidelidade e Integrações (WhatsApp)',
+          'Settings: Pagamentos, Mensalidade, Fidelidade, Integrações (WhatsApp)',
+          'Checklist “Primeiros passos” no Overview',
           'Cadastro de conta bancária de repasse (Qomanda Pay)',
           'Suporte — tickets com mensagens e anexos',
           'Segurança: senha de cartão, sessão idle 15 min',
+        ],
+      },
+      {
+        title: 'App Garçom (/garcom)',
+        items: [
+          'Pedidos, pagamentos, mesas e benefícios de fidelidade',
+          'Confirmar PIX manual e dinheiro na mesa',
+          'Fechar mesa e alertas de pagamento pendente',
         ],
       },
       {
@@ -143,9 +155,21 @@ const PHASES = [
         items: [
           'PIX manual (chave do restaurante) — sem Asaas obrigatório',
           'Asaas na conta do restaurante (PIX e cartão automáticos)',
+          'Mercado Pago — access token + PIX/cartão no checkout',
           'Dinheiro na mesa — 0% comissão Qomanda',
           'Comissão progressiva faturada mensalmente (dia 5)',
+          'Cobrança automática da mensalidade SaaS (cron dia 5)',
           'Webhook de confirmação de pagamentos',
+        ],
+      },
+      {
+        title: 'Notas fiscais (v1)',
+        items: [
+          'Cadastro NF-e (Focus NFe) — portal interno + Settings',
+          'Emissão automática após pagamento (adapter + modo simulado)',
+          'Envio da NF-e ao cliente via WhatsApp (quando habilitado)',
+          'Cliente baixa NF-e no Hub de recibos',
+          'Aba Notas Fiscais no painel do restaurante',
         ],
       },
       {
@@ -168,11 +192,12 @@ const PHASES = [
       {
         title: '1 · Recebimento & comissão',
         items: [
-          'PIX manual + Asaas (conta do restaurante) ✓',
+          'PIX manual + Asaas + Mercado Pago (conta do restaurante) ✓',
           'Comissão mensal sobre GMV digital — fatura dia 5 ✓',
           'Modo balcão + pedido # ✓',
-          'Garçom confirma PIX/dinheiro no painel (P0)',
-          'Fatura automática dia 5 (boleto/PIX Qomanda)',
+          'Garçom confirma PIX/dinheiro no app (/garcom) ✓',
+          'Cobrança automática mensalidade SaaS (cron dia 5) ✓',
+          'NF-e de serviço Qomanda → restaurante (junto com fatura)',
         ],
       },
       {
@@ -180,9 +205,10 @@ const PHASES = [
         items: [
           'Cadastro NF-e ao consumidor (Focus NFe) — configuração ✓',
           'WhatsApp para envio de NF-e — configuração pelo restaurante ✓',
-          'Emissão automática após pagamento confirmado',
-          'NF-e de serviço Qomanda → restaurante (mensalidade + comissão)',
-          'Histórico pagamento ↔ nota fiscal',
+          'Emissão automática após pagamento confirmado ✓ (simulado/homologação)',
+          'Cliente visualiza e baixa NF-e no Hub ✓',
+          'Emissão real Focus NFe em produção (token homologação/produção)',
+          'Histórico pagamento ↔ nota fiscal no painel ✓',
         ],
       },
       {
@@ -191,7 +217,7 @@ const PHASES = [
           'Suporte com tickets — restaurante e equipe Qomanda ✓',
           'Webhook de pagamentos robusto (retry, idempotência, logs)',
           'Botão "Chamar Garçom" — notificação no dashboard',
-          'Cobrança automática de mensalidade SaaS',
+          'OAuth connect Mercado Pago (substituir token manual)',
         ],
       },
     ],
@@ -207,16 +233,18 @@ const PHASES = [
       {
         title: 'Onboarding do Restaurante',
         items: [
-          'Cadastro com escolha de modelo (salão / balcão / ambos) ✓',
+          'Cadastro com escolha de modelo (salão / balcão / ambos / food hall) ✓',
           'Preset automático + checklist no dashboard ✓',
+          'Modo operacional editável em Settings → Pagamentos ✓',
           'Upload de logo do restaurante ✓',
-          'Modelo no portal interno para pilotos (P1) ✓',
+          'Modelo no portal interno para pilotos ✓',
         ],
       },
       {
         title: 'Fidelidade',
         items: [
-          'Salvar regras no Supabase (atualmente UI only)',
+          'Regras salvas no Supabase (loyalty_rules) ✓',
+          'Benefícios visíveis ao garçom (/garcom/beneficios) ✓',
           'Alerta no dashboard quando cliente atinge meta',
         ],
       },
@@ -242,11 +270,11 @@ const PHASES = [
       {
         title: 'Equipe & Segurança',
         items: [
-          'App Garçom — painel mobile para garçons e caixa',
-          'Confirmar pagamentos em dinheiro na mesa (notificação + um toque)',
-          'Ver pedidos das mesas e responder "Chamar Garçom"',
-          'Gestão de equipe: garçons, cozinheiros, gerentes',
-          'Controle de acesso por perfil',
+          'App Garçom mobile (/garcom) — pedidos, pagamentos, mesas ✓',
+          'Confirmar PIX manual e dinheiro na mesa ✓',
+          'Gestão de equipe — convite de garçons (Settings → Equipe) ✓',
+          'Receber e responder alertas "Chamar Garçom"',
+          'Controle de acesso refinado por perfil',
           '2FA e histórico de sessões do administrador',
         ],
       },
@@ -286,7 +314,7 @@ const PHASES = [
       {
         title: 'Produto',
         items: [
-          'PWA instalável (ícone na tela inicial)',
+          'PWA instalável (manifest + service worker) — parcial',
           'Sistema de reservas com confirmação via WhatsApp',
           'Multi-cardápio por turno (almoço / jantar)',
           'Reembolsos e disputas no painel',
@@ -297,19 +325,20 @@ const PHASES = [
 ]
 
 const STATUS_SUMMARY = [
-  { label: 'Cliente — Fluxo principal',     pct: 98, color: C.green  },
-  { label: 'Cliente — Pagamento',           pct: 88, color: C.amber  },
+  { label: 'Cliente — Fluxo principal',     pct: 99, color: C.green  },
+  { label: 'Cliente — Pagamento',           pct: 92, color: C.green  },
   { label: 'Cliente — Hub & segurança',     pct: 90, color: C.green  },
-  { label: 'Dashboard — Operação',          pct: 95, color: C.green  },
-  { label: 'Dashboard — Cardápio & QR',     pct: 92, color: C.green  },
+  { label: 'Dashboard — Operação',          pct: 96, color: C.green  },
+  { label: 'Dashboard — Cardápio & QR',     pct: 94, color: C.green  },
+  { label: 'App Garçom (/garcom)',          pct: 95, color: C.green  },
   { label: 'Dashboard — Suporte',           pct: 85, color: C.green  },
-  { label: 'Gateways (manual + Asaas)', pct: 70, color: C.amber  },
-  { label: 'Gateways (MP, PagBank, Stone…)', pct: 0, color: C.red    },
-  { label: 'NF-e (emissão automática)',     pct: 25, color: C.red    },
-  { label: 'Fidelidade',                    pct: 75, color: C.amber  },
-  { label: 'WhatsApp (config + envio NF-e)', pct: 55, color: C.amber  },
+  { label: 'Gateways (#1–4 disponíveis)',   pct: 85, color: C.green  },
+  { label: 'Gateways (#5–8 planejados)',    pct: 0, color: C.red    },
+  { label: 'NF-e (emissão automática)',     pct: 65, color: C.amber  },
+  { label: 'Fidelidade',                    pct: 90, color: C.green  },
+  { label: 'WhatsApp (config + envio NF-e)', pct: 60, color: C.amber  },
+  { label: 'Onboarding restaurante',        pct: 92, color: C.green  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
-  { label: 'Onboarding restaurante',        pct: 75, color: C.amber  },
 ]
 
 export default function RoadmapPage() {
@@ -367,7 +396,7 @@ export default function RoadmapPage() {
                 Esteira de gateways de integração
               </h2>
               <p className="text-sm mt-2 max-w-xl" style={{ color: C.muted }}>
-                Sequência oficial #1–#8. Itens 1–3 já operacionais; 4–8 entram nesta ordem. Sempre na conta do restaurante — comissão Qomanda no dia 5.
+                Sequência oficial #1–#8. Itens 1–4 operacionais (PIX manual, dinheiro, Asaas, Mercado Pago); 5–8 entram nesta ordem. Sempre na conta do restaurante — comissão Qomanda no dia 5.
               </p>
             </div>
           </div>
@@ -428,7 +457,7 @@ export default function RoadmapPage() {
         {/* Progress overview */}
         <div className="rounded-2xl p-6 mb-16" style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ ...mono, color: C.muted }}>
-            Status do produto · Junho 2026
+            Status do produto · Junho 2026 (atualizado 04/06)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STATUS_SUMMARY.map(s => (
