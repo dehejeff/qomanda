@@ -100,6 +100,26 @@ export default function ReportsPage() {
             Vendas, itens, horários de pico e métodos de pagamento · {range.label}
           </p>
         </div>
+        {hasActivity && (
+          <div className="flex gap-2">
+            <a
+              href={`/api/dashboard/reports/export?period=${period}&format=csv`}
+              className="h-9 px-3 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:text-on-surface flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              CSV
+            </a>
+            <a
+              href={`/api/dashboard/reports/export?period=${period}&format=html`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-9 px-3 rounded-lg text-xs font-mono border border-outline-variant text-on-surface-variant hover:text-on-surface flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">print</span>
+              Imprimir / PDF
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-1 p-1 rounded-xl w-fit bg-surface-container-low border border-outline-variant overflow-x-auto">

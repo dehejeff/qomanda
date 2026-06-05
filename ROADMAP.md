@@ -268,7 +268,7 @@
 - [x] Análise de horário de pico (faturamento por hora + dia da semana, fuso BR)
 - [x] Métodos de pagamento (breakdown por PIX/cartão/dinheiro)
 - [x] Ticket médio por mesa e por cliente
-- [ ] Exportação de relatórios (CSV/PDF)
+- [x] Exportação de relatórios — CSV (planilha) + HTML imprimível (Ctrl+P → PDF)
 
 ### Equipe & Permissões
 - [x] **App garçom mobile** (`/garcom`) — pedidos, pagamentos, mesas, benefícios, fechar mesa
@@ -414,7 +414,7 @@ Cliente confirma pagamento
 | Dashboard — Operação | ✅ Completo | 96% |
 | Dashboard — Cardápio & QR mesas | ✅ Completo | 94% |
 | Dashboard — Suporte | ✅ Completo | 85% |
-| Dashboard — Analytics | ✅ Completo | 80% |
+| Dashboard — Analytics | ✅ Completo | 95% |
 | Dashboard — Equipe/Segurança | ⚠️ Parcial | 70% |
 | Portal Interno Qomanda | ✅ Completo | 85% |
 | App Garçom (`/garcom`) | ✅ Completo | 95% |
