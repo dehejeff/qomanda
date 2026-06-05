@@ -491,6 +491,7 @@ node scripts/setup-internal-staff.mjs
 | Suporte | `/internal/support` | Fila de tickets |
 | Gateway Pay | `/internal/gateway` | Credenciais Asaas da plataforma |
 | Saúde | `/internal/health` | Monitor em tempo real: fila, webhooks, NF-e em erro, atraso + status geral |
+| Playbook | `/internal/playbook` | **Escondida** (sem link no menu): checklist de implementação + suporte (conteúdo em `src/lib/internal-playbook.ts`) |
 
 ### 8.3 Métricas do Overview
 
