@@ -62,6 +62,14 @@ async function main() {
   const hadItem = await firstItem.isVisible().catch(() => false)
   check('Checklist renderiza itens clicáveis', hadItem)
 
+  // Playbook embutido na página Suporte (aba)
+  await page.goto(`${BASE}/internal/support`, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(2000)
+  await page.getByRole('button').filter({ hasText: 'Playbook' }).first().click().catch(() => {})
+  await page.waitForTimeout(1200)
+  const supTxt = await page.locator('body').innerText().catch(() => '')
+  check('Suporte tem aba Playbook com o conteúdo', /onboarding de novo cliente/i.test(supTxt) && /Coleta de dados/i.test(supTxt))
+
   await browser.close()
   const passed = results.filter(r => r[1]).length
   console.log(`\n--- RESULTADO: ${passed}/${results.length} ---`)

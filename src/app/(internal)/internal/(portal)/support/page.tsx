@@ -9,8 +9,10 @@ import {
 } from '@/components/support/ticket-ui'
 import type { SupportTicketListItem, SupportTicketStatus } from '@/lib/support-tickets'
 import { SUPPORT_STATUSES, ticketRef } from '@/lib/support-tickets'
+import { PlaybookContent } from '@/components/internal/playbook-content'
 
 export default function InternalSupportPage() {
+  const [view, setView] = useState<'tickets' | 'playbook'>('tickets')
   const [tickets, setTickets] = useState<SupportTicketListItem[]>([])
   const [openCount, setOpenCount] = useState(0)
   const [filter, setFilter] = useState<SupportTicketStatus | 'all'>('all')
@@ -34,11 +36,37 @@ export default function InternalSupportPage() {
         <div>
           <h1 className="text-2xl font-black text-on-surface">Suporte</h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Tickets abertos pelos restaurantes · {openCount} aguardando atendimento
+            {view === 'tickets'
+              ? `Tickets abertos pelos restaurantes · ${openCount} aguardando atendimento`
+              : 'Playbook do time — implementação e suporte'}
           </p>
         </div>
       </div>
 
+      {/* Abas: Tickets | Playbook */}
+      <div className="flex gap-1 p-1 rounded-xl w-fit bg-surface-container-low border border-outline-variant">
+        {([['tickets', 'Tickets'], ['playbook', 'Playbook']] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            className={`px-4 py-2 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 ${
+              view === id ? 'bg-primary-container text-on-primary-container font-bold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[15px]">{id === 'tickets' ? 'confirmation_number' : 'menu_book'}</span>
+            {label}
+            {id === 'tickets' && openCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px]">{openCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {view === 'playbook' ? (
+        <PlaybookContent heading={false} />
+      ) : (
+      <>
       <div className="flex flex-wrap gap-1 p-1 rounded-xl w-fit bg-surface-container-low border border-outline-variant">
         {[{ id: 'all' as const, label: 'Todos' }, ...SUPPORT_STATUSES.map(s => ({ id: s.id, label: s.label }))].map(f => (
           <button
@@ -96,6 +124,8 @@ export default function InternalSupportPage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }
