@@ -238,6 +238,7 @@
 ### 4. Melhorias operacionais pós-lançamento
 - [x] **Webhook de pagamentos robusto** — idempotência (tabela `webhook_events`) + logs de erro/retry (Asaas + Mercado Pago)
 - [x] **Chamar Garçom** — botão no home do cliente → notificação realtime (sino no dashboard + banner no app do garçom)
+- [x] **KDS — painel de cozinha** (`/cozinha`): tela cheia em tempo real (realtime + poll), colunas Novos/Preparando/Prontos, tempo por pedido, avançar status (rota server autoriza cozinha/garçom) + **comanda imprimível** (térmica) com auto-imprimir
 - [ ] E-mail de notificação em novos tickets de suporte
 
 ---
@@ -462,6 +463,7 @@ Cliente confirma pagamento
 | `migrate-async-jobs.sql` | Fila de jobs assíncronos (NF-e/WhatsApp) consumida pelo cron process-jobs |
 | `migrate-billing-reminders.sql` | `last_reminder_at` em billing_invoices (throttle do lembrete de atraso) |
 | `migrate-performance-indexes.sql` | Índices de performance (payments/orders/sessions) — analytics, webhooks, fila |
+| `migrate-realtime-orders.sql` | Realtime de orders/order_items (KDS instantâneo; opcional — KDS tem poll) |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.

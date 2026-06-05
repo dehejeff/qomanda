@@ -76,6 +76,7 @@ export const PLAYBOOK: PlaybookPart[] = [
           { text: 'Gerar e imprimir o QR code de cada mesa (adesivo/display)' },
           { text: 'Balcão: validar o fluxo por número de pedido (sem mesa)' },
           { text: 'Testar um check-in real escaneando o QR' },
+          { text: 'Abrir o KDS (/cozinha) numa tela/tablet da cozinha; ligar "Auto-imprimir" se houver impressora térmica', hint: 'Cozinha vê pedidos em tempo real, avança status e imprime comanda pelo navegador.' },
         ],
       },
       {

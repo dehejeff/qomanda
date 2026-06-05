@@ -391,6 +391,16 @@ export default function OrdersPage() {
 
         {/* Filtro de data */}
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/cozinha"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-lg text-[11px] font-mono border border-outline-variant text-on-surface-variant hover:text-on-surface flex items-center gap-1.5"
+            title="Abrir o painel de cozinha (KDS) — ideal para a tela/tablet da cozinha"
+          >
+            <span className="material-symbols-outlined text-[15px]">skillet</span>
+            Tela de cozinha
+          </a>
           <button
             type="button"
             onClick={() => setSelectedDate(todayDateStr())}
