@@ -490,6 +490,7 @@ node scripts/setup-internal-staff.mjs
 | Cobrança | `/internal/billing` | Status de pagamento das mensalidades + emitir boleto/PIX |
 | Suporte | `/internal/support` | Fila de tickets |
 | Gateway Pay | `/internal/gateway` | Credenciais Asaas da plataforma |
+| Saúde | `/internal/health` | Monitor em tempo real: fila, webhooks, NF-e em erro, atraso + status geral |
 
 ### 8.3 Métricas do Overview
 

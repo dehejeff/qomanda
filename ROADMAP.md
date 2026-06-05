@@ -153,6 +153,7 @@
 - [x] Configuração NF-e ao consumidor (Focus NFe, status, leitura WhatsApp)
 - [x] Painel NF-e de serviço (Qomanda → restaurante) — estrutura UI, emissão em breve
 - [x] **Cobrança** — painel consolidado de mensalidades: status por cliente (paga / a vencer / em atraso com dias) + KPIs + emitir boleto/PIX + marcar paga + **e-mail automático ao gerar/atrasar** (cron diário) + **exportação CSV**
+- [x] **Saúde do sistema** — `/internal/health`: monitor em tempo real (auto-refresh) da fila, webhooks, NF-e em erro e faturas em atraso, com status geral e feed de erros (independe do Sentry)
 - [x] **Suporte** — fila interna de tickets com resposta staff e anexos
 - [x] **Gateway Pay** — configuração Asaas da plataforma (credenciais criptografadas)
 - [x] Script `scripts/setup-internal-staff.mjs` para provisionar contas da equipe
@@ -426,7 +427,7 @@ Cliente confirma pagamento
 | Onboarding restaurante | ✅ Completo | 92% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Infraestrutura & escala | ⚠️ Parcial | 20% |
-| Observabilidade (Sentry, alertas) | ⚠️ Parcial | 70% |
+| Observabilidade (Sentry + painel interno) | ⚠️ Parcial | 85% |
 | Multi-unidades | 🔴 Faltando | 0% |
 
 ---

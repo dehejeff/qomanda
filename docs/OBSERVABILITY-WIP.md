@@ -35,6 +35,19 @@ por isso recebem `captureError` manual:
 Erros **não tratados** em route handlers / server components são capturados automaticamente
 pelo `onRequestError` (`src/instrumentation.ts`).
 
+## Painel interno em tempo real (sem depender do Sentry)
+
+`/internal/health` ("Saúde") mostra os sinais operacionais já persistidos no banco, com
+**auto-refresh (15s)**:
+- **Fila** (`async_jobs`): pendentes, em erro (24h), mais antigo pendente, processados (24h)
+- **Webhooks** (`webhook_events`): erros e processados (24h)
+- **NF-e** em erro + **faturas em atraso**
+- **Status geral** 🟢/🟡/🔴 + feed dos erros recentes (job/webhook/NF-e)
+
+Camadas complementares: o **painel interno** é o raio-x operacional do dia a dia; o **Sentry**
+(externo, ao configurar o DSN) traz stack traces e alertas push.
+Libs: `src/lib/internal-health.ts` · API `GET /api/internal/health`.
+
 ## O que falta (não é código)
 
 1. **Criar conta/projeto no Sentry** e preencher `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`.

@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/internal/billing',  icon: 'receipt_long', label: 'Cobrança' },
   { href: '/internal/support',  icon: 'support_agent', label: 'Suporte' },
   { href: '/internal/gateway',  icon: 'account_balance', label: 'Gateway Pay' },
+  { href: '/internal/health',   icon: 'monitor_heart', label: 'Saúde' },
 ]
 
 export function InternalSidebar({ staffEmail }: { staffEmail: string }) {
