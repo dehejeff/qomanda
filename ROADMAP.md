@@ -373,7 +373,7 @@
 - [x] **Rate limiting** — lib plugável (`src/lib/rate-limit.ts`) aplicada em rotas públicas sensíveis (login, verify-pin, register, call-waiter); janela em memória por padrão, **Upstash REST** quando configurado (`UPSTASH_REDIS_REST_*`)
 - [ ] **Upstash Redis** — ligar o rate limit distribuído + cache de cardápio + locks de idempotência
 - [ ] **Índices e monitoramento** Postgres — `orders`, `payments`, `sessions`; alertas CPU/conexões no Supabase
-- [ ] **WhatsApp em fila** — throttle por restaurante (limites Meta)
+- [x] **WhatsApp em fila** — job `whatsapp_send` (NF-e enfileira em vez de enviar inline) com retry próprio + **throttle por restaurante** (20/min, limites Meta); worker adia sem consumir tentativa quando estoura
 - [ ] **Teste de carga** (k6/Artillery) — 10 restaurantes × 20 mesas pedindo + pagando em paralelo
 - [ ] **CDN** — imagens do cardápio (Vercel/Supabase Storage já cobrem; revisar cache headers)
 

@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { decryptSecret } from '@/lib/secret-crypto'
 import { FocusNfeAdapter } from '@/lib/nfe/focus-nfe'
 import type { NfeNoteType, NfeEmitResult } from '@/lib/nfe/types'
-import { sendRestaurantWhatsApp } from '@/lib/send-whatsapp'
 
 export type EmitNfeOutcome = {
   emitted: boolean
@@ -149,7 +148,8 @@ export async function emitNfeForPayment(
       return { emitted: false, reason: 'db_insert_failed' }
     }
 
-    // Envio WhatsApp (se ligado e cliente tem número) — só quando emitida/processando/simulada
+    // WhatsApp (se ligado e cliente tem número) — ENFILEIRADO: não bloqueia a
+    // emissão, tem retry próprio e throttle por restaurante (limites Meta).
     const deliverable = ['issued', 'processing', 'simulated'].includes(result.status)
     if (deliverable && r.whatsapp_nfe_enabled && customer.whatsapp) {
       const msg = buildNfeWhatsAppMessage({
@@ -159,10 +159,8 @@ export async function emitNfeForPayment(
         status: result.status,
         noteType,
       })
-      const sent = await sendRestaurantWhatsApp(supabase, r.id, customer.whatsapp, msg)
-      if (sent.ok) {
-        await supabase.from('nfe_invoices').update({ whatsapp_sent_at: new Date().toISOString() }).eq('id', invoice.id)
-      }
+      const { enqueueWhatsApp } = await import('@/lib/job-queue')
+      await enqueueWhatsApp(supabase, { restaurantId: r.id, to: customer.whatsapp, message: msg, invoiceId: invoice.id })
     }
 
     return { emitted: result.status !== 'error', invoiceId: invoice.id, status: result.status }

@@ -1,8 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { emitNfeForPayment } from '@/lib/nfe/emit-nfe'
 import { captureError } from '@/lib/observability'
+import { consumeRateLimit } from '@/lib/rate-limit'
+import { sendRestaurantWhatsApp } from '@/lib/send-whatsapp'
 
-export type JobType = 'nfe_emit'
+export type JobType = 'nfe_emit' | 'whatsapp_send'
+
+// Limite de mensagens WhatsApp por restaurante por minuto (limites Meta).
+const WHATSAPP_PER_MINUTE = 20
 
 export type AsyncJob = {
   id: string
@@ -40,20 +44,53 @@ export async function enqueueJob(
   }
 }
 
+/** Enfileira o envio de um WhatsApp (decoupla do fluxo que o originou). */
+export async function enqueueWhatsApp(
+  admin: SupabaseClient,
+  params: { restaurantId: string; to: string; message: string; invoiceId?: string },
+): Promise<{ ok: boolean; id?: string }> {
+  return enqueueJob(admin, 'whatsapp_send', { ...params })
+}
+
 // Backoff exponencial por tentativa (segundos): 30s, 2min, 8min, 32min...
 function backoffSeconds(attempts: number): number {
   return Math.min(30 * Math.pow(4, Math.max(0, attempts - 1)), 3600)
 }
 
-/** Handlers por tipo de job. Devem LANÇAR em falha transitória (para retry). */
-const HANDLERS: Record<string, (admin: SupabaseClient, payload: Record<string, unknown>) => Promise<void>> = {
+/** Resultado opcional de handler: adiar o job sem contar como falha/tentativa. */
+type HandlerResult = void | { deferSec: number }
+
+/** Handlers por tipo de job. LANÇAM em falha transitória (retry); retornam
+ *  { deferSec } para reagendar sem consumir tentativa (ex.: throttle). */
+const HANDLERS: Record<string, (admin: SupabaseClient, payload: Record<string, unknown>) => Promise<HandlerResult>> = {
   nfe_emit: async (admin, payload) => {
     const paymentId = String(payload.paymentId ?? '')
     if (!paymentId) return
+    // Import dinâmico evita ciclo emit-nfe ↔ job-queue.
+    const { emitNfeForPayment } = await import('@/lib/nfe/emit-nfe')
     const outcome = await emitNfeForPayment(admin, paymentId)
-    // emitNfeForPayment é best-effort e idempotente; só pede retry em falha transitória.
     if (!outcome.emitted && (outcome.reason === 'exception' || outcome.reason === 'db_insert_failed')) {
       throw new Error(`nfe_emit transitório: ${outcome.reason}`)
+    }
+  },
+
+  whatsapp_send: async (admin, payload) => {
+    const restaurantId = String(payload.restaurantId ?? '')
+    const to = String(payload.to ?? '')
+    const message = String(payload.message ?? '')
+    const invoiceId = payload.invoiceId ? String(payload.invoiceId) : null
+    if (!restaurantId || !to || !message) return // payload inválido → descarta
+
+    // Throttle por restaurante (limites Meta). Estourou → adia ~20s sem falhar.
+    const allowed = await consumeRateLimit(`wa:${restaurantId}`, WHATSAPP_PER_MINUTE, 60)
+    if (!allowed) return { deferSec: 20 }
+
+    const sent = await sendRestaurantWhatsApp(admin, restaurantId, to, message)
+    if (!sent.ok && !sent.mock) {
+      throw new Error(sent.error ?? 'falha ao enviar WhatsApp') // retry/backoff
+    }
+    if (invoiceId) {
+      await admin.from('nfe_invoices').update({ whatsapp_sent_at: new Date().toISOString() }).eq('id', invoiceId)
     }
   },
 }
@@ -66,7 +103,7 @@ const HANDLERS: Record<string, (admin: SupabaseClient, payload: Record<string, u
 export async function processDueJobs(
   admin: SupabaseClient,
   opts: { limit?: number } = {},
-): Promise<{ claimed: number; done: number; failed: number; retried: number }> {
+): Promise<{ claimed: number; done: number; failed: number; retried: number; deferred: number }> {
   const limit = opts.limit ?? 20
   const nowIso = new Date().toISOString()
 
@@ -78,7 +115,7 @@ export async function processDueJobs(
     .order('run_after', { ascending: true })
     .limit(limit)
 
-  let claimed = 0, done = 0, failed = 0, retried = 0
+  let claimed = 0, done = 0, failed = 0, retried = 0, deferred = 0
 
   for (const job of (due ?? []) as AsyncJob[]) {
     // Reivindica: só processa se conseguir mover pending→processing.
@@ -100,7 +137,14 @@ export async function processDueJobs(
     }
 
     try {
-      await handler(admin, job.payload ?? {})
+      const result = await handler(admin, job.payload ?? {})
+      if (result && typeof result === 'object' && 'deferSec' in result) {
+        // Adia sem contar como tentativa nem como erro (ex.: throttle).
+        const runAfter = new Date(Date.now() + result.deferSec * 1000).toISOString()
+        await admin.from('async_jobs').update({ status: 'pending', run_after: runAfter, attempts: job.attempts }).eq('id', job.id)
+        deferred++
+        continue
+      }
       await admin.from('async_jobs').update({ status: 'done', last_error: null }).eq('id', job.id)
       done++
     } catch (err) {
@@ -119,5 +163,5 @@ export async function processDueJobs(
     }
   }
 
-  return { claimed, done, failed, retried }
+  return { claimed, done, failed, retried, deferred }
 }

@@ -737,7 +737,11 @@ hora, para o checkout não travar/falhar se o provedor fiscal/WhatsApp estiver l
   (`enqueueJob` best-effort, `processDueJobs` com claim otimista + retry/backoff
   exponencial 30s→2min→8min…). `run_after` usa relógio do app (evita skew com o DB).
 - Worker: `GET/POST /api/cron/process-jobs` (auth `CRON_SECRET`), agendado a cada
-  minuto no `vercel.json`. Handler `nfe_emit` chama `emitNfeForPayment` (idempotente).
+  minuto no `vercel.json`. Handlers: `nfe_emit` (idempotente) e `whatsapp_send`.
+- **WhatsApp em fila**: `emitNfeForPayment` não envia inline — enfileira `whatsapp_send`
+  (retry próprio + **throttle por restaurante** 20/min via `consumeRateLimit`; ao
+  estourar, o handler retorna `{ deferSec }` e o worker reagenda sem consumir tentativa).
+  Ao enviar, marca `nfe_invoices.whatsapp_sent_at`.
 - Degradável: sem a tabela, `enqueueJob` falha silenciosamente sem quebrar o pagamento.
 
 ### 10.9 Chamar Garçom (notificação realtime)

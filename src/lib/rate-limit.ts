@@ -72,6 +72,16 @@ export async function rateLimit(
   return viaUpstash ?? memoryLimit(fullKey, opts.limit, opts.windowSec)
 }
 
+/**
+ * Consome 1 token de um limite por chave arbitrária (não-HTTP) — ex.: throttle
+ * por restaurante em jobs. Retorna true se permitido. Usa Upstash se configurado.
+ */
+export async function consumeRateLimit(key: string, limit: number, windowSec: number): Promise<boolean> {
+  const fullKey = `rl:${key}`
+  const viaUpstash = await upstashLimit(fullKey, limit, windowSec)
+  return (viaUpstash ?? memoryLimit(fullKey, limit, windowSec)).allowed
+}
+
 /** Resposta padrão 429 com Retry-After. */
 export function tooManyRequests(retryAfter: number): NextResponse {
   return NextResponse.json(
