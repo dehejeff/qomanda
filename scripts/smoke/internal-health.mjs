@@ -78,6 +78,13 @@ async function main() {
   const txt = await page.locator('body').innerText().catch(() => '')
   check('UI: título + seção de erros', /Saúde do sistema/i.test(txt) && /Erros recentes/i.test(txt))
 
+  // Banner de saúde no Overview
+  await page.goto(`${BASE}/internal`, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(3500)
+  const ovTxt = await page.locator('body').innerText().catch(() => '')
+  const hasBanner = /Saúde/i.test(ovTxt) && /Cr[ií]tico/i.test(ovTxt) && /Ver detalhes/i.test(ovTxt)
+  check('Overview mostra o banner de saúde (crítico + ver detalhes)', hasBanner)
+
   // auth
   const anon = await browser.newContext()
   const anonRes = await anon.request.get(`${BASE}/api/internal/health`)

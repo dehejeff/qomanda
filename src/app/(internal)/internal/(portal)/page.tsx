@@ -11,6 +11,7 @@ import {
   StatCard,
 } from '@/components/internal/overview-charts'
 import type { InternalOverviewData } from '@/lib/internal-overview'
+import { OverviewHealthBanner } from '@/components/internal/overview-health-banner'
 
 const STATUS_LABEL: Record<string, string> = {
   trialing: 'Trial',
@@ -106,6 +107,9 @@ export default function InternalOverviewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Sinal de saúde do sistema (verde/amarelo/vermelho) */}
+      <OverviewHealthBanner />
 
       {/* KPIs — receita Qomanda vs volume restaurante */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
