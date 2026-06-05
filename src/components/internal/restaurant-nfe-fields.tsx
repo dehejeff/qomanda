@@ -78,15 +78,20 @@ type Props = {
   hasExistingToken?: boolean
   /** Sem borda superior (uso em abas) */
   embedded?: boolean
+  /** Portal interno vs painel do restaurante */
+  audience?: 'staff' | 'restaurant'
   whatsappStatus?: RestaurantWhatsAppStatus | null
 }
 
-export function RestaurantNfeFields({ form, setForm, documentType, hasExistingToken, embedded, whatsappStatus }: Props) {
+export function RestaurantNfeFields({ form, setForm, documentType, hasExistingToken, embedded, audience = 'staff', whatsappStatus }: Props) {
   function patch(p: Partial<NfeFormState>) {
     setForm(prev => {
       const next = { ...prev, ...p }
       if (p.nfeEnabled === true && prev.nfeStatus === 'disabled') {
         next.nfeStatus = 'pending'
+        if (documentType === 'cpf' && !next.nfeTaxRegime) {
+          next.nfeTaxRegime = 'mei'
+        }
       }
       if (p.nfeEnabled === false) {
         next.nfeStatus = 'disabled'
@@ -97,15 +102,29 @@ export function RestaurantNfeFields({ form, setForm, documentType, hasExistingTo
 
   const isCnpj = documentType !== 'cpf'
 
+  const isRestaurant = audience === 'restaurant'
+
   return (
     <section className={embedded ? 'space-y-4' : 'space-y-4 pt-4 border-t border-outline-variant'}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">NF-e ao cliente</p>
-          <h3 className="text-sm font-semibold text-on-surface mt-1">Nota fiscal do restaurante → consumidor</h3>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+            {isRestaurant ? 'Emissor de notas' : 'NF-e ao cliente'}
+          </p>
+          <h3 className="text-sm font-semibold text-on-surface mt-1">
+            {isRestaurant
+              ? 'Configure a emissão para seus clientes'
+              : 'Nota fiscal do restaurante → consumidor'}
+          </h3>
           <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-            Configura como <strong className="text-on-surface font-medium">este restaurante</strong> emite nota para quem pagou a conta na mesa
-            (Focus NFe, NFe.io, etc.). Pode ser enviada ao cliente no WhatsApp após o pagamento.
+            {isRestaurant
+              ? 'Escolha o provedor homologado, informe o token de API e os dados fiscais. A nota é emitida automaticamente após cada pagamento confirmado.'
+              : (
+                <>
+                  Configura como <strong className="text-on-surface font-medium">este restaurante</strong> emite nota para quem pagou a conta na mesa
+                  (Focus NFe, NFe.io, etc.). Pode ser enviada ao cliente no WhatsApp após o pagamento.
+                </>
+              )}
           </p>
         </div>
         <span className={`text-[10px] font-mono uppercase px-2 py-1 rounded border shrink-0 ${
@@ -119,10 +138,12 @@ export function RestaurantNfeFields({ form, setForm, documentType, hasExistingTo
         </span>
       </div>
 
-      <div className="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant leading-relaxed">
-        <span className="font-semibold text-on-surface">Não confundir:</span> isto <em>não</em> é a nota que a Qomanda emite para cobrar mensalidade ou taxa de transação do restaurante.
-        A cobrança Qomanda → restaurante fica na aba <span className="font-mono text-on-surface">Plano Qomanda</span> e na aba <span className="font-mono text-on-surface">NF-e serviço</span>.
-      </div>
+      {!isRestaurant && (
+        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant leading-relaxed">
+          <span className="font-semibold text-on-surface">Não confundir:</span> isto <em>não</em> é a nota que a Qomanda emite para cobrar mensalidade ou taxa de transação do restaurante.
+          A cobrança Qomanda → restaurante fica na aba <span className="font-mono text-on-surface">Plano Qomanda</span> e na aba <span className="font-mono text-on-surface">NF-e serviço</span>.
+        </div>
+      )}
 
       <label className="flex items-start gap-3 cursor-pointer">
         <input
@@ -214,7 +235,13 @@ export function RestaurantNfeFields({ form, setForm, documentType, hasExistingTo
             <RestaurantWhatsAppStatusPanel whatsapp={whatsappStatus} embedded />
           )}
 
-          <Field label="Observações internas (setup NF-e cliente)" value={form.nfeNotes} onChange={v => patch({ nfeNotes: v })}
+          {isRestaurant && (
+            <p className="text-xs text-on-surface-variant px-1">
+              Para enviar a nota ao WhatsApp do cliente, ative o envio automático na seção <span className="font-mono text-on-surface">WhatsApp Business API</span> acima.
+            </p>
+          )}
+
+          <Field label={isRestaurant ? 'Observações (opcional)' : 'Observações internas (setup NF-e cliente)'} value={form.nfeNotes} onChange={v => patch({ nfeNotes: v })}
             placeholder="Ex.: certificado A1 enviado ao Focus em 30/05/2026" multiline />
         </div>
       )}

@@ -16,6 +16,7 @@ import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gateway-panel'
 import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billing-panel'
 import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
+import { RestaurantNfePanel } from '@/components/dashboard/restaurant-nfe-panel'
 
 type Tab = 'perfil' | 'pagamentos' | 'mensalidade' | 'notas' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
 
@@ -1612,6 +1613,9 @@ export default function SettingsPage() {
                   <input
                     value={wpPhoneId} onChange={e => setWpPhoneId(e.target.value)}
                     placeholder="Ex: 123456789012345"
+                    name="qomanda-whatsapp-phone-id"
+                    autoComplete="off"
+                    inputMode="numeric"
                     className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
                   />
                   <p className="text-[10px] text-on-surface-variant opacity-60">
@@ -1625,6 +1629,8 @@ export default function SettingsPage() {
                   <input
                     type="password" value={wpToken} onChange={e => setWpToken(e.target.value)}
                     placeholder={wpIntegration?.hasToken ? `Salvo (${wpIntegration.tokenMasked ?? '••••'}) — deixe vazio para manter` : 'EAAxxxxxxxxxxxxx...'}
+                    name="qomanda-whatsapp-access-token"
+                    autoComplete="new-password"
                     className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
                   />
                   <p className="text-[10px] text-on-surface-variant opacity-60">
@@ -1640,6 +1646,8 @@ export default function SettingsPage() {
                 <input
                   value={wpTestPhone} onChange={e => setWpTestPhone(e.target.value)}
                   placeholder="Usa telefone comercial se vazio"
+                  name="qomanda-whatsapp-test-phone"
+                  autoComplete="off"
                   inputMode="tel"
                   className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
                 />
@@ -1676,42 +1684,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* NF-e */}
-          <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-            <div className="px-6 py-4 flex items-center gap-4 border-b border-outline-variant">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                style={{ background: 'rgba(123,208,255,0.1)', border: '1px solid rgba(123,208,255,0.2)' }}>
-                🧾
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-on-surface">Nota Fiscal Eletrônica (NF-e)</h3>
-                <p className="text-sm text-on-surface-variant mt-0.5">
-                  Emissão automática de NF-e integrada com Focus NFe, NFe.io ou similar. Documento oficial aceito para reembolso corporativo.
-                </p>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: 'rgba(88,66,55,0.2)', color: '#a78b7d', border: '1px solid rgba(88,66,55,0.3)' }}>
-                EM BREVE
-              </span>
-            </div>
-            <div className="px-6 py-5 space-y-3">
-              {[
-                { icon: 'business',        text: 'CNPJ do restaurante + certificado digital A1' },
-                { icon: 'receipt_long',    text: 'Emissão automática via SEFAZ após pagamento' },
-                { icon: 'call_split',      text: 'NF-e separada: alimentação (reembolsável) e bebidas (pessoal)' },
-                { icon: 'send',            text: 'Envio automático por WhatsApp ao CPF do cliente' },
-              ].map(item => (
-                <div key={item.text} className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] shrink-0 text-on-surface-variant opacity-50">{item.icon}</span>
-                  <p className="text-sm text-on-surface-variant">{item.text}</p>
-                </div>
-              ))}
-              <div className="mt-2 px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low">
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  <span className="font-semibold text-on-surface">Para configurar:</span> o restaurante precisa de CNPJ ativo, certificado digital A1 e conta em um provedor homologado (Focus NFe, NFe.io, Nota Simples, etc.). Entre em contato: <span className="text-primary font-mono">contato@qomanda.com.br</span>
-                </p>
-              </div>
-            </div>
-          </div>
+          <RestaurantNfePanel />
 
         </div>
       )}

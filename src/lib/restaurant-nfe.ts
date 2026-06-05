@@ -103,53 +103,71 @@ export function nfeProfileFromRow(row: Record<string, unknown>): RestaurantNfePr
   }
 }
 
-export function validateRestaurantNfe(input: RestaurantNfeInput, documentType?: 'cpf' | 'cnpj' | null): string | null {
-  const enabled = input.nfeEnabled ?? input.nfeStatus !== 'disabled'
-  if (!enabled && input.nfeStatus !== 'pending') return null
+/** Preenche defaults do formulário (ex.: MEI visível no select mas ainda vazio no state). */
+export function normalizeRestaurantNfeInput(
+  input: RestaurantNfeInput,
+  documentType?: 'cpf' | 'cnpj' | null,
+): RestaurantNfeInput {
+  const next = { ...input }
+  if (documentType === 'cpf' && !next.nfeTaxRegime) {
+    next.nfeTaxRegime = 'mei'
+  }
+  return next
+}
 
-  if (documentType === 'cpf' && input.nfeStatus === 'active') {
-    // MEI pode emitir NFS-e — exige menos campos
-    if (!input.nfeProvider) return 'Selecione o emissor de notas.'
+export function validateRestaurantNfe(input: RestaurantNfeInput, documentType?: 'cpf' | 'cnpj' | null): string | null {
+  const normalized = normalizeRestaurantNfeInput(input, documentType)
+  const enabled = normalized.nfeEnabled ?? normalized.nfeStatus !== 'disabled'
+  if (!enabled && normalized.nfeStatus !== 'pending') return null
+
+  if (documentType === 'cpf' && (normalized.nfeStatus === 'active' || normalized.nfeStatus === 'pending')) {
+    // MEI/autônomo — regime padrão mei; IE/CNAE opcionais em pendente
+    if (!normalized.nfeProvider) return 'Selecione o emissor de notas.'
+    if (normalized.nfeStatus === 'active' && normalized.nfeCnae) {
+      const digits = normalized.nfeCnae.replace(/\D/g, '')
+      if (digits && !/^\d{7}$/.test(digits)) return 'CNAE deve ter 7 dígitos.'
+    }
     return null
   }
 
-  if (!input.nfeProvider) return 'Selecione o provedor de NF-e.'
-  if (!input.nfeTaxRegime) return 'Selecione o regime tributário.'
-  if (!input.nfeStateRegistration?.trim()) return 'Informe a Inscrição Estadual (ou ISENTO).'
-  if (!input.nfeCnae?.trim()) return 'Informe o CNAE principal.'
-  if (input.nfeCnae && !/^\d{7}$/.test(input.nfeCnae.replace(/\D/g, ''))) {
+  if (!normalized.nfeProvider) return 'Selecione o provedor de NF-e.'
+  if (!normalized.nfeTaxRegime) return 'Selecione o regime tributário.'
+  if (!normalized.nfeStateRegistration?.trim()) return 'Informe a Inscrição Estadual (ou ISENTO).'
+  if (!normalized.nfeCnae?.trim()) return 'Informe o CNAE principal.'
+  if (normalized.nfeCnae && !/^\d{7}$/.test(normalized.nfeCnae.replace(/\D/g, ''))) {
     return 'CNAE deve ter 7 dígitos.'
   }
 
   return null
 }
 
-export function nfeFieldsToDb(input: RestaurantNfeInput, existingTokenEncrypted?: string | null) {
-  const enabled = Boolean(input.nfeEnabled)
-  const status = input.nfeStatus ?? (enabled ? 'pending' : 'disabled')
+export function nfeFieldsToDb(input: RestaurantNfeInput, existingTokenEncrypted?: string | null, documentType?: 'cpf' | 'cnpj' | null) {
+  const normalized = normalizeRestaurantNfeInput(input, documentType)
+  const enabled = Boolean(normalized.nfeEnabled)
+  const status = normalized.nfeStatus ?? (enabled ? 'pending' : 'disabled')
   const now = new Date().toISOString()
 
   const patch: Record<string, unknown> = {
     nfe_enabled: enabled,
     nfe_status: status,
-    nfe_environment: input.nfeEnvironment ?? 'homologacao',
-    nfe_provider: input.nfeProvider || null,
-    nfe_note_type: input.nfeNoteType || null,
-    nfe_provider_company_id: input.nfeProviderCompanyId?.trim() || null,
-    nfe_state_registration: input.nfeStateRegistration?.trim().toUpperCase() || null,
-    nfe_municipal_registration: input.nfeMunicipalRegistration?.trim() || null,
-    nfe_tax_regime: input.nfeTaxRegime || null,
-    nfe_cnae: input.nfeCnae?.replace(/\D/g, '') || null,
-    nfe_invoice_series: input.nfeInvoiceSeries?.trim() || '1',
-    nfe_next_invoice_number: input.nfeNextInvoiceNumber
-      ? Number(input.nfeNextInvoiceNumber)
+    nfe_environment: normalized.nfeEnvironment ?? 'homologacao',
+    nfe_provider: normalized.nfeProvider || null,
+    nfe_note_type: normalized.nfeNoteType || null,
+    nfe_provider_company_id: normalized.nfeProviderCompanyId?.trim() || null,
+    nfe_state_registration: normalized.nfeStateRegistration?.trim().toUpperCase() || null,
+    nfe_municipal_registration: normalized.nfeMunicipalRegistration?.trim() || null,
+    nfe_tax_regime: normalized.nfeTaxRegime || null,
+    nfe_cnae: normalized.nfeCnae?.replace(/\D/g, '') || null,
+    nfe_invoice_series: normalized.nfeInvoiceSeries?.trim() || '1',
+    nfe_next_invoice_number: normalized.nfeNextInvoiceNumber
+      ? Number(normalized.nfeNextInvoiceNumber)
       : null,
-    nfe_auto_emit: Boolean(input.nfeAutoEmit),
-    nfe_split_food_drinks: input.nfeSplitFoodDrinks !== false,
-    nfe_notes: input.nfeNotes?.trim() || null,
+    nfe_auto_emit: Boolean(normalized.nfeAutoEmit),
+    nfe_split_food_drinks: normalized.nfeSplitFoodDrinks !== false,
+    nfe_notes: normalized.nfeNotes?.trim() || null,
   }
 
-  const token = input.nfeProviderToken?.trim()
+  const token = normalized.nfeProviderToken?.trim()
   if (token) {
     patch.nfe_provider_token_encrypted = encryptSecret(token)
   }
