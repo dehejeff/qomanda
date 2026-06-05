@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { emitNfeForPayment } from '@/lib/nfe/emit-nfe'
+import { captureError } from '@/lib/observability'
 
 export type JobType = 'nfe_emit'
 
@@ -107,6 +108,8 @@ export async function processDueJobs(
       const message = err instanceof Error ? err.message : String(err)
       if (attempts >= job.max_attempts) {
         await admin.from('async_jobs').update({ status: 'error', last_error: message }).eq('id', job.id)
+        // Job esgotou as tentativas → reporta (não passa pelo onRequestError).
+        await captureError(err, { scope: `job:${job.type}`, extra: { jobId: job.id, attempts, payload: job.payload } })
         failed++
       } else {
         const runAfter = new Date(Date.now() + backoffSeconds(attempts) * 1000).toISOString()

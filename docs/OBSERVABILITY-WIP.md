@@ -1,7 +1,8 @@
-# Observabilidade (Sentry) — EM ANDAMENTO
+# Observabilidade (Sentry)
 
-> Status: **parcial** (parado em 2026-06-04). Integração degradável já no ar; falta
-> wiring nos caminhos de background, variáveis de ambiente e validação com DSN real.
+> Status: **base + wiring concluídos** (2026-06-04). Integração degradável no ar,
+> `captureError` ligado nos caminhos de background, env vars documentadas.
+> Falta apenas: **criar conta/DSN no Sentry + configurar alertas** (não é código).
 
 ## Decisões de arquitetura
 
@@ -22,21 +23,24 @@
 
 Verificado: typecheck limpo + dev server sobe e responde 200 (no-op sem DSN).
 
-## O que falta (retomar daqui)
+## Wiring concluído (`captureError` nos caminhos que engolem erro)
 
-1. **Wire `captureError` nos caminhos que engolem erro** (não passam pelo `onRequestError`,
-   pois fazem catch e retornam 500):
-   - `src/lib/job-queue.ts` → `processDueJobs` (falha de job, ex.: `nfe_emit`)
-   - `src/app/api/asaas/webhook/route.ts` e `src/app/api/mercadopago/webhook/route.ts` (catch)
-   - opcional: crons (`process-jobs`, `monthly-billing`, `billing-reminders`)
-   - Padrão: `await captureError(err, { scope: 'job:nfe_emit', extra: {...} })`
-2. **Variáveis de ambiente** (documentar em `docs/DOCUMENTACAO.md` §16):
-   - `SENTRY_DSN` (server), `NEXT_PUBLIC_SENTRY_DSN` (client)
-   - opcionais: `SENTRY_TRACES_SAMPLE_RATE`, `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
-3. **Alertas** (5xx, fila, Supabase) — configurar no projeto Sentry após criar a conta/DSN.
-4. **(Opcional) Source maps** — upload via CI quando houver build pipeline dedicado.
-5. **Validação E2E** com DSN de teste: disparar um erro e confirmar captura
-   (sem DSN só dá pra validar a degradação, já feita).
+Esses pontos fazem catch e retornam sem relançar, então **não** passam pelo `onRequestError` —
+por isso recebem `captureError` manual:
+- [x] `src/lib/job-queue.ts` → `processDueJobs` (job esgotou tentativas) — `scope: job:<type>`
+- [x] `src/app/api/asaas/webhook/route.ts` (catch) — `scope: webhook:asaas`
+- [x] `src/app/api/mercadopago/webhook/route.ts` (catch) — `scope: webhook:mercado_pago`
+- [x] Variáveis de ambiente documentadas em `docs/DOCUMENTACAO.md` §16
+
+Erros **não tratados** em route handlers / server components são capturados automaticamente
+pelo `onRequestError` (`src/instrumentation.ts`).
+
+## O que falta (não é código)
+
+1. **Criar conta/projeto no Sentry** e preencher `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`.
+2. **Alertas** (5xx, falha de job/fila, erros de webhook) — configurar no projeto Sentry.
+3. **(Opcional) Source maps** — upload via CI quando houver pipeline dedicado.
+4. **(Opcional) Mais `captureError`** em crons (`monthly-billing`, `billing-reminders`) se quiser granularidade.
 
 ## Como ligar (quando tiver conta Sentry)
 

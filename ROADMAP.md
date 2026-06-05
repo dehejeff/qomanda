@@ -26,7 +26,7 @@
 | **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
-| **P0** | **Finalizar observabilidade — Sentry + alertas (5xx, fila, Supabase)** — prioridade de go-live | 🔧 Em andamento — base degradável pronta (`docs/OBSERVABILITY-WIP.md`); falta wiring + DSN |
+| **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ Código pronto (base + wiring) · falta criar conta/DSN + alertas (`docs/OBSERVABILITY-WIP.md`) |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
@@ -426,7 +426,7 @@ Cliente confirma pagamento
 | Onboarding restaurante | ✅ Completo | 92% |
 | Legal (Termos + Privacidade) | ✅ Completo | 100% |
 | Infraestrutura & escala | ⚠️ Parcial | 20% |
-| Observabilidade (Sentry, alertas) | 🔴 Faltando | 10% |
+| Observabilidade (Sentry, alertas) | ⚠️ Parcial | 70% |
 | Multi-unidades | 🔴 Faltando | 0% |
 
 ---

@@ -8,6 +8,7 @@ import {
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
 import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
 import { claimWebhookEvent, finishWebhookEvent } from '@/lib/webhook-idempotency'
+import { captureError } from '@/lib/observability'
 
 /**
  * POST /api/mercadopago/webhook
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[Mercado Pago Webhook Error]', err)
+    await captureError(err, { scope: 'webhook:mercado_pago' })
     return NextResponse.json({ ok: true })
   }
 }

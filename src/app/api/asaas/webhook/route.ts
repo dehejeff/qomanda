@@ -4,6 +4,7 @@ import { isPaymentConfirmed, type AsaasPaymentStatus } from '@/lib/asaas'
 import { getAsaasConfig } from '@/lib/asaas-config'
 import { confirmPaymentRecord } from '@/lib/confirm-payment'
 import { claimWebhookEvent, finishWebhookEvent } from '@/lib/webhook-idempotency'
+import { captureError } from '@/lib/observability'
 
 /**
  * POST /api/asaas/webhook
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[Asaas Webhook Error]', err)
+    await captureError(err, { scope: 'webhook:asaas' })
     if (eventRowId) {
       try {
         await finishWebhookEvent(createAdminClient(), eventRowId, 'error', err instanceof Error ? err.message : String(err))

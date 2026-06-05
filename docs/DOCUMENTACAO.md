@@ -1190,6 +1190,12 @@ QOMANDA_NFE_SERVICE_DESCRIPTION=Assinatura e taxas da plataforma Qomanda
 # Redirect URI a cadastrar no app MP: https://qomanda.app/api/dashboard/gateway/mercadopago/callback
 MERCADO_PAGO_CLIENT_ID=
 MERCADO_PAGO_CLIENT_SECRET=
+
+# Observabilidade (Sentry) — opcional; sem DSN o SDK não é carregado (no-op)
+SENTRY_DSN=                          # server (API routes, jobs, webhooks)
+NEXT_PUBLIC_SENTRY_DSN=              # client (browser)
+SENTRY_TRACES_SAMPLE_RATE=0          # opcional (0–1) — tracing de performance
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0
 ```
 
 ---
