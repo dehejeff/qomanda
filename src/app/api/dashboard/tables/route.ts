@@ -23,6 +23,33 @@ export async function POST(req: NextRequest) {
   try {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
+
+    const body = await req.json().catch(() => ({})) as { number?: string; kind?: 'table' | 'counter' }
+    const kind = body.kind === 'counter' ? 'counter' : 'table'
+
+    // Balcão: "mesa" especial (number = BALCAO). Só faz sentido se o modelo
+    // inclui balcão; no modo apenas-mesas (dine_in) é bloqueado.
+    if (kind === 'counter') {
+      if (access.operationalMode === 'dine_in') {
+        return NextResponse.json({ error: 'Balcão indisponível no modo apenas mesas.' }, { status: 400 })
+      }
+      const { data: existing } = await admin
+        .from('tables')
+        .select('*')
+        .eq('restaurant_id', access.restaurantId)
+        .eq('number', 'BALCAO')
+        .maybeSingle()
+      if (existing) return NextResponse.json({ table: existing }, { status: 200 })
+
+      const { data: created, error: counterErr } = await admin
+        .from('tables')
+        .insert({ restaurant_id: access.restaurantId, number: 'BALCAO', status: 'free' })
+        .select()
+        .single()
+      if (counterErr) return NextResponse.json({ error: 'Erro ao adicionar balcão.' }, { status: 400 })
+      return NextResponse.json({ table: created }, { status: 201 })
+    }
+
     const limits = await getRestaurantPlanLimits(admin, access.restaurantId)
 
     if (!limits.canAddTable) {
@@ -36,7 +63,6 @@ export async function POST(req: NextRequest) {
       }, { status: 403 })
     }
 
-    const body = await req.json().catch(() => ({})) as { number?: string }
     let tableNumber = body.number?.trim()
 
     if (!tableNumber) {

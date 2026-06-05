@@ -681,6 +681,7 @@ export default function LandingPage() {
             <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>
           </div>
           <div className="flex items-center gap-6 text-sm" style={{ ...mono, color: C.faint }}>
+            <Link href="/integracoes" className="hover:opacity-80 transition-opacity">Integrações</Link>
             <Link href="/roadmap" className="hover:opacity-80 transition-opacity">Roadmap</Link>
             <Link href="/termos" className="hover:opacity-80 transition-opacity">Termos de uso</Link>
             <Link href="/privacidade" className="hover:opacity-80 transition-opacity">Privacidade</Link>

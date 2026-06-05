@@ -94,18 +94,22 @@ export default function TablesPage() {
     return () => { if (ch) supabase.removeChannel(ch) }
   }, [])
 
-  async function addTable() {
+  async function addTable(kind: 'table' | 'counter' = 'table') {
     setAdding(true)
     if (DEV_BYPASS) {
-      const next = nextTableNumber(tables)
+      const next = kind === 'counter' ? 'BALCAO' : nextTableNumber(tables)
       const newTable: RestaurantTable = { id: `table-${Date.now()}`, restaurant_id: restaurantId, number: next, qr_code_url: null, status: 'free', created_at: new Date().toISOString() }
       setTables(prev => sortTablesByNumber([...prev, newTable]))
-      toast.success(`Mesa ${next} criada!`)
+      toast.success(kind === 'counter' ? 'Balcão adicionado!' : `Mesa ${next} criada!`)
       setAdding(false)
       return
     }
 
-    const res = await fetch('/api/dashboard/tables', { method: 'POST' })
+    const res = await fetch('/api/dashboard/tables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind }),
+    })
     const data = await res.json()
     setAdding(false)
 
@@ -117,13 +121,13 @@ export default function TablesPage() {
     }
 
     if (!res.ok) {
-      toast.error(data.error ?? 'Erro ao adicionar mesa')
+      toast.error(data.error ?? 'Erro ao adicionar')
       return
     }
 
-    setTables(prev => sortTablesByNumber([...prev, data.table as RestaurantTable]))
+    setTables(prev => sortTablesByNumber([...prev.filter(t => t.id !== data.table.id), data.table as RestaurantTable]))
     void loadPlanLimits()
-    toast.success(`Mesa ${data.table.number} criada!`)
+    toast.success(kind === 'counter' ? 'Balcão adicionado!' : `Mesa ${data.table.number} criada!`)
   }
 
   async function deleteTable(id: string) {
@@ -169,9 +173,12 @@ export default function TablesPage() {
     }))
   }
 
-  const occupied = tables.filter((t) => t.status === 'occupied').length
-  const reserved = tables.filter((t) => t.status === 'reserved').length
-  const free     = tables.filter((t) => t.status === 'free').length
+  // Balcão é uma "mesa" especial (number=BALCAO) — não entra no grid/contagem de mesas.
+  const realTables = tables.filter((t) => t.number.toUpperCase() !== 'BALCAO')
+  const counterTable = tables.find((t) => t.number.toUpperCase() === 'BALCAO') ?? null
+  const occupied = realTables.filter((t) => t.status === 'occupied').length
+  const reserved = realTables.filter((t) => t.status === 'reserved').length
+  const free     = realTables.filter((t) => t.status === 'free').length
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -196,22 +203,34 @@ export default function TablesPage() {
           <div>
             <h2 className="text-2xl md:text-3xl font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Mesas</h2>
             <p className="text-sm text-on-surface-variant mt-0.5">
-              {tables.length} mesas cadastradas
+              {realTables.length} mesas cadastradas
               {maxTables != null && (
                 <span className="font-mono text-xs ml-2">
-                  · {tables.length}/{maxTables} ({planName})
+                  · {realTables.length}/{maxTables} ({planName})
                 </span>
               )}
             </p>
           </div>
-          <button
-            onClick={addTable}
-            disabled={adding}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 shrink-0"
-          >
-            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="material-symbols-outlined text-[18px]">add</span>}
-            <span className="hidden sm:inline">Nova Mesa</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {operationalMode === 'both' && !counterTable && (
+              <button
+                onClick={() => addTable('counter')}
+                disabled={adding}
+                className="flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant text-sm font-bold font-mono rounded-lg hover:text-on-surface transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[18px]">countertops</span>
+                <span className="hidden sm:inline">Balcão</span>
+              </button>
+            )}
+            <button
+              onClick={() => addTable('table')}
+              disabled={adding}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="material-symbols-outlined text-[18px]">add</span>}
+              <span className="hidden sm:inline">Nova Mesa</span>
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -247,18 +266,18 @@ export default function TablesPage() {
         </div>
 
         {/* Table grid */}
-        {tables.length === 0 ? (
+        {realTables.length === 0 ? (
           <div className="tonal-layer-1 ghost-border rounded-xl p-12 text-center">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-30 mb-3 block">table_restaurant</span>
             <p className="text-sm font-mono text-on-surface-variant mb-4">Nenhuma mesa cadastrada</p>
-            <button onClick={addTable} className="px-6 py-2 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity">
+            <button onClick={() => addTable('table')} className="px-6 py-2 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity">
               Adicionar primeira mesa
             </button>
           </div>
         ) : (
           <div className="tonal-layer-1 ghost-border rounded-xl p-6">
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-              {tables.map((table) => {
+              {realTables.map((table) => {
                 const s = STATUS_CONFIG[table.status] ?? STATUS_CONFIG.free
                 const isConfirming = confirmDeleteId === table.id
 
@@ -326,13 +345,26 @@ export default function TablesPage() {
               })}
             </div>
 
-            {/* Counter area */}
-            <div className="mt-8 flex justify-center">
-              <div className="px-8 py-3 bg-surface-container-highest/30 border border-outline-variant border-dashed rounded-xl flex items-center gap-3 text-on-surface-variant">
-                <span className="material-symbols-outlined text-sm">countertops</span>
-                <span className="text-xs font-mono">Área do Balcão e Cozinha</span>
+            {/* Balcão — só quando o modelo inclui balcão */}
+            {operationalMode !== 'dine_in' && (
+              <div className="mt-8 flex justify-center">
+                <div className="px-8 py-3 bg-surface-container-highest/30 border border-outline-variant border-dashed rounded-xl flex items-center gap-3 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-sm">countertops</span>
+                  <span className="text-xs font-mono">
+                    {counterTable ? 'Balcão ativo' : 'Balcão não configurado'}
+                  </span>
+                  {!counterTable && operationalMode === 'both' && (
+                    <button
+                      onClick={() => addTable('counter')}
+                      disabled={adding}
+                      className="text-xs font-mono text-primary hover:opacity-80 disabled:opacity-50"
+                    >
+                      Adicionar
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -351,7 +383,7 @@ export default function TablesPage() {
       {manageTable && (
         <TableManageModal
           table={manageTable}
-          freeTables={tables.filter((t) => t.status === 'free')}
+          freeTables={realTables.filter((t) => t.status === 'free')}
           onClose={() => setManageTable(null)}
           onTableUpdated={handleTableUpdated}
           onTableSwitched={handleTableSwitched}

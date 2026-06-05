@@ -14,10 +14,19 @@ type Member = {
 
 const MIN_PASSWORD = 6
 
+type StaffRole = 'manager' | 'waiter' | 'kitchen'
+const ROLE_OPTIONS: { id: StaffRole; label: string }[] = [
+  { id: 'waiter', label: 'Garçom' },
+  { id: 'kitchen', label: 'Cozinha' },
+  { id: 'manager', label: 'Gerente' },
+]
+const ROLE_LABEL: Record<string, string> = { owner: 'Dono', manager: 'Gerente', waiter: 'Garçom', kitchen: 'Cozinha' }
+
 export function RestaurantTeamPanel() {
   const [members, setMembers] = useState<Member[]>([])
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [role, setRole] = useState<StaffRole>('waiter')
   const [password, setPassword] = useState('')
   const [adding, setAdding] = useState(false)
   const [resetFor, setResetFor] = useState<string | null>(null)
@@ -43,16 +52,17 @@ export function RestaurantTeamPanel() {
       const res = await fetch('/api/dashboard/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, role: 'waiter', password: password || undefined }),
+        body: JSON.stringify({ email, name, role, password: password || undefined }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? 'Erro ao adicionar.'); return }
+      const acessa = role === 'manager' ? '/dashboard (painel)' : '/garcom no celular'
       toast.success(
         password
-          ? 'Garçom criado com senha. Acesso em /garcom no celular.'
-          : 'Garçom adicionado (sem senha). Defina uma senha para liberar o login.',
+          ? `${ROLE_LABEL[role]} criado com senha. Acesso em ${acessa}.`
+          : `${ROLE_LABEL[role]} adicionado (sem senha). Defina uma senha para liberar o login.`,
       )
-      setEmail(''); setName(''); setPassword('')
+      setEmail(''); setName(''); setPassword(''); setRole('waiter')
       load()
     } finally {
       setAdding(false)
@@ -106,7 +116,7 @@ export function RestaurantTeamPanel() {
         <span className="font-mono">/login?perfil=garcom</span> no celular.
       </p>
 
-      <form onSubmit={add} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2">
+      <form onSubmit={add} className="grid grid-cols-1 sm:grid-cols-[1.3fr_1fr_auto_1fr_auto] gap-2">
         <input
           type="email"
           required
@@ -121,6 +131,14 @@ export function RestaurantTeamPanel() {
           onChange={e => setName(e.target.value)}
           className="px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm"
         />
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value as StaffRole)}
+          aria-label="Perfil do colaborador"
+          className="px-3 py-2 rounded-lg bg-surface-dim border border-outline-variant text-sm"
+        >
+          {ROLE_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
         <input
           type="password"
           placeholder={`Senha (mín. ${MIN_PASSWORD})`}
@@ -137,6 +155,9 @@ export function RestaurantTeamPanel() {
           {adding ? 'Salvando…' : 'Adicionar'}
         </button>
       </form>
+      <p className="text-[11px] text-on-surface-variant">
+        <strong>Garçom/Cozinha</strong> acessam o app <span className="font-mono">/garcom</span>; <strong>Gerente</strong> acessa o painel <span className="font-mono">/dashboard</span>.
+      </p>
 
       <ul className="space-y-2">
         {members.map(m => {
@@ -148,7 +169,7 @@ export function RestaurantTeamPanel() {
                   <span className={`font-medium ${m.active ? 'text-on-surface' : 'text-on-surface-variant line-through'}`}>
                     {m.name ?? m.email}
                   </span>
-                  <span className="font-mono text-on-surface-variant"> · {m.role}</span>
+                  <span className="font-mono text-on-surface-variant"> · {ROLE_LABEL[m.role] ?? m.role}</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <StatusChip ok={m.active} okLabel="Ativo" offLabel="Inativo" />
                     <StatusChip ok={m.has_login} okLabel="Login" offLabel="Sem senha" warnWhenOff />

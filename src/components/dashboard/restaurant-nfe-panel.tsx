@@ -145,6 +145,16 @@ export function RestaurantNfePanel() {
               audience="restaurant"
             />
 
+            {!form.nfeEnabled && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-3">
+                <span className="material-symbols-outlined text-[20px] text-emerald-400 shrink-0">check_circle</span>
+                <div className="text-xs text-emerald-100/90 leading-relaxed">
+                  <span className="font-semibold text-emerald-300 block">Este estabelecimento não emite nota fiscal ao consumidor pela Qomanda.</span>
+                  Escolha válida — comum para quem já emite por PDV/SAT próprio. Os clientes não verão nem receberão NF-e. Para passar a emitir, marque a opção acima.
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
