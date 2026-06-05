@@ -66,7 +66,9 @@ export function WaiterTablesGrid() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => load())
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    // Poll de 20s como fallback caso realtime não esteja na publication
+    const poll = setInterval(() => { void load() }, 20_000)
+    return () => { supabase.removeChannel(ch); clearInterval(poll) }
   }, [load])
 
   if (loading) {

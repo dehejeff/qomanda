@@ -43,13 +43,18 @@ export function WaiterTableSheet({
   const [detail, setDetail] = useState<TableDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [closing, setClosing] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setApiError(null)
     try {
       const res = await fetch(`/api/dashboard/waiter/tables/${tableId}`)
       const json = await res.json()
       if (res.ok) setDetail(json)
+      else setApiError(json.error ?? 'Erro ao carregar mesa.')
+    } catch {
+      setApiError('Sem conexão. Verifique a internet.')
     } finally {
       setLoading(false)
     }
@@ -115,10 +120,23 @@ export function WaiterTableSheet({
           <div className="flex justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
           </div>
+        ) : apiError ? (
+          <div className="py-8 text-center space-y-3">
+            <span className="material-symbols-outlined text-[32px]" style={{ color: '#f87171' }}>wifi_off</span>
+            <p className="text-sm font-mono" style={{ color: '#f87171' }}>{apiError}</p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="px-4 py-2 rounded-lg text-xs font-mono"
+              style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid rgba(88,66,55,0.4)' }}
+            >
+              Tentar novamente
+            </button>
+          </div>
         ) : !detail?.session ? (
-          <p className="text-sm font-mono py-8 text-center" style={{ color: '#a78b7d' }}>
-            Mesa livre — aguardando clientes
-          </p>
+          <div className="py-8 text-center space-y-1">
+            <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Mesa livre — aguardando clientes</p>
+          </div>
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-2">

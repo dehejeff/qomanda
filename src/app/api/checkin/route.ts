@@ -109,7 +109,9 @@ export async function POST(req: NextRequest) {
       .from('sessions')
       .select('id')
       .eq('table_id', table.id)
-      .eq('status', 'open')
+      .in('status', ['open', 'closing'])
+      .order('started_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     let sessionId: string

@@ -36,8 +36,12 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
       .maybeSingle()
 
     if (!session) {
+      // Mesa aparece como occupied mas não tem sessão ativa — corrige o status
+      if (table.status === 'occupied') {
+        await admin.from('tables').update({ status: 'free' }).eq('id', tableId)
+      }
       return NextResponse.json({
-        table: { id: table.id, number: table.number, status: table.status },
+        table: { id: table.id, number: table.number, status: 'free' },
         session: null,
         participants: [],
         loyaltyAlerts: [],
