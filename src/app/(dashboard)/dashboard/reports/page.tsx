@@ -17,6 +17,7 @@ import {
 const EMPTY: AnalyticsData = {
   revenue: 0, orderCount: 0, paymentCount: 0, avgTicket: 0, daily: [],
   topItems: [], byHour: [], byWeekday: [], byMethod: [], peakHour: null, peakWeekday: null,
+  avgPerTable: 0, avgPerCustomer: 0, tablesServed: 0, customersServed: 0,
 }
 
 function buildMockData(period: ReportPeriod): AnalyticsData {
@@ -48,7 +49,12 @@ function buildMockData(period: ReportPeriod): AnalyticsData {
   ]
   const peakHour = byHour.reduce((b, h) => (h.revenue > byHour[b].revenue ? h.hour : b), 0)
   const peakWeekday = byWeekday.reduce((b, w) => (w.revenue > byWeekday[b].revenue ? w.weekday : b), 0)
-  return { revenue, orderCount, paymentCount, avgTicket: revenue / paymentCount, daily, topItems, byHour, byWeekday, byMethod, peakHour, peakWeekday }
+  const tablesServed = Math.max(1, Math.floor(paymentCount * 0.7))
+  const customersServed = Math.max(1, Math.floor(paymentCount * 0.9))
+  return {
+    revenue, orderCount, paymentCount, avgTicket: revenue / paymentCount, daily, topItems, byHour, byWeekday, byMethod, peakHour, peakWeekday,
+    tablesServed, customersServed, avgPerTable: revenue / tablesServed, avgPerCustomer: revenue / customersServed,
+  }
 }
 
 export default function ReportsPage() {
@@ -133,6 +139,22 @@ export default function ReportsPage() {
                 <p className={`text-2xl font-black mt-1 font-mono ${color}`}>{value}</p>
               </div>
             ))}
+          </div>
+
+          {/* Ticket médio por mesa e por cliente */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-card-gap">
+            <InsightCard
+              icon="table_restaurant"
+              label="Ticket médio por mesa"
+              value={formatCurrency(data.avgPerTable)}
+              hint={`${data.tablesServed} ${data.tablesServed === 1 ? 'mesa/comanda' : 'mesas/comandas'} no período`}
+            />
+            <InsightCard
+              icon="person"
+              label="Ticket médio por cliente"
+              value={formatCurrency(data.avgPerCustomer)}
+              hint={`${data.customersServed} ${data.customersServed === 1 ? 'cliente' : 'clientes'} identificados`}
+            />
           </div>
 
           {/* Insights de pico */}

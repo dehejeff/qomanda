@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 // Anti-duplo-toque: só bloqueia se já existe um chamado AINDA NÃO ATENDIDO
 // (read_at null) recente. Depois que o garçom atende, um novo chamado alerta
@@ -13,6 +14,10 @@ const THROTTLE_SECONDS = 25
  */
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit por IP (além do throttle por sessão mais abaixo).
+    const rl = await rateLimit(req, { key: 'call-waiter', limit: 20, windowSec: 60 })
+    if (!rl.allowed) return tooManyRequests(rl.retryAfter)
+
     const { sessionId, note } = await req.json() as { sessionId?: string; note?: string }
     if (!sessionId) {
       return NextResponse.json({ error: 'Sessão inválida.' }, { status: 400 })

@@ -267,7 +267,7 @@
 - [x] Ranking de pratos mais pedidos
 - [x] Análise de horário de pico (faturamento por hora + dia da semana, fuso BR)
 - [x] Métodos de pagamento (breakdown por PIX/cartão/dinheiro)
-- [ ] Ticket médio por mesa e por cliente
+- [x] Ticket médio por mesa e por cliente
 - [ ] Exportação de relatórios (CSV/PDF)
 
 ### Equipe & Permissões
@@ -370,7 +370,8 @@
 
 ### Fase 1 — Crescimento (~20–100 restaurantes)
 
-- [ ] **Upstash Redis** — rate limit por IP/restaurante, cache de cardápio, locks de idempotência
+- [x] **Rate limiting** — lib plugável (`src/lib/rate-limit.ts`) aplicada em rotas públicas sensíveis (login, verify-pin, register, call-waiter); janela em memória por padrão, **Upstash REST** quando configurado (`UPSTASH_REDIS_REST_*`)
+- [ ] **Upstash Redis** — ligar o rate limit distribuído + cache de cardápio + locks de idempotência
 - [ ] **Índices e monitoramento** Postgres — `orders`, `payments`, `sessions`; alertas CPU/conexões no Supabase
 - [ ] **WhatsApp em fila** — throttle por restaurante (limites Meta)
 - [ ] **Teste de carga** (k6/Artillery) — 10 restaurantes × 20 mesas pedindo + pagando em paralelo

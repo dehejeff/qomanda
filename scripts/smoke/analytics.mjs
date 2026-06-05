@@ -68,6 +68,7 @@ async function main() {
   check('Seção Faturamento por hora', /Faturamento por hora/i.test(text))
   check('Seção dia da semana', /dia da semana/i.test(text))
   check('Insights de pico (horário/dia)', /Horário de pico/i.test(text) && /Dia mais forte/i.test(text))
+  check('Ticket médio por mesa e por cliente', /Ticket médio por mesa/i.test(text) && /Ticket médio por cliente/i.test(text))
 
   await page.screenshot({ path: path.join(ROOT, 'scripts', 'smoke', '.cache', 'analytics.png'), fullPage: true }).catch(() => {})
   await browser.close()

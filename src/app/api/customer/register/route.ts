@@ -4,6 +4,7 @@ import { upsertCustomerRecord } from '@/lib/customer-upsert'
 import { whatsappForStorage } from '@/lib/customer-lookup'
 import { isValidWhatsApp } from '@/lib/whatsapp-normalize'
 import { isValidLoginPin } from '@/lib/customer-pin-shared'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 export type CustomerRegisterRequest = {
   firstName: string
@@ -27,6 +28,9 @@ export type CustomerRegisterResponse = {
  */
 export async function POST(req: NextRequest) {
   try {
+    const rl = await rateLimit(req, { key: 'customer-register', limit: 8, windowSec: 60 })
+    if (!rl.allowed) return tooManyRequests(rl.retryAfter)
+
     const body: CustomerRegisterRequest = await req.json()
     const { firstName, lastName, whatsapp, pin, documentType, cpf, passport } = body
 

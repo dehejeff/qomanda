@@ -1197,6 +1197,10 @@ SENTRY_DSN=                          # server (API routes, jobs, webhooks)
 NEXT_PUBLIC_SENTRY_DSN=              # client (browser)
 SENTRY_TRACES_SAMPLE_RATE=0          # opcional (0–1) — tracing de performance
 NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0
+
+# Rate limiting — opcional; sem isto usa janela fixa em memória (por instância)
+UPSTASH_REDIS_REST_URL=             # rate limit distribuído (Upstash REST, sem SDK)
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
 ---

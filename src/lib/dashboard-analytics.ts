@@ -21,6 +21,10 @@ export type AnalyticsData = ReportData & {
   byMethod: MethodPoint[]
   peakHour: number | null
   peakWeekday: number | null
+  avgPerTable: number      // ticket médio por mesa/comanda (sessão que pagou)
+  avgPerCustomer: number   // ticket médio por cliente que pagou
+  tablesServed: number     // mesas/comandas distintas com pagamento
+  customersServed: number  // clientes distintos com pagamento
 }
 
 export const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -59,7 +63,7 @@ export async function fetchAnalyticsData(
   const [paymentsRes, ordersRes, itemsRes] = await Promise.all([
     supabase
       .from('payments')
-      .select('amount, paid_at, created_at, method')
+      .select('amount, paid_at, created_at, method, session_id, customer_id')
       .eq('restaurant_id', restaurantId)
       .eq('status', 'paid')
       .neq('method', 'offer')
@@ -82,6 +86,7 @@ export async function fetchAnalyticsData(
   ])
 
   const payments = (paymentsRes.data ?? []) as PaymentRow[]
+  const paymentsRich = (paymentsRes.data ?? []) as Array<{ session_id?: string | null; customer_id?: string | null }>
   const orders = (ordersRes.data ?? []) as OrderRow[]
   const items = (itemsRes.data ?? []) as unknown as ItemRow[]
 
@@ -89,6 +94,12 @@ export async function fetchAnalyticsData(
   const revenue = payments.reduce((a, p) => a + Number(p.amount), 0)
   const paymentCount = payments.length
   const avgTicket = paymentCount > 0 ? revenue / paymentCount : 0
+
+  // Ticket médio por mesa (sessão) e por cliente — distintos com pagamento.
+  const tablesServed = new Set(paymentsRich.map(p => p.session_id).filter(Boolean)).size
+  const customersServed = new Set(paymentsRich.map(p => p.customer_id).filter(Boolean)).size
+  const avgPerTable = tablesServed > 0 ? revenue / tablesServed : 0
+  const avgPerCustomer = customersServed > 0 ? revenue / customersServed : 0
 
   // Por hora e por dia da semana
   const byHour: HourPoint[] = Array.from({ length: 24 }, (_, hour) => ({ hour, revenue: 0, orders: 0 }))
@@ -147,5 +158,9 @@ export async function fetchAnalyticsData(
     byMethod,
     peakHour,
     peakWeekday,
+    avgPerTable,
+    avgPerCustomer,
+    tablesServed,
+    customersServed,
   }
 }

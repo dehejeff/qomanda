@@ -8,6 +8,7 @@ import {
 import { createLoginChallenge } from '@/lib/login-challenge'
 import { isValidWhatsApp, normalizeWhatsApp } from '@/lib/whatsapp-normalize'
 import type { CustomerAuthPayload, CustomerLoginResponse } from '@/lib/customer-login-types'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 export type { CustomerAuthPayload, CustomerLoginResponse }
 
@@ -17,6 +18,9 @@ export type { CustomerAuthPayload, CustomerLoginResponse }
  */
 export async function POST(req: NextRequest) {
   try {
+    const rl = await rateLimit(req, { key: 'customer-login', limit: 15, windowSec: 60 })
+    if (!rl.allowed) return tooManyRequests(rl.retryAfter)
+
     const body = await req.json() as { whatsapp?: string }
     const phone = body.whatsapp?.replace(/\D/g, '') ?? ''
 

@@ -7,6 +7,7 @@ import { isValidCardPassword, isValidLoginPin } from '@/lib/customer-pin-shared'
 import { getCustomerPinHash } from '@/lib/customer-pin-server'
 import { createCustomerSession } from '@/lib/customer-session'
 import type { CustomerAuthPayload } from '@/lib/customer-login-types'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 /**
  * POST /api/customer/login/verify-pin
@@ -14,6 +15,10 @@ import type { CustomerAuthPayload } from '@/lib/customer-login-types'
  */
 export async function POST(req: NextRequest) {
   try {
+    // Anti brute-force de PIN/senha por IP.
+    const rl = await rateLimit(req, { key: 'verify-pin', limit: 10, windowSec: 60 })
+    if (!rl.allowed) return tooManyRequests(rl.retryAfter)
+
     const body = await req.json() as { challengeToken?: string; pin?: string }
     const { challengeToken, pin } = body
 
