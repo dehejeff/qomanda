@@ -374,7 +374,7 @@
 - [ ] **Upstash Redis** — ligar o rate limit distribuído + cache de cardápio + locks de idempotência
 - [x] **Índices Postgres** — `payments(restaurant_id,status,paid_at)`, `payments(asaas_payment_id)`, `orders(restaurant_id,created_at)`, `sessions(restaurant_id,status)` (`migrate-performance-indexes.sql`); _falta: alertas CPU/conexões no Supabase_
 - [x] **WhatsApp em fila** — job `whatsapp_send` (NF-e enfileira em vez de enviar inline) com retry próprio + **throttle por restaurante** (20/min, limites Meta); worker adia sem consumir tentativa quando estoura
-- [ ] **Teste de carga** (k6/Artillery) — 10 restaurantes × 20 mesas pedindo + pagando em paralelo
+- [x] **Teste de carga** — harness Node (`scripts/load/`, jornada concorrente; sem k6/Artillery), configurável (`LOAD_VUS/ITER/BASE`). Baseline dev 20 VUs × 5: Supabase 0 erros (read p95 278ms, write p95 149ms). _Capacidade real: rodar contra staging via `LOAD_BASE`._
 - [ ] **CDN** — imagens do cardápio (Vercel/Supabase Storage já cobrem; revisar cache headers)
 
 ### Fase 2 — Escala (~100+ restaurantes)
