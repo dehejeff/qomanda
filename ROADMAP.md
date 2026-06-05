@@ -1,7 +1,8 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-04  
-> **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)
+> Última atualização: 2026-06-05  
+> **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
+> **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)
 
 ---
 

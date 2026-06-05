@@ -26,6 +26,7 @@ Cursor rule: `.cursor/rules/quality-gate.mdc` (always applied).
 |---------|-----|
 | `docs/DOCUMENTACAO.md` | Referência técnica completa |
 | `ROADMAP.md` | Status de features e migrações |
+| `docs/GO-LIVE-CHECKLIST.md` | Passo a passo de produção (config operacional) |
 | `README.md` | Setup rápido |
 
 Atualize `ROADMAP.md` e `docs/DOCUMENTACAO.md` quando entregar features significativas.
