@@ -17,6 +17,7 @@ import { formatCounterOrderLabel } from '@/lib/counter-orders'
 import { PayBadge } from '@/components/dashboard/pay-badge'
 import { useRestaurantRealtime } from '@/lib/use-restaurant-realtime'
 import { useDashboardSearchOptional } from '@/components/dashboard/dashboard-search-context'
+import { brToday, brMidnight } from '@/lib/date-tz'
 
 const STATUS_FLOW: Record<string, string> = {
   pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered',
@@ -149,26 +150,25 @@ function orderPayInfo(
   return { ...info, display: info.status }
 }
 
+// Usa fuso Brasil (UTC-3) — Vercel roda em UTC, sem isso meia-noite UTC
+// corresponde a 21h do dia anterior no Brasil, vazando pedidos entre dias.
 function todayDateStr() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return brToday()
 }
 
 function dateRangeForDay(dateStr: string) {
-  const start = new Date(`${dateStr}T00:00:00`)
-  const end = new Date(`${dateStr}T23:59:59.999`)
+  const start = brMidnight(dateStr)
+  const end   = brMidnight(shiftDateStr(dateStr, 1)) // meia-noite do dia seguinte
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
 function shiftDateStr(dateStr: string, days: number) {
-  const d = new Date(`${dateStr}T12:00:00`)
-  d.setDate(d.getDate() + days)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
+  // Usa meio-dia UTC para evitar DST/offset issues ao somar dias
+  const d = new Date(`${dateStr}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
 
@@ -242,7 +242,7 @@ export default function OrdersPage() {
       `)
       .eq('restaurant_id', rid)
       .gte('created_at', start)
-      .lte('created_at', end)
+      .lt('created_at', end)
       .order('created_at', { ascending: false })
 
     const loaded = (data ?? []) as DashboardOrder[]
