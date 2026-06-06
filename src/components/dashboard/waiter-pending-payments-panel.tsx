@@ -187,6 +187,14 @@ export function WaiterPendingPaymentsPanel() {
                   {new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
+              {/* Código de referência — cliente mostra na tela */}
+              <div className="shrink-0 text-center px-3 py-2 rounded-lg"
+                style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)' }}>
+                <p className="text-[9px] font-mono uppercase" style={{ color: '#a78b7d' }}>Ref.</p>
+                <p className="text-base font-black font-mono" style={{ color: '#f97316' }}>
+                  #{p.id.slice(-6).toUpperCase()}
+                </p>
+              </div>
             </div>
 
             <div>

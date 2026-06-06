@@ -186,7 +186,13 @@ export function WaiterPaymentsMobile() {
                 </span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-base font-bold truncate">{p.customerName}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-base font-bold truncate">{p.customerName}</p>
+                  <span className="shrink-0 text-sm font-black font-mono px-2 py-1 rounded-lg"
+                    style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316' }}>
+                    #{p.id.slice(-6).toUpperCase()}
+                  </span>
+                </div>
                 <p className="text-xs font-mono mt-0.5" style={{ color: '#a78b7d' }}>
                   {p.locationLabel} · {p.method === 'pix' ? 'PIX manual' : 'Dinheiro'} · {time}
                 </p>

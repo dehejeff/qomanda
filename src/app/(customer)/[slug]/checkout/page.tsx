@@ -442,6 +442,7 @@ function CashPendingScreen({
   minimumOwed,
   tableNumber,
   isCounter = false,
+  paymentId,
   onBack,
   onCancel,
   cancelling,
@@ -451,6 +452,7 @@ function CashPendingScreen({
   minimumOwed?: number
   tableNumber: string
   isCounter?: boolean
+  paymentId?: string
   onBack: () => void
   onCancel: () => void
   cancelling: boolean
@@ -500,13 +502,29 @@ function CashPendingScreen({
         </div>
       </div>
 
+      {/* Código de referência — cliente mostra ao caixa */}
+      {paymentId && (
+        <div className="rounded-xl p-5 text-center space-y-2"
+          style={{ background: 'linear-gradient(135deg,rgba(249,115,22,0.1),rgba(249,115,22,0.05))', border: '2px solid rgba(249,115,22,0.35)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            Código de referência — mostre ao caixa
+          </p>
+          <p className="text-4xl font-black font-mono tracking-widest" style={{ color: '#f97316', letterSpacing: '0.15em' }}>
+            #{paymentId.slice(-6).toUpperCase()}
+          </p>
+          <p className="text-[11px]" style={{ color: '#584237' }}>
+            O caixa usa este código para confirmar o recebimento
+          </p>
+        </div>
+      )}
+
       <div className="rounded-xl px-4 py-4 flex items-start gap-3"
         style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.2)' }}>
         <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5 animate-pulse" style={{ color: '#7bd0ff' }}>hourglass_top</span>
         <div>
-          <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Aguardando confirmação</p>
+          <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Aguardando confirmação do caixa</p>
           <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-            Assim que o restaurante confirmar o recebimento, seu pagamento aparecerá aqui com o código de validação.
+            Entregue o dinheiro e mostre o código acima. Após confirmação você receberá o comprovante de pagamento.
           </p>
         </div>
       </div>
@@ -1657,6 +1675,7 @@ export default function CheckoutPage() {
             minimumOwed={pendingCashMinOwed > 0.01 ? pendingCashMinOwed : undefined}
             tableNumber={tableNumber}
             isCounter={isCounterSession}
+            paymentId={pendingCashPaymentId}
             onBack={() => setStep('cash_amount')}
             onCancel={cancelCashPayment}
             cancelling={paying}
