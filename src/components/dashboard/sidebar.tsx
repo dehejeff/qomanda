@@ -20,17 +20,26 @@ const NAV_ITEMS: { href: string; icon: string; label: string; modes?: Operationa
   { href: '/dashboard/tables',      icon: 'table_restaurant', label: 'Mesas', modes: ['dine_in', 'both'] },
 ]
 
+// Itens visíveis para o perfil caixa (acesso restrito)
+const CAIXA_HREFS = new Set(['/dashboard/caixa'])
+
 export function DashboardSidebar({
   restaurantName,
   operationalMode = 'both',
+  role = 'owner',
 }: {
   restaurantName: string
   operationalMode?: OperationalMode
+  role?: string
 }) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const navItems = NAV_ITEMS.filter(item => !item.modes || item.modes.includes(operationalMode))
+  const isCaixa = role === 'caixa'
+  const navItems = NAV_ITEMS.filter(item =>
+    (!item.modes || item.modes.includes(operationalMode)) &&
+    (!isCaixa || CAIXA_HREFS.has(item.href)),
+  )
 
   async function handleLogout() {
     if (DEV_BYPASS) { router.push('/'); return }

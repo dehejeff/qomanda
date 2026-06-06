@@ -22,6 +22,7 @@ export default async function DashboardInnerLayout({
       restaurantName={access.restaurantName}
       userInitials={access.restaurantName.charAt(0).toUpperCase()}
       operationalMode={access.operationalMode}
+      role={access.role}
     >
       {children}
     </OwnerDashboardLayout>

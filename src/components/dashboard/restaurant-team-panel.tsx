@@ -14,13 +14,14 @@ type Member = {
 
 const MIN_PASSWORD = 6
 
-type StaffRole = 'manager' | 'waiter' | 'kitchen'
+type StaffRole = 'manager' | 'waiter' | 'kitchen' | 'caixa'
 const ROLE_OPTIONS: { id: StaffRole; label: string }[] = [
-  { id: 'waiter', label: 'Garçom' },
+  { id: 'waiter',  label: 'Garçom'  },
   { id: 'kitchen', label: 'Cozinha' },
+  { id: 'caixa',   label: 'Caixa'   },
   { id: 'manager', label: 'Gerente' },
 ]
-const ROLE_LABEL: Record<string, string> = { owner: 'Dono', manager: 'Gerente', waiter: 'Garçom', kitchen: 'Cozinha' }
+const ROLE_LABEL: Record<string, string> = { owner: 'Dono', manager: 'Gerente', waiter: 'Garçom', kitchen: 'Cozinha', caixa: 'Caixa' }
 
 export function RestaurantTeamPanel() {
   const [members, setMembers] = useState<Member[]>([])
@@ -156,7 +157,7 @@ export function RestaurantTeamPanel() {
         </button>
       </form>
       <p className="text-[11px] text-on-surface-variant">
-        <strong>Garçom/Cozinha</strong> acessam o app <span className="font-mono">/garcom</span>; <strong>Gerente</strong> acessa o painel <span className="font-mono">/dashboard</span>.
+        <strong>Garçom/Cozinha</strong> → app <span className="font-mono">/garcom</span> · <strong>Caixa</strong> → painel <span className="font-mono">/dashboard/caixa</span> · <strong>Gerente</strong> → painel completo <span className="font-mono">/dashboard</span>.
       </p>
 
       <ul className="space-y-2">

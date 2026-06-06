@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sem permissão para confirmar este pagamento.' }, { status: 403 })
     }
 
-    if (access.role === 'waiter' && !isManualConfirmMethod(payment.method, payment.asaas_payment_id)) {
-      return NextResponse.json({ error: 'Garçom só confirma dinheiro ou PIX manual.' }, { status: 403 })
+    if ((access.role === 'waiter' || access.role === 'caixa') && !isManualConfirmMethod(payment.method, payment.asaas_payment_id)) {
+      return NextResponse.json({ error: 'Garçom e caixa só confirmam dinheiro ou PIX manual.' }, { status: 403 })
     }
 
     if (payment.status === 'paid') {

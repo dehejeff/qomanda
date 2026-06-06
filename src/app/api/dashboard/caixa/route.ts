@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
+import { requireRestaurantAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
 import { brMidnight, brToday } from '@/lib/date-tz'
 
 export async function GET() {
   try {
-    const access = await requireOwnerAccess()
+    const access = await requireRestaurantAccess(['owner', 'manager', 'caixa'])
     const admin = createAdminClient()
 
     // Últimas 48h para incluir pedidos em aberto de ontem

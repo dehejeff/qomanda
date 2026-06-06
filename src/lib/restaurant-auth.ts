@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { DEV_BYPASS, mockRestaurant } from '@/lib/dev-mock'
 import type { User } from '@supabase/supabase-js'
 
-export type RestaurantRole = 'owner' | 'waiter' | 'kitchen' | 'manager'
+export type RestaurantRole = 'owner' | 'waiter' | 'kitchen' | 'manager' | 'caixa'
 
 export type OperationalMode = 'dine_in' | 'counter' | 'both'
 
@@ -122,5 +122,5 @@ export async function requireOwnerAccess(): Promise<RestaurantAccess> {
 }
 
 export async function requireWaiterAccess(): Promise<RestaurantAccess> {
-  return requireRestaurantAccess(['owner', 'waiter', 'manager'])
+  return requireRestaurantAccess(['owner', 'waiter', 'manager', 'caixa'])
 }
