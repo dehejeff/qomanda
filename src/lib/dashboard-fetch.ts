@@ -28,6 +28,7 @@ export async function fetchDashboardOverview(
       .from('tables')
       .select('id, number, status, restaurant_id, qr_code_url, check_in_token, created_at')
       .eq('restaurant_id', restaurantId)
+      .neq('number', 'BALCAO') // balcão não é mesa — não entra no mapa nem nas estatísticas
       .order('number'),
     supabase
       .from('orders')

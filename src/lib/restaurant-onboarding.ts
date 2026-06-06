@@ -43,7 +43,7 @@ export async function computeRestaurantOnboarding(
   const [gateway, menuRes, tablesRes, membersRes] = await Promise.all([
     loadRestaurantGateway(admin, restaurantId),
     admin.from('menu_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    admin.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    admin.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).neq('number', 'BALCAO'),
     admin.from('restaurant_members').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('active', true),
   ])
 

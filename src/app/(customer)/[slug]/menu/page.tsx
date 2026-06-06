@@ -145,7 +145,7 @@ export default function MenuPage() {
 
     const supabase = createClient()
     const { data: session } = await supabase
-      .from('sessions').select('restaurant_id').eq('id', sessionId).single()
+      .from('sessions').select('restaurant_id, service_mode').eq('id', sessionId).single()
 
     if (!session) { toast.error('Sessão inválida.'); setPlacing(false); return }
 
@@ -168,7 +168,8 @@ export default function MenuPage() {
       }))
     )
 
-    const isCounter = localStorage.getItem('qomanda_service_mode') === 'counter'
+    // Autoritativo: deriva da sessão (não do localStorage, que pode estar stale)
+    const isCounter = (session as { service_mode?: string }).service_mode === 'counter'
     if (isCounter) {
       await fetch('/api/orders/counter-number', {
         method: 'POST',

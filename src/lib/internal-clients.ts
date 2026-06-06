@@ -99,6 +99,7 @@ export async function fetchClientList(admin: SupabaseClient): Promise<InternalCl
     .from('tables')
     .select('restaurant_id')
     .in('restaurant_id', restaurantIds)
+    .neq('number', 'BALCAO') // balcão não conta como mesa
 
   const countByRestaurant = new Map<string, number>()
   for (const row of tableCounts ?? []) {
@@ -151,6 +152,7 @@ export async function fetchClientDetail(admin: SupabaseClient, id: string): Prom
     .from('tables')
     .select('*', { count: 'exact', head: true })
     .eq('restaurant_id', id)
+    .neq('number', 'BALCAO') // balcão não conta como mesa
 
   const { data: invoices } = await admin
     .from('billing_invoices')
