@@ -326,19 +326,25 @@ export default function LandingPage() {
           <FeatureCard icon="restaurant_menu" title="Cardápio digital"
             desc="Atualize preços, categorias e disponibilidade em tempo real. O cliente vê o cardápio correto direto no celular, sem baixar app." />
           <FeatureCard icon="shopping_cart" title="Pedidos em tempo real"
-            desc="O cliente monta o pedido na mesa. A cozinha recebe na fila kanban do painel — pendente, preparando, pronto, entregue." />
+            desc="O cliente monta o pedido na mesa e tudo atualiza sozinho — sem recarregar a tela. Painel, garçom, cozinha e cliente sempre sincronizados." />
+          <FeatureCard icon="skillet" title="Tela de cozinha (KDS)"
+            desc="Painel dedicado da cozinha: fila por status, tempo de cada pedido e comanda imprimível. A cozinha só avança até 'pronto'; o garçom entrega." />
+          <FeatureCard icon="countertops" title="Balcão e fila por número"
+            desc="QR único do balcão para imprimir. O cliente pede pelo celular, recebe um número (#42) e é avisado quando fica pronto — ideal para fast food e praça." />
+          <FeatureCard icon="point_of_sale" title="Caixa e confirmação"
+            desc="Tela de caixa com busca por código de pagamento. Confirma dinheiro e PIX manual, valida o recibo e libera a saída do cliente com segurança." />
           <FeatureCard icon="account_balance_wallet" title="Recebimento na sua conta"
-            desc="PIX manual (sua chave), Asaas (sua API) ou dinheiro na mesa. Sem split na hora — comissão Qomanda faturada todo dia 5 sobre vendas digitais." />
+            desc="PIX manual, Asaas ou Mercado Pago — o dinheiro cai 100% na sua conta. Sem split na hora; comissão Qomanda faturada todo dia 5 sobre vendas digitais." />
           <FeatureCard icon="groups" title="Divisão de conta inteligente"
-            desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar." />
+            desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar, com proteção contra fechamento acidental." />
+          <FeatureCard icon="badge" title="Equipe com perfis"
+            desc="Garçom, cozinha, caixa e gerente — cada um vê só o que precisa. Acesso segregado por papel, do app do garçom ao painel do dono." />
           <FeatureCard icon="workspace_premium" title="Fidelidade e ofertas"
             desc="Regras por visitas ou valor gasto. Benefícios automáticos no checkout e cortesias personalizadas que você envia pelo painel." />
-          <FeatureCard icon="person" title="Hub do cliente"
-            desc="Seus clientes têm área própria: histórico de visitas, recibos, cartões salvos e restaurantes favoritos — tudo pelo WhatsApp." />
-          <FeatureCard icon="table_restaurant" title="Gestão de mesas"
-            desc="Mapa ao vivo: mesas livres, ocupadas ou reservadas. QR Code por mesa, troca de mesa e visão operacional no dashboard." />
-          <FeatureCard icon="monitoring" title="Relatórios de vendas"
-            desc="Receita, ticket médio e volume de pedidos por período — semana, quinzena ou mês. Dados reais do seu fluxo, não estimativas." />
+          <FeatureCard icon="receipt_long" title="Nota fiscal automática"
+            desc="NF-e emitida e enviada por WhatsApp após o pagamento (Focus NFe). Opcional: quem já emite no PDV próprio desliga em um clique." />
+          <FeatureCard icon="monitoring" title="Relatórios e gestão de mesas"
+            desc="Mapa de mesas ao vivo, receita, ticket médio e volume por período. Dados reais do seu fluxo, atualizados em tempo real — não estimativas." />
         </div>
       </section>
 

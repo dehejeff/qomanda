@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-05  
+> Última atualização: 2026-06-06  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
 > **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)
 
@@ -35,6 +35,28 @@
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
 **Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
+
+---
+
+## ✅ Entregue recentemente (jun/2026)
+
+| Entrega | Detalhe |
+|---------|---------|
+| **KDS — Tela de cozinha** | Painel em tempo real (Novos/Preparando/Prontos) + comanda imprimível + auto-impressão |
+| **Restrição de status por papel** | Cozinha avança até `pronto`; garçom/gerente/dono fazem `entregue` |
+| **Perfil Caixa** | Novo papel `caixa` + página `/dashboard/caixa` (busca por código, confirma dinheiro/PIX) |
+| **Segregação de acesso** | Cada papel vê só o que precisa (proxy + layouts): garçom→/garcom, cozinha→/cozinha, caixa→/dashboard/caixa |
+| **Balcão ≠ mesa** | Balcão não conta no limite, não aparece no mapa, fluxo próprio (#número) — inclusive no modo `both` |
+| **QR do balcão** | Geração de QR/link do balcão no painel para imprimir e expor |
+| **Entrada do balcão** | Check-in rápido + login WhatsApp/PIN + CPF opcional (paridade com a mesa) |
+| **Código de pagamento (dinheiro)** | Cliente vê código de referência; caixa confirma pelo mesmo código |
+| **Realtime completo** | `sessions` no watch + polls de fallback (dashboard, garçom) — nada exige recarregar |
+| **NF-e inline** | Emissão de NF-e + WhatsApp no próprio request de pagamento (sem depender do cron — plano Hobby) |
+| **Opt-out de NF-e** | Restaurante pode não emitir nota ao consumidor (callout explícito) |
+| **Fuso horário de pedidos** | Filtro "hoje" no fuso Brasil + pedidos em aberto não somem na virada do dia |
+| **Nova precificação** | Mensalidade 299/399/599 + comissão flat 0,7/0,5/0,3% (ver tabela de planos) |
+| **Página de Integrações** | `/integracoes` lista gateways, NF-e e WhatsApp |
+| **UX cliente** | Check-in mais claro (1ª vez), carrinho destacado, card de pedidos multi-status, anti-fechamento acidental da mesa |
 
 ---
 
