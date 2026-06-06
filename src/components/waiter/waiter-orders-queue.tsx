@@ -11,6 +11,8 @@ import { orderStatus } from '@/lib/design-tokens'
 import { WaiterLoyaltyAlertsBanner } from '@/components/waiter/waiter-loyalty-panel'
 import type { WaiterLoyaltyAlert } from '@/lib/waiter-garcom'
 
+type OrderItem = { name: string; quantity: number; notes: string | null }
+
 type OrderRow = {
   id: string
   status: string
@@ -19,6 +21,7 @@ type OrderRow = {
   created_at: string
   customer: { first_name: string; last_name: string } | null
   tableNumber: string | null
+  items: OrderItem[]
 }
 
 const STATUS_FLOW: Record<string, string> = {
@@ -79,7 +82,8 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       .select(`
         id, status, display_number, order_channel, created_at,
         customer:customers ( first_name, last_name ),
-        session:sessions ( table:tables ( number ) )
+        session:sessions ( table:tables ( number ) ),
+        items:order_items ( quantity, notes, menu_item:menu_items ( name ) )
       `)
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
@@ -93,6 +97,12 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       const session = Array.isArray(sessionRaw) ? sessionRaw[0] : sessionRaw
       const tableRaw = session?.table
       const table = Array.isArray(tableRaw) ? tableRaw[0] : tableRaw
+      const itemsRaw = (row.items ?? []) as Array<{ quantity: number; notes: string | null; menu_item: { name?: string } | { name?: string }[] | null }>
+      const items: OrderItem[] = itemsRaw.map(it => {
+        const miRaw = it.menu_item
+        const mi = Array.isArray(miRaw) ? miRaw[0] : miRaw
+        return { name: mi?.name ?? 'Item', quantity: it.quantity, notes: it.notes ?? null }
+      })
       return {
         id: row.id,
         status: row.status,
@@ -101,6 +111,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
         created_at: row.created_at,
         customer: customer as OrderRow['customer'],
         tableNumber: table?.number ?? null,
+        items,
       }
     }))
     setLoading(false)
@@ -205,13 +216,20 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                   border: o.status === 'ready' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(88,66,55,0.4)',
                 }}
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
+                {/* Cabeçalho: local + ID + status */}
+                <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
-                    <p className="text-xl font-black font-mono" style={{ color: '#f97316' }}>
+                    <p className="text-xl font-black font-mono" style={{ color: o.status === 'ready' ? '#34d399' : '#f97316' }}>
                       {orderLocation(o)}
                     </p>
                     <p className="text-sm font-medium truncate mt-0.5">{name}</p>
-                    <p className="text-[10px] font-mono mt-1" style={{ color: '#584237' }}>{time}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+                        #{o.id.slice(-6).toUpperCase()}
+                      </span>
+                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>·</span>
+                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>{time}</span>
+                    </div>
                   </div>
                   <span
                     className="shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold font-mono uppercase"
@@ -220,6 +238,21 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                     {statusMeta?.label ?? o.status}
                   </span>
                 </div>
+
+                {/* Itens do pedido */}
+                {o.items.length > 0 && (
+                  <ul className="mb-3 space-y-1 rounded-lg p-2.5" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                    {o.items.map((it, i) => (
+                      <li key={i} className="text-sm flex items-start gap-2">
+                        <span className="font-bold shrink-0" style={{ color: '#f97316' }}>{it.quantity}×</span>
+                        <span style={{ color: '#dae2fd' }}>{it.name}</span>
+                        {it.notes && (
+                          <span className="text-[11px] italic ml-1" style={{ color: '#a78b7d' }}>↳ {it.notes}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
                 {next && (
                   <button

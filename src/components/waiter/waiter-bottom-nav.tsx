@@ -9,6 +9,7 @@ type Tab = 'pedidos' | 'pagamentos' | 'pedir' | 'beneficios' | 'mesas'
 
 function resolveTab(pathname: string): Tab {
   if (pathname.startsWith('/garcom/pagamentos')) return 'pagamentos'
+  if (pathname.startsWith('/garcom/pedidos')) return 'pedidos'   // deve vir antes de /pedido
   if (pathname.startsWith('/garcom/pedido')) return 'pedir'
   if (pathname.startsWith('/garcom/beneficios')) return 'beneficios'
   if (pathname.startsWith('/garcom/mesas')) return 'mesas'

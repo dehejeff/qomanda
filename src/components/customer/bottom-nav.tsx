@@ -24,7 +24,10 @@ export function CustomerBottomNav({ slug, sessionId }: Props) {
   }
 
   function isActive(segment: string) {
-    return pathname.endsWith(`/${segment}`) || pathname.includes(`/${segment}?`)
+    // Verifica o segmento exato: termina com /segment ou /segment?params
+    return pathname === `/${slug}/${segment}` ||
+      pathname.startsWith(`/${slug}/${segment}?`) ||
+      pathname.startsWith(`/${slug}/${segment}/`)
   }
 
   return (
