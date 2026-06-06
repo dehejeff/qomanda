@@ -53,3 +53,54 @@ export async function buildTableQrCardDataUrl(
 
   return canvas.toDataURL('image/png')
 }
+
+/** Gera PNG com QR do balcão + chamada "Peça pelo celular" (ideal para impressão). */
+export async function buildCounterQrCardDataUrl(
+  qrDataUrl: string,
+  options: TableQrCardOptions = {},
+): Promise<string> {
+  const qrSize = 320
+  const padding = 28
+  const labelBlock = options.restaurantName ? 116 : 84
+  const width = qrSize + padding * 2
+  const height = qrSize + padding * 2 + labelBlock
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas não disponível.')
+
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, width, height)
+
+  const img = new Image()
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Falha ao carregar QR.'))
+    img.src = qrDataUrl
+  })
+  ctx.drawImage(img, padding, padding, qrSize, qrSize)
+
+  const centerX = width / 2
+  let textY = qrSize + padding + 40
+
+  ctx.fillStyle = '#0b1326'
+  ctx.font = 'bold 40px Geist, system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('Peça pelo celular', centerX, textY)
+
+  textY += 28
+  ctx.font = '600 20px ui-monospace, SFMono-Regular, Menlo, monospace'
+  ctx.fillStyle = '#f97316'
+  ctx.fillText('📱 BALCÃO', centerX, textY)
+
+  if (options.restaurantName) {
+    textY += 28
+    ctx.font = '500 16px Geist, system-ui, sans-serif'
+    ctx.fillStyle = '#94a3b8'
+    ctx.fillText(options.restaurantName, centerX, textY)
+  }
+
+  return canvas.toDataURL('image/png')
+}

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Loader2, Trash2 } from 'lucide-react'
 import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
+import { CounterQrModal } from '@/components/dashboard/counter-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
@@ -28,6 +29,7 @@ export default function TablesPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null)
+  const [showCounterQr, setShowCounterQr] = useState(false)
   const [manageTable, setManageTable] = useState<RestaurantTable | null>(null)
   const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('both')
   const [planName, setPlanName] = useState('Starter')
@@ -161,6 +163,14 @@ export default function TablesPage() {
     return buildTableCheckInUrl(base, restaurantSlug, table.number, token)
   }
 
+  function getCounterUrl() {
+    const base =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
+    return `${base}/${restaurantSlug}/balcao`
+  }
+
   function handleTableUpdated(tableId: string, status: RestaurantTable['status']) {
     setTables((prev) => prev.map((t) => t.id === tableId ? { ...t, status } : t))
   }
@@ -190,12 +200,24 @@ export default function TablesPage() {
     <>
       <div className="space-y-stack-lg">
         {operationalMode === 'counter' && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <span className="material-symbols-outlined text-[20px] text-amber-400 shrink-0">info</span>
-            <p className="text-sm text-amber-100/90 leading-relaxed">
-              Seu restaurante está no modo <strong>Balcão</strong> — pedidos por número, sem mesas físicas.
-              Esta tela não é necessária. Para usar mesas, mude para <strong>Salão</strong> ou <strong>Salão + balcão</strong> em Settings → Pagamentos.
-            </p>
+          <div className="rounded-xl border border-primary/30 bg-primary-container/10 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <span className="material-symbols-outlined text-[22px] text-primary shrink-0">countertops</span>
+              <div>
+                <p className="text-sm font-semibold text-on-surface">Modo Balcão — pedidos por número</p>
+                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                  Sem mesas físicas. Gere o QR do balcão abaixo, imprima e coloque no balcão/caixa.
+                  O cliente escaneia e pede pelo celular.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCounterQr(true)}
+              className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+              QR do balcão
+            </button>
           </div>
         )}
         {/* Header */}
@@ -345,23 +367,24 @@ export default function TablesPage() {
               })}
             </div>
 
-            {/* Balcão — só quando o modelo inclui balcão */}
-            {operationalMode !== 'dine_in' && (
+            {/* Balcão — no modo "both" (counter puro usa o card do topo) */}
+            {operationalMode === 'both' && (
               <div className="mt-8 flex justify-center">
-                <div className="px-8 py-3 bg-surface-container-highest/30 border border-outline-variant border-dashed rounded-xl flex items-center gap-3 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-sm">countertops</span>
-                  <span className="text-xs font-mono">
-                    {counterTable ? 'Balcão ativo' : 'Balcão não configurado'}
-                  </span>
-                  {!counterTable && operationalMode === 'both' && (
-                    <button
-                      onClick={() => addTable('counter')}
-                      disabled={adding}
-                      className="text-xs font-mono text-primary hover:opacity-80 disabled:opacity-50"
-                    >
-                      Adicionar
-                    </button>
-                  )}
+                <div className="px-6 py-4 bg-surface-container-highest/30 border border-outline-variant border-dashed rounded-xl flex flex-col items-center gap-3 text-on-surface-variant max-w-sm w-full">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">countertops</span>
+                    <span className="text-xs font-mono">Balcão (pedido por número)</span>
+                  </div>
+                  <button
+                    onClick={() => setShowCounterQr(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                    QR do balcão
+                  </button>
+                  <p className="text-[11px] font-mono text-center leading-relaxed">
+                    Imprima e coloque no balcão. O cliente escaneia e pede pelo celular — fora do limite de mesas.
+                  </p>
                 </div>
               </div>
             )}
@@ -376,6 +399,15 @@ export default function TablesPage() {
           url={getQrUrl(qrTable)!}
           restaurantName={restaurantName || undefined}
           onClose={() => setQrTable(null)}
+        />
+      )}
+
+      {/* QR Code Modal — balcão */}
+      {showCounterQr && (
+        <CounterQrModal
+          url={getCounterUrl()}
+          restaurantName={restaurantName || undefined}
+          onClose={() => setShowCounterQr(false)}
         />
       )}
 
