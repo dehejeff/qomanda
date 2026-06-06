@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getRestaurantAccess } from '@/lib/restaurant-auth'
 import OwnerDashboardLayout from './owner-layout'
 
@@ -14,6 +15,14 @@ export default async function DashboardInnerLayout({
 
   if (WAITER_ROLES.has(access.role)) {
     redirect('/garcom/pedidos')
+  }
+
+  // Caixa só acessa /dashboard/caixa — redireciona para lá se tentar outra rota
+  if (access.role === 'caixa') {
+    const pathname = (await headers()).get('x-pathname') ?? ''
+    if (!pathname.startsWith('/dashboard/caixa')) {
+      redirect('/dashboard/caixa')
+    }
   }
 
   return (

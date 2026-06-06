@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { getRestaurantAccess } from '@/lib/restaurant-auth'
 import { WaiterAppShell } from '@/components/waiter/waiter-app-shell'
 
-const ALLOWED = new Set(['owner', 'waiter', 'kitchen', 'manager'])
+// kitchen usa /cozinha (KDS), não o app do garçom
+const ALLOWED = new Set(['owner', 'waiter', 'manager', 'caixa'])
 
 export default async function GarcomLayout({ children }: { children: React.ReactNode }) {
   const access = await getRestaurantAccess()

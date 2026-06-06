@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getRestaurantAccess } from '@/lib/restaurant-auth'
 
-const ALLOWED = new Set(['owner', 'manager', 'waiter', 'kitchen'])
+// Apenas cozinha, gerentes e donos — garçom usa /garcom
+const ALLOWED = new Set(['owner', 'manager', 'kitchen'])
 
 /** KDS — tela de cozinha em tela cheia (sem shell de dashboard/garçom). */
 export default async function CozinhaLayout({ children }: { children: React.ReactNode }) {
