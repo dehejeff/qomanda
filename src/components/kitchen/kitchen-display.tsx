@@ -8,7 +8,10 @@ import { formatCounterOrderLabel } from '@/lib/counter-orders'
 type KItem = { name: string; quantity: number; notes: string | null }
 type KOrder = { id: string; status: string; label: string; createdAt: string; items: KItem[] }
 
-const STATUS_NEXT: Record<string, string> = { pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered' }
+// Status que a cozinha pode avançar (não entrega — isso é papel do garçom)
+const STATUS_NEXT_KITCHEN: Record<string, string> = { pending: 'confirmed', confirmed: 'preparing', preparing: 'ready' }
+// Garçom, gerente e dono também podem marcar como entregue
+const STATUS_NEXT_WAITER: Record<string, string> = { ...STATUS_NEXT_KITCHEN, ready: 'delivered' }
 const NEXT_LABEL: Record<string, string> = { pending: 'Aceitar', confirmed: 'Preparar', preparing: 'Pronto', ready: 'Entregar' }
 const COLUMNS: { id: string; title: string; statuses: string[] }[] = [
   { id: 'novos', title: 'Novos', statuses: ['pending', 'confirmed'] },
@@ -49,7 +52,8 @@ function printComanda(o: KOrder) {
   } catch { /* pop-up bloqueado */ }
 }
 
-export function KitchenDisplay({ restaurantName }: { restaurantName: string }) {
+export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restaurantName: string; role?: string }) {
+  const statusNext = role === 'kitchen' ? STATUS_NEXT_KITCHEN : STATUS_NEXT_WAITER
   const [orders, setOrders] = useState<KOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [autoPrint, setAutoPrint] = useState(false)
@@ -124,7 +128,7 @@ export function KitchenDisplay({ restaurantName }: { restaurantName: string }) {
   }, [load])
 
   async function advance(o: KOrder) {
-    const next = STATUS_NEXT[o.status]
+    const next = statusNext[o.status]
     if (!next) return
     setOrders(prev => next === 'delivered' ? prev.filter(x => x.id !== o.id) : prev.map(x => x.id === o.id ? { ...x, status: next } : x))
     // Atualização via rota server (RLS de orders só permite o dono no UPDATE;
@@ -195,14 +199,25 @@ export function KitchenDisplay({ restaurantName }: { restaurantName: string }) {
                           {o.items.length === 0 && <li className="text-sm" style={{ color: C.muted }}>—</li>}
                         </ul>
                         <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => advance(o)}
-                            className="flex-1 h-10 rounded-lg font-bold text-sm font-mono active:scale-[0.98]"
-                            style={{ background: C.accent, color: C.accentInk }}
-                          >
-                            {NEXT_LABEL[o.status] ?? 'Avançar'}
-                          </button>
+                          {/* Cozinha não entrega — mostra aviso no card Pronto */}
+                          {o.status === 'ready' && role === 'kitchen' ? (
+                            <div
+                              className="flex-1 h-10 rounded-lg flex items-center justify-center gap-1.5 text-xs font-mono"
+                              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: '#34d399' }}
+                            >
+                              <span className="material-symbols-outlined text-[15px]">room_service</span>
+                              Aguardando garçom
+                            </div>
+                          ) : statusNext[o.status] ? (
+                            <button
+                              type="button"
+                              onClick={() => advance(o)}
+                              className="flex-1 h-10 rounded-lg font-bold text-sm font-mono active:scale-[0.98]"
+                              style={{ background: C.accent, color: C.accentInk }}
+                            >
+                              {NEXT_LABEL[o.status] ?? 'Avançar'}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => printComanda(o)}

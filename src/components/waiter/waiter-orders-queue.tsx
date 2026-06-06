@@ -28,6 +28,13 @@ const STATUS_FLOW: Record<string, string> = {
   ready: 'delivered',
 }
 
+const STATUS_ACTION_LABEL: Record<string, string> = {
+  pending: 'Confirmar',
+  confirmed: 'Preparar',
+  preparing: 'Pronto',
+  ready: 'Entregar ✓',
+}
+
 function orderLocation(o: OrderRow): string {
   if (o.order_channel === 'counter') return formatCounterOrderLabel(o.display_number)
   if (o.tableNumber) return `Mesa ${o.tableNumber}`
@@ -115,8 +122,12 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
     const next = STATUS_FLOW[order.status]
     if (!next) return
     setAdvancingId(order.id)
-    const supabase = createClient()
-    await supabase.from('orders').update({ status: next }).eq('id', order.id)
+    // Usa server route — RLS de orders só permite owner no UPDATE direto
+    await fetch('/api/dashboard/kitchen/order-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.id, status: next }),
+    }).catch(() => {})
     await load()
     setAdvancingId(null)
   }
@@ -189,7 +200,10 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
               <li
                 key={o.id}
                 className="rounded-2xl p-4"
-                style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}
+                style={{
+                  background: o.status === 'ready' ? 'rgba(52,211,153,0.06)' : '#171f33',
+                  border: o.status === 'ready' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(88,66,55,0.4)',
+                }}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
@@ -223,8 +237,10 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                        {statusMeta?.next ?? 'Avançar'}
+                        <span className="material-symbols-outlined text-[18px]">
+                          {o.status === 'ready' ? 'done_all' : 'arrow_forward'}
+                        </span>
+                        {STATUS_ACTION_LABEL[o.status] ?? statusMeta?.next ?? 'Avançar'}
                       </>
                     )}
                   </button>
