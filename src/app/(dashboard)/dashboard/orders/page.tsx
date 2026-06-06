@@ -231,21 +231,51 @@ export default function OrdersPage() {
   async function loadOrders(rid: string, dateStr: string, silent = false) {
     if (!silent) setLoading(true)
     const { start, end } = dateRangeForDay(dateStr)
+    const isToday = dateStr === todayDateStr()
     const supabase = createClient()
-    const { data } = await supabase
+
+    const SELECT = `
+      *,
+      items:order_items(*, menu_item:menu_items(name)),
+      session:sessions(table:tables(number)),
+      customer:customers(first_name, last_name)
+    `
+
+    // Query principal: pedidos do intervalo do dia selecionado
+    const dayQuery = supabase
       .from('orders')
-      .select(`
-        *,
-        items:order_items(*, menu_item:menu_items(name)),
-        session:sessions(table:tables(number)),
-        customer:customers(first_name, last_name)
-      `)
+      .select(SELECT)
       .eq('restaurant_id', rid)
       .gte('created_at', start)
       .lt('created_at', end)
       .order('created_at', { ascending: false })
 
-    const loaded = (data ?? []) as DashboardOrder[]
+    // Se for hoje: também traz pedidos em aberto de dias anteriores
+    // (ex: pedido feito às 23:58 de ontem ainda não entregue)
+    const openQuery = isToday
+      ? supabase
+          .from('orders')
+          .select(SELECT)
+          .eq('restaurant_id', rid)
+          .lt('created_at', start)
+          .not('status', 'in', '("delivered","cancelled")')
+          .order('created_at', { ascending: false })
+      : null
+
+    const [{ data: dayData }, openResult] = await Promise.all([
+      dayQuery,
+      openQuery ?? Promise.resolve({ data: [] }),
+    ])
+
+    // Mescla sem duplicatas (pedido do dia já pode estar em aberto)
+    const seen = new Set<string>()
+    const merged: DashboardOrder[] = []
+    for (const o of [...(dayData ?? []), ...(openResult.data ?? [])]) {
+      if (!seen.has(o.id)) { seen.add(o.id); merged.push(o as DashboardOrder) }
+    }
+    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    const loaded = merged
     setOrders(loaded)
 
     const sessionIds = [...new Set(loaded.map(o => o.session_id))]
