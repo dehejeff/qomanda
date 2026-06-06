@@ -2,7 +2,10 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function proxy(request: NextRequest) {
-  return updateSession(request)
+  const response = await updateSession(request)
+  // Propaga pathname como header para layouts server-side lerem (segregação de perfis)
+  response.headers.set('x-pathname', request.nextUrl.pathname)
+  return response
 }
 
 export const config = {
