@@ -107,7 +107,8 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => load())
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const poll = setInterval(() => { void load() }, 15_000)
+    return () => { supabase.removeChannel(channel); clearInterval(poll) }
   }, [load])
 
   async function advance(order: OrderRow) {

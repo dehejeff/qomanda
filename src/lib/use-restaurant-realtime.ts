@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 type RealtimeTable = 'orders' | 'payments' | 'tables' | 'sessions'
 
-const DEFAULT_WATCH: RealtimeTable[] = ['orders', 'payments', 'tables']
+const DEFAULT_WATCH: RealtimeTable[] = ['orders', 'payments', 'tables', 'sessions']
 
 type RealtimeOptions = {
   enabled?: boolean
@@ -68,10 +68,22 @@ export function useRestaurantRealtime(
       )
     }
 
+    if (watchTables.includes('sessions')) {
+      channel = channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sessions', filter: `restaurant_id=eq.${restaurantId}` },
+        schedule,
+      )
+    }
+
     channel.subscribe()
+
+    // Poll de 30s como fallback caso o realtime não esteja na publication
+    const poll = setInterval(() => onChangeRef.current(), 30_000)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      clearInterval(poll)
       supabase.removeChannel(channel)
     }
   }, [restaurantId, enabled, debounceMs, watchKey])

@@ -100,7 +100,8 @@ export function WaiterPaymentsMobile() {
         filter: `restaurant_id=eq.${restaurantId}`,
       }, () => { load() })
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    const poll = setInterval(() => { void load() }, 20_000)
+    return () => { supabase.removeChannel(ch); clearInterval(poll) }
   }, [load, restaurantId])
 
   async function confirmPayment(paymentId: string, declaredAmount: number) {
