@@ -1,6 +1,7 @@
 /**
  * Comissão Qomanda sobre GMV digital (faturada mensalmente — recebimento direto na conta do restaurante).
- * Faixas progressivas + desconto por plano (Growth −0,20 p.p. · Pro −0,40 p.p.).
+ * Modelo flat por plano (sem faixas progressivas): Starter 0,7% · Growth 0,5% · Pro 0,3% · Enterprise 0%.
+ * Implementado como base única (0,7%) − desconto por plano, reaproveitando a infra existente.
  */
 
 export type CommissionTier = {
@@ -8,21 +9,19 @@ export type CommissionTier = {
   ratePercent: number
 }
 
-/** Faixas globais (percentual sobre GMV digital do mês). */
+/** Base única (flat) — a diferença entre planos vem do desconto por plano abaixo. */
 export const COMMISSION_TIERS: CommissionTier[] = [
-  { maxGmv: 15_000, ratePercent: 2.99 },
-  { maxGmv: 40_000, ratePercent: 2.49 },
-  { maxGmv: 100_000, ratePercent: 1.99 },
-  { maxGmv: null, ratePercent: 1.49 },
+  { maxGmv: null, ratePercent: 0.7 },
 ]
 
 export const SETUP_FEE_PILOT = 1990
 
+/** Desconto em p.p. sobre a base de 0,7% → Starter 0,7 · Growth 0,5 · Pro 0,3 · Enterprise 0. */
 export const PLAN_COMMISSION_DISCOUNT: Record<string, number> = {
   starter: 0,
   growth: 0.2,
   pro: 0.4,
-  enterprise: 0.6,
+  enterprise: 0.7,
 }
 
 export function isCommissionExemptMethod(method: string | null | undefined): boolean {

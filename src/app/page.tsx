@@ -505,13 +505,13 @@ export default function LandingPage() {
           <PricingCard
             name="Starter"
             mesas="20"
-            price="199"
-            commissionNote="Comissão digital: 2,99% → 1,49%*"
+            price="299"
+            commissionNote="Comissão digital: 0,7%*"
             features={[
               'Modelo salão, balcão ou ambos no cadastro',
               'Cardápio digital e pedidos em tempo real',
-              'PIX manual ou Asaas (conta do restaurante)',
-              'Comissão progressiva — fatura dia 5',
+              'PIX manual, Asaas ou Mercado Pago (conta do restaurante)',
+              'Balcão ilimitado (não conta no limite)',
               'Dinheiro na mesa sem comissão',
               'Suporte por e-mail',
             ]}
@@ -519,28 +519,28 @@ export default function LandingPage() {
           <PricingCard
             name="Growth"
             mesas="50"
-            price="299"
-            commissionNote="Comissão digital −0,20 p.p.*"
+            price="399"
+            commissionNote="Comissão digital: 0,5%*"
             highlight
             features={[
               'Tudo do Starter',
               'Até 50 mesas',
               'Programa de fidelidade e ofertas',
-              'Modo balcão + pedido #',
-              'Desconto na comissão sobre GMV digital',
+              'Comissão menor sobre vendas digitais',
+              'Caixa dedicado + perfis de equipe',
               'Suporte prioritário',
             ]}
           />
           <PricingCard
             name="Pro"
-            mesas="100"
-            price="499"
-            commissionNote="Comissão digital −0,40 p.p.*"
+            mesas="ilimitadas"
+            price="599"
+            commissionNote="Comissão digital: 0,3%*"
             features={[
               'Tudo do Growth',
-              'Até 100 mesas',
-              'Painel garçom dedicado',
-              'Salão + balcão integrados',
+              'Mesas ilimitadas',
+              'Menor comissão sobre vendas digitais',
+              'Painel garçom + tela de cozinha (KDS)',
               'Relatórios por período',
               'Gerente de conta dedicado',
             ]}
@@ -564,7 +564,7 @@ export default function LandingPage() {
         <p className="text-center text-sm mt-8 max-w-xl mx-auto leading-relaxed" style={{ ...mono, color: C.faint }}>
           14 dias grátis · Implantação piloto R$ 1.990 · Fatura mensal (dia 5)
           <br />
-          <span style={{ color: C.muted }}>* Comissão sobre GMV digital do mês (PIX/cartão via app). Faixas: 2,99% até R$ 15k · 2,49% até R$ 40k · 1,99% até R$ 100k · 1,49% acima. Dinheiro: 0%. Gateways: PIX manual, Asaas hoje · Mercado Pago, PagBank, Stone e Cielo no <Link href="/roadmap" className="underline" style={{ color: C.blue }}>roadmap</Link>.</span>
+          <span style={{ color: C.muted }}>* Comissão flat sobre GMV digital do mês (PIX/cartão via app): Starter 0,7% · Growth 0,5% · Pro 0,3%. Dinheiro: 0%. O recebimento cai 100% na conta do restaurante — a comissão Qomanda é faturada à parte no dia 5. Gateways: PIX manual, Asaas e Mercado Pago hoje · PagBank, Stone e Cielo no <Link href="/roadmap" className="underline" style={{ color: C.blue }}>roadmap</Link>.</span>
         </p>
       </section>
 

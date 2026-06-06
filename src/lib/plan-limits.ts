@@ -19,7 +19,8 @@ export async function getRestaurantPlanLimits(
     admin
       .from('tables')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId),
+      .eq('restaurant_id', restaurantId)
+      .neq('number', 'BALCAO'), // balcão é livre — não conta no limite do plano
     admin
       .from('restaurants')
       .select(`
