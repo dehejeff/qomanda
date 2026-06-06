@@ -99,6 +99,7 @@ export default function CheckInPage() {
   const [pinSetupStep, setPinSetupStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
   const [setupPin, setSetupPin] = useState('')
   const [setupPinConfirm, setSetupPinConfirm] = useState('')
+  const [showLogin, setShowLogin] = useState(false)
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -546,9 +547,34 @@ export default function CheckInPage() {
               <span className="font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
-              {canQuickCheckIn ? 'Confirme a mesa escaneada no QR' : 'Confirme seus dados para começar'}
+              {canQuickCheckIn
+                ? 'Toque no botão abaixo para entrar na mesa'
+                : 'Cadastro rápido — menos de 30 segundos'}
             </p>
           </div>
+
+          {/* Indicador de etapa — só para primeira vez */}
+          {!canQuickCheckIn && (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                  style={{ background: '#f97316', color: '#582200' }}>1</div>
+                <span className="text-[11px] font-mono" style={{ color: '#ffb690' }}>Seus dados</span>
+              </div>
+              <div className="flex-1 h-px" style={{ background: '#334155' }} />
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                  style={{ background: '#1e293b', color: '#584237', border: '1px solid #334155' }}>2</div>
+                <span className="text-[11px] font-mono" style={{ color: '#584237' }}>Cardápio</span>
+              </div>
+              <div className="flex-1 h-px" style={{ background: '#334155' }} />
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                  style={{ background: '#1e293b', color: '#584237', border: '1px solid #334155' }}>3</div>
+                <span className="text-[11px] font-mono" style={{ color: '#584237' }}>Pedido</span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Bento grid */}
@@ -587,15 +613,22 @@ export default function CheckInPage() {
           </div>
         </div>
 
-        {/* Entrar com WhatsApp (sem dados salvos no aparelho) */}
-        {!canQuickCheckIn && (
+        {/* Login "já tenho conta" — oculto por padrão, ativado por link */}
+        {!canQuickCheckIn && showLogin && (
           <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
-            style={{ background: '#1e293b', border: '1px solid #334155' }}>
-            <div>
-              <p className="text-sm font-semibold">Já tem conta Qomanda?</p>
-              <p className="text-xs mt-1" style={{ color: '#a78b7d' }}>
-                Entre com seu WhatsApp para retomar visitas em andamento ou check-in rápido.
-              </p>
+            style={{ background: '#131b2e', border: '1px solid #334155' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</p>
+                <p className="text-xs mt-1" style={{ color: '#584237' }}>
+                  Entre com seu número para check-in rápido.
+                </p>
+              </div>
+              <button type="button" onClick={() => setShowLogin(false)}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: '#1e293b', color: '#584237' }}>
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
@@ -724,19 +757,35 @@ export default function CheckInPage() {
             </div>
           </div>
 
-          {/* PIN de acesso */}
+          {/* Senha de acesso */}
           <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>
-              PIN de 4 dígitos
-            </label>
-            <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
-              Use para entrar no Hub e acessar sua conta remotamente.
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>
+                Crie uma senha de 4 dígitos
+              </label>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}>
+                obrigatório
+              </span>
+            </div>
+            <p className="text-[11px] leading-relaxed flex items-center gap-1.5" style={{ color: '#a78b7d' }}>
+              <span className="material-symbols-outlined text-[14px]">lock</span>
+              Para acessar sua conta nas próximas visitas
             </p>
             <PinInput value={checkInPin} onChange={setCheckInPin} length={4} />
-            <label className="text-[11px] font-mono uppercase tracking-wider mt-1" style={{ color: '#e0c0b1' }}>
-              Confirmar PIN
-            </label>
-            <PinInput value={checkInPinConfirm} onChange={setCheckInPinConfirm} length={4} />
+            {checkInPin.length === 4 && (
+              <>
+                <label className="text-[11px] font-mono uppercase tracking-wider mt-1" style={{ color: '#e0c0b1' }}>
+                  Confirme a senha
+                </label>
+                <PinInput value={checkInPinConfirm} onChange={setCheckInPinConfirm} length={4} />
+                {checkInPinConfirm.length === 4 && checkInPin !== checkInPinConfirm && (
+                  <p className="text-[11px] font-mono" style={{ color: '#f87171' }}>
+                    As senhas não conferem. Tente novamente.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           {/* Divider */}
@@ -836,6 +885,15 @@ export default function CheckInPage() {
             <>Fazer Check-in <span className="material-symbols-outlined">login</span></>
           )}
         </button>
+        )}
+
+        {!canQuickCheckIn && !showLogin && (
+          <button type="button" onClick={() => setShowLogin(true)}
+            className="w-full text-center text-sm mt-3 py-2"
+            style={{ color: '#584237' }}>
+            Já usei aqui antes →{' '}
+            <span className="underline underline-offset-2" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</span>
+          </button>
         )}
 
         {!canQuickCheckIn && (

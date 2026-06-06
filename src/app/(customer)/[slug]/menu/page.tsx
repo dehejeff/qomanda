@@ -401,33 +401,35 @@ export default function MenuPage() {
 
       {/* Floating cart bar */}
       {cartCount > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 px-6 pb-2 z-40">
-          <div
-            className="flex items-center justify-between rounded-full px-5 py-2 shadow-2xl"
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-2 z-40">
+          <button
+            onClick={openReview}
+            disabled={placing}
+            className="w-full flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-all disabled:opacity-60"
             style={{
-              background: '#222a3d',
-              border: '1px solid rgba(88,66,55,0.4)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              background: 'linear-gradient(135deg, #f97316, #ea580c)',
+              boxShadow: '0 8px 32px rgba(249,115,22,0.45), 0 0 0 1px rgba(249,115,22,0.3)',
             }}
           >
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider block" style={{ color: '#a78b7d' }}>Total</span>
-              <span className="text-base font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
-                {formatCurrency(cartTotal)}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                style={{ background: 'rgba(0,0,0,0.2)', color: '#fff' }}>
+                {cartCount}
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-mono uppercase tracking-wider block" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  {cartCount === 1 ? '1 item' : `${cartCount} itens`}
+                </span>
+                <span className="text-base font-bold leading-tight" style={{ color: '#fff', fontFamily: 'Geist, sans-serif' }}>
+                  {formatCurrency(cartTotal)}
+                </span>
+              </div>
             </div>
-            <button
-              onClick={openReview}
-              disabled={placing}
-              className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-mono font-bold active:scale-95 transition-all disabled:opacity-60"
-              style={{ background: '#f97316', color: '#582200' }}
-            >
-              <>
-                Revisar pedido
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </>
-            </button>
-          </div>
+            <div className="flex items-center gap-2" style={{ color: '#fff' }}>
+              <span className="text-sm font-bold font-mono">Ver pedido</span>
+              <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+            </div>
+          </button>
         </div>
       )}
 
