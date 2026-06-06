@@ -64,10 +64,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
   const load = useCallback(async () => {
     const supabase = createClient()
     const restaurantId = await resolveWaiterRestaurantId(supabase)
-    if (!restaurantId) {
-      setLoading(false)
-      return
-    }
+    if (!restaurantId) { setLoading(false); return }
 
     const pendingCount = await countWaiterPendingPayments(supabase, restaurantId)
     setPendingPayments(pendingCount)
@@ -77,20 +74,13 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       .then(json => { if (json.alerts) setLoyaltyAlerts(json.alerts) })
       .catch(() => {})
 
-    const { data } = await supabase
-      .from('orders')
-      .select(`
-        id, status, display_number, order_channel, created_at,
-        customer:customers ( first_name, last_name ),
-        session:sessions ( table:tables ( number ) ),
-        items:order_items ( quantity, notes, menu_item:menu_items ( name ) )
-      `)
-      .eq('restaurant_id', restaurantId)
-      .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
-      .order('created_at', { ascending: true })
-      .limit(50)
+    // Usa server route (admin client) para que o join sessions→tables
+    // não seja bloqueado pelo RLS que só permite SELECT ao owner.
+    const res = await fetch('/api/dashboard/waiter/orders-queue')
+    const json = await res.json() as { orders?: unknown[] }
+    const rows = (json.orders ?? []) as Array<Record<string, unknown>>
 
-    setOrders((data ?? []).map(row => {
+    setOrders(rows.map(row => {
       const c = row.customer as { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[] | null
       const customer = Array.isArray(c) ? c[0] ?? null : c
       const sessionRaw = row.session as { table?: { number?: string } | { number?: string }[] } | { table?: { number?: string } | { number?: string }[] }[] | null
@@ -101,14 +91,14 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       const items: OrderItem[] = itemsRaw.map(it => {
         const miRaw = it.menu_item
         const mi = Array.isArray(miRaw) ? miRaw[0] : miRaw
-        return { name: mi?.name ?? 'Item', quantity: it.quantity, notes: it.notes ?? null }
+        return { name: mi?.name ?? 'Item', quantity: Number(it.quantity), notes: it.notes ?? null }
       })
       return {
-        id: row.id,
-        status: row.status,
-        display_number: row.display_number,
-        order_channel: row.order_channel,
-        created_at: row.created_at,
+        id: String(row.id),
+        status: String(row.status),
+        display_number: row.display_number as number | null,
+        order_channel: String(row.order_channel ?? ''),
+        created_at: String(row.created_at),
         customer: customer as OrderRow['customer'],
         tableNumber: table?.number ?? null,
         items,
