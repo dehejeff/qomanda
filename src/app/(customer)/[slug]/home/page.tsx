@@ -33,7 +33,11 @@ export default function CustomerHomePage() {
   const [tableNumber, setTableNumber] = useState('')
   const [serviceMode, setServiceMode] = useState<string | null>(null)
   const [customerName, setCustomerName] = useState('')
-  const [latestOrder, setLatestOrder] = useState<{ status: string; total: number; itemCount: number } | null>(null)
+  const [orderSummary, setOrderSummary] = useState<{
+    totalItems: number
+    totalValue: number
+    statuses: { status: string; count: number }[]
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [closeInvite, setCloseInvite] = useState<{ requestId: string; initiatorName: string; amountOwed: number } | null>(null)
   const [sessionSettled, setSessionSettled] = useState(false)
@@ -152,26 +156,42 @@ export default function CustomerHomePage() {
         setMyPayments([])
       }
 
+      // Busca TODOS os pedidos ativos (não cancelados/entregues) da sessão
       let ordersQuery = supabase
         .from('orders')
         .select('status, items:order_items(unit_price, quantity)')
         .eq('session_id', sessionId)
         .not('status', 'in', '("cancelled","delivered")')
         .order('created_at', { ascending: false })
-        .limit(1)
 
       if (customerId) {
         ordersQuery = ordersQuery.eq('customer_id', customerId)
       }
 
-      const { data: orders } = await ordersQuery
+      const { data: activeOrders } = await ordersQuery
 
-      if (orders && orders.length > 0) {
-        const o = orders[0] as any
-        const total = (o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
-        setLatestOrder({ status: o.status, total, itemCount: o.items?.length ?? 0 })
+      if (activeOrders && activeOrders.length > 0) {
+        let totalItems = 0
+        let totalValue = 0
+        const statusMap: Record<string, number> = {}
+
+        for (const o of activeOrders as any[]) {
+          for (const item of (o.items ?? [])) {
+            totalItems += item.quantity
+            totalValue += item.unit_price * item.quantity
+          }
+          statusMap[o.status] = (statusMap[o.status] ?? 0) + 1
+        }
+
+        // Ordena status pelo progresso (mais avançado primeiro)
+        const statusOrder = ['ready', 'preparing', 'confirmed', 'pending']
+        const statuses = statusOrder
+          .filter(s => statusMap[s])
+          .map(s => ({ status: s, count: statusMap[s] }))
+
+        setOrderSummary({ totalItems, totalValue, statuses })
       } else {
-        setLatestOrder(null)
+        setOrderSummary(null)
       }
 
       } finally {
@@ -237,7 +257,9 @@ export default function CustomerHomePage() {
     )
   }
 
-  const statusCfg = latestOrder ? (STATUS_CONFIG[latestOrder.status] ?? STATUS_CONFIG.pending) : null
+  // Status "principal" = o mais avançado (para a barra de progresso)
+  const primaryStatus = orderSummary?.statuses[0]?.status ?? null
+  const primaryCfg = primaryStatus ? (STATUS_CONFIG[primaryStatus] ?? STATUS_CONFIG.pending) : null
   const firstName = customerName.split(' ')[0]
   const locationLabel = formatServiceLocationLabel(tableNumber, serviceMode)
   const isCounter = serviceMode === 'counter'
@@ -331,40 +353,67 @@ export default function CustomerHomePage() {
         )}
 
         {/* Active order status card */}
-        {!sessionSettled && latestOrder && statusCfg ? (
+        {!sessionSettled && orderSummary && primaryCfg ? (
           <div
             className="rounded-xl p-5 relative overflow-hidden"
             style={{ background: 'linear-gradient(145deg, #1e293b 0%, #131b2e 100%)', border: '1px solid #334155' }}
           >
-            <div className="absolute top-0 right-0 p-4 opacity-8 pointer-events-none">
-              <span className="material-symbols-outlined text-[72px]" style={{ color: statusCfg.color }}>timer</span>
+            {/* Totais */}
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest mb-0.5" style={{ color: '#a78b7d' }}>Seus pedidos</p>
+                <p className="text-lg font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                  {orderSummary.totalItems} {orderSummary.totalItems === 1 ? 'item' : 'itens'} · {formatCurrency(orderSummary.totalValue)}
+                </p>
+              </div>
+              <Link
+                href={`/${params.slug}/orders?session=${sessionId}`}
+                className="flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors"
+                style={{ background: '#2d3449', color: '#a78b7d', border: '1px solid #334155' }}
+              >
+                Ver detalhes
+                <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+              </Link>
             </div>
-            <div className="flex items-center gap-3 mb-2">
-              <span
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ background: statusCfg.color, boxShadow: `0 0 8px ${statusCfg.color}90`, animation: 'pulse 2s infinite' }}
-              />
-              <span className="text-xs font-mono uppercase tracking-widest" style={{ color: statusCfg.color }}>
-                {statusCfg.label}
-              </span>
+
+            {/* Status chips — um por status ativo */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {orderSummary.statuses.map(({ status, count }) => {
+                const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending
+                return (
+                  <div
+                    key={status}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono"
+                    style={{
+                      background: `${cfg.color}15`,
+                      border: `1px solid ${cfg.color}40`,
+                      color: cfg.color,
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: cfg.color, boxShadow: `0 0 6px ${cfg.color}` }}
+                    />
+                    <span className="material-symbols-outlined text-[13px]">{cfg.icon}</span>
+                    {cfg.label}
+                    {count > 1 && (
+                      <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                        style={{ background: `${cfg.color}30` }}>
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-            <p className="text-sm mb-4" style={{ color: '#e0c0b1' }}>
-              {latestOrder.itemCount} {latestOrder.itemCount === 1 ? 'item' : 'itens'} · {formatCurrency(latestOrder.total)}
-            </p>
+
+            {/* Barra de progresso do status mais avançado */}
             <div className="h-1 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
               <div
                 className="h-full rounded-full transition-all duration-1000"
-                style={{ width: `${statusCfg.progress}%`, background: statusCfg.color, boxShadow: `0 0 12px ${statusCfg.color}60` }}
+                style={{ width: `${primaryCfg.progress}%`, background: primaryCfg.color, boxShadow: `0 0 12px ${primaryCfg.color}60` }}
               />
             </div>
-            <Link
-              href={`/${params.slug}/orders?session=${sessionId}`}
-              className="flex items-center gap-1 text-xs font-mono mt-3 w-fit transition-colors"
-              style={{ color: '#a78b7d' }}
-            >
-              Ver detalhes
-              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-            </Link>
           </div>
         ) : !sessionSettled ? (
           <div
