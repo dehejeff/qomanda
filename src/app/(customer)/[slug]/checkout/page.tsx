@@ -541,6 +541,7 @@ export default function CheckoutPage() {
 
   const [step, setStep]             = useState<Step>('mode')
   const [closeMode, setCloseMode]   = useState<CloseMode>('individual')
+  const [showTableConfirm, setShowTableConfirm] = useState(false)
   const [splitType, setSplitType]   = useState<SplitType>('equal')
   const [method, setMethod]         = useState<PaymentMethod>('pix')
   const [loading, setLoading]       = useState(true)
@@ -1795,43 +1796,123 @@ export default function CheckoutPage() {
         )}
 
         {/* ── Modo de fechamento ──────────────────────── */}
-        {!sessionFullySettled && closeModeOptions.length > 0 && (
+        {!sessionFullySettled && (
         <section className="space-y-3">
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Como você quer pagar?</p>
-          <div className={`grid gap-3 ${closeModeOptions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {closeModeOptions.map(opt => {
-              const individualDone = opt.mode === 'individual' && hasPaidMyShare
-              return (
-              <button
-                key={opt.mode}
-                disabled={individualDone}
-                onClick={() => {
-                  if (individualDone) return
-                  setCloseMode(opt.mode)
-                }}
-                className="flex flex-col items-start gap-2 p-4 rounded-xl text-left transition-all active:scale-95 disabled:opacity-60"
-                style={{
-                  background: closeMode === opt.mode ? 'rgba(249,115,22,0.12)' : 'rgba(30,41,59,0.7)',
-                  border: `2px solid ${individualDone ? '#34d399' : closeMode === opt.mode ? '#f97316' : '#334155'}`,
-                }}>
-                <span className="material-symbols-outlined text-[24px]"
-                  style={{ color: individualDone ? '#34d399' : closeMode === opt.mode ? '#f97316' : '#a78b7d', fontVariationSettings: (closeMode === opt.mode || individualDone) ? "'FILL' 1" : "'FILL' 0" }}>
-                  {individualDone ? 'check_circle' : opt.icon}
+
+          {/* Opção primária: minha parte */}
+          {!hasPaidMyShare && (
+            <button
+              onClick={() => setCloseMode('individual')}
+              className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all active:scale-[0.98]"
+              style={{
+                background: closeMode === 'individual' ? 'rgba(249,115,22,0.12)' : 'rgba(30,41,59,0.7)',
+                border: `2px solid ${closeMode === 'individual' ? '#f97316' : '#334155'}`,
+              }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: closeMode === 'individual' ? 'rgba(249,115,22,0.2)' : '#1e293b' }}>
+                <span className="material-symbols-outlined text-[20px]"
+                  style={{ color: closeMode === 'individual' ? '#f97316' : '#a78b7d', fontVariationSettings: closeMode === 'individual' ? "'FILL' 1" : "'FILL' 0" }}>
+                  person
                 </span>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: individualDone ? '#34d399' : closeMode === opt.mode ? '#ffb690' : '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
-                    {individualDone ? 'Parte quitada ✓' : opt.title}
+              </div>
+              <div className="flex-1">
+                <p className="text-base font-bold" style={{ color: closeMode === 'individual' ? '#ffb690' : '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
+                  {isCounterSession ? 'Pagar meu pedido' : 'Só a minha parte'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                  {isCounterSession ? 'PIX, cartão ou dinheiro' : 'Pago apenas o que consumi'}
+                </p>
+              </div>
+              {closeMode === 'individual' && (
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#f97316', fontVariationSettings: "'FILL' 1" }}>radio_button_checked</span>
+              )}
+            </button>
+          )}
+
+          {hasPaidMyShare && (
+            <div className="w-full flex items-center gap-4 p-4 rounded-xl"
+              style={{ background: 'rgba(52,211,153,0.08)', border: '2px solid rgba(52,211,153,0.3)' }}>
+              <span className="material-symbols-outlined text-[24px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#34d399' }}>Sua parte quitada ✓</p>
+                <p className="text-xs" style={{ color: '#a78b7d' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
+              </div>
+            </div>
+          )}
+
+          {/* Opção secundária: mesa toda — com fricção intencional */}
+          {!sessionFullySettled && !isCounterSession && (
+            <div>
+              <button
+                onClick={() => setShowTableConfirm(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all active:scale-[0.98]"
+                style={{
+                  background: closeMode === 'table' ? 'rgba(251,191,36,0.08)' : 'transparent',
+                  border: `1px solid ${closeMode === 'table' ? 'rgba(251,191,36,0.4)' : 'rgba(88,66,55,0.3)'}`,
+                }}>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: closeMode === 'table' ? '#fbbf24' : '#584237' }}>groups</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold" style={{ color: closeMode === 'table' ? '#fbbf24' : '#a78b7d' }}>
+                    Fechar mesa toda
                   </p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#a78b7d' }}>
-                    {individualDone
-                      ? `${formatCurrency(myAlreadyPaid)} pagos`
-                      : opt.desc}
+                  <p className="text-[11px]" style={{ color: '#584237' }}>
+                    {closeMode === 'table' ? `Pagando por todos · ${formatCurrency(remaining)}` : 'Paga pela conta inteira da mesa'}
                   </p>
                 </div>
+                <span className="material-symbols-outlined text-[16px]" style={{ color: '#584237' }}>chevron_right</span>
               </button>
-            )})}
-          </div>
+            </div>
+          )}
         </section>
+        )}
+
+        {/* ── Modal confirmação: fechar mesa toda ── */}
+        {showTableConfirm && (
+          <div className="fixed inset-0 z-[70] flex items-end justify-center px-4 pb-8"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+            <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+              style={{ background: '#1e293b', border: '1px solid rgba(251,191,36,0.4)' }}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(251,191,36,0.15)' }}>
+                  <span className="material-symbols-outlined text-[22px]" style={{ color: '#fbbf24', fontVariationSettings: "'FILL' 1" }}>warning</span>
+                </div>
+                <div>
+                  <p className="text-base font-bold" style={{ color: '#fbbf24' }}>Fechar mesa toda?</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                    Você está prestes a pagar pela conta inteira da mesa, incluindo o consumo de outras pessoas.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(88,66,55,0.3)' }}>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: '#a78b7d' }}>Total da mesa</span>
+                  <span className="font-bold" style={{ color: '#ffb690' }}>{formatCurrency(remaining)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: '#a78b7d' }}>Pessoas na mesa</span>
+                  <span className="font-bold">{participants.length || '—'}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTableConfirm(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid #334155' }}>
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => { setCloseMode('table'); setShowTableConfirm(false) }}
+                  className="flex-[2] py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' }}>
+                  Sim, pagar {formatCurrency(remaining)} pela mesa toda
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Parte quitada + recibos ── */}
