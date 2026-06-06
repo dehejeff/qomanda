@@ -1,14 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { resolveWaiterRestaurantId } from '@/lib/waiter-restaurant-id'
 import { countWaiterPendingPayments } from '@/components/dashboard/waiter-pending-payments-panel'
 import { formatCounterOrderLabel } from '@/lib/counter-orders'
 import { orderStatus } from '@/lib/design-tokens'
 import { WaiterLoyaltyAlertsBanner } from '@/components/waiter/waiter-loyalty-panel'
+import { playReadyChime } from '@/lib/ready-chime'
 import type { WaiterLoyaltyAlert } from '@/lib/waiter-garcom'
 
 type OrderItem = { name: string; quantity: number; notes: string | null }
@@ -24,17 +26,14 @@ type OrderRow = {
   items: OrderItem[]
 }
 
+// O garçom NÃO controla o preparo — só entrega.
+// Os estágios pending/confirmed/preparing são informativos; a cozinha/admin os avança.
+// Quando a cozinha marca "ready", o garçom é notificado e só então entrega.
 const STATUS_FLOW: Record<string, string> = {
-  pending: 'confirmed',
-  confirmed: 'preparing',
-  preparing: 'ready',
   ready: 'delivered',
 }
 
 const STATUS_ACTION_LABEL: Record<string, string> = {
-  pending: 'Confirmar',
-  confirmed: 'Preparar',
-  preparing: 'Pronto',
   ready: 'Entregar ✓',
 }
 
@@ -60,6 +59,8 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
   const [pendingPayments, setPendingPayments] = useState(0)
   const [loyaltyAlerts, setLoyaltyAlerts] = useState<WaiterLoyaltyAlert[]>([])
   const [advancingId, setAdvancingId] = useState<string | null>(null)
+  // IDs de pedidos já vistos no estado "ready" — evita re-alertar o backlog inicial.
+  const readySeen = useRef<Set<string> | null>(null)
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -80,7 +81,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
     const json = await res.json() as { orders?: unknown[] }
     const rows = (json.orders ?? []) as Array<Record<string, unknown>>
 
-    setOrders(rows.map(row => {
+    const mapped: OrderRow[] = rows.map(row => {
       const c = row.customer as { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[] | null
       const customer = Array.isArray(c) ? c[0] ?? null : c
       const sessionRaw = row.session as { table?: { number?: string } | { number?: string }[] } | { table?: { number?: string } | { number?: string }[] }[] | null
@@ -103,7 +104,31 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
         tableNumber: table?.number ?? null,
         items,
       }
-    }))
+    })
+
+    // Notificação de "pronto para entregar": alerta apenas os pedidos que
+    // entraram em "ready" desde a última carga (ignora o backlog inicial).
+    const readyNow = mapped.filter(o => o.status === 'ready')
+    if (readySeen.current === null) {
+      readySeen.current = new Set(readyNow.map(o => o.id))
+    } else {
+      const fresh = readyNow.filter(o => !readySeen.current!.has(o.id))
+      if (fresh.length > 0) {
+        playReadyChime()
+        for (const o of fresh) {
+          const who = o.customer
+            ? `${o.customer.first_name ?? ''} ${o.customer.last_name ?? ''}`.trim()
+            : 'Cliente'
+          toast.success(`Pedido pronto — ${orderLocation(o)}`, {
+            description: `${who} · entregar agora (#${o.id.slice(-6).toUpperCase()})`,
+            duration: 8000,
+          })
+        }
+      }
+      readySeen.current = new Set(readyNow.map(o => o.id))
+    }
+
+    setOrders(mapped)
     setLoading(false)
   }, [])
 
@@ -142,6 +167,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
   }
 
   const meta = orderStatus as Record<string, { label: string; next: string }>
+  const readyToDeliver = orders.filter(o => o.status === 'ready').length
 
   return (
     <div className="space-y-5">
@@ -169,10 +195,29 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
         </Link>
       )}
 
+      {readyToDeliver > 0 && (
+        <div
+          className="rounded-2xl px-4 py-3.5"
+          style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.4)' }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[22px]" style={{ color: '#34d399' }}>room_service</span>
+            <div>
+              <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                {readyToDeliver} pedido{readyToDeliver > 1 ? 's' : ''} pronto{readyToDeliver > 1 ? 's' : ''} para entregar
+              </p>
+              <p className="text-xs font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                Leve à mesa e toque em “Entregar” ao concluir
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Fila de pedidos</h1>
         <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>
-          Toque para avançar · balcão mostra # ao cliente
+          Acompanhamento · a cozinha prepara; você entrega quando ficar pronto
         </p>
       </div>
 

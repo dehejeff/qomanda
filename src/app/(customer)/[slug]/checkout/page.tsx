@@ -26,6 +26,11 @@ import {
   isOfferRedeemable,
 } from '@/lib/customer-offers'
 import { customerAuthFetch } from '@/lib/customer-auth'
+import {
+  computeSplitGate,
+  buildSplitInviteMessage,
+  type ActiveCloseRequest,
+} from '@/lib/close-request'
 import type { PublicPaymentConfig } from '@/lib/restaurant-payment-config'
 import { MANUAL_PIX_KEY_TYPE_LABELS } from '@/lib/restaurant-payment-config'
 import { formatServiceLocationLabel } from '@/lib/counter-orders'
@@ -553,13 +558,14 @@ export default function CheckoutPage() {
   const myCustomerId = typeof window !== 'undefined'
     ? localStorage.getItem('qomanda_customer_id') : null
 
-  type Participant = { id: string; name: string; myConsumption: number; isMe: boolean }
+  type Participant = { id: string; name: string; myConsumption: number; isMe: boolean; whatsapp: string | null }
 
   type AlcoholSplit = { food: number; alcohol: number; hasAlcohol: boolean }
 
   const [step, setStep]             = useState<Step>('mode')
   const [closeMode, setCloseMode]   = useState<CloseMode>('individual')
   const [showTableConfirm, setShowTableConfirm] = useState(false)
+  const [showDoublePayConfirm, setShowDoublePayConfirm] = useState(false)
   const [splitType, setSplitType]   = useState<SplitType>('equal')
   const [method, setMethod]         = useState<PaymentMethod>('pix')
   const [loading, setLoading]       = useState(true)
@@ -602,6 +608,10 @@ export default function CheckoutPage() {
   const [participants, setParticipants]   = useState<Participant[]>([])
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({})
+
+  // Divisão da conta com aceite (item 5)
+  const [activeCloseRequest, setActiveCloseRequest] = useState<ActiveCloseRequest | null>(null)
+  const [splitActing, setSplitActing] = useState(false)
 
   // Individual extra
   const [extraAmount, setExtraAmount] = useState('')
@@ -714,10 +724,28 @@ export default function CheckoutPage() {
     }
   }, [usesManualPix, method])
 
+  // Estado do cliente atual dentro de uma divisão de conta com aceite (item 5).
+  const splitGate = useMemo(
+    () => computeSplitGate(activeCloseRequest, myCustomerId, myAlreadyPaid),
+    [activeCloseRequest, myCustomerId, myAlreadyPaid],
+  )
+  // Pagando a cota fixa da divisão (todos já aceitaram).
+  const splitShareAmount = splitGate.kind === 'pay' ? splitGate.amount : null
+  const splitPayMode = splitGate.kind === 'pay'
+  // Quando a divisão exige aceite/aguardo/bloqueio, o checkout normal some.
+  const hideNormalCheckout =
+    splitGate.kind === 'invited' ||
+    splitGate.kind === 'waiting' ||
+    splitGate.kind === 'locked' ||
+    splitGate.kind === 'paid'
+
   /** Mínimo que o cliente deve pagar (sem extra) — dinheiro e PIX manual. */
-  const cashMinimumOwed = closeMode === 'individual' ? myIndividualBase : myDefinedAmount
+  const cashMinimumOwed = splitShareAmount != null
+    ? splitShareAmount
+    : closeMode === 'individual' ? myIndividualBase : myDefinedAmount
 
   function getAmountToPay() {
+    if (splitShareAmount != null) return splitShareAmount
     if (closeMode === 'individual') return myIndividualTotal
     return myDefinedAmount
   }
@@ -834,9 +862,44 @@ export default function CheckoutPage() {
           name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
           myConsumption: pOpen.openTotal,
           isMe: p.customer_id === myCustomerId,
+          whatsapp: p.customer?.whatsapp ? String(p.customer.whatsapp) : null,
         }
       })
       setParticipants(parts)
+
+      // Divisão de conta ativa (com aceite) — carrega request + participantes.
+      const { data: crRow } = await supabase
+        .from('close_requests')
+        .select('id, initiator_id, status')
+        .eq('session_id', sessionId)
+        .eq('mode', 'table')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (crRow) {
+        const { data: crParts } = await supabase
+          .from('close_request_participants')
+          .select('id, customer_id, amount_owed, status, customer:customers(first_name,last_name)')
+          .eq('request_id', crRow.id)
+        const partsMapped = (crParts ?? []).map((cp: any) => ({
+          id: cp.id,
+          customerId: cp.customer_id,
+          name: cp.customer ? `${cp.customer.first_name ?? ''} ${cp.customer.last_name ?? ''}`.trim() || 'Cliente' : 'Cliente',
+          amountOwed: Number(cp.amount_owed),
+          status: cp.status as 'pending' | 'confirmed' | 'paid' | 'declined',
+        }))
+        const initiator = partsMapped.find(p => p.customerId === crRow.initiator_id)
+        setActiveCloseRequest({
+          id: crRow.id,
+          initiatorId: crRow.initiator_id,
+          initiatorName: initiator?.name ?? 'Um cliente',
+          participants: partsMapped,
+        })
+      } else {
+        setActiveCloseRequest(null)
+      }
 
       if (myCustomerId) setSelectedIds(new Set([myCustomerId]))
       const sessionRem = computeOpenBalance(sub, allPayments, true).openTotal
@@ -866,6 +929,9 @@ export default function CheckoutPage() {
     const supabase = createClient()
     const ch = supabase.channel('checkout-payments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `session_id=eq.${sessionId}` }, load)
+      // Divisão da conta: convites, aceites e cancelamentos recarregam o estado.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'close_requests', filter: `session_id=eq.${sessionId}` }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'close_request_participants' }, load)
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
@@ -1027,7 +1093,32 @@ export default function CheckoutPage() {
     await sendWhatsApp(customerWhatsapp, buildReceiptWhatsAppMessage(payment, receiptContext))
   }
 
+  function shareForCustomer(cid: string) {
+    return splitType === 'equal' ? equalShare : (parseFloat(customAmounts[cid] ?? '0') || 0)
+  }
+
+  /** Notifica via WhatsApp os participantes convidados a aceitar a divisão. */
+  async function notifySplitInvites(requestId: string) {
+    if (typeof window === 'undefined') return
+    const link = `${window.location.origin}/${params.slug}/checkout?session=${sessionId}&request=${requestId}`
+    const initiatorName = participants.find(p => p.isMe)?.name ?? 'Um cliente'
+    for (const p of selectedParts) {
+      if (p.isMe || !p.whatsapp) continue
+      const message = buildSplitInviteMessage({
+        restaurantName,
+        tableNumber,
+        initiatorName,
+        amount: shareForCustomer(p.id),
+        link,
+      })
+      await sendWhatsApp(p.whatsapp, message)
+    }
+  }
+
   async function createCloseRequest() {
+    // Idempotente: se já existe uma divisão ativa, não cria outra.
+    if (activeCloseRequest) return
+
     const supabase = createClient()
     const { data: req } = await supabase
       .from('close_requests')
@@ -1036,16 +1127,77 @@ export default function CheckoutPage() {
     if (!req) return
 
     if (closeMode === 'table') {
+      const now = new Date().toISOString()
       await supabase.from('close_request_participants').insert(
         [...selectedIds].map(cid => ({
           request_id: req.id,
           customer_id: cid,
-          amount_owed: splitType === 'equal' ? equalShare : (parseFloat(customAmounts[cid] ?? '0') || 0),
+          amount_owed: shareForCustomer(cid),
+          // O iniciador já entra aceito; os demais precisam aceitar.
           status: cid === myCustomerId ? 'confirmed' : 'pending',
+          confirmed_at: cid === myCustomerId ? now : null,
         }))
       )
+      // Convida os demais participantes (item 5).
+      if (selectedParts.some(p => !p.isMe)) {
+        await notifySplitInvites(req.id)
+      }
     }
   }
+
+  async function acceptSplit() {
+    if (splitGate.kind !== 'invited') return
+    setSplitActing(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('close_request_participants')
+        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
+        .eq('id', splitGate.participantId)
+      if (error) throw error
+      toast.success('Você aceitou a sua parte da divisão.')
+    } catch {
+      toast.error('Não foi possível aceitar agora. Tente novamente.')
+    } finally {
+      setSplitActing(false)
+    }
+  }
+
+  async function declineSplit() {
+    if (splitGate.kind !== 'invited' || !activeCloseRequest) return
+    setSplitActing(true)
+    try {
+      const supabase = createClient()
+      await supabase
+        .from('close_request_participants')
+        .update({ status: 'declined' })
+        .eq('id', splitGate.participantId)
+      // Recusar cancela a divisão — todos voltam ao fluxo normal de pagamento.
+      await supabase
+        .from('close_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', activeCloseRequest.id)
+      toast.message('Você recusou a divisão. O grupo foi avisado.')
+    } catch {
+      toast.error('Não foi possível recusar agora. Tente novamente.')
+    } finally {
+      setSplitActing(false)
+    }
+  }
+
+  // Quando meus pagamentos cobrem a cota da divisão, marca minha linha como paga.
+  useEffect(() => {
+    if (!activeCloseRequest || !myCustomerId) return
+    const mine = activeCloseRequest.participants.find(p => p.customerId === myCustomerId)
+    if (!mine || mine.status === 'paid') return
+    if (myAlreadyPaid >= mine.amountOwed - 0.02) {
+      const supabase = createClient()
+      void supabase
+        .from('close_request_participants')
+        .update({ status: 'paid', amount_paid: myAlreadyPaid, paid_at: new Date().toISOString() })
+        .eq('id', mine.id)
+    }
+  }, [activeCloseRequest, myAlreadyPaid, myCustomerId])
 
   /**
    * Aplica um benefício: registra o desconto como crédito ('offer') na sessão.
@@ -1363,9 +1515,30 @@ export default function CheckoutPage() {
     }
   }
 
-  async function handleProceed() {
+  async function handleProceed(opts?: { confirmedDoublePay?: boolean }) {
     if (closeMode === 'table' && splitType === 'custom' && !customSumOk) {
       toast.error('Os valores não fecham com o total da conta. Ajuste os valores.')
+      return
+    }
+
+    // Item 5: ao dividir com outras pessoas, cria a divisão e AGUARDA os
+    // aceites — ninguém paga antes de todos aceitarem.
+    const splittingWithOthers = closeMode === 'table' && selectedParts.some(p => !p.isMe)
+    if (splittingWithOthers && !activeCloseRequest) {
+      setPaying(true)
+      try {
+        await createCloseRequest()
+        toast.success('Convite de divisão enviado! Aguardando os participantes aceitarem.')
+      } finally {
+        setPaying(false)
+      }
+      return
+    }
+
+    // Trava contra pagamento duplo: se este cliente já realizou um pagamento
+    // nesta sessão, pede confirmação explícita antes de iniciar outro.
+    if (myAlreadyPaid > 0.01 && !opts?.confirmedDoublePay) {
+      setShowDoublePayConfirm(true)
       return
     }
 
@@ -1716,17 +1889,20 @@ export default function CheckoutPage() {
   }
 
   // ── MODE + SUMMARY ─────────────────────────────────────────
-  const canProceed = closeMode === 'individual'
-    ? (!hasPaidMyShare && getAmountToPay() >= 0.01)
-    : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
+  const canProceed = splitPayMode
+    ? getAmountToPay() >= 0.01
+    : closeMode === 'individual'
+      ? (!hasPaidMyShare && getAmountToPay() >= 0.01)
+      : (selectedIds.size > 0 && (splitType === 'equal' || customSumOk))
 
-  const showPaymentFlow = !(closeMode === 'individual' && hasPaidMyShare) && !sessionFullySettled
+  const showPaymentFlow = splitPayMode
+    || (!(closeMode === 'individual' && hasPaidMyShare) && !sessionFullySettled)
 
   const closeModeOptions = [
     { mode: 'individual' as CloseMode, icon: 'person', title: isCounterSession ? 'Pagar meu pedido' : 'Só a minha parte', desc: isCounterSession ? 'PIX, cartão ou dinheiro' : 'Pago apenas meu consumo' },
     ...(sessionFullySettled || isCounterSession
       ? []
-      : [{ mode: 'table' as CloseMode, icon: 'groups', title: 'Fechar mesa toda', desc: 'Inicia fechamento coletivo' }]),
+      : [{ mode: 'table' as CloseMode, icon: 'groups', title: 'Pagar pela mesa toda ou dividir', desc: 'Pague tudo ou divida entre os participantes' }]),
   ]
 
   return (
@@ -1745,8 +1921,144 @@ export default function CheckoutPage() {
 
       <main className="flex-1 px-6 py-6 pb-56 space-y-5">
 
+        {/* ── Divisão da conta com aceite (item 5) ── */}
+        {splitGate.kind === 'invited' && (
+          <section className="space-y-4">
+            <div className="rounded-2xl p-5 space-y-4"
+              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.4)' }}>
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(249,115,22,0.15)' }}>
+                  <span className="material-symbols-outlined text-[24px]" style={{ color: '#f97316' }}>group_add</span>
+                </div>
+                <div>
+                  <p className="text-base font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>Convite para dividir a conta</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                    <strong>{splitGate.initiatorName}</strong> quer dividir a conta com você
+                    {splitGate.others.length > 0 && ` e ${splitGate.others.join(', ')}`}.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(88,66,55,0.3)' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Sua parte</p>
+                <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
+              </div>
+              <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+                A divisão só é fechada quando <strong>todos</strong> aceitarem. Depois disso cada um escolhe como pagar a sua parte.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={declineSplit}
+                  disabled={splitActing}
+                  className="flex-1 h-12 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
+                  style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+                  Recusar
+                </button>
+                <button
+                  onClick={acceptSplit}
+                  disabled={splitActing}
+                  className="flex-[2] h-12 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: '#f97316', color: '#582200' }}>
+                  {splitActing ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Aceitar minha parte · {formatCurrency(splitGate.amount)}</>}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {splitGate.kind === 'waiting' && (
+          <section className="space-y-4">
+            <div className="rounded-2xl p-6 text-center space-y-4"
+              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(123,208,255,0.3)' }}>
+              <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(123,208,255,0.1)', border: '2px solid rgba(123,208,255,0.3)' }}>
+                <span className="material-symbols-outlined text-[32px] animate-pulse" style={{ color: '#7bd0ff' }}>hourglass_top</span>
+              </div>
+              <div>
+                <p className="text-lg font-black" style={{ color: '#7bd0ff', fontFamily: 'Geist, sans-serif' }}>Você aceitou sua parte</p>
+                <p className="text-sm mt-1" style={{ color: '#dae2fd' }}>Sua parte: <strong>{formatCurrency(splitGate.amount)}</strong></p>
+                <p className="text-xs mt-3 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  Aguardando <strong>{splitGate.pendingNames.join(', ')}</strong> aceitar
+                  {splitGate.pendingNames.length === 1 ? '' : 'em'}. O pagamento abre automaticamente quando todos confirmarem.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {splitGate.kind === 'locked' && (
+          <section className="space-y-4">
+            <div className="rounded-2xl p-6 text-center space-y-4"
+              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(251,191,36,0.3)' }}>
+              <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(251,191,36,0.1)', border: '2px solid rgba(251,191,36,0.3)' }}>
+                <span className="material-symbols-outlined text-[32px]" style={{ color: '#fbbf24' }}>lock</span>
+              </div>
+              <div>
+                <p className="text-lg font-black" style={{ color: '#fbbf24', fontFamily: 'Geist, sans-serif' }}>Divisão em andamento</p>
+                <p className="text-xs mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#a78b7d' }}>
+                  <strong>{splitGate.initiatorName}</strong> iniciou uma divisão da conta com pessoas selecionadas.
+                  Enquanto a divisão estiver ativa, o pagamento fica disponível apenas para quem foi escolhido.
+                </p>
+              </div>
+              <button
+                onClick={() => router.back()}
+                className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}>
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                Voltar
+              </button>
+            </div>
+          </section>
+        )}
+
+        {splitGate.kind === 'paid' && (
+          <section className="space-y-4">
+            <div className="rounded-2xl p-6 text-center space-y-4"
+              style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.4)' }}>
+              <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)' }}>
+                <span className="material-symbols-outlined text-[32px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              </div>
+              <div>
+                <p className="text-lg font-black" style={{ color: '#34d399', fontFamily: 'Geist, sans-serif' }}>Sua parte da divisão está paga</p>
+                <p className="text-sm mt-1" style={{ color: '#dae2fd' }}>{formatCurrency(splitGate.amount)} pagos</p>
+              </div>
+              {myPaymentRows.length > 0 && (
+                <Link
+                  href={`/${params.slug}/receipts?session=${sessionId}`}
+                  className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
+                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}>
+                  <span className="material-symbols-outlined text-[16px]">history</span>
+                  Ver seus recibos
+                </Link>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Cabeçalho do pagamento da cota (todos aceitaram) */}
+        {splitPayMode && (
+          <section className="space-y-2">
+            <div className="rounded-2xl p-5"
+              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(52,211,153,0.35)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>handshake</span>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#34d399' }}>Todos aceitaram — pague a sua parte</p>
+              </div>
+              <p className="text-3xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
+              {splitGate.alreadyPaid > 0.01 && (
+                <p className="text-xs font-mono mt-1" style={{ color: '#34d399' }}>já pago {formatCurrency(splitGate.alreadyPaid)}</p>
+              )}
+              <p className="text-[11px] mt-2 leading-relaxed" style={{ color: '#584237' }}>
+                Este é o valor combinado na divisão. Escolha a forma de pagamento abaixo.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* ── View simplificada: pessoa já pagou sua parte ── */}
-        {hasPaidMyShare && (
+        {hasPaidMyShare && splitGate.kind === 'none' && (
           <div className="flex flex-col items-center justify-center py-20 space-y-6">
             <div className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)' }}>
@@ -1788,7 +2100,7 @@ export default function CheckoutPage() {
         )}
 
         {/* ── Content normal (quando não pagou ainda) ── */}
-        {!hasPaidMyShare && (
+        {((!hasPaidMyShare && splitGate.kind === 'none') || splitPayMode) && (
         <>
 
         {/* ── Saldo já pago ───────────────────────────── */}
@@ -1815,7 +2127,7 @@ export default function CheckoutPage() {
         )}
 
         {/* ── Modo de fechamento ──────────────────────── */}
-        {!sessionFullySettled && (
+        {!sessionFullySettled && splitGate.kind === 'none' && (
         <section className="space-y-3">
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Como você quer pagar?</p>
 
@@ -1873,10 +2185,12 @@ export default function CheckoutPage() {
                 <span className="material-symbols-outlined text-[18px]" style={{ color: closeMode === 'table' ? '#fbbf24' : '#584237' }}>groups</span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: closeMode === 'table' ? '#fbbf24' : '#a78b7d' }}>
-                    Fechar mesa toda
+                    Pagar pela mesa toda ou dividir
                   </p>
                   <p className="text-[11px]" style={{ color: '#584237' }}>
-                    {closeMode === 'table' ? `Pagando por todos · ${formatCurrency(remaining)}` : 'Paga pela conta inteira da mesa'}
+                    {closeMode === 'table'
+                      ? `Pagando por todos · ${formatCurrency(remaining)}`
+                      : 'Pague tudo ou divida a conta entre os participantes'}
                   </p>
                 </div>
                 <span className="material-symbols-outlined text-[16px]" style={{ color: '#584237' }}>chevron_right</span>
@@ -1898,9 +2212,9 @@ export default function CheckoutPage() {
                   <span className="material-symbols-outlined text-[22px]" style={{ color: '#fbbf24', fontVariationSettings: "'FILL' 1" }}>warning</span>
                 </div>
                 <div>
-                  <p className="text-base font-bold" style={{ color: '#fbbf24' }}>Fechar mesa toda?</p>
+                  <p className="text-base font-bold" style={{ color: '#fbbf24' }}>Pagar pela mesa toda ou dividir?</p>
                   <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Você está prestes a pagar pela conta inteira da mesa, incluindo o consumo de outras pessoas.
+                    Aqui você pode pagar a conta inteira da mesa <strong>ou dividir o valor</strong> entre os participantes — é só escolher quem paga e quanto na próxima etapa.
                   </p>
                 </div>
               </div>
@@ -1927,7 +2241,55 @@ export default function CheckoutPage() {
                   onClick={() => { setCloseMode('table'); setShowTableConfirm(false) }}
                   className="flex-[2] py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
                   style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' }}>
-                  Sim, pagar {formatCurrency(remaining)} pela mesa toda
+                  Continuar · pagar ou dividir {formatCurrency(remaining)}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: confirmação de pagamento duplo ── */}
+        {showDoublePayConfirm && (
+          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-0"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+            <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+              style={{ background: '#1e293b', border: '1px solid rgba(248,113,113,0.4)' }}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(248,113,113,0.15)' }}>
+                  <span className="material-symbols-outlined text-[22px]" style={{ color: '#f87171', fontVariationSettings: "'FILL' 1" }}>warning</span>
+                </div>
+                <div>
+                  <p className="text-base font-bold" style={{ color: '#f87171' }}>Você já pagou nesta mesa</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                    Já registramos um pagamento seu de <strong style={{ color: '#dae2fd' }}>{formatCurrency(myAlreadyPaid)}</strong>.
+                    Se você pagar de novo, será cobrado mais uma vez. Tem certeza que deseja pagar novamente?
+                  </p>
+                </div>
+              </div>
+
+              {myPaymentRows.length > 0 && (
+                <PaymentReceiptList
+                  payments={myPaymentRows}
+                  context={receiptContext}
+                  variant="customer"
+                  compact
+                  title="Seus pagamentos já registrados"
+                />
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDoublePayConfirm(false)}
+                  className="flex-[2] py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid #334155' }}>
+                  Não, já paguei
+                </button>
+                <button
+                  onClick={() => { setShowDoublePayConfirm(false); void handleProceed({ confirmedDoublePay: true }) }}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.4)' }}>
+                  Pagar de novo
                 </button>
               </div>
             </div>
@@ -1994,7 +2356,7 @@ export default function CheckoutPage() {
           </section>
         )}
 
-        {closeMode === 'individual' && !hasPaidMyShare && (
+        {closeMode === 'individual' && !hasPaidMyShare && splitGate.kind === 'none' && (
           <section className="space-y-3">
             {/* Crédito da mesa (pagamentos de outros) reduz o que falta */}
             {tableCreditForMe > 0.01 && myIndividualBase > 0.01 && (
@@ -2226,7 +2588,7 @@ export default function CheckoutPage() {
         )}
 
         {/* ── Mesa Toda: participantes + divisão ─────── */}
-        {closeMode === 'table' && (
+        {closeMode === 'table' && splitGate.kind === 'none' && (
           <section className="space-y-4">
             {/* Participant selection */}
             <div className="space-y-2">
@@ -2350,6 +2712,7 @@ export default function CheckoutPage() {
         )}
 
         {/* ── Taxa de serviço opcional ────────────────── */}
+        {splitGate.kind === 'none' && (
         <section>
           <div className="flex items-center justify-between rounded-xl px-4 py-3.5"
             style={{ background: '#1e293b', border: '1px solid #334155' }}>
@@ -2379,6 +2742,7 @@ export default function CheckoutPage() {
             </button>
           </div>
         </section>
+        )}
 
         {/* ── Método de pagamento ─────────────────────── */}
         {showPaymentFlow && (
@@ -2415,7 +2779,7 @@ export default function CheckoutPage() {
       </main>
 
       {/* CTA */}
-      {sessionFullySettled && !showPaymentFlow && (
+      {sessionFullySettled && !showPaymentFlow && splitGate.kind === 'none' && (
         <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
           style={{ background: 'rgba(11,19,38,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
           <div className="w-full h-14 rounded-xl flex items-center justify-center gap-2"
@@ -2425,11 +2789,11 @@ export default function CheckoutPage() {
           </div>
         </div>
       )}
-      {showPaymentFlow && (
+      {showPaymentFlow && (splitGate.kind === 'none' || splitPayMode) && (
       <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
         style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
         <button
-          onClick={handleProceed}
+          onClick={() => handleProceed()}
           disabled={!canProceed || paying}
           className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
           style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.3)', fontFamily: 'Geist, sans-serif' }}>

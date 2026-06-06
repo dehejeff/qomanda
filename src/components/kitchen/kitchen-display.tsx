@@ -6,7 +6,10 @@ import { resolveWaiterRestaurantId } from '@/lib/waiter-restaurant-id'
 import { formatCounterOrderLabel } from '@/lib/counter-orders'
 
 type KItem = { name: string; quantity: number; notes: string | null }
-type KOrder = { id: string; status: string; label: string; createdAt: string; items: KItem[] }
+type KOrder = { id: string; status: string; label: string; customerName: string; createdAt: string; items: KItem[] }
+
+/** Código curto do pedido exibido na comanda e no card. */
+function orderCode(id: string) { return `#${id.slice(-6).toUpperCase()}` }
 
 // Status que a cozinha pode avançar (não entrega — isso é papel do garçom)
 const STATUS_NEXT_KITCHEN: Record<string, string> = { pending: 'confirmed', confirmed: 'preparing', preparing: 'ready' }
@@ -37,7 +40,7 @@ function buildComandaHtml(o: KOrder): string {
     .nt { font-size: 13px; margin-left: 18px; font-style: italic; }
     .ft { border-top: 2px dashed #000; margin-top: 8px; padding-top: 4px; text-align: center; font-size: 11px; }
   </style></head><body>
-    <div class="hd"><div class="loc">${esc(o.label)}</div><div class="tm">${new Date(o.createdAt).toLocaleString('pt-BR')}</div></div>
+    <div class="hd"><div class="loc">${esc(o.label)}</div>${o.customerName ? `<div class="tm">${esc(o.customerName)}</div>` : ''}<div class="tm">${esc(orderCode(o.id))} · ${new Date(o.createdAt).toLocaleString('pt-BR')}</div></div>
     ${items || '<div class="it">—</div>'}
     <div class="ft">Qomanda · cozinha</div>
     <script>window.onload=function(){window.print();setTimeout(function(){window.close()},500)}</script>
@@ -74,6 +77,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
       .from('orders')
       .select(`id, status, display_number, order_channel, created_at,
         session:sessions ( table:tables ( number ) ),
+        customer:customers ( first_name, last_name ),
         items:order_items ( quantity, notes, menu_item:menu_items ( name ) )`)
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
@@ -88,12 +92,15 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
       const label = row.order_channel === 'counter'
         ? formatCounterOrderLabel(row.display_number)
         : (t?.number ? `Mesa ${t.number}` : 'Mesa')
+      const cRaw = (row as { customer?: { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[] | null }).customer
+      const c = Array.isArray(cRaw) ? cRaw[0] : cRaw
+      const customerName = c ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() : ''
       const items: KItem[] = ((row.items ?? []) as Array<{ quantity: number; notes: string | null; menu_item: { name?: string } | { name?: string }[] | null }>).map(it => {
         const miRaw = it.menu_item
         const mi = Array.isArray(miRaw) ? miRaw[0] : miRaw
         return { name: mi?.name ?? 'Item', quantity: Number(it.quantity), notes: it.notes ?? null }
       })
-      return { id: row.id, status: row.status, label, createdAt: row.created_at, items }
+      return { id: row.id, status: row.status, label, customerName, createdAt: row.created_at, items }
     })
 
     // Auto-impressão de pedidos novos (não imprime o backlog inicial)
@@ -185,9 +192,17 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
                     const age = minsSince(o.createdAt)
                     return (
                       <div key={o.id} data-order-id={o.id} className="rounded-xl p-3" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-lg font-black font-mono" style={{ color: '#ffb690' }}>{o.label}</span>
-                          <span className="text-xs font-mono font-bold" style={{ color: ageColor(age) }}>{age}min</span>
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-lg font-black font-mono" style={{ color: '#ffb690' }}>{o.label}</span>
+                              {o.customerName && (
+                                <span className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.customerName}</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-mono" style={{ color: C.muted }}>{orderCode(o.id)}</span>
+                          </div>
+                          <span className="text-xs font-mono font-bold shrink-0" style={{ color: ageColor(age) }}>{age}min</span>
                         </div>
                         <ul className="space-y-1 mb-3">
                           {o.items.map((it, i) => (

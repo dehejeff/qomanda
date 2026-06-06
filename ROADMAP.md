@@ -27,6 +27,10 @@
 | **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
+| **P1** | Garçom só entrega + alerta "pedido pronto" (som/vibração/toast) no app do garçom | ✅ Feito 2026-06-06 |
+| **P1** | Cozinha (KDS) mostra nome do cliente + ID do pedido no card e na comanda | ✅ Feito 2026-06-06 |
+| **P1** | Dividir a conta com **aceite obrigatório** + convite WhatsApp + trava de pagamento (só selecionados pagam) | ✅ Feito 2026-06-06 |
+| **P1** | Trava anti-pagamento-duplo no checkout (confirmação se já pagou) | ✅ Feito 2026-06-06 |
 | **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ Código pronto (base + wiring) · falta criar conta/DSN + alertas (`docs/OBSERVABILITY-WIP.md`) |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |

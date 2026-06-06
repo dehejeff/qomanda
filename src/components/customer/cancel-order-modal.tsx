@@ -22,13 +22,17 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       style={{ background: 'rgba(6,14,32,0.85)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 flex flex-col gap-5"
-        style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.5)' }}
+        className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+        style={{
+          background: '#131b2e',
+          border: '1px solid rgba(88,66,55,0.5)',
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

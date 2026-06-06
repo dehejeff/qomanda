@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { resolveWaiterRestaurantId } from '@/lib/waiter-restaurant-id'
 import { countWaiterPendingPayments } from '@/components/dashboard/waiter-pending-payments-panel'
 import { formatCounterOrderLabel } from '@/lib/counter-orders'
+import { playReadyChime } from '@/lib/ready-chime'
 
 type OrderRow = {
   id: string
@@ -16,10 +18,8 @@ type OrderRow = {
   customer: { first_name: string; last_name: string } | null
 }
 
+// O garçom só entrega — os demais estágios são informativos (cozinha/admin avançam).
 const STATUS_FLOW: Record<string, string> = {
-  pending: 'confirmed',
-  confirmed: 'preparing',
-  preparing: 'ready',
   ready: 'delivered',
 }
 
@@ -35,6 +35,7 @@ export default function WaiterOrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [pendingPayments, setPendingPayments] = useState(0)
+  const readySeen = useRef<Set<string> | null>(null)
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -55,11 +56,33 @@ export default function WaiterOrdersPage() {
       .order('created_at', { ascending: true })
       .limit(40)
 
-    setOrders((data ?? []).map(row => {
+    const mapped = (data ?? []).map(row => {
       const c = row.customer as { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[] | null
       const customer = Array.isArray(c) ? c[0] ?? null : c
       return { ...row, customer } as OrderRow
-    }))
+    })
+
+    // Alerta de "pronto para entregar" — ignora o backlog inicial.
+    const readyNow = mapped.filter(o => o.status === 'ready')
+    if (readySeen.current === null) {
+      readySeen.current = new Set(readyNow.map(o => o.id))
+    } else {
+      const fresh = readyNow.filter(o => !readySeen.current!.has(o.id))
+      if (fresh.length > 0) {
+        playReadyChime()
+        for (const o of fresh) {
+          const loc = o.order_channel === 'counter' ? formatCounterOrderLabel(o.display_number) : 'Mesa'
+          const who = o.customer ? `${o.customer.first_name ?? ''} ${o.customer.last_name ?? ''}`.trim() : 'Cliente'
+          toast.success(`Pedido pronto — ${loc}`, {
+            description: `${who} · entregar agora (#${o.id.slice(-6).toUpperCase()})`,
+            duration: 8000,
+          })
+        }
+      }
+      readySeen.current = new Set(readyNow.map(o => o.id))
+    }
+
+    setOrders(mapped)
     setLoading(false)
   }, [])
 
@@ -102,7 +125,7 @@ export default function WaiterOrdersPage() {
 
       <div>
         <h1 className="text-2xl font-black text-on-surface">Fila de pedidos</h1>
-        <p className="text-sm text-on-surface-variant mt-1">Toque para avançar status · balcão mostra número ao cliente</p>
+        <p className="text-sm text-on-surface-variant mt-1">Acompanhamento · a cozinha prepara; você entrega quando ficar “Pronto”</p>
       </div>
 
       {orders.length === 0 ? (
