@@ -13,6 +13,7 @@ const NAV_ITEMS: { href: string; icon: string; label: string; modes?: Operationa
   { href: '/dashboard',           icon: 'dashboard',        label: 'Overview' },
   { href: '/dashboard/reports',   icon: 'analytics',        label: 'Analytics' },
   { href: '/dashboard/orders',    icon: 'receipt_long',     label: 'Pedidos' },
+  { href: '/dashboard/caixa',     icon: 'point_of_sale',    label: 'Caixa' },
   { href: '/dashboard/customers',   icon: 'groups',           label: 'Clientes' },
   { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },
   // Mesas só faz sentido para salão (dine_in) e salão+balcão (both); balcão puro não tem mesas.
