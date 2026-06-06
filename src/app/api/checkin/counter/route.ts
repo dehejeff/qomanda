@@ -11,6 +11,8 @@ export type CounterCheckInRequest = {
   whatsapp?: string
   pin?: string
   customerId?: string
+  documentType?: 'cpf' | 'passport' | null
+  cpf?: string | null
 }
 
 export type CounterCheckInResponse = {
@@ -22,7 +24,7 @@ export type CounterCheckInResponse = {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CounterCheckInRequest
-    const { slug, pin, customerId: quickCustomerId } = body
+    const { slug, pin, customerId: quickCustomerId, documentType, cpf } = body
     let { firstName, lastName, whatsapp } = body
 
     if (!slug) {
@@ -71,8 +73,8 @@ export async function POST(req: NextRequest) {
         firstName: firstName!,
         lastName: lastName!,
         whatsapp: whatsappForStorage(whatsapp!),
-        documentType: null,
-        cpf: null,
+        documentType: documentType ?? null,
+        cpf: cpf ?? null,
         passport: null,
         pin: pin!,
       })

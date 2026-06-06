@@ -454,6 +454,7 @@ export default function CheckInPage() {
   // ── QR obrigatório (ou hub salão+balcão) ───────────────────
   if (!tableVerified) {
     const isBothMode = operationalMode === 'both'
+    const isCounterOnly = operationalMode === 'counter'
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center relative"
         style={{ background: '#0b1326', color: '#dae2fd' }}>
@@ -461,31 +462,45 @@ export default function CheckInPage() {
           style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
         <div className="relative z-10 max-w-sm w-full space-y-6 flex flex-col items-center">
           <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>
-            {isBothMode ? 'layers' : 'qr_code_scanner'}
+            {isCounterOnly ? 'countertops' : isBothMode ? 'layers' : 'qr_code_scanner'}
           </span>
           <div className="w-full text-center">
             <h1 className="text-xl font-bold mb-2" style={{ fontFamily: 'Geist, sans-serif' }}>
               {restaurant.name}
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
-              {isBothMode
-                ? 'Escolha como quer pedir: mesa no salão (QR) ou fila no balcão.'
-                : (verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.')}
+              {isCounterOnly
+                ? 'Peça pelo celular no balcão. Você recebe um número e avisamos quando ficar pronto.'
+                : isBothMode
+                  ? 'Escolha como quer pedir: mesa no salão (QR) ou fila no balcão.'
+                  : (verifyError ?? 'Para entrar na mesa, escaneie o QR Code fixado na mesa do restaurante.')}
             </p>
           </div>
-          {!verifyError && !isBothMode && (
+          {!verifyError && !isBothMode && !isCounterOnly && (
             <div className="rounded-xl p-4 w-full text-center text-xs leading-relaxed"
               style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
               <span className="material-symbols-outlined block mx-auto mb-2 text-[20px]" style={{ color: '#7bd0ff' }}>info</span>
               O QR Code fica na sua mesa. Com ele você acessa o cardápio, faz pedidos e acompanha a conta.
             </div>
           )}
-          <Link href="/scan"
-            className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-            style={{ background: '#f97316', color: '#582200' }}>
-            <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
-            {isBothMode ? 'Escanear QR da mesa' : 'Escanear QR da mesa'}
-          </Link>
+
+          {/* Balcão puro: CTA principal é o balcão (não há mesas) */}
+          {isCounterOnly ? (
+            <Link href={`/${params.slug}/balcao`}
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+              style={{ background: '#f97316', color: '#582200' }}>
+              <span className="material-symbols-outlined text-[20px]">storefront</span>
+              Pedir no balcão
+            </Link>
+          ) : (
+            <Link href="/scan"
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+              style={{ background: '#f97316', color: '#582200' }}>
+              <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+              Escanear QR da mesa
+            </Link>
+          )}
+
           {openSession && (
             <button
               type="button"
