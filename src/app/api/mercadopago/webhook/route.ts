@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getMercadoPagoPayment,
   isMercadoPagoPaymentApproved,
   isMercadoPagoPaymentRefunded,
 } from '@/lib/mercadopago'
-import { confirmPaymentRecord } from '@/lib/confirm-payment'
+import { confirmPaymentRecord, type PaymentConfirmRow } from '@/lib/confirm-payment'
 import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
 import { claimWebhookEvent, finishWebhookEvent } from '@/lib/webhook-idempotency'
 import { captureError } from '@/lib/observability'
@@ -69,34 +70,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, duplicate: true })
     }
 
-    try {
-      if (isMercadoPagoPaymentApproved(mpPayment.status) && internalPayment.status !== 'paid') {
-        const { confirmationCode } = await confirmPaymentRecord(supabase, {
-          ...internalPayment,
-          amount: Number(internalPayment.amount),
-        })
-        console.log(`[MP Webhook] Pagamento confirmado: ${internalPayment.id} → ${confirmationCode}`)
+    const eventRowId = claim.eventRowId
+    const mpStatus = mpPayment.status
+
+    // Processa o trabalho pesado (NF-e, WhatsApp, comissão) APÓS responder 200,
+    // na mesma invocação — não segura a resposta ao Mercado Pago.
+    after(async () => {
+      try {
+        await processMercadoPagoEvent(supabase, internalPayment as PaymentConfirmRow, mpStatus)
+        await finishWebhookEvent(supabase, eventRowId, 'processed')
+      } catch (procErr) {
+        console.error('[MP Webhook] erro no processamento diferido', procErr)
+        await captureError(procErr, { scope: 'webhook:mercado_pago' })
+        try {
+          await finishWebhookEvent(supabase, eventRowId, 'error', procErr instanceof Error ? procErr.message : String(procErr))
+        } catch { /* ignore */ }
       }
+    })
 
-      if (isMercadoPagoPaymentRefunded(mpPayment.status)) {
-        await supabase.from('payments').update({ status: 'refunded' }).eq('id', internalPayment.id)
-      }
-
-      if (mpPayment.status === 'rejected' || mpPayment.status === 'cancelled') {
-        await supabase.from('payments').update({ status: 'failed' }).eq('id', internalPayment.id)
-      }
-
-      await finishWebhookEvent(supabase, claim.eventRowId, 'processed')
-    } catch (procErr) {
-      await finishWebhookEvent(supabase, claim.eventRowId, 'error', procErr instanceof Error ? procErr.message : String(procErr))
-      throw procErr
-    }
-
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, queued: true })
   } catch (err) {
     console.error('[Mercado Pago Webhook Error]', err)
     await captureError(err, { scope: 'webhook:mercado_pago' })
     return NextResponse.json({ ok: true })
+  }
+}
+
+/** Aplica a transição de status do pagamento (roda em `after`, fora da resposta). */
+async function processMercadoPagoEvent(
+  supabase: SupabaseClient,
+  internalPayment: PaymentConfirmRow,
+  mpStatus: string,
+) {
+  if (isMercadoPagoPaymentApproved(mpStatus) && internalPayment.status !== 'paid') {
+    const { confirmationCode } = await confirmPaymentRecord(supabase, {
+      ...internalPayment,
+      amount: Number(internalPayment.amount),
+    })
+    console.log(`[MP Webhook] Pagamento confirmado: ${internalPayment.id} → ${confirmationCode}`)
+  }
+
+  if (isMercadoPagoPaymentRefunded(mpStatus)) {
+    await supabase.from('payments').update({ status: 'refunded' }).eq('id', internalPayment.id)
+  }
+
+  if (mpStatus === 'rejected' || mpStatus === 'cancelled') {
+    await supabase.from('payments').update({ status: 'failed' }).eq('id', internalPayment.id)
   }
 }
 
