@@ -43,6 +43,15 @@
 
 ---
 
+## 🐞 Bugs conhecidos / pendências (corrigir depois)
+
+| # | Item | Hipótese / nota |
+|---|------|-----------------|
+| 1 | **Excluir mesa falha (ex.: mesa B2)** | `tables.delete()` provavelmente barrado por FK (sessions/orders referenciam a mesa) → toast "Erro ao remover mesa". Tratar: encerrar/limpar sessões da mesa antes, ou soft-delete (flag `archived`), e dar mensagem clara. Arquivo: `dashboard/tables/page.tsx` (`deleteTable`) + `api/dashboard/tables`. |
+| 2 | **Couvert cancelado pelo cliente não reflete no painel** | Cliente adiciona couvert (pedido nasce `delivered` = "servido") e depois remove, mas no painel do restaurante o pedido continua como "servido". Verificar: o "remover" do cliente chama `removeCouvertForCustomer` (deleta o pedido) — ver se a remoção realmente ocorreu (bloqueada se já houve pagamento? RLS? realtime não atualizou?). Decidir UX: couvert removível deve sumir do painel; e couvert como `delivered` pode confundir na tela de pedidos. Arquivos: `lib/couvert.ts`, `api/customer/couvert`, telas de pedidos do dashboard. |
+
+---
+
 ## ✅ Entregue recentemente (jun/2026)
 
 | Entrega | Detalhe |
