@@ -15,14 +15,24 @@ import { CustomerOfferModal } from '@/components/dashboard/customer-offer-modal'
 import type { LoyaltyRuleInput } from '@/lib/customer-offers'
 import type { LoyaltyRule } from '@/types'
 
-type Filter = 'all' | 'at_risk' | 'loyal' | 'new'
+type Filter = 'all' | 'new' | 'regular' | 'loyal' | 'at_risk'
 
 const FILTER_OPTIONS: { id: Filter; label: string; icon: string }[] = [
   { id: 'all', label: 'Todos', icon: 'groups' },
-  { id: 'at_risk', label: 'Sumidos', icon: 'schedule' },
-  { id: 'loyal', label: 'Fiéis', icon: 'loyalty' },
   { id: 'new', label: 'Novos', icon: 'person_add' },
+  { id: 'regular', label: 'Regulares', icon: 'person' },
+  { id: 'loyal', label: 'Fiéis', icon: 'loyalty' },
+  { id: 'at_risk', label: 'Sumidos', icon: 'schedule' },
 ]
+
+// Regras de cada filtro (alinhadas com classifySegment em restaurant-customers.ts).
+const FILTER_DESC: Record<Filter, string> = {
+  all: 'Novos: 1 visita · Regulares: 2–7 · Fiéis: 8+ visitas · Sumidos: 30+ dias sem voltar',
+  new: 'Novos — clientes na 1ª visita (1 visita).',
+  regular: 'Regulares — de 2 a 7 visitas, ativos nos últimos 30 dias.',
+  loyal: 'Fiéis — 8 ou mais visitas (ativos nos últimos 30 dias).',
+  at_risk: 'Sumidos — sem voltar há 30 dias ou mais (prioridade para reativação).',
+}
 
 const SEGMENT_BADGE: Record<RestaurantCustomerStats['segment'], { label: string; className: string }> = {
   at_risk: { label: 'Sumido', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
@@ -224,6 +234,12 @@ export default function CustomersPage() {
           />
         </div>
       </div>
+
+      {/* Nota: regra do filtro ativo */}
+      <p className="-mt-1 flex items-center gap-1.5 text-xs font-mono text-on-surface-variant">
+        <span className="material-symbols-outlined text-[14px] shrink-0">info</span>
+        {FILTER_DESC[filter]}
+      </p>
 
       {/* List */}
       {filtered.length === 0 ? (
