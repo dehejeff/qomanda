@@ -73,9 +73,14 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, loy
     const expiresAt = new Date(Date.now() + validityDays * 86_400_000).toISOString()
     const waUrl = whatsAppLink(customer.whatsapp, message)
 
+    // Copia a mensagem (com emojis) para a área de transferência. Alguns clientes
+    // do WhatsApp corrompem emoji no texto pré-preenchido; colar (Ctrl+V) sempre
+    // preserva. Best-effort — não bloqueia o envio.
+    try { await navigator.clipboard.writeText(message) } catch { /* ignore */ }
+
     if (DEV_BYPASS) {
       window.open(waUrl, '_blank', 'noopener,noreferrer')
-      toast.success('Oferta registrada e WhatsApp aberto.')
+      toast.success('WhatsApp aberto · mensagem copiada (cole se faltar emoji).')
       onClose()
       return
     }
@@ -98,7 +103,7 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, loy
     }
 
     window.open(waUrl, '_blank', 'noopener,noreferrer')
-    toast.success('Oferta registrada! O cliente poderá usá-la no checkout.')
+    toast.success('Oferta registrada · mensagem copiada (cole no WhatsApp se faltar emoji).')
     onClose()
   }
 
@@ -217,7 +222,7 @@ export function CustomerOfferModal({ customer, restaurantId, restaurantName, loy
               className="w-full text-xs leading-relaxed whitespace-pre-wrap rounded-xl p-4 bg-surface-container-low border border-outline-variant text-on-surface font-mono max-h-48 resize-y focus:outline-none focus:ring-1 focus:ring-primary-container"
             />
             <p className="text-[10px] font-mono text-on-surface-variant mt-1.5">
-              Edite livremente. Emojis funcionam no WhatsApp 👍
+              Ao enviar, a mensagem é copiada. Se algum emoji não aparecer no WhatsApp, cole (Ctrl+V) 👍
             </p>
           </div>
         </div>

@@ -132,7 +132,9 @@ export function maskWhatsApp(whatsapp: string): string {
 
 export function whatsAppLink(whatsapp: string, message: string): string {
   const phone = whatsapp.replace(/\D/g, '')
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+  // api.whatsapp.com/send é o link universal recomendado pela Meta e lida melhor
+  // com emoji (4 bytes UTF-8) que o wa.me em alguns clientes desktop.
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`
 }
 
 export function buildWinBackMessage(
