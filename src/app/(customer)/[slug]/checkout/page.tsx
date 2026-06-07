@@ -2738,6 +2738,27 @@ export default function CheckoutPage() {
           </section>
         )}
 
+        {/* ── Couvert (destacado, sem taxa) ───────────── */}
+        {splitGate.kind === 'none' && openCouvertBase > 0.01 && (
+          <section>
+            <div className="flex items-center justify-between rounded-xl px-4 py-3.5"
+              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>bakery_dining</span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>Couvert</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#a78b7d' }}>
+                    Incluso na conta {closeMode === 'individual' ? '' : 'da mesa '}· sem taxa de serviço
+                  </p>
+                </div>
+              </div>
+              <span className="text-sm font-bold font-mono" style={{ color: '#ffb690' }}>
+                {formatCurrency(openCouvertBase)}
+              </span>
+            </div>
+          </section>
+        )}
+
         {/* ── Taxa de serviço opcional ────────────────── */}
         {splitGate.kind === 'none' && (
         <section>
