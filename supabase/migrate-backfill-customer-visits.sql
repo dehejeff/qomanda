@@ -17,7 +17,7 @@ select
   sp.customer_id,
   s.restaurant_id,
   sp.session_id,
-  coalesce(s.created_at, now())
+  coalesce(s.started_at, now())
 from session_participants sp
 join sessions s on s.id = sp.session_id
 where sp.customer_id is not null
