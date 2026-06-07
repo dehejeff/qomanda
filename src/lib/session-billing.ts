@@ -58,6 +58,40 @@ export function amountWithServiceFee(subtotal: number, includeFee: boolean) {
   return roundMoney(subtotal * (includeFee ? 1 + SERVICE_FEE_RATE : 1))
 }
 
+/** Item é couvert (entrada ou artístico)? Couvert fica fora da base da taxa de serviço. */
+export function isCouvertLine(item: { menu_item?: { couvert_kind?: string | null } | null }): boolean {
+  return (item.menu_item?.couvert_kind ?? 'none') !== 'none'
+}
+
+/** Subtotal de couvert (entrada + artístico) dos pedidos faturáveis. */
+export function ordersCouvertSubtotal(orders: Order[]): number {
+  return roundMoney(
+    orders.filter(isBillableOrder)
+      .flatMap(o => o.items ?? [])
+      .filter(isCouvertLine)
+      .reduce((s, i) => s + i.unit_price * i.quantity, 0),
+  )
+}
+
+export function customerCouvertSubtotal(orders: Order[], customerId: string): number {
+  return ordersCouvertSubtotal(orders.filter(o => o.customer_id === customerId))
+}
+
+/**
+ * Valor com taxa de serviço, EXCLUINDO o couvert da base (couvert não leva 10%).
+ * `subtotal` é o valor de face (consumo + couvert); `couvertSubtotal` é a parte
+ * de couvert. Com couvert = 0, é idêntico a `amountWithServiceFee`.
+ */
+export function amountWithServiceFeeExCouvert(
+  subtotal: number,
+  couvertSubtotal: number,
+  includeFee: boolean,
+) {
+  if (!includeFee) return roundMoney(subtotal)
+  const feeBase = Math.max(0, roundMoney(subtotal - couvertSubtotal))
+  return roundMoney(subtotal + feeBase * SERVICE_FEE_RATE)
+}
+
 /** Converte pagamentos em crédito sobre o subtotal (desconta taxa se incluída). */
 export function paymentSubtotalCredit(payments: PaymentRow[]): number {
   return roundMoney(
@@ -73,10 +107,13 @@ export function computeOpenBalance(
   consumptionSubtotal: number,
   payments: PaymentRow[],
   includeServiceFee: boolean,
+  couvertSubtotal = 0,
 ) {
   const credited = paymentSubtotalCredit(payments)
   const openSubtotal = Math.max(0, roundMoney(consumptionSubtotal - credited))
-  const openTotal = amountWithServiceFee(openSubtotal, includeServiceFee)
+  // Parte de couvert ainda em aberto (aprox.: couvert é quitado por último).
+  const openCouvert = Math.min(couvertSubtotal, openSubtotal)
+  const openTotal = amountWithServiceFeeExCouvert(openSubtotal, openCouvert, includeServiceFee)
   return { openSubtotal, openTotal, credited }
 }
 
@@ -138,14 +175,15 @@ export function resolveServiceFeeIncluded(
   subtotal: number,
   paid: number,
   explicitFlags: (boolean | null | undefined)[],
+  couvertSubtotal = 0,
 ): boolean | null {
   const explicit = explicitFlags.find(f => f === true || f === false)
   if (explicit === true || explicit === false) return explicit
 
   if (paid <= 0.01 || subtotal <= 0.01) return null
 
-  const withFee = amountWithServiceFee(subtotal, true)
-  const withoutFee = amountWithServiceFee(subtotal, false)
+  const withFee = amountWithServiceFeeExCouvert(subtotal, couvertSubtotal, true)
+  const withoutFee = amountWithServiceFeeExCouvert(subtotal, couvertSubtotal, false)
 
   if (paid >= withFee - SETTLE_TOLERANCE) return true
   if (paid <= withoutFee + SETTLE_TOLERANCE) return false
@@ -157,10 +195,11 @@ export function buildCustomerBilling(
   subtotal: number,
   paid: number,
   feeFlags: (boolean | null | undefined)[] = [],
+  couvertSubtotal = 0,
 ): CustomerBilling {
-  const amountDueWithFee = amountWithServiceFee(subtotal, true)
-  const amountDueWithoutFee = amountWithServiceFee(subtotal, false)
-  const serviceFeeIncluded = resolveServiceFeeIncluded(subtotal, paid, feeFlags)
+  const amountDueWithFee = amountWithServiceFeeExCouvert(subtotal, couvertSubtotal, true)
+  const amountDueWithoutFee = amountWithServiceFeeExCouvert(subtotal, couvertSubtotal, false)
+  const serviceFeeIncluded = resolveServiceFeeIncluded(subtotal, paid, feeFlags, couvertSubtotal)
 
   const amountDue =
     serviceFeeIncluded === false ? amountDueWithoutFee : amountDueWithFee
@@ -208,8 +247,9 @@ export function allocateSessionPayments(
   const debtsRemaining = new Map<string, number>()
   for (const id of ids) {
     const subtotal = customerOrdersSubtotal(orders, id)
+    const couvert = customerCouvertSubtotal(orders, id)
     const selfFlags = payments.filter(p => p.customer_id === id).map(p => p.service_fee_included)
-    const obligation = buildCustomerBilling(id, subtotal, 0, selfFlags)
+    const obligation = buildCustomerBilling(id, subtotal, 0, selfFlags, couvert)
     debtsRemaining.set(id, obligation.amountDue)
   }
 
@@ -310,11 +350,12 @@ export function buildSessionBilling(
 
   const billings = ids.map(customerId => {
     const subtotal = customerOrdersSubtotal(orders, customerId)
+    const couvert = customerCouvertSubtotal(orders, customerId)
     const selfFlags = payments.filter(p => p.customer_id === customerId).map(p => p.service_fee_included)
     const selfPaid = paidBySelf.get(customerId) ?? 0
     const othersPaid = (coveredBy.get(customerId) ?? []).reduce((s, c) => s + c.amount, 0)
     const totalAllocated = roundMoney(selfPaid + othersPaid)
-    const billing = buildCustomerBilling(customerId, subtotal, totalAllocated, selfFlags)
+    const billing = buildCustomerBilling(customerId, subtotal, totalAllocated, selfFlags, couvert)
     return {
       ...billing,
       paidBySelf: selfPaid,

@@ -129,6 +129,8 @@ export interface MenuItem {
   available: boolean
   contains_alcohol: boolean
   is_chef_pick?: boolean
+  /** 'none' = item normal · 'couvert' = entrada · 'artistico' = música ao vivo */
+  couvert_kind?: 'none' | 'couvert' | 'artistico'
   category?: MenuCategory
 }
 
