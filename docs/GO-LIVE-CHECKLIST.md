@@ -39,6 +39,7 @@ Ordem completa em `ROADMAP.md` § Migrações. As mais recentes desta fase **pre
 - [ ] ⏳ `migrate-mercadopago-oauth.sql`
 - [ ] ⏳ `migrate-async-jobs.sql`  ← **sem isso a fila (NF-e/WhatsApp) não processa**
 - [ ] ⏳ `migrate-billing-reminders.sql`
+- [ ] ⏳ `migrate-realtime-close-requests.sql`  ← **sem isso a divisão da conta (aceite) não atualiza em tempo real**
 - [ ] ⏳ `migrate-performance-indexes.sql`
 
 ## 🔴 4. Crons (Vercel)

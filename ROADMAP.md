@@ -494,6 +494,7 @@ Cliente confirma pagamento
 | `migrate-performance-indexes.sql` | Índices de performance (payments/orders/sessions) — analytics, webhooks, fila |
 | `migrate-realtime-orders.sql` | Realtime de orders/order_items (KDS instantâneo; opcional — KDS tem poll) |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
+| `migrate-realtime-close-requests.sql` | Realtime de close_requests/close_request_participants (divisão da conta com aceite atualiza ao vivo) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 
