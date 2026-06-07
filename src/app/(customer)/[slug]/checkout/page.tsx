@@ -14,6 +14,7 @@ import {
   computeOpenBalance,
   paymentSubtotalCredit,
   amountWithServiceFee,
+  amountWithServiceFeeExCouvert,
   unpaidOrderLineItems,
   roundMoney,
 } from '@/lib/session-billing'
@@ -598,6 +599,9 @@ export default function CheckoutPage() {
   // Amounts
   const [subTotal, setSubTotal]             = useState(0)
   const [mySubtotal, setMySubtotal]         = useState(0)
+  // Parte de couvert (entrada/artístico) — fica fora da base da taxa de serviço.
+  const [subCouvert, setSubCouvert]         = useState(0)
+  const [myCouvert, setMyCouvert]           = useState(0)
   const [myOrders, setMyOrders]             = useState<Order[]>([])
   const [sessionPayments, setSessionPayments] = useState<SessionPaymentRow[]>([])
   const [myAlreadyPaid, setMyAlreadyPaid]   = useState(0)
@@ -627,19 +631,19 @@ export default function CheckoutPage() {
   )
 
   const myOpen = useMemo(
-    () => computeOpenBalance(mySubtotal, myPaymentRows, includeServiceFee),
-    [mySubtotal, myPaymentRows, includeServiceFee],
+    () => computeOpenBalance(mySubtotal, myPaymentRows, includeServiceFee, myCouvert),
+    [mySubtotal, myPaymentRows, includeServiceFee, myCouvert],
   )
 
   const sessionOpen = useMemo(
-    () => computeOpenBalance(subTotal, sessionPayments, includeServiceFee),
-    [subTotal, sessionPayments, includeServiceFee],
+    () => computeOpenBalance(subTotal, sessionPayments, includeServiceFee, subCouvert),
+    [subTotal, sessionPayments, includeServiceFee, subCouvert],
   )
 
   const remaining = sessionOpen.openTotal
   const sessionGrandTotal = useMemo(
-    () => amountWithServiceFee(subTotal, includeServiceFee),
-    [subTotal, includeServiceFee],
+    () => amountWithServiceFeeExCouvert(subTotal, subCouvert, includeServiceFee),
+    [subTotal, subCouvert, includeServiceFee],
   )
 
   const unpaidItems = useMemo(
@@ -750,7 +754,14 @@ export default function CheckoutPage() {
     return myDefinedAmount
   }
 
-  const serviceFeeOpenBase = closeMode === 'individual' ? myOpen.openSubtotal : sessionOpen.openSubtotal
+  // Base da taxa = consumo em aberto MENOS a parte de couvert (couvert não leva taxa).
+  const openCouvertBase = closeMode === 'individual'
+    ? Math.min(myCouvert, myOpen.openSubtotal)
+    : Math.min(subCouvert, sessionOpen.openSubtotal)
+  const serviceFeeOpenBase = Math.max(
+    0,
+    roundMoney((closeMode === 'individual' ? myOpen.openSubtotal : sessionOpen.openSubtotal) - openCouvertBase),
+  )
 
   const serviceFeeDisplay = serviceFeeOpenBase <= 0.01
     ? 0
@@ -770,7 +781,7 @@ export default function CheckoutPage() {
       const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes, pendingManualPixRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
-        supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,category:menu_categories(name)))').eq('session_id', sessionId),
+        supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,couvert_kind,category:menu_categories(name)))').eq('session_id', sessionId),
         supabase.from('payments').select('id, amount, customer_id, method, split_type, service_fee_included, confirmation_code, paid_at, created_at').eq('session_id', sessionId).eq('status', 'paid'),
         myCustomerId
           ? supabase.from('payments').select('id, amount, status, confirmation_code').eq('session_id', sessionId).eq('customer_id', myCustomerId).eq('method', 'cash').eq('status', 'pending').maybeSingle()
@@ -815,24 +826,34 @@ export default function CheckoutPage() {
       const billableOrders = (ordersRes.data ?? []).filter((o: any) => o.status !== 'cancelled')
       const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
       const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      // Couvert (entrada/artístico) — separa para tirar da base da taxa de serviço.
+      const couvertOf = (items: any[]) => roundMoney(
+        items
+          .filter((i: any) => (i.menu_item?.couvert_kind ?? 'none') !== 'none')
+          .reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0),
+      )
+      const subCouvertLocal = couvertOf(allItems)
       const allPayments = paymentsRes.data ?? []
       const myPaid     = myCustomerId
         ? allPayments.filter((p: any) => p.customer_id === myCustomerId).reduce((s, p) => s + Number(p.amount), 0)
         : 0
 
       setSubTotal(sub)
+      setSubCouvert(subCouvertLocal)
       setSessionPayments((allPayments as SessionPaymentRow[]) ?? [])
       setMyAlreadyPaid(myPaid)
 
       const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId) as unknown as Order[]
       const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
       const mySub = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      const myCouvertLocal = couvertOf(myAllItems)
       setMySubtotal(mySub)
+      setMyCouvert(myCouvertLocal)
       setMyOrders(myOrdersData)
 
       const myPayRows = allPayments.filter((p: any) => p.customer_id === myCustomerId)
-      const myOpenAfterLoad = computeOpenBalance(mySub, myPayRows, true)
-      const sessionRemAfterLoad = computeOpenBalance(sub, allPayments, true).openTotal
+      const myOpenAfterLoad = computeOpenBalance(mySub, myPayRows, true, myCouvertLocal)
+      const sessionRemAfterLoad = computeOpenBalance(sub, allPayments, true, subCouvertLocal).openTotal
 
       if (sessionRemAfterLoad <= 0.02 && sub > 0.01) {
         setCloseMode('individual')
@@ -854,9 +875,10 @@ export default function CheckoutPage() {
       // Participants who haven't fully paid yet
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
         const pOrders = billableOrders.filter((o: any) => o.customer_id === p.customer_id)
-        const pSub    = pOrders.flatMap((o: any) => o.items ?? []).reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+        const pItems  = pOrders.flatMap((o: any) => o.items ?? [])
+        const pSub    = pItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
         const pPay    = allPayments.filter((pay: any) => pay.customer_id === p.customer_id)
-        const pOpen   = computeOpenBalance(pSub, pPay, true)
+        const pOpen   = computeOpenBalance(pSub, pPay, true, couvertOf(pItems))
         return {
           id: p.customer_id,
           name: p.customer ? `${p.customer.first_name} ${p.customer.last_name}` : 'Cliente',
@@ -902,7 +924,7 @@ export default function CheckoutPage() {
       }
 
       if (myCustomerId) setSelectedIds(new Set([myCustomerId]))
-      const sessionRem = computeOpenBalance(sub, allPayments, true).openTotal
+      const sessionRem = computeOpenBalance(sub, allPayments, true, subCouvertLocal).openTotal
       const equalAmt = parts.length > 0 ? (sessionRem / parts.length).toFixed(2) : '0'
       setCustomAmounts(Object.fromEntries(parts.map(p => [p.id, equalAmt])))
 
