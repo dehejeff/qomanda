@@ -18,7 +18,7 @@ import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billin
 import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
 import { RestaurantNfePanel } from '@/components/dashboard/restaurant-nfe-panel'
 
-type Tab = 'perfil' | 'pagamentos' | 'mensalidade' | 'notas' | 'fidelidade' | 'integracoes' | 'seguranca' | 'equipe'
+type Tab = 'perfil' | 'pagamentos' | 'mensalidade' | 'notas' | 'fidelidade' | 'couvert' | 'integracoes' | 'seguranca' | 'equipe'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'perfil',       label: 'Perfil'      },
@@ -26,6 +26,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'mensalidade',  label: 'Mensalidade' },
   { id: 'notas',        label: 'Notas Fiscais' },
   { id: 'fidelidade',   label: 'Fidelidade'  },
+  { id: 'couvert',      label: 'Couvert'     },
   { id: 'integracoes',  label: 'Integrações' },
   { id: 'seguranca',    label: 'Segurança'   },
   { id: 'equipe',       label: 'Equipe'      },
@@ -157,9 +158,85 @@ export default function SettingsPage() {
 
   useEffect(() => { loadProfile().catch(() => {}) }, [loadProfile])
 
+  // ── Couvert (entrada) + couvert artístico ──
+  const [couvertEnabled, setCouvertEnabled] = useState(false)
+  const [couvertPrice, setCouvertPrice] = useState('')
+  const [couvertLabel, setCouvertLabel] = useState('Couvert')
+  const [artEnabled, setArtEnabled] = useState(false)
+  const [artPrice, setArtPrice] = useState('')
+  const [artLabel, setArtLabel] = useState('')
+  const [artDays, setArtDays] = useState<number[]>([])
+  const [artStart, setArtStart] = useState('')
+  const [artEnd, setArtEnd] = useState('')
+  const [couvertSaving, setCouvertSaving] = useState(false)
+
+  const loadCouvert = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/couvert')
+      const data = await res.json()
+      if (res.ok && data.config) {
+        const c = data.config
+        setCouvertEnabled(c.couvertEnabled)
+        setCouvertPrice(c.couvertPrice != null ? String(c.couvertPrice) : '')
+        setCouvertLabel(c.couvertLabel ?? 'Couvert')
+        setArtEnabled(c.artisticoEnabled)
+        setArtPrice(c.artisticoPrice != null ? String(c.artisticoPrice) : '')
+        setArtLabel(c.artisticoLabel ?? '')
+        setArtDays(Array.isArray(c.artisticoDays) ? c.artisticoDays : [])
+        setArtStart((c.artisticoStartTime ?? '').slice(0, 5))
+        setArtEnd((c.artisticoEndTime ?? '').slice(0, 5))
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => { loadCouvert().catch(() => {}) }, [loadCouvert])
+
+  function toggleArtDay(d: number) {
+    setArtDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort())
+  }
+
+  async function saveCouvert() {
+    if (couvertEnabled && !(parseFloat(couvertPrice.replace(',', '.')) > 0)) {
+      toast.error('Informe o preço do couvert.')
+      return
+    }
+    if (artEnabled && !(parseFloat(artPrice.replace(',', '.')) > 0)) {
+      toast.error('Informe o preço do couvert artístico.')
+      return
+    }
+    if (artEnabled && (artDays.length === 0 || !artStart)) {
+      toast.error('Escolha os dias e o horário de início do couvert artístico.')
+      return
+    }
+    setCouvertSaving(true)
+    try {
+      const res = await fetch('/api/dashboard/couvert', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couvertEnabled,
+          couvertPrice: couvertPrice ? parseFloat(couvertPrice.replace(',', '.')) : null,
+          couvertLabel,
+          artisticoEnabled: artEnabled,
+          artisticoPrice: artPrice ? parseFloat(artPrice.replace(',', '.')) : null,
+          artisticoLabel: artLabel || null,
+          artisticoDays: artDays,
+          artisticoStartTime: artStart || null,
+          artisticoEndTime: artEnd || null,
+        }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      toast.success('Couvert salvo!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar.')
+    } finally {
+      setCouvertSaving(false)
+    }
+  }
+
   useEffect(() => {
     const t = searchParams.get('tab')
-    const allowed: Tab[] = ['perfil', 'pagamentos', 'mensalidade', 'notas', 'fidelidade', 'integracoes', 'seguranca', 'equipe']
+    const allowed: Tab[] = ['perfil', 'pagamentos', 'mensalidade', 'notas', 'fidelidade', 'couvert', 'integracoes', 'seguranca', 'equipe']
     if (t && allowed.includes(t as Tab)) setTab(t as Tab)
   }, [searchParams])
 
@@ -1568,6 +1645,120 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── COUVERT ────────────────────────────────────── */}
+      {tab === 'couvert' && (
+        <div className="space-y-card-gap">
+          {/* Couvert tradicional */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-on-surface">Couvert (entrada)</h3>
+                <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                  Cobrança por pessoa, opcional — o cliente adiciona pelo atalho na home. Vale só para mesas e <strong>não entra na taxa de serviço</strong>.
+                </p>
+              </div>
+              <button type="button" onClick={() => setCouvertEnabled(v => !v)}
+                className="relative w-11 h-6 rounded-full shrink-0 transition-colors"
+                style={{ background: couvertEnabled ? '#f97316' : '#334155' }}>
+                <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                  style={{ left: couvertEnabled ? '1.375rem' : '0.125rem' }} />
+              </button>
+            </div>
+            {couvertEnabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Preço por pessoa (R$)</span>
+                  <input type="number" step="0.01" min="0" value={couvertPrice} onChange={e => setCouvertPrice(e.target.value)}
+                    placeholder="0,00"
+                    className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Nome exibido</span>
+                  <input type="text" value={couvertLabel} onChange={e => setCouvertLabel(e.target.value)}
+                    placeholder="Couvert"
+                    className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Couvert artístico */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-on-surface">Couvert artístico (música ao vivo)</h3>
+                <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                  Cobrado automaticamente por pessoa nos dias marcados, a partir do horário do show (fuso de Brasília). Também <strong>não entra na taxa de serviço</strong>.
+                </p>
+              </div>
+              <button type="button" onClick={() => setArtEnabled(v => !v)}
+                className="relative w-11 h-6 rounded-full shrink-0 transition-colors"
+                style={{ background: artEnabled ? '#f97316' : '#334155' }}>
+                <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                  style={{ left: artEnabled ? '1.375rem' : '0.125rem' }} />
+              </button>
+            </div>
+            {artEnabled && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Preço por pessoa (R$)</span>
+                    <input type="number" step="0.01" min="0" value={artPrice} onChange={e => setArtPrice(e.target.value)}
+                      placeholder="0,00"
+                      className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Artista / nome (opcional)</span>
+                    <input type="text" value={artLabel} onChange={e => setArtLabel(e.target.value)}
+                      placeholder="Música ao vivo"
+                      className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Dias com música ao vivo</span>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d, i) => {
+                      const on = artDays.includes(i)
+                      return (
+                        <button key={i} type="button" onClick={() => toggleArtDay(i)}
+                          className="w-11 h-9 rounded-lg text-xs font-bold font-mono transition-all"
+                          style={{
+                            background: on ? '#f97316' : 'transparent',
+                            color: on ? '#582200' : '#a78b7d',
+                            border: `1px solid ${on ? '#f97316' : '#334155'}`,
+                          }}>
+                          {d}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Início</span>
+                    <input type="time" value={artStart} onChange={e => setArtStart(e.target.value)}
+                      className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Término (opcional)</span>
+                    <input type="time" value={artEnd} onChange={e => setArtEnd(e.target.value)}
+                      className="h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface outline-none" />
+                  </label>
+                </div>
+                <p className="text-[11px] text-on-surface-variant">
+                  Sem término, vale até o fim do dia. Com término, quem chega depois não é cobrado.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button type="button" onClick={saveCouvert} disabled={couvertSaving}
+            className="w-full h-12 rounded-xl bg-primary text-on-primary font-bold disabled:opacity-50">
+            {couvertSaving ? 'Salvando…' : 'Salvar couvert'}
+          </button>
         </div>
       )}
 
