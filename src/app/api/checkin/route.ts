@@ -147,12 +147,15 @@ export async function POST(req: NextRequest) {
       )
 
     // ── 6. Registrar visita (fidelidade) ─────────────────────
-    await supabase
+    // 1 visita por CLIENTE por sessão (mesas compartilhadas) — não 1 por sessão,
+    // senão o último a entrar sobrescreve os demais e some da lista de clientes.
+    const { error: visitError } = await supabase
       .from('customer_visits')
       .upsert(
         { customer_id: customerId, restaurant_id: restaurant.id, session_id: sessionId },
-        { onConflict: 'session_id' },
+        { onConflict: 'customer_id,session_id' },
       )
+    if (visitError) console.error('[Check-in] Falha ao registrar visita:', visitError.message)
 
     return NextResponse.json({ sessionId, customerId: customerId!, isJoining } satisfies CheckInResponse)
   } catch (err) {

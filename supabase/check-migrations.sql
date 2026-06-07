@@ -91,6 +91,10 @@ from (
   select 22, 'Índice', 'idx_sessions_restaurant_status',
          to_regclass('public.idx_sessions_restaurant_status') is not null,
          'migrate-performance-indexes.sql'
+  union all
+  select 23, 'Índice', 'customer_visits_customer_session_unique (1 visita/cliente/sessão)',
+         to_regclass('public.customer_visits_customer_session_unique') is not null,
+         'migrate-loyalty-visits.sql'
 
   -- ── Realtime (publicação supabase_realtime) ───────────────
   union all

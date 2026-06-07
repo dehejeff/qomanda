@@ -130,10 +130,12 @@ export async function POST(req: NextRequest) {
       { onConflict: 'session_id,customer_id' },
     )
 
-    await supabase.from('customer_visits').upsert(
+    // 1 visita por CLIENTE por sessão (mesas compartilhadas).
+    const { error: visitError } = await supabase.from('customer_visits').upsert(
       { customer_id: customerId, restaurant_id: restaurant.id, session_id: newSession.id },
-      { onConflict: 'session_id' },
+      { onConflict: 'customer_id,session_id' },
     )
+    if (visitError) console.error('[Counter check-in] Falha ao registrar visita:', visitError.message)
 
     return NextResponse.json({
       sessionId: newSession.id,
