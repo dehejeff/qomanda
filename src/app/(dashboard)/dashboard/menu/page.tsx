@@ -361,6 +361,8 @@ export default function MenuManagementPage() {
           item={editingItem}
           onClose={() => { setModalOpen(false); setEditingItem(null) }}
           onSaved={handleItemSaved}
+          onCategoryCreated={(cat) => setCategories((prev) =>
+            prev.some((c) => c.id === cat.id) ? prev : [...prev, cat])}
         />
       )}
     </>

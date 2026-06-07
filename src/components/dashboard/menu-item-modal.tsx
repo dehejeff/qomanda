@@ -15,7 +15,12 @@ interface Props {
   item?: MenuItem | null
   onClose: () => void
   onSaved: (item: MenuItem, categoryId: string, previousCategoryId?: string) => void
+  /** Chamado quando uma nova categoria é criada de dentro do modal. */
+  onCategoryCreated?: (category: MenuCategory) => void
 }
+
+/** Valor sentinela do select para "criar nova categoria". */
+const NEW_CATEGORY = '__new__'
 
 function parsePrice(raw: string): number | null {
   const n = parseFloat(raw.replace(',', '.'))
@@ -38,9 +43,12 @@ export function MenuItemModal({
   item,
   onClose,
   onSaved,
+  onCategoryCreated,
 }: Props) {
   const isEdit = Boolean(item)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Se não há categorias ainda, já abre direto no modo "nova categoria".
+  const [newCatName, setNewCatName] = useState('')
 
   const [name, setName] = useState(item?.name ?? '')
   const [description, setDescription] = useState(item?.description ?? '')
@@ -48,7 +56,7 @@ export function MenuItemModal({
   const [promoPrice, setPromoPrice] = useState(
     item?.promo_price != null ? String(item.promo_price).replace('.', ',') : '',
   )
-  const [categoryId, setCategoryId] = useState(item?.category_id ?? defaultCategoryId ?? categories[0]?.id ?? '')
+  const [categoryId, setCategoryId] = useState(item?.category_id ?? defaultCategoryId ?? categories[0]?.id ?? NEW_CATEGORY)
   const [imageUrl, setImageUrl] = useState(item?.image_url ?? '')
   const [available, setAvailable] = useState(item?.available ?? true)
   const [containsAlcohol, setContainsAlcohol] = useState(item?.contains_alcohol ?? false)
@@ -128,9 +136,38 @@ export function MenuItemModal({
 
     setSaving(true)
 
+    // Resolve a categoria: cria uma nova se o usuário escolheu "Nova categoria".
+    let effectiveCategoryId = categoryId
+    if (categoryId === NEW_CATEGORY) {
+      const catName = newCatName.trim()
+      if (!catName) {
+        toast.error('Informe o nome da nova categoria.')
+        setSaving(false)
+        return
+      }
+      if (DEV_BYPASS) {
+        effectiveCategoryId = `cat-${Date.now()}`
+        onCategoryCreated?.({ id: effectiveCategoryId, restaurant_id: restaurantId, name: catName, display_order: categories.length, items: [] })
+      } else {
+        const supabaseCat = createClient()
+        const { data: cat, error: catErr } = await supabaseCat
+          .from('menu_categories')
+          .insert({ restaurant_id: restaurantId, name: catName, display_order: categories.length })
+          .select()
+          .single()
+        if (catErr || !cat) {
+          toast.error('Erro ao criar categoria.')
+          setSaving(false)
+          return
+        }
+        effectiveCategoryId = cat.id
+        onCategoryCreated?.({ ...(cat as MenuCategory), items: [] })
+      }
+    }
+
     const payload = {
       restaurant_id: restaurantId,
-      category_id: categoryId,
+      category_id: effectiveCategoryId,
       name: name.trim(),
       description: description.trim() || null,
       price: priceNum,
@@ -146,7 +183,7 @@ export function MenuItemModal({
         id: item?.id ?? `item-${Date.now()}`,
         ...payload,
       }
-      onSaved(saved, categoryId, item?.category_id)
+      onSaved(saved, effectiveCategoryId, item?.category_id)
       toast.success(isEdit ? 'Item atualizado!' : 'Item criado!')
       onClose()
       return
@@ -171,7 +208,7 @@ export function MenuItemModal({
       }
 
       if (isChefPick) await clearChefPickOnOthers(item.id)
-      onSaved(data as MenuItem, categoryId, item.category_id)
+      onSaved(data as MenuItem, effectiveCategoryId, item.category_id)
       toast.success('Item atualizado!')
       onClose()
       return
@@ -192,7 +229,7 @@ export function MenuItemModal({
     }
 
     if (isChefPick) await clearChefPickOnOthers(data.id)
-    onSaved(data as MenuItem, categoryId)
+    onSaved(data as MenuItem, effectiveCategoryId)
     toast.success('Item criado!')
     onClose()
   }
@@ -231,7 +268,18 @@ export function MenuItemModal({
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id} className="bg-surface-container">{cat.name}</option>
               ))}
+              <option value={NEW_CATEGORY} className="bg-surface-container">➕ Nova categoria…</option>
             </select>
+            {categoryId === NEW_CATEGORY && (
+              <input
+                type="text"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="Nome da nova categoria"
+                autoFocus
+                className={`${fieldClass} mt-2`}
+              />
+            )}
           </div>
 
           <div>
@@ -356,7 +404,7 @@ export function MenuItemModal({
             </button>
             <button
               type="submit"
-              disabled={saving || uploading || !name.trim() || !price}
+              disabled={saving || uploading || !name.trim() || !price || (categoryId === NEW_CATEGORY && !newCatName.trim())}
               className="flex-1 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : isEdit ? 'Salvar' : 'Criar Item'}
