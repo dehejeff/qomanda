@@ -778,6 +778,11 @@ export default function CheckoutPage() {
     async function load() {
       const supabase = createClient()
 
+      // Couvert artístico: materializa (se na janela do show) antes de ler a conta.
+      await fetch('/api/customer/couvert/artistico', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }),
+      }).catch(() => {})
+
       const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes, pendingManualPixRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),

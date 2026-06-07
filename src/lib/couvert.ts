@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { brWeekday, brTimeHHMM } from '@/lib/date-tz'
 
 /**
  * Helpers de couvert (entrada) e couvert artístico.
@@ -135,6 +136,70 @@ export async function addCouvertForCustomer(
   }
 
   return { ok: true }
+}
+
+type ArtisticoCfg = {
+  couvert_artistico_enabled?: boolean
+  couvert_artistico_price?: number | null
+  couvert_artistico_label?: string | null
+  couvert_artistico_days?: number[] | null
+  couvert_artistico_start_time?: string | null
+  couvert_artistico_end_time?: string | null
+}
+
+/** Sessão está dentro da janela do couvert artístico AGORA (dias + horário, fuso BR)? */
+export function isWithinArtisticoWindow(cfg: ArtisticoCfg, now = new Date()): boolean {
+  if (!cfg.couvert_artistico_enabled) return false
+  if (!(Number(cfg.couvert_artistico_price) > 0)) return false
+  const days = Array.isArray(cfg.couvert_artistico_days) ? cfg.couvert_artistico_days : []
+  const start = cfg.couvert_artistico_start_time ?? null
+  if (days.length === 0 || !start) return false
+  if (!days.includes(brWeekday(now))) return false
+
+  const nowHHMM = brTimeHHMM(now)
+  if (nowHHMM < start.slice(0, 5)) return false
+  const end = cfg.couvert_artistico_end_time ?? null
+  if (end && nowHHMM > end.slice(0, 5)) return false
+  return true
+}
+
+/**
+ * Materializa 1 couvert artístico por participante quando a sessão está na
+ * janela do show (dias + horário, fuso BR). Idempotente. Chamada de forma
+ * preguiçosa (na home/checkout) — sem depender de cron.
+ */
+export async function materializeArtisticoForSession(
+  admin: SupabaseClient,
+  sessionId: string,
+): Promise<{ created: number }> {
+  const { data: session } = await admin
+    .from('sessions')
+    .select('id, restaurant_id, status, restaurant:restaurants(couvert_artistico_enabled, couvert_artistico_price, couvert_artistico_label, couvert_artistico_days, couvert_artistico_start_time, couvert_artistico_end_time)')
+    .eq('id', sessionId)
+    .maybeSingle()
+
+  if (!session || session.status === 'closed') return { created: 0 }
+
+  const raw = (session as { restaurant?: ArtisticoCfg | ArtisticoCfg[] }).restaurant
+  const cfg = (Array.isArray(raw) ? raw[0] : raw) ?? {}
+  if (!isWithinArtisticoWindow(cfg)) return { created: 0 }
+
+  const price = Number(cfg.couvert_artistico_price)
+  const { data: parts } = await admin
+    .from('session_participants')
+    .select('customer_id')
+    .eq('session_id', sessionId)
+
+  let created = 0
+  for (const p of parts ?? []) {
+    if (!p.customer_id) continue
+    const res = await addCouvertForCustomer(admin, {
+      sessionId, restaurantId: session.restaurant_id, customerId: p.customer_id,
+      kind: 'artistico', price, label: cfg.couvert_artistico_label,
+    })
+    if (res.ok && !res.alreadyExists) created++
+  }
+  return { created }
 }
 
 /** Remove o couvert (deste kind) do cliente, se ele ainda não pagou nada na sessão. */

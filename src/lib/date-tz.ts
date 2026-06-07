@@ -46,6 +46,19 @@ export function startOfBrMonth(monthsAgo = 0, now = new Date()): Date {
   return brMidnight(`${y}-${m}-01`)
 }
 
+/** Dia da semana no fuso do restaurante: 0=Dom … 6=Sáb. */
+export function brWeekday(now = new Date()): number {
+  const wd = new Intl.DateTimeFormat('en-US', { timeZone: RESTAURANT_TZ, weekday: 'short' }).format(now)
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(wd)
+}
+
+/** Hora local 'HH:MM' (24h) no fuso do restaurante. */
+export function brTimeHHMM(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: RESTAURANT_TZ, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(now)
+}
+
 /** Chave de dia (YYYY-MM-DD) no fuso do restaurante para um timestamp ISO. */
 export function brDayKey(iso: string): string {
   return new Intl.DateTimeFormat('en-CA', {

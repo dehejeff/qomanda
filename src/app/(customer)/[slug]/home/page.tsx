@@ -149,6 +149,11 @@ export default function CustomerHomePage() {
 
       const customerId = localStorage.getItem('qomanda_customer_id')
 
+      // Couvert artístico: materializa (se na janela do show) antes de ler a conta.
+      await fetch('/api/customer/couvert/artistico', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }),
+      }).catch(() => {})
+
       // Couvert já adicionado por este cliente nesta sessão?
       if (customerId) {
         const { data: couvertOrders } = await supabase
