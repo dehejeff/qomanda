@@ -65,6 +65,18 @@ from (
                  where table_schema='public' and table_name='sessions'
                    and column_name='service_mode'),
          'migrate-commercial-restaurant-account.sql'
+  union all
+  select 15, 'Coluna', 'restaurants.couvert_enabled (couvert)',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='restaurants'
+                   and column_name='couvert_enabled'),
+         'migrate-couvert.sql'
+  union all
+  select 16, 'Coluna', 'menu_items.couvert_kind (couvert/artístico)',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='menu_items'
+                   and column_name='couvert_kind'),
+         'migrate-couvert.sql'
 
   -- ── Índices de performance ────────────────────────────────
   union all

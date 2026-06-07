@@ -495,6 +495,7 @@ Cliente confirma pagamento
 | `migrate-realtime-orders.sql` | Realtime de orders/order_items (KDS instantâneo; opcional — KDS tem poll) |
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 | `migrate-realtime-close-requests.sql` | Realtime de close_requests/close_request_participants (divisão da conta com aceite atualiza ao vivo) |
+| `migrate-couvert.sql` | Couvert (entrada, só mesa) + couvert artístico (por dias da semana + horário); flags em restaurants/menu_items |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 
