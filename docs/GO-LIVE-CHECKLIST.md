@@ -9,8 +9,9 @@
 
 ## 🔴 1. Infraestrutura base (produção)
 
-- [ ] ⏳ **Supabase do projeto em `sa-east-1` (São Paulo)** — latência BR (ver `ROADMAP.md` § Decisão de arquitetura).
-- [ ] ⏳ **Connection pooler (Supavisor, porta 6543)** na connection string usada pelo servidor.
+- [x] ✅ **Supabase do projeto em `sa-east-1` (São Paulo)** — confirmado (projeto `supabase-qomanda`).
+- [x] ➖ **Connection pooler (Supavisor 6543)** — N/A no runtime: o app usa `supabase-js`/PostgREST (HTTPS), sem conexão Postgres direta. Pooler só p/ migração/BI. Ver `docs/INFRA-SUPABASE-REGION-POOLER.md`.
+- [ ] ⏳ **Compute do banco** — hoje `t4g.nano` (60 conns); avaliar upgrade e **ativar backups/PITR** antes do go-live.
 - [ ] ⏳ **Deploy na Vercel** com o projeto ligado ao repo (`master`). Plano **Pro** recomendado (timeout 60s, crons confiáveis).
 - [ ] ⏳ **Domínio** apontado (ex.: `qomanda.app`) e `NEXT_PUBLIC_APP_URL` apontando para ele.
 

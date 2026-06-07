@@ -23,7 +23,8 @@
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
-| **P0** | **Fixar região Supabase `sa-east-1` (SP) + connection pooler (Supavisor)** — prioridade de go-live | ▶️ Próximo |
+| **P0** | **Região Supabase `sa-east-1` (SP)** | ✅ Confirmado (projeto já em São Paulo) |
+| **P0** | Connection pooler (Supavisor 6543) | ➖ N/A no runtime (app usa supabase-js/PostgREST; pooler só p/ migração/BI) — ver `docs/INFRA-SUPABASE-REGION-POOLER.md` |
 | **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
@@ -388,7 +389,9 @@
 
 ### Fase 0 — Piloto → ~20 restaurantes (prioridade imediata)
 
-- [ ] **▶️ Supabase em `sa-east-1` (São Paulo) + connection pooler (Supavisor, 6543)** — *prioridade de go-live escolhida*; latência BR, limites de Realtime/conexões, evita `too many connections`
+- [x] **Supabase em `sa-east-1` (São Paulo)** — confirmado (projeto `supabase-qomanda` em sa-east-1)
+- [~] **Connection pooler (Supavisor 6543)** — *não se aplica ao runtime*: o app usa `supabase-js`/PostgREST (HTTPS), sem conexão Postgres direta. Pooler só para migração/ferramentas externas. Risco real de escala = **higiene de Realtime** (canais sem filtro). Detalhes: `docs/INFRA-SUPABASE-REGION-POOLER.md`
+- [ ] **Compute/observabilidade do banco** — instância atual `t4g.nano` (60 conns, RAM ~55% ocioso). Avaliar upgrade de compute e **ativar backups/PITR** antes do go-live
 - [x] **Fila assíncrona** — `async_jobs` + worker `/api/cron/process-jobs` (retry/backoff); `confirmPaymentRecord` enfileira `nfe_emit` (NF-e + WhatsApp) em vez de aguardar inline
 - [ ] **Webhooks** Asaas/MP — responder 200 rápido, processar na fila, idempotência por `event_id`
 - [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5)
