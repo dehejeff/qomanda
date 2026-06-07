@@ -44,6 +44,32 @@ export default function CustomerHomePage() {
   const [myPayments, setMyPayments] = useState<SessionPaymentReceipt[]>([])
   const [callingWaiter, setCallingWaiter] = useState(false)
   const [waiterCalledAt, setWaiterCalledAt] = useState<number | null>(null)
+  const [couvertCfg, setCouvertCfg] = useState<{ enabled: boolean; price: number; label: string }>({ enabled: false, price: 0, label: 'Couvert' })
+  const [couvertAdded, setCouvertAdded] = useState(false)
+  const [couvertBusy, setCouvertBusy] = useState(false)
+
+  async function toggleCouvert() {
+    if (!sessionId || couvertBusy) return
+    const customerId = localStorage.getItem('qomanda_customer_id')
+    if (!customerId) return
+    const removing = couvertAdded
+    setCouvertBusy(true)
+    try {
+      const res = await fetch('/api/customer/couvert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, customerId, action: removing ? 'remove' : 'add' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setCouvertAdded(!removing)
+      toast.success(removing ? 'Couvert removido.' : 'Couvert adicionado à sua conta.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar couvert.')
+    } finally {
+      setCouvertBusy(false)
+    }
+  }
 
   async function callWaiter() {
     if (!sessionId || callingWaiter) return
@@ -101,7 +127,7 @@ export default function CustomerHomePage() {
         const [{ data: restaurant }, { data: table }] = await Promise.all([
           supabase
             .from('restaurants')
-            .select('name, logo_url')
+            .select('name, logo_url, couvert_enabled, couvert_price, couvert_label')
             .eq('id', session.restaurant_id)
             .single(),
           session.table_id
@@ -115,8 +141,26 @@ export default function CustomerHomePage() {
         setLogoUrl(restaurant?.logo_url ?? null)
         setTableNumber(table?.number ?? '')
         setServiceMode((session as { service_mode?: string }).service_mode ?? null)
+        setCouvertCfg({
+          enabled: Boolean((restaurant as { couvert_enabled?: boolean } | null)?.couvert_enabled),
+          price: Number((restaurant as { couvert_price?: number } | null)?.couvert_price ?? 0),
+          label: (restaurant as { couvert_label?: string } | null)?.couvert_label ?? 'Couvert',
+        })
 
       const customerId = localStorage.getItem('qomanda_customer_id')
+
+      // Couvert já adicionado por este cliente nesta sessão?
+      if (customerId) {
+        const { data: couvertOrders } = await supabase
+          .from('orders')
+          .select('status, items:order_items(menu_item:menu_items(couvert_kind))')
+          .eq('session_id', sessionId)
+          .eq('customer_id', customerId)
+          .neq('status', 'cancelled')
+        const added = (couvertOrders ?? []).some((o: any) =>
+          (o.items ?? []).some((it: any) => (it.menu_item?.couvert_kind ?? 'none') === 'couvert'))
+        setCouvertAdded(added)
+      }
 
       const [ordersRes, paymentsRes, participantsRes] = await Promise.all([
         supabase
@@ -427,6 +471,41 @@ export default function CustomerHomePage() {
             </div>
           </div>
         ) : null}
+
+        {/* Couvert — atalho (só mesa, com a casa habilitando) */}
+        {couvertCfg.enabled && couvertCfg.price > 0 && !isCounter && !sessionSettled && (
+          <button
+            type="button"
+            onClick={toggleCouvert}
+            disabled={couvertBusy}
+            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 text-left"
+            style={{
+              background: couvertAdded ? 'rgba(52,211,153,0.1)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
+              border: `1px solid ${couvertAdded ? 'rgba(52,211,153,0.4)' : 'rgba(249,115,22,0.35)'}`,
+            }}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: couvertAdded ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.15)' }}>
+              <span className="material-symbols-outlined text-[22px]"
+                style={{ color: couvertAdded ? '#34d399' : '#f97316', fontVariationSettings: couvertAdded ? "'FILL' 1" : "'FILL' 0" }}>
+                {couvertBusy ? 'hourglass_top' : couvertAdded ? 'check_circle' : 'bakery_dining'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: couvertAdded ? '#34d399' : '#dae2fd' }}>
+                {couvertAdded ? `${couvertCfg.label} adicionado` : `Adicionar ${couvertCfg.label}`}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                {couvertAdded
+                  ? 'Toque para remover · sem taxa de serviço'
+                  : `${formatCurrency(couvertCfg.price)} por pessoa · sem taxa de serviço`}
+              </p>
+            </div>
+            <span className="text-xs font-mono shrink-0" style={{ color: couvertAdded ? '#34d399' : '#ffb690' }}>
+              {couvertAdded ? 'Remover' : `+ ${formatCurrency(couvertCfg.price)}`}
+            </span>
+          </button>
+        )}
 
         {/* Quick actions */}
         <div>
