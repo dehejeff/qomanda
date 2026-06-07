@@ -43,7 +43,7 @@ export default function CounterTrackPage() {
     load()
     const ch = supabase
       .channel('counter-track')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` }, () => load())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [sessionId])

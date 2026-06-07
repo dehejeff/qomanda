@@ -87,10 +87,9 @@ aba do cliente/garçom/cozinha abre canais, o ponto de pressão é o Realtime �
 Postgres. Melhorias possíveis (código, follow-up):
 
 - **Assinaturas sem filtro** (recarregam em qualquer mudança global da tabela):
-  - `waiter-orders-queue.tsx` e `dashboard/waiter/page.tsx`: canal em `orders`/`payments` sem filtro de restaurante.
-  - `kitchen-display.tsx`: canal em `orders` sem filtro.
-  - `checkout/page.tsx`: canal em `close_request_participants` sem filtro (adicionado no fluxo de divisão).
-  - **Ação:** filtrar por `restaurant_id`/`session_id` quando possível, ou consolidar canais.
+  - [x] `waiter-orders-queue.tsx`, `dashboard/waiter/page.tsx`, `kitchen-display.tsx`: `orders`/`payments` agora filtrados por `restaurant_id`.
+  - [x] `pedido/page.tsx`: `orders` filtrado por `session_id`; `use-waiter-pending-count.ts`: `payments` por `restaurant_id`.
+  - [ ] `checkout/page.tsx`: `close_request_participants` ainda sem filtro (a tabela não tem `session_id`; eventos raros — só quando alguém aceita uma divisão). Aceitável; se virar volume, re-assinar por `request_id` quando a divisão existir.
 - **Polls de fallback** já existem (12–15s) — bom; manter como rede de segurança.
 - **Plano Supabase Pro** eleva os limites de Realtime/conexões — combinar com a higiene acima.
 

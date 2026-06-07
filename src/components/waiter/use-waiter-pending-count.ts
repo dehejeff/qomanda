@@ -22,11 +22,17 @@ export function useWaiterPendingCount() {
   useEffect(() => {
     load()
     const supabase = createClient()
-    const ch = supabase
-      .channel('garcom-pending-payments-badge')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => load())
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    let ch: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
+    void (async () => {
+      const restaurantId = await resolveWaiterRestaurantId(supabase)
+      if (cancelled || !restaurantId) return
+      ch = supabase
+        .channel('garcom-pending-payments-badge')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+        .subscribe()
+    })()
+    return () => { cancelled = true; if (ch) supabase.removeChannel(ch) }
   }, [load])
 
   return count

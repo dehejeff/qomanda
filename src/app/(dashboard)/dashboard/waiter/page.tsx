@@ -89,12 +89,18 @@ export default function WaiterOrdersPage() {
   useEffect(() => {
     load()
     const supabase = createClient()
-    const channel = supabase
-      .channel('waiter-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => load())
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
+    void (async () => {
+      const restaurantId = await resolveWaiterRestaurantId(supabase)
+      if (cancelled || !restaurantId) return
+      channel = supabase
+        .channel('waiter-orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+        .subscribe()
+    })()
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
   }, [load])
 
   async function advance(order: OrderRow) {

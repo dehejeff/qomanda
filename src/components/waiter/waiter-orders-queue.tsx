@@ -135,13 +135,21 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
   useEffect(() => {
     load()
     const supabase = createClient()
-    const channel = supabase
-      .channel('garcom-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => load())
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
+    // Assina apenas os eventos DESTE restaurante (evita reload por mudança
+    // de qualquer pedido/pagamento de outros restaurantes).
+    void (async () => {
+      const restaurantId = await resolveWaiterRestaurantId(supabase)
+      if (cancelled || !restaurantId) return
+      channel = supabase
+        .channel('garcom-orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+        .subscribe()
+    })()
     const poll = setInterval(() => { void load() }, 15_000)
-    return () => { supabase.removeChannel(channel); clearInterval(poll) }
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel); clearInterval(poll) }
   }, [load])
 
   async function advance(order: OrderRow) {

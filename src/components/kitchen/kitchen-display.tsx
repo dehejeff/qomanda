@@ -125,8 +125,11 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
     ;(async () => {
       await load()
       const supabase = createClient()
+      // Assina apenas os pedidos DESTE restaurante.
+      const restaurantId = await resolveWaiterRestaurantId(supabase)
+      if (!mounted || !restaurantId) return
       ch = supabase.channel('kds-orders')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { if (mounted) load() })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => { if (mounted) load() })
         .subscribe()
     })()
     const poll = setInterval(() => { void load() }, 12_000)       // fallback se realtime indisponível
