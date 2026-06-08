@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     // ── 3. Resolver mesa (token do QR) ───────────────────────
     const { data: table, error: tableError } = await supabase
       .from('tables')
-      .select('id, check_in_token')
+      .select('id, check_in_token, capacity')
       .eq('restaurant_id', restaurant.id)
       .eq('number', mesa)
       .maybeSingle()
@@ -138,7 +138,32 @@ export async function POST(req: NextRequest) {
       sessionId = newSession.id
     }
 
-    // ── 5. Registrar participante ────────────────────────────
+    // ── 5. Capacidade da mesa (se definida) ──────────────────
+    // Bloqueia novos check-ins quando a mesa já atingiu a capacidade.
+    // Quem já é participante (reconectando) sempre passa. capacity null = sem limite.
+    if (table.capacity != null) {
+      const { data: alreadyIn } = await supabase
+        .from('session_participants')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('customer_id', customerId)
+        .maybeSingle()
+
+      if (!alreadyIn) {
+        const { count } = await supabase
+          .from('session_participants')
+          .select('id', { count: 'exact', head: true })
+          .eq('session_id', sessionId)
+        if ((count ?? 0) >= table.capacity) {
+          return NextResponse.json(
+            { error: `Mesa cheia (capacidade ${table.capacity} ${table.capacity === 1 ? 'pessoa' : 'pessoas'}). Fale com a recepção.`, code: 'TABLE_AT_CAPACITY' },
+            { status: 409 },
+          )
+        }
+      }
+    }
+
+    // ── 6. Registrar participante ────────────────────────────
     await supabase
       .from('session_participants')
       .upsert(
@@ -146,7 +171,7 @@ export async function POST(req: NextRequest) {
         { onConflict: 'session_id,customer_id' }
       )
 
-    // ── 6. Registrar visita (fidelidade) ─────────────────────
+    // ── 7. Registrar visita (fidelidade) ─────────────────────
     // 1 visita por CLIENTE por sessão (mesas compartilhadas) — não 1 por sessão,
     // senão o último a entrar sobrescreve os demais e some da lista de clientes.
     const { error: visitError } = await supabase

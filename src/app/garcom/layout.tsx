@@ -3,7 +3,7 @@ import { getRestaurantAccess } from '@/lib/restaurant-auth'
 import { WaiterAppShell } from '@/components/waiter/waiter-app-shell'
 
 // kitchen usa /cozinha (KDS), não o app do garçom
-const ALLOWED = new Set(['owner', 'waiter', 'manager', 'caixa'])
+const ALLOWED = new Set(['owner', 'waiter', 'manager', 'caixa', 'recepcionista'])
 
 export default async function GarcomLayout({ children }: { children: React.ReactNode }) {
   const access = await getRestaurantAccess()

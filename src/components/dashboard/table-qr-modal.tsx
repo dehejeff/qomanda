@@ -7,6 +7,7 @@ import { X, Download, Copy, Loader2, Printer } from 'lucide-react'
 import QRCode from 'qrcode'
 import { buildTableQrCardDataUrl } from '@/lib/table-qr-image'
 import { TableFeaturesField } from '@/components/dashboard/table-features-field'
+import { TableCapacityField } from '@/components/dashboard/table-capacity-field'
 
 interface Props {
   table: RestaurantTable
@@ -141,7 +142,8 @@ export function TableQrModal({ table, url, restaurantName, onClose }: Props) {
           </button>
 
           {/* Características da mesa (fila de espera) */}
-          <div className="w-full pt-2 border-t border-outline-variant">
+          <div className="w-full pt-2 border-t border-outline-variant space-y-4">
+            <TableCapacityField tableId={table.id} initial={table.capacity} />
             <TableFeaturesField mode="persist" tableId={table.id} />
           </div>
         </div>

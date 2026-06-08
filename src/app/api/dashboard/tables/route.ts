@@ -81,8 +81,9 @@ export async function POST(req: NextRequest) {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
 
-    const body = await req.json().catch(() => ({})) as { number?: string; kind?: 'table' | 'counter' }
+    const body = await req.json().catch(() => ({})) as { number?: string; kind?: 'table' | 'counter'; capacity?: number | null }
     const kind = body.kind === 'counter' ? 'counter' : 'table'
+    const capacity = body.capacity != null && Number(body.capacity) > 0 ? Math.round(Number(body.capacity)) : null
 
     // Balcão: "mesa" especial (number = BALCAO). Só faz sentido se o modelo
     // inclui balcão; no modo apenas-mesas (dine_in) é bloqueado.
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
         restaurant_id: access.restaurantId,
         number: tableNumber,
         status: 'free',
+        capacity,
       })
       .select()
       .single()
@@ -152,5 +154,50 @@ export async function POST(req: NextRequest) {
     }
     console.error('[Tables POST]', err)
     return NextResponse.json({ error: 'Erro ao criar mesa.' }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/dashboard/tables
+ * Atualiza a capacidade (nº de pessoas) de uma mesa.
+ * Body: { tableId: string, capacity: number | null }
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const access = await requireOwnerAccess()
+    const admin = createAdminClient()
+
+    const body = await req.json().catch(() => ({})) as { tableId?: string; capacity?: number | null }
+    if (!body.tableId) {
+      return NextResponse.json({ error: 'Mesa inválida.' }, { status: 400 })
+    }
+    const capacity = body.capacity != null && Number(body.capacity) > 0 ? Math.round(Number(body.capacity)) : null
+
+    const { data: table } = await admin
+      .from('tables')
+      .select('id, restaurant_id')
+      .eq('id', body.tableId)
+      .maybeSingle()
+    if (!table || table.restaurant_id !== access.restaurantId) {
+      return NextResponse.json({ error: 'Mesa não encontrada.' }, { status: 404 })
+    }
+
+    const { data, error } = await admin
+      .from('tables')
+      .update({ capacity })
+      .eq('id', body.tableId)
+      .select()
+      .single()
+    if (error) {
+      return NextResponse.json({ error: 'Erro ao atualizar capacidade.' }, { status: 400 })
+    }
+
+    return NextResponse.json({ table: data })
+  } catch (err) {
+    if (err instanceof RestaurantAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    console.error('[Tables PATCH]', err)
+    return NextResponse.json({ error: 'Erro ao atualizar mesa.' }, { status: 500 })
   }
 }

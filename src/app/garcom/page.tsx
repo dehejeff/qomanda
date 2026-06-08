@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
+import { getRestaurantAccess } from '@/lib/restaurant-auth'
 
-export default function GarcomIndexPage() {
-  redirect('/garcom/pedidos')
+export default async function GarcomIndexPage() {
+  const access = await getRestaurantAccess()
+  // Recepcionista cai direto na Fila de espera (sua única área).
+  redirect(access?.role === 'recepcionista' ? '/garcom/fila' : '/garcom/pedidos')
 }

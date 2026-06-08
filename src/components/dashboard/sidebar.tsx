@@ -18,6 +18,7 @@ const NAV_ITEMS: { href: string; icon: string; label: string; modes?: Operationa
   { href: '/dashboard/menu',        icon: 'restaurant_menu',  label: 'Cardápio' },
   // Mesas só faz sentido para salão (dine_in) e salão+balcão (both); balcão puro não tem mesas.
   { href: '/dashboard/tables',      icon: 'table_restaurant', label: 'Mesas', modes: ['dine_in', 'both'] },
+  { href: '/dashboard/fila',        icon: 'deck',             label: 'Fila', modes: ['dine_in', 'both'] },
 ]
 
 // Itens visíveis para o perfil caixa (acesso restrito)

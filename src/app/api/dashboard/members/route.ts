@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
 
-const ALLOWED_ROLES = ['waiter', 'kitchen', 'manager']
+const ALLOWED_ROLES = ['waiter', 'kitchen', 'manager', 'caixa', 'recepcionista']
 const MIN_PASSWORD = 6
 
 function isValidPassword(pw: unknown): pw is string {

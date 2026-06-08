@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireWaiterAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
+import { requireRestaurantAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
 
 export async function GET() {
   try {
-    const access = await requireWaiterAccess()
+    // Leitura do status das mesas — inclui recepcionista (vê disponibilidade p/ a fila).
+    const access = await requireRestaurantAccess(['owner', 'waiter', 'manager', 'caixa', 'recepcionista'])
     const admin = createAdminClient()
 
     const { data: sessions } = await admin

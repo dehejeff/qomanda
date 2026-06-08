@@ -28,7 +28,8 @@ export function WaiterAppShell({
   restaurantName: string
   children: React.ReactNode
 }) {
-  const showPayments = role !== 'kitchen'
+  // Recepcionista e cozinha não atendem mesas → sem banner de chamadas/pagamentos.
+  const showPayments = role !== 'kitchen' && role !== 'recepcionista'
 
   return (
     <Ctx.Provider value={{ role, restaurantName }}>
@@ -45,7 +46,7 @@ export function WaiterAppShell({
           {showPayments && <WaiterCallsBanner />}
           {children}
         </main>
-        <WaiterBottomNav showPayments={showPayments} />
+        <WaiterBottomNav showPayments={showPayments} role={role} />
       </div>
     </Ctx.Provider>
   )

@@ -3,9 +3,17 @@
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { QomandaLogo } from '@/components/qomanda-logo'
+import { useWaiterApp } from './waiter-app-shell'
+import type { RestaurantRole } from '@/lib/restaurant-auth'
+
+const ROLE_LABEL: Record<RestaurantRole, string> = {
+  owner: 'Garçom', waiter: 'Garçom', manager: 'Garçom', kitchen: 'Cozinha',
+  caixa: 'Caixa', recepcionista: 'Recepção',
+}
 
 export function WaiterMobileHeader({ restaurantName }: { restaurantName: string }) {
   const router = useRouter()
+  const { role } = useWaiterApp()
 
   async function signOut() {
     const supabase = createClient()
@@ -26,7 +34,7 @@ export function WaiterMobileHeader({ restaurantName }: { restaurantName: string 
         <QomandaLogo size={28} />
         <div className="min-w-0">
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
-            Garçom
+            {ROLE_LABEL[role]}
           </p>
           <p className="text-sm font-bold truncate" style={{ color: '#dae2fd' }}>
             {restaurantName}

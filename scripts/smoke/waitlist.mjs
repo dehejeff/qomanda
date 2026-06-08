@@ -17,21 +17,24 @@ const get = (k) => {
 }
 const admin = createClient(get('NEXT_PUBLIC_SUPABASE_URL'), get('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
 
-let featureId = null, tableId = null, aliceId = null, bobId = null
+let featureId = null, tableId = null, aliceId = null, bobId = null, carolId = null, daveId = null
 const results = []
 const check = (label, ok) => { results.push([label, ok]); console.log(`   ${ok ? '✅' : '❌'} ${label}`) }
 
 // Espelha notifyNextForFeature/notifyWaitlistOnTableFree (lib/waitlist.ts).
-async function matchTableFree(restaurantId, fid, tid, tol) {
+// capacity null = sem limite; senão só chama quem cabe (party_size <= capacity).
+async function matchTableFree(restaurantId, fid, tid, tol, capacity = null) {
   await admin.from('table_waitlist').update({ status: 'expired' })
     .eq('status', 'notified').lt('expires_at', new Date().toISOString()).eq('restaurant_id', restaurantId)
   const { data: active } = await admin.from('table_waitlist').select('id')
     .eq('restaurant_id', restaurantId).eq('feature_id', fid).eq('status', 'notified')
     .gte('expires_at', new Date().toISOString()).limit(1).maybeSingle()
   if (active) return false
-  const { data: next } = await admin.from('table_waitlist').select('id')
+  let nextQ = admin.from('table_waitlist').select('id')
     .eq('restaurant_id', restaurantId).eq('feature_id', fid).eq('status', 'waiting')
-    .order('created_at', { ascending: true }).limit(1).maybeSingle()
+    .order('created_at', { ascending: true }).limit(1)
+  if (capacity != null) nextQ = nextQ.lte('party_size', capacity)
+  const { data: next } = await nextQ.maybeSingle()
   if (!next) return false
   await admin.from('table_waitlist').update({
     status: 'notified', notified_table_id: tid, notified_at: new Date().toISOString(),
@@ -89,6 +92,22 @@ async function main() {
   check('Alice expirada', alice2.status === 'expired')
   check('Bob notificado (auto-avanço)', bob2.status === 'notified' && bob2.notified_table_id === tableId)
 
+  console.log('7) Capacidade: mesa p/ 3 → pula grupo de 5, chama o grupo de 2…')
+  // Libera o Bob (sai do estado notified) e define capacidade da mesa = 3.
+  await admin.from('table_waitlist').update({ status: 'seated' }).eq('id', bobId)
+  await admin.from('tables').update({ capacity: 3 }).eq('id', tableId)
+  const tc0 = new Date(Date.now() - 60000).toISOString()
+  const tc1 = new Date(Date.now() - 30000).toISOString()
+  const { data: c } = await admin.from('table_waitlist').insert({ restaurant_id: rId, feature_id: featureId, name: 'Carol', party_size: 5, source: 'staff', created_at: tc0 }).select('id').single()
+  const { data: d } = await admin.from('table_waitlist').insert({ restaurant_id: rId, feature_id: featureId, name: 'Dave', party_size: 2, source: 'staff', created_at: tc1 }).select('id').single()
+  carolId = c.id; daveId = d.id
+  const notified2 = await matchTableFree(rId, featureId, tableId, tol, 3)
+  const { data: carol1 } = await admin.from('table_waitlist').select('status').eq('id', carolId).single()
+  const { data: dave1 } = await admin.from('table_waitlist').select('status, notified_table_id').eq('id', daveId).single()
+  check('grupo de 5 (Carol) NÃO foi chamado (não cabe)', carol1.status === 'waiting')
+  check('grupo de 2 (Dave) foi chamado', dave1.status === 'notified' && dave1.notified_table_id === tableId)
+  check('matchTableFree retornou o Dave', notified2 === daveId)
+
   console.log('\n--- RESULTADO ---')
   const pass = results.every(([, ok]) => ok)
   console.log(results.map(([l, ok]) => `${ok ? 'PASS' : 'FAIL'}  ${l}`).join('\n'))
@@ -102,6 +121,8 @@ main()
     // Limpeza
     if (aliceId) await admin.from('table_waitlist').delete().eq('id', aliceId)
     if (bobId) await admin.from('table_waitlist').delete().eq('id', bobId)
+    if (carolId) await admin.from('table_waitlist').delete().eq('id', carolId)
+    if (daveId) await admin.from('table_waitlist').delete().eq('id', daveId)
     if (tableId) await admin.from('table_feature_map').delete().eq('table_id', tableId)
     if (featureId) await admin.from('table_features').delete().eq('id', featureId)
     if (tableId) await admin.from('tables').delete().eq('id', tableId)

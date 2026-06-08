@@ -120,7 +120,7 @@ create table if not exists restaurant_members (
   email         text not null,
   name          text,
   role          text not null default 'waiter'
-                check (role in ('owner', 'waiter', 'kitchen', 'manager')),
+                check (role in ('owner', 'waiter', 'kitchen', 'manager', 'caixa', 'recepcionista')),
   active        boolean not null default true,
   created_at    timestamptz not null default now(),
   unique (restaurant_id, email)

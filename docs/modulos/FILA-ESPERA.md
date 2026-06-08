@@ -36,9 +36,11 @@ o status do cliente é por **polling** de uma rota (sem expor a fila inteira).
 
 ## Fluxo de notificação (fila justa + tolerância)
 1. Mesa com a tag fica **livre** (sessão fechada) → `notifyWaitlistOnTableFree(tableId)`.
-2. Pega o próximo `waiting` da tag → marca `notified`, grava `notified_table_id`
+2. Pega o próximo `waiting` da tag **que cabe na mesa** (`party_size ≤ tables.capacity`;
+   `capacity` nulo = sem limite) → marca `notified`, grava `notified_table_id`
    + `expires_at = agora + tolerância` → cliente vê o aviso (banner + som +
-   contagem) na página de status.
+   contagem) na página de status. Grupo maior que a mesa é **pulado** (continua na
+   fila aguardando uma mesa que comporte).
 3. Ocupou na tolerância → `seated`. Estourou → `expired` → chama o próximo.
 4. **Expiração preguiçosa** (sem cron): reavaliada quando outra mesa libera,
    quando a equipe abre a fila e por um poll leve na tela — funciona no Hobby.

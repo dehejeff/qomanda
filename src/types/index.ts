@@ -95,6 +95,8 @@ export interface RestaurantTable {
   qr_code_url: string | null
   check_in_token?: string
   status: TableStatus
+  /** Nº de pessoas que a mesa comporta (null = sem restrição) */
+  capacity?: number | null
   created_at: string
 }
 

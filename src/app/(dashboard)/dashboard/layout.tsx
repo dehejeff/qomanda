@@ -17,6 +17,11 @@ export default async function DashboardInnerLayout({
     redirect('/garcom/pedidos')
   }
 
+  // Recepcionista opera a fila de espera no app /garcom.
+  if (access.role === 'recepcionista') {
+    redirect('/garcom/fila')
+  }
+
   // Caixa só acessa /dashboard/caixa — redireciona para lá se tentar outra rota
   if (access.role === 'caixa') {
     const pathname = (await headers()).get('x-pathname') ?? ''

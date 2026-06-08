@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { DEV_BYPASS, mockRestaurant } from '@/lib/dev-mock'
 import type { User } from '@supabase/supabase-js'
 
-export type RestaurantRole = 'owner' | 'waiter' | 'kitchen' | 'manager' | 'caixa'
+export type RestaurantRole = 'owner' | 'waiter' | 'kitchen' | 'manager' | 'caixa' | 'recepcionista'
 
 export type OperationalMode = 'dine_in' | 'counter' | 'both'
 
@@ -27,7 +27,11 @@ export class RestaurantAuthError extends Error {
 
 export async function getRestaurantAccess(): Promise<RestaurantAccess | null> {
   try {
-    return await requireRestaurantAccess(['owner', 'waiter', 'kitchen', 'manager'])
+    // Resolve o acesso de qualquer papel de equipe; o gate de cada área (layout)
+    // decide quem entra. Inclui caixa e recepcionista para que esses perfis
+    // resolvam o restaurante e sejam roteados pela sua área (caixa→/dashboard/caixa,
+    // recepcionista→/garcom/fila).
+    return await requireRestaurantAccess(['owner', 'waiter', 'kitchen', 'manager', 'caixa', 'recepcionista'])
   } catch {
     return null
   }

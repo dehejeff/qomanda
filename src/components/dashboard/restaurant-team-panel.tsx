@@ -14,14 +14,15 @@ type Member = {
 
 const MIN_PASSWORD = 6
 
-type StaffRole = 'manager' | 'waiter' | 'kitchen' | 'caixa'
+type StaffRole = 'manager' | 'waiter' | 'kitchen' | 'caixa' | 'recepcionista'
 const ROLE_OPTIONS: { id: StaffRole; label: string }[] = [
-  { id: 'waiter',  label: 'Garçom'  },
-  { id: 'kitchen', label: 'Cozinha' },
-  { id: 'caixa',   label: 'Caixa'   },
-  { id: 'manager', label: 'Gerente' },
+  { id: 'waiter',        label: 'Garçom'       },
+  { id: 'kitchen',       label: 'Cozinha'      },
+  { id: 'caixa',         label: 'Caixa'        },
+  { id: 'recepcionista', label: 'Recepcionista' },
+  { id: 'manager',       label: 'Gerente'      },
 ]
-const ROLE_LABEL: Record<string, string> = { owner: 'Dono', manager: 'Gerente', waiter: 'Garçom', kitchen: 'Cozinha', caixa: 'Caixa' }
+const ROLE_LABEL: Record<string, string> = { owner: 'Dono', manager: 'Gerente', waiter: 'Garçom', kitchen: 'Cozinha', caixa: 'Caixa', recepcionista: 'Recepcionista' }
 
 export function RestaurantTeamPanel() {
   const [members, setMembers] = useState<Member[]>([])
@@ -57,7 +58,14 @@ export function RestaurantTeamPanel() {
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? 'Erro ao adicionar.'); return }
-      const acessa = role === 'manager' ? '/dashboard (painel)' : '/garcom no celular'
+      const ACESSO: Record<StaffRole, string> = {
+        manager: '/dashboard (painel)',
+        caixa: '/dashboard/caixa',
+        recepcionista: '/garcom (aba Fila) no celular',
+        waiter: '/garcom no celular',
+        kitchen: '/cozinha (KDS)',
+      }
+      const acessa = ACESSO[role]
       toast.success(
         password
           ? `${ROLE_LABEL[role]} criado com senha. Acesso em ${acessa}.`
@@ -157,7 +165,7 @@ export function RestaurantTeamPanel() {
         </button>
       </form>
       <p className="text-[11px] text-on-surface-variant">
-        <strong>Garçom/Cozinha</strong> → app <span className="font-mono">/garcom</span> · <strong>Caixa</strong> → painel <span className="font-mono">/dashboard/caixa</span> · <strong>Gerente</strong> → painel completo <span className="font-mono">/dashboard</span>.
+        <strong>Garçom</strong> → app <span className="font-mono">/garcom</span> · <strong>Cozinha</strong> → <span className="font-mono">/cozinha</span> · <strong>Recepcionista</strong> → app <span className="font-mono">/garcom</span> (aba Fila de espera) · <strong>Caixa</strong> → <span className="font-mono">/dashboard/caixa</span> · <strong>Gerente</strong> → painel completo <span className="font-mono">/dashboard</span>.
       </p>
 
       <ul className="space-y-2">

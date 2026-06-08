@@ -10,6 +10,7 @@ import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { CounterQrModal } from '@/components/dashboard/counter-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 import { TableCreateModal } from '@/components/dashboard/table-create-modal'
+import { WaitlistModal } from '@/components/dashboard/waitlist-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
@@ -37,6 +38,7 @@ export default function TablesPage() {
   const [maxTables, setMaxTables] = useState<number | null>(20)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showWaitlist, setShowWaitlist] = useState(false)
 
   async function loadPlanLimits() {
     try {
@@ -60,25 +62,34 @@ export default function TablesPage() {
     }
 
     const supabase = createClient()
+    const CHANNEL = 'tables-status'
     let ch: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
 
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (cancelled || !user) return
 
       const { data: r } = await supabase.from('restaurants').select('id, slug, name, operational_mode').eq('owner_id', user.id).single()
-      if (!r) return
+      if (cancelled || !r) return
 
       setRestaurantSlug(r.slug)
       setRestaurantName(r.name ?? '')
       setRestaurantId(r.id)
       setOperationalMode((r.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'both')
       const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).is('archived_at', null).order('number')
+      if (cancelled) return
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
       void loadPlanLimits()
 
-      ch = supabase.channel('tables-status')
+      // O cliente do browser é singleton: remove qualquer canal antigo com o
+      // mesmo tópico (sobrevive a StrictMode/HMR) antes de criar/assinar de novo.
+      for (const existing of supabase.getChannels()) {
+        if (existing.topic === `realtime:${CHANNEL}`) supabase.removeChannel(existing)
+      }
+
+      ch = supabase.channel(CHANNEL)
         .on('postgres_changes', {
           event: 'UPDATE',
           schema: 'public',
@@ -95,7 +106,10 @@ export default function TablesPage() {
     }
 
     init()
-    return () => { if (ch) supabase.removeChannel(ch) }
+    return () => {
+      cancelled = true
+      if (ch) supabase.removeChannel(ch)
+    }
   }, [])
 
   async function addTable(kind: 'table' | 'counter' = 'table') {
@@ -247,6 +261,13 @@ export default function TablesPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowWaitlist(true)}
+              className="flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant text-sm font-bold font-mono rounded-lg hover:text-on-surface transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">deck</span>
+              <span className="hidden sm:inline">Fila de espera</span>
+            </button>
             {operationalMode === 'both' && !counterTable && (
               <button
                 onClick={() => addTable('counter')}
@@ -434,6 +455,8 @@ export default function TablesPage() {
           onTableSwitched={handleTableSwitched}
         />
       )}
+
+      {showWaitlist && <WaitlistModal onClose={() => setShowWaitlist(false)} />}
 
       {showCreateModal && (
         <TableCreateModal

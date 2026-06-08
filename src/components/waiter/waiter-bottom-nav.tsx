@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { RestaurantRole } from '@/lib/restaurant-auth'
 import { useWaiterPendingCount } from './use-waiter-pending-count'
 import { useWaiterLoyaltyCount } from './use-waiter-loyalty-count'
 
@@ -17,11 +18,12 @@ function resolveTab(pathname: string): Tab {
   return 'pedidos'
 }
 
-export function WaiterBottomNav({ showPayments = true }: { showPayments?: boolean }) {
+export function WaiterBottomNav({ showPayments = true, role }: { showPayments?: boolean; role?: RestaurantRole }) {
   const pathname = usePathname()
   const current = resolveTab(pathname)
   const pendingCount = useWaiterPendingCount()
   const loyaltyCount = useWaiterLoyaltyCount()
+  const isReception = role === 'recepcionista'
 
   const itemStyle = (id: Tab) => ({
     color: current === id ? '#ffb690' : '#e0c0b1',
@@ -55,12 +57,21 @@ export function WaiterBottomNav({ showPayments = true }: { showPayments?: boolea
       className="fixed bottom-0 left-0 right-0 z-50 flex items-center h-[72px] px-1 max-w-lg mx-auto"
       style={{ background: '#171f33', borderTop: '1px solid rgba(88,66,55,0.4)' }}
     >
-      {navItem('pedidos', '/garcom/pedidos', 'receipt_long', 'Pedidos', pendingCount > 0 ? pendingCount : undefined)}
-      {showPayments && navItem('pagamentos', '/garcom/pagamentos', 'payments', 'Pagamentos', pendingCount > 0 && current !== 'pagamentos' ? pendingCount : undefined)}
-      {showPayments && navItem('pedir', '/garcom/pedido', 'restaurant_menu', 'Pedir')}
-      {navItem('beneficios', '/garcom/beneficios', 'redeem', 'Benefícios', loyaltyCount > 0 ? loyaltyCount : undefined)}
-      {navItem('fila', '/garcom/fila', 'deck', 'Fila')}
-      {navItem('mesas', '/garcom/mesas', 'table_restaurant', 'Mesas')}
+      {isReception ? (
+        <>
+          {navItem('fila', '/garcom/fila', 'deck', 'Fila')}
+          {navItem('mesas', '/garcom/mesas', 'table_restaurant', 'Mesas')}
+        </>
+      ) : (
+        <>
+          {navItem('pedidos', '/garcom/pedidos', 'receipt_long', 'Pedidos', pendingCount > 0 ? pendingCount : undefined)}
+          {showPayments && navItem('pagamentos', '/garcom/pagamentos', 'payments', 'Pagamentos', pendingCount > 0 && current !== 'pagamentos' ? pendingCount : undefined)}
+          {showPayments && navItem('pedir', '/garcom/pedido', 'restaurant_menu', 'Pedir')}
+          {navItem('beneficios', '/garcom/beneficios', 'redeem', 'Benefícios', loyaltyCount > 0 ? loyaltyCount : undefined)}
+          {navItem('fila', '/garcom/fila', 'deck', 'Fila')}
+          {navItem('mesas', '/garcom/mesas', 'table_restaurant', 'Mesas')}
+        </>
+      )}
     </nav>
   )
 }

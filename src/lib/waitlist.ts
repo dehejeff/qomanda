@@ -26,6 +26,7 @@ async function notifyNextForFeature(
   featureId: string,
   tableId: string,
   toleranceMin: number,
+  capacity?: number | null,
 ): Promise<boolean> {
   const nowIso = new Date().toISOString()
 
@@ -41,7 +42,8 @@ async function notifyNextForFeature(
     .maybeSingle()
   if (active) return false
 
-  const { data: next } = await admin
+  // Só chama quem cabe na mesa (party_size <= capacidade). Capacidade null = sem limite.
+  let nextQ = admin
     .from('table_waitlist')
     .select('id')
     .eq('restaurant_id', restaurantId)
@@ -49,7 +51,8 @@ async function notifyNextForFeature(
     .eq('status', 'waiting')
     .order('created_at', { ascending: true })
     .limit(1)
-    .maybeSingle()
+  if (capacity != null) nextQ = nextQ.lte('party_size', capacity)
+  const { data: next } = await nextQ.maybeSingle()
   if (!next) return false
 
   const expiresAt = new Date(Date.now() + toleranceMin * 60_000).toISOString()
@@ -68,9 +71,10 @@ export async function callNextForFeature(
   featureId: string,
   tableId: string,
   toleranceMin = DEFAULT_TOLERANCE_MIN,
+  capacity?: number | null,
 ): Promise<boolean> {
   const nowIso = new Date().toISOString()
-  const { data: next } = await admin
+  let nextQ = admin
     .from('table_waitlist')
     .select('id')
     .eq('restaurant_id', restaurantId)
@@ -78,7 +82,8 @@ export async function callNextForFeature(
     .eq('status', 'waiting')
     .order('created_at', { ascending: true })
     .limit(1)
-    .maybeSingle()
+  if (capacity != null) nextQ = nextQ.lte('party_size', capacity)
+  const { data: next } = await nextQ.maybeSingle()
   if (!next) return false
   const expiresAt = new Date(Date.now() + toleranceMin * 60_000).toISOString()
   const { error } = await admin
@@ -95,12 +100,13 @@ export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?:
   try {
     const { data: table } = await admin
       .from('tables')
-      .select('id, restaurant_id, restaurant:restaurants(waitlist_tolerance_minutes)')
+      .select('id, restaurant_id, capacity, restaurant:restaurants(waitlist_tolerance_minutes)')
       .eq('id', tableId)
       .maybeSingle()
     if (!table) return
 
     const restaurantId = table.restaurant_id as string
+    const capacity = (table as { capacity?: number | null }).capacity ?? null
     const raw = (table as { restaurant?: { waitlist_tolerance_minutes?: number } | { waitlist_tolerance_minutes?: number }[] }).restaurant
     const cfg = Array.isArray(raw) ? raw[0] : raw
     const tolerance = Number(cfg?.waitlist_tolerance_minutes ?? DEFAULT_TOLERANCE_MIN)
@@ -113,7 +119,7 @@ export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?:
       .eq('table_id', tableId)
 
     for (const f of feats ?? []) {
-      await notifyNextForFeature(admin, restaurantId, (f as { feature_id: string }).feature_id, tableId, tolerance)
+      await notifyNextForFeature(admin, restaurantId, (f as { feature_id: string }).feature_id, tableId, tolerance, capacity)
     }
   } catch (err) {
     console.error('[waitlist] notifyWaitlistOnTableFree', err)

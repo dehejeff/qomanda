@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils'
 import { SETTLE_TOLERANCE } from '@/lib/session-billing'
 import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-payments-panel'
 import { TableFeaturesField } from '@/components/dashboard/table-features-field'
+import { TableCapacityField } from '@/components/dashboard/table-capacity-field'
 
 interface Props {
   table: RestaurantTable
@@ -403,7 +404,8 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
               </div>
 
               {/* Características da mesa (fila de espera) */}
-              <div className="pt-2 border-t border-outline-variant">
+              <div className="pt-2 border-t border-outline-variant space-y-4">
+                <TableCapacityField tableId={table.id} initial={table.capacity} />
                 <TableFeaturesField mode="persist" tableId={table.id} />
               </div>
             </div>

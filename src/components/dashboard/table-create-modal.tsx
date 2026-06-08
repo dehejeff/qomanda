@@ -14,6 +14,7 @@ interface Props {
 
 export function TableCreateModal({ onClose, onCreated, onLimitReached }: Props) {
   const [number, setNumber] = useState('')
+  const [capacity, setCapacity] = useState('')
   const [featureIds, setFeatureIds] = useState<string[]>([])
   const [creating, setCreating] = useState(false)
 
@@ -22,7 +23,11 @@ export function TableCreateModal({ onClose, onCreated, onLimitReached }: Props) 
     try {
       const res = await fetch('/api/dashboard/tables', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: 'table', number: number.trim() || undefined }),
+        body: JSON.stringify({
+          kind: 'table',
+          number: number.trim() || undefined,
+          capacity: capacity.trim() ? Number(capacity) : null,
+        }),
       })
       const data = await res.json()
       if (res.status === 403 && data.code === 'TABLE_LIMIT_REACHED') {
@@ -59,6 +64,15 @@ export function TableCreateModal({ onClose, onCreated, onLimitReached }: Props) 
               Número / nome <span className="opacity-50 normal-case">(opcional — automático se vazio)</span>
             </label>
             <input value={number} onChange={e => setNumber(e.target.value)} placeholder="Ex.: 7"
+              className="w-full h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none" />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1.5 block">
+              Capacidade <span className="opacity-50 normal-case">(nº de pessoas — opcional)</span>
+            </label>
+            <input value={capacity} onChange={e => setCapacity(e.target.value.replace(/\D/g, ''))}
+              inputMode="numeric" placeholder="Ex.: 4"
               className="w-full h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none" />
           </div>
 

@@ -185,6 +185,7 @@ create table if not exists tables (
   qr_code_url   text,
   status        text        not null default 'free'
                             check (status in ('free','occupied','reserved')),
+  capacity      int         check (capacity is null or capacity > 0), -- nº de pessoas (null = sem limite)
   created_at    timestamptz not null default now(),
   unique(restaurant_id, number)
 );
