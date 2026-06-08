@@ -61,6 +61,34 @@ async function notifyNextForFeature(
   return !error
 }
 
+/** Chama o próximo 'waiting' de uma característica para uma mesa específica (uso manual pela equipe). */
+export async function callNextForFeature(
+  admin: SupabaseClient,
+  restaurantId: string,
+  featureId: string,
+  tableId: string,
+  toleranceMin = DEFAULT_TOLERANCE_MIN,
+): Promise<boolean> {
+  const nowIso = new Date().toISOString()
+  const { data: next } = await admin
+    .from('table_waitlist')
+    .select('id')
+    .eq('restaurant_id', restaurantId)
+    .eq('feature_id', featureId)
+    .eq('status', 'waiting')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (!next) return false
+  const expiresAt = new Date(Date.now() + toleranceMin * 60_000).toISOString()
+  const { error } = await admin
+    .from('table_waitlist')
+    .update({ status: 'notified', notified_table_id: tableId, notified_at: nowIso, expires_at: expiresAt })
+    .eq('id', next.id)
+    .eq('status', 'waiting')
+  return !error
+}
+
 /** Mesa ficou livre → chama o próximo da fila para cada característica da mesa. */
 export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?: string | null): Promise<void> {
   if (!tableId) return

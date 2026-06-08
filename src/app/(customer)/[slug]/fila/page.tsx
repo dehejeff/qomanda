@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhoneInput } from '@/lib/customer-form'
+import { playReadyChime } from '@/lib/ready-chime'
 
 type Feature = { id: string; name: string; emoji: string | null }
 type Entry = {
@@ -44,6 +45,7 @@ export default function WaitlistPage() {
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [now, setNow] = useState(Date.now())
+  const notifiedSeen = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     setName(localStorage.getItem('qomanda_customer_name') ?? '')
@@ -69,7 +71,17 @@ export default function WaitlistPage() {
     try {
       const res = await fetch(`/api/customer/waitlist?ids=${ids.join(',')}`)
       const data = await res.json()
-      setEntries(data.entries ?? [])
+      const next = (data.entries ?? []) as Entry[]
+      // Avisa (som + vibração) quando uma entrada vira "pronta".
+      for (const e of next) {
+        if (e.status === 'notified' && !notifiedSeen.current.has(e.id)) {
+          notifiedSeen.current.add(e.id)
+          playReadyChime()
+          toast.success(`Sua mesa ${e.notifiedTableNumber ?? ''} está pronta!`)
+        }
+        if (e.status !== 'notified') notifiedSeen.current.delete(e.id)
+      }
+      setEntries(next)
     } catch { /* ignore */ }
   }, [slug])
 

@@ -71,6 +71,7 @@ export default function CheckInPage() {
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [operationalMode, setOperationalMode] = useState<'dine_in' | 'counter' | 'both'>('dine_in')
+  const [hasWaitlist, setHasWaitlist] = useState(false)
   const [loading, setLoading]       = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
   const [checkedIn, setCheckedIn]   = useState(false)
@@ -166,6 +167,10 @@ export default function CheckInPage() {
       }
       setOperationalMode((data.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'dine_in')
       setRestaurant(data as unknown as Restaurant)
+      // Tem fila de espera por característica de mesa?
+      const { count } = await supabase
+        .from('table_features').select('id', { count: 'exact', head: true }).eq('restaurant_id', data.id)
+      setHasWaitlist((count ?? 0) > 0)
       setLoading(false)
     }
     loadRestaurant()
@@ -524,6 +529,14 @@ export default function CheckInPage() {
                 No balcão você recebe um número (#42) e aviso quando ficar pronto — sem QR de mesa.
               </p>
             </>
+          )}
+          {hasWaitlist && (
+            <Link href={`/${params.slug}/fila`}
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+              style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+              <span className="material-symbols-outlined text-[20px]">deck</span>
+              Entrar na fila por mesa com vista
+            </Link>
           )}
           <TestTableCheckInLink />
           {savedCustomerId && (
