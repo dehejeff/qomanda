@@ -249,7 +249,7 @@ export function SavedCardsSection({ customerId }: Props) {
               onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))} style={inputSt} />
           </div>
           <p className="text-[10px] leading-relaxed" style={{ color: '#584237' }}>
-            Seus dados de cartão são tokenizados com segurança. O Qomanda não armazena número completo nem CVV.
+            Seus dados de cartão são tokenizados com segurança. O KiComanda não armazena número completo nem CVV.
           </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setShowForm(false)}

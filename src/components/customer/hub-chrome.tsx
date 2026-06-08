@@ -14,7 +14,7 @@ export function HubPageHeader({ title, backHref }: { title?: string; backHref?: 
       ) : (
         <div className="flex items-center gap-2.5">
           <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Qomanda</span>
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
         </div>
       )}
       {title ? (

@@ -150,7 +150,7 @@ export function HubSessionGate({ customerId, children, onUnlocked }: Props) {
         <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 64, color: '#f97316' }}>lock</span>
         <div className="w-full text-center space-y-1">
           <h1 className="text-xl font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>
-            {firstName ? `Olá, ${firstName}` : 'Hub Qomanda'}
+            {firstName ? `Olá, ${firstName}` : 'Hub KiComanda'}
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
             {gate === 'create'

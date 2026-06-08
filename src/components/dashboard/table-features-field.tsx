@@ -30,6 +30,7 @@ export function TableFeaturesField(props: Props) {
   const [newEmoji, setNewEmoji] = useState('')
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -72,6 +73,40 @@ export function TableFeaturesField(props: Props) {
     }
   }
 
+  function updateLocal(id: string, patch: Partial<TableFeature>) {
+    setFeatures(prev => prev.map(f => (f.id === id ? { ...f, ...patch } : f)))
+  }
+
+  async function saveRename(f: TableFeature) {
+    if (!f.name.trim()) { toast.error('A característica precisa de um nome.'); return }
+    setBusy(true)
+    try {
+      const res = await fetch('/api/dashboard/table-features', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: f.id, name: f.name.trim(), emoji: f.emoji || null }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success('Característica atualizada.')
+    } catch {
+      toast.error('Erro ao atualizar característica.')
+    } finally { setBusy(false) }
+  }
+
+  async function deleteFeature(id: string, name: string) {
+    if (!window.confirm(`Excluir a característica "${name}"? Ela some de todas as mesas.`)) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/dashboard/table-features?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setFeatures(prev => prev.filter(f => f.id !== id))
+      const next = new Set(selected); next.delete(id); setSelected(next)
+      if (props.mode === 'select') props.onChange([...next])
+      toast.success('Característica removida.')
+    } catch {
+      toast.error('Erro ao remover característica.')
+    } finally { setBusy(false) }
+  }
+
   async function createFeature() {
     if (!newName.trim()) return
     setAdding(true)
@@ -93,28 +128,60 @@ export function TableFeaturesField(props: Props) {
 
   return (
     <div className="space-y-2">
-      <span className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-        Características {busy && <span className="opacity-60">· salvando…</span>}
-      </span>
-      <div className="flex flex-wrap gap-1.5">
-        {features.map(f => {
-          const on = selected.has(f.id)
-          return (
-            <button key={f.id} type="button" onClick={() => toggle(f.id)}
-              className="px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors"
-              style={{
-                background: on ? 'rgba(249,115,22,0.15)' : 'transparent',
-                color: on ? '#f97316' : '#a78b7d',
-                borderColor: on ? '#f97316' : '#334155',
-              }}>
-              {f.emoji} {f.name}
-            </button>
-          )
-        })}
-        {features.length === 0 && (
-          <span className="text-xs text-on-surface-variant">Nenhuma ainda — crie abaixo.</span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
+          Características {busy && <span className="opacity-60">· salvando…</span>}
+        </span>
+        {features.length > 0 && (
+          <button type="button" onClick={() => setEditing(e => !e)}
+            className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant hover:text-on-surface">
+            {editing ? 'Concluir' : 'Editar'}
+          </button>
         )}
       </div>
+
+      {editing ? (
+        <ul className="space-y-1.5">
+          {features.map(f => (
+            <li key={f.id} className="flex gap-1.5 items-center">
+              <input value={f.emoji ?? ''} onChange={e => updateLocal(f.id, { emoji: e.target.value })}
+                placeholder="🌊" maxLength={4} className={`${inputClass} w-12 text-center`} />
+              <input value={f.name} onChange={e => updateLocal(f.id, { name: e.target.value })}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveRename(f) } }}
+                className={`${inputClass} flex-1`} />
+              <button type="button" onClick={() => saveRename(f)} disabled={busy}
+                className="px-2.5 h-9 rounded-lg bg-surface-container-high border border-outline-variant text-on-surface text-xs font-mono disabled:opacity-50">
+                Salvar
+              </button>
+              <button type="button" onClick={() => deleteFeature(f.id, f.name)} disabled={busy}
+                aria-label={`Excluir ${f.name}`}
+                className="px-2.5 h-9 rounded-lg border border-red-500/30 text-red-400 text-xs font-mono hover:bg-red-500/10 disabled:opacity-50">
+                Excluir
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {features.map(f => {
+            const on = selected.has(f.id)
+            return (
+              <button key={f.id} type="button" onClick={() => toggle(f.id)}
+                className="px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors"
+                style={{
+                  background: on ? 'rgba(249,115,22,0.15)' : 'transparent',
+                  color: on ? '#f97316' : '#a78b7d',
+                  borderColor: on ? '#f97316' : '#334155',
+                }}>
+                {f.emoji} {f.name}
+              </button>
+            )
+          })}
+          {features.length === 0 && (
+            <span className="text-xs text-on-surface-variant">Nenhuma ainda — crie abaixo.</span>
+          )}
+        </div>
+      )}
       <div className="flex gap-2">
         <input value={newEmoji} onChange={e => setNewEmoji(e.target.value)} placeholder="🌊" maxLength={4}
           className={`${inputClass} w-12 text-center`} />

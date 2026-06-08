@@ -57,7 +57,7 @@ export function DashboardSidebar({
         <div className="flex flex-col gap-1 px-2 mb-8">
           <div className="flex items-center gap-2.5">
             <QomandaLogo size={32} />
-            <h1 className="text-xl font-black text-on-surface leading-tight" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Qomanda</h1>
+            <h1 className="text-xl font-black text-on-surface leading-tight" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</h1>
           </div>
           <p className="text-[11px] text-on-surface-variant opacity-60 font-mono truncate pl-1">{restaurantName}</p>
         </div>

@@ -3,10 +3,10 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {
-  title: 'Qomanda',
+  title: 'KiComanda',
   description: 'Cardápio digital e pagamento para restaurantes',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Qomanda' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'KiComanda' },
 }
 
 export const viewport: Viewport = {

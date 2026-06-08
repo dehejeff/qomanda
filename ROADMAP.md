@@ -56,7 +56,7 @@
 |---|------|------|
 | A | **Capacidade da mesa (nº de pessoas)** | ✅ Entregue — `tables.capacity` (`migrate-table-capacity.sql`) + campo no modal de criar (`TableCreateModal`) e editar (`TableCapacityField` nos modais de QR/gerência). **Fila** respeita capacidade: só chama quem cabe (`party_size ≤ capacity`). **Check-in** respeita capacidade: bloqueia novo check-in (QR) quando a mesa atinge o limite de participantes (`code: TABLE_AT_CAPACITY`, 409) — quem já está reconecta normal. Capacidade `null` = sem limite. |
 | B | **Tela da fila p/ garçom/recepcionista — revisar/expandir** | ✅ Entregue — componente único `WaitlistManager` em 3 lugares: `/garcom/fila` (app), **modal na página Mesas** e **página dedicada `/dashboard/fila`** (menu lateral). Mostra total de grupos/pessoas, capacidade das mesas livres, **"Chamar próximo" com melhor encaixe** e modal **"Adicionar à fila"**. Criado o **papel `recepcionista`** (`migrate-recepcionista-role.sql`): login próprio → cai na aba **Fila** em `/garcom`, nav enxuta, sem pedidos/pagamentos/painel. _(Regularizou o `caixa` na constraint e na API de membros.)_ |
-| C | **Grupo grande (várias mesas próximas)** | ✅ Entregue — ao adicionar na fila, se o nº de pessoas passa da maior mesa da característica, o sistema calcula **"~N mesas próximas"** e avisa. Esses grupos não são auto-chamados (não cabem em 1 mesa) — ficam marcados na fila e a equipe **junta as mesas e senta manualmente** (botão "Sentar"). _Sem auto-matching multi-mesa: não há mapa de adjacência; a equipe decide quais mesas juntar._ |
+| C | **Grupo grande (várias mesas próximas)** | ✅ Entregue (Flow B) — ao adicionar grupo grande, o sistema calcula **"~N mesas próximas"** e abre **"Apontar mesas"**: a equipe escolhe as mesas livres da característica (10, 11, 12), o sistema **soma a capacidade** e **reserva** todas (`status=reserved`, `migrate-waitlist-allocations.sql`). Botão "Reservar mesas" também na própria fila. Ao **Sentar/Remover**, as mesas voltam a `free`. ⏳ Flow A (clicar no grid da página Mesas) = próximo incremento. _Sem auto-adjacência: a equipe aponta quais mesas._ |
 
 ---
 
@@ -517,6 +517,7 @@ Cliente confirma pagamento
 | `migrate-table-waitlist.sql` | Fila de espera por característica de mesa (table_features/map/waitlist + tolerância) — ver `docs/modulos/FILA-ESPERA.md` |
 | `migrate-table-capacity.sql` | `tables.capacity` (nº de pessoas) — usada no matching da fila (não chama grupo maior que a mesa) |
 | `migrate-recepcionista-role.sql` | Papel **recepcionista** (+ regulariza `caixa`) na constraint de `restaurant_members.role` |
+| `migrate-waitlist-allocations.sql` | Alocação de mesas p/ grupo grande (`table_waitlist_allocations`) — reserva várias mesas pra uma entrada da fila |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

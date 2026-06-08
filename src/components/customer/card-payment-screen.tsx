@@ -324,7 +324,7 @@ export function CardPaymentScreen({
                   <input type="checkbox" checked={saveCard} onChange={e => setSaveCard(e.target.checked)}
                     className="mt-0.5 accent-orange-500" />
                   <span className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Salvar cartão para pagamentos futuros (token seguro — dados sensíveis não ficam no Qomanda)
+                    Salvar cartão para pagamentos futuros (token seguro — dados sensíveis não ficam no KiComanda)
                   </span>
                 </label>
               )}

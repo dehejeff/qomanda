@@ -11,6 +11,7 @@ import { CounterQrModal } from '@/components/dashboard/counter-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
 import { TableCreateModal } from '@/components/dashboard/table-create-modal'
 import { WaitlistModal } from '@/components/dashboard/waitlist-modal'
+import { GroupReserveModal } from '@/components/dashboard/group-reserve-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
@@ -39,6 +40,9 @@ export default function TablesPage() {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showWaitlist, setShowWaitlist] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showGroupReserve, setShowGroupReserve] = useState(false)
 
   async function loadPlanLimits() {
     try {
@@ -217,6 +221,32 @@ export default function TablesPage() {
   const reserved = realTables.filter((t) => t.status === 'reserved').length
   const free     = realTables.filter((t) => t.status === 'free').length
 
+  // ── Reserva de grupo pelo grid (Flow A) ──
+  const selectedTables = realTables.filter((t) => selectedIds.has(t.id))
+  const selectedSeats = selectedTables.reduce((s, t) => s + (t.capacity ?? 0), 0)
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+  function exitSelect() { setSelectMode(false); setSelectedIds(new Set()) }
+
+  async function reserveGroup(name: string, partySize: number, whatsapp: string) {
+    const ids = [...selectedIds]
+    const res = await fetch('/api/dashboard/waitlist', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reserveTables', name, partySize, whatsapp, tableIds: ids }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+    setTables((prev) => prev.map((t) => ids.includes(t.id) ? { ...t, status: 'reserved' } : t))
+    toast.success(`${ids.length} mesa${ids.length !== 1 ? 's' : ''} reservada${ids.length !== 1 ? 's' : ''} para ${name}.`)
+    exitSelect()
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="h-6 w-6 animate-spin text-primary-container" />
@@ -261,6 +291,17 @@ export default function TablesPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+              className={`flex items-center gap-2 px-4 py-2.5 border text-sm font-bold font-mono rounded-lg transition-colors ${
+                selectMode
+                  ? 'border-primary text-primary bg-primary-container/20'
+                  : 'border-outline-variant text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{selectMode ? 'close' : 'select_all'}</span>
+              <span className="hidden sm:inline">{selectMode ? 'Cancelar seleção' : 'Reservar mesas'}</span>
+            </button>
             <button
               onClick={() => setShowWaitlist(true)}
               className="flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant text-sm font-bold font-mono rounded-lg hover:text-on-surface transition-colors"
@@ -336,13 +377,15 @@ export default function TablesPage() {
               {realTables.map((table) => {
                 const s = STATUS_CONFIG[table.status] ?? STATUS_CONFIG.free
                 const isConfirming = confirmDeleteId === table.id
+                const isSelected = selectedIds.has(table.id)
 
                 return (
                   <div
                     key={table.id}
-                    className={`relative aspect-square rounded-lg flex flex-col items-center justify-center border transition-all ${s.cardClass}`}
+                    className={`relative aspect-square rounded-lg flex flex-col items-center justify-center border transition-all ${s.cardClass} ${isSelected ? 'ring-2 ring-primary' : ''} ${selectMode && table.status !== 'free' ? 'opacity-40' : ''} ${selectMode && table.status === 'free' ? 'cursor-pointer' : ''}`}
                     onClick={() => {
                       if (isConfirming) return
+                      if (selectMode) { if (table.status === 'free') toggleSelect(table.id); return }
                       if (table.status === 'free') {
                         if (!getQrUrl(table)) {
                           toast.error('Mesa sem token de QR. Rode a migração de tokens ou recrie a mesa.')
@@ -385,8 +428,8 @@ export default function TablesPage() {
                           : <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 mt-0.5 group-hover:text-primary transition-colors">qr_code</span>
                         }
 
-                        {/* Delete button — só em mesas livres */}
-                        {table.status === 'free' && (
+                        {/* Delete button — só em mesas livres (oculto no modo seleção) */}
+                        {!selectMode && table.status === 'free' && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(table.id) }}
                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-error/20 text-on-surface-variant/50 hover:text-error"
@@ -457,6 +500,34 @@ export default function TablesPage() {
       )}
 
       {showWaitlist && <WaitlistModal onClose={() => setShowWaitlist(false)} />}
+
+      {/* Barra flutuante do modo seleção (Flow A: reservar grupo) */}
+      {selectMode && (
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-[60] md:left-[260px] bg-surface-container border-t border-outline-variant px-4 py-3 flex items-center justify-between gap-3 shadow-2xl">
+          <div className="text-sm min-w-0">
+            <span className="font-bold text-on-surface">{selectedIds.size} mesa{selectedIds.size !== 1 ? 's' : ''}</span>
+            <span className="font-mono text-on-surface-variant"> · {selectedSeats} lugares</span>
+            <span className="hidden sm:inline text-xs text-on-surface-variant ml-2">— toque nas mesas livres</span>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={exitSelect} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-mono text-on-surface-variant hover:text-on-surface">
+              Cancelar
+            </button>
+            <button disabled={selectedIds.size === 0} onClick={() => setShowGroupReserve(true)}
+              className="px-4 py-2 bg-primary-container text-on-primary-container rounded-lg text-sm font-bold font-mono disabled:opacity-40">
+              Reservar grupo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showGroupReserve && (
+        <GroupReserveModal
+          tables={selectedTables.map((t) => ({ id: t.id, number: t.number, capacity: t.capacity ?? null }))}
+          onClose={() => setShowGroupReserve(false)}
+          onConfirm={reserveGroup}
+        />
+      )}
 
       {showCreateModal && (
         <TableCreateModal

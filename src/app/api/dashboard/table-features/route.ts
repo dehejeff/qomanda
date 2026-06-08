@@ -30,13 +30,26 @@ export async function GET() {
   }
 }
 
-/** POST — cria uma característica { name, emoji }. */
+/** POST — cria uma característica { name, emoji } OU renomeia (quando vem { id }). */
 export async function POST(req: NextRequest) {
   try {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
-    const { name, emoji } = (await req.json()) as { name?: string; emoji?: string }
+    const { id, name, emoji } = (await req.json()) as { id?: string; name?: string; emoji?: string }
     if (!name?.trim()) return NextResponse.json({ error: 'Informe o nome da característica.' }, { status: 400 })
+
+    // Renomear/editar uma característica existente (escopada ao restaurante).
+    if (id) {
+      const { data, error } = await admin
+        .from('table_features')
+        .update({ name: name.trim(), emoji: emoji?.trim() || null })
+        .eq('id', id)
+        .eq('restaurant_id', access.restaurantId)
+        .select('id, name, emoji')
+        .single()
+      if (error || !data) return NextResponse.json({ error: 'Erro ao atualizar característica.' }, { status: 400 })
+      return NextResponse.json({ feature: data })
+    }
 
     const { data, error } = await admin
       .from('table_features')

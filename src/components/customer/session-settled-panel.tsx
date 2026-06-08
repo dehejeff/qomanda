@@ -74,7 +74,7 @@ export function SessionSettledPanel({ tableNumber, payments, onLeaveRestaurant }
           Sair do restaurante
         </button>
         <p className="text-[10px] font-mono text-center mt-2 leading-relaxed" style={{ color: '#584237' }}>
-          Você continua logado no Qomanda e pode acessar recibos e histórico no Hub.
+          Você continua logado no KiComanda e pode acessar recibos e histórico no Hub.
         </p>
       </div>
     </div>

@@ -4,14 +4,17 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { WaitlistAddModal } from './waitlist-add-modal'
+import { ReserveTablesModal } from './reserve-tables-modal'
 
 type Feature = { id: string; name: string; emoji: string | null }
+type FreeTable = { id: string; number: string; capacity: number | null }
 type QueueEntry = {
   id: string; featureId: string; name: string; whatsapp: string | null
   partySize: number; status: 'waiting' | 'notified'; source: string
   expiresAt: string | null; notifiedTableNumber: string | null
+  reservedTables: FreeTable[]
 }
-type FreeTable = { id: string; number: string; capacity: number | null }
+type ReserveTarget = { entryId: string; featureId: string; featureName: string; partySize: number }
 
 /**
  * Primeiro par (cliente da fila, mesa livre) que dá para sentar agora:
@@ -44,6 +47,9 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
   const [now, setNow] = useState(Date.now())
   const [busy, setBusy] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [reserveFor, setReserveFor] = useState<ReserveTarget | null>(null)
+
+  const featureLabel = (f: Feature) => `${f.emoji ?? ''} ${f.name}`.trim()
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +67,28 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
   function tablesNeeded(featureId: string, partySize: number): number {
     const maxCap = featureMaxCapacity[featureId] ?? null
     return maxCap != null && partySize > maxCap ? Math.ceil(partySize / maxCap) : 1
+  }
+
+  /** Adiciona na fila; se grupo grande e houver mesas livres, abre "apontar mesas". */
+  async function addToQueue(featureId: string, name: string, partySize: number, whatsapp: string) {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/dashboard/waitlist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'addWalkIn', featureId, name, partySize, whatsapp }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      await load()
+      const isBig = tablesNeeded(featureId, partySize) > 1
+      const free = freeByFeature[featureId] ?? []
+      if (isBig && free.length > 0 && data.entryId) {
+        const feat = features.find(f => f.id === featureId)
+        setReserveFor({ entryId: data.entryId, featureId, featureName: feat ? featureLabel(feat) : 'Mesa', partySize })
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao adicionar.')
+    } finally { setBusy(false) }
   }
 
   useEffect(() => {
@@ -88,8 +116,9 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
     return <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} /></div>
   }
 
-  const waiting = queue.filter(e => e.status === 'waiting')
+  const waiting = queue.filter(e => e.status === 'waiting' && e.featureId)
   const people = waiting.reduce((s, e) => s + (e.partySize || 0), 0)
+  const reservas = queue.filter(e => !e.featureId) // reservas diretas (grid), sem característica
 
   return (
     <div className="space-y-5">
@@ -173,9 +202,15 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                             Chamado · Mesa {e.notifiedTableNumber ?? '—'} · {mm}:{ss}
                           </p>
                         )}
-                        {!ready && isBig && (
+                        {e.reservedTables.length > 0 && (
+                          <p className="text-[10px] font-mono mt-0.5" style={{ color: '#34d399' }}>
+                            Reservado: {e.reservedTables.map(t => `Mesa ${t.number}`).join(', ')}
+                            {' '}({e.reservedTables.reduce((s, t) => s + (t.capacity ?? 0), 0)} lugares)
+                          </p>
+                        )}
+                        {!ready && isBig && e.reservedTables.length === 0 && (
                           <p className="text-[10px] font-mono mt-0.5" style={{ color: '#fbbf24' }}>
-                            Precisa de ~{needed} mesas próximas (junte as mesas e sente manualmente)
+                            Precisa de ~{needed} mesas próximas — aponte as mesas ou sente manualmente
                           </p>
                         )}
                         {!ready && !isBig && free.length > 0 && !free.some(t => t.capacity == null || t.capacity >= e.partySize) && (
@@ -197,6 +232,13 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                         </div>
                       ) : (
                         <div className="flex gap-1.5 shrink-0 items-center">
+                          {isBig && e.reservedTables.length === 0 && free.length > 0 && (
+                            <button type="button" disabled={busy}
+                              onClick={() => setReserveFor({ entryId: e.id, featureId: f.id, featureName: featureLabel(f), partySize: e.partySize })}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono" style={{ background: '#f97316', color: '#582200' }}>
+                              Reservar mesas
+                            </button>
+                          )}
                           {isBig && (
                             <button type="button" disabled={busy} onClick={() => act({ action: 'seat', entryId: e.id })}
                               className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
@@ -216,6 +258,41 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
         )
       })}
 
+      {/* Reservas diretas (feitas pelo grid da página Mesas) */}
+      {reservas.length > 0 && (
+        <div className="rounded-2xl p-4" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
+          <p className="text-base font-bold mb-2">Reservas diretas</p>
+          <ul className="space-y-2">
+            {reservas.map(e => (
+              <li key={e.id} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+                style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">
+                    {e.name} <span className="text-[11px] font-mono" style={{ color: '#a78b7d' }}>· {e.partySize}p</span>
+                  </p>
+                  {e.reservedTables.length > 0 && (
+                    <p className="text-[11px] font-mono mt-0.5" style={{ color: '#34d399' }}>
+                      {e.reservedTables.map(t => `Mesa ${t.number}`).join(', ')}
+                      {' '}({e.reservedTables.reduce((s, t) => s + (t.capacity ?? 0), 0)} lugares)
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button type="button" disabled={busy} onClick={() => act({ action: 'seat', entryId: e.id })}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                    Sentou
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => act({ action: 'cancel', entryId: e.id })}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-mono" style={{ background: 'transparent', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                    Liberar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Adicionar à fila (recepção/portaria) */}
       {features.length > 0 && (
         <button type="button" onClick={() => setShowAdd(true)}
@@ -230,9 +307,18 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
           features={features}
           featureMaxCapacity={featureMaxCapacity}
           onClose={() => setShowAdd(false)}
-          onAdd={async (featureId, name, partySize, whatsapp) => {
-            await act({ action: 'addWalkIn', featureId, name, partySize, whatsapp })
-          }}
+          onAdd={addToQueue}
+        />
+      )}
+
+      {reserveFor && (
+        <ReserveTablesModal
+          entryId={reserveFor.entryId}
+          featureName={reserveFor.featureName}
+          partySize={reserveFor.partySize}
+          freeTables={freeByFeature[reserveFor.featureId] ?? []}
+          onClose={() => setReserveFor(null)}
+          onReserved={load}
         />
       )}
     </div>
