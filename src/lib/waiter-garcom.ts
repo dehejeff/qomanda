@@ -167,6 +167,12 @@ export async function requestWaiterSessionClose(
 
     if (error) throw new Error('Erro ao encerrar mesa.')
 
+    try {
+      const { notifyWaitlistOnTableFree } = await import('@/lib/waitlist')
+      const { data: s } = await supabase.from('sessions').select('table_id').eq('id', sessionId).maybeSingle()
+      await notifyWaitlistOnTableFree(supabase, s?.table_id)
+    } catch { /* best-effort */ }
+
     return { action: 'closed', message: 'Mesa encerrada (sem consumo).' }
   }
 

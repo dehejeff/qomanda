@@ -58,6 +58,12 @@ export async function closeSessionIfSettled(
 
   console.log(`[closeSessionIfSettled] Sessão ${sessionId} fechada — mesa liberada`)
 
+  // Mesa liberou → chama o próximo da fila de espera (best-effort).
+  try {
+    const { notifyWaitlistOnTableFree } = await import('@/lib/waitlist')
+    await notifyWaitlistOnTableFree(supabase, session.table_id)
+  } catch { /* não bloqueia o fechamento */ }
+
   return { closed: true, ...balance, remaining: 0, tableId: session.table_id }
 }
 

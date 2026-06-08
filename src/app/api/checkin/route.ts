@@ -157,6 +157,14 @@ export async function POST(req: NextRequest) {
       )
     if (visitError) console.error('[Check-in] Falha ao registrar visita:', visitError.message)
 
+    // Se o cliente estava na fila de espera, ao fazer check-in (QR) marca como sentado.
+    await supabase
+      .from('table_waitlist')
+      .update({ status: 'seated', seated_session_id: sessionId })
+      .eq('restaurant_id', restaurant.id)
+      .eq('customer_id', customerId)
+      .in('status', ['notified', 'waiting'])
+
     return NextResponse.json({ sessionId, customerId: customerId!, isJoining } satisfies CheckInResponse)
   } catch (err) {
     console.error('[CheckIn API Error]', err)
