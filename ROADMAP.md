@@ -50,6 +50,13 @@
 | 1 | **Excluir mesa falha (ex.: mesa B2)** | ✅ Corrigido — era FK `on delete restrict` das tabelas de retenção financeira (não dá pra apagar mesa com histórico de pagamento). Agora: rota `DELETE /api/dashboard/tables` exclui se possível; se houver histórico, **arquiva** (`archived_at`). Bloqueia se a mesa estiver em uso. **Requer `migrate-tables-archive.sql`.** |
 | 2 | **Couvert cancelado não reflete no painel** | ✅ Corrigido — remover couvert agora marca o pedido como `cancelled` (UPDATE realtime confiável, sai do faturamento) em vez de DELETE; e a tela de Pedidos do cliente ganhou botão **"Remover couvert"** (couvert é `delivered`, não tinha como cancelar de lá). |
 
+### A fazer (produto)
+
+| # | Item | Nota |
+|---|------|------|
+| A | **Capacidade da mesa (nº de pessoas)** | Adicionar `tables.capacity` + campo no modal de criar/editar mesa. Usar no matching da fila (não chamar grupo maior que a mesa comporta) e exibir no mapa/gerência. |
+| B | **Tela da fila p/ garçom/recepcionista — revisar/expandir** | A base já existe (`/garcom/fila`: incluir walk-in, ver quantos esperam, chamar próximo, sentou/não-veio). Revisar/expandir: acesso para perfil **recepcionista**, visão por nº de pessoas (usar a capacidade do item A), e melhorias de UX. |
+
 ---
 
 ## ✅ Entregue recentemente (jun/2026)
