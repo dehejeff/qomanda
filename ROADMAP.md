@@ -506,6 +506,7 @@ Cliente confirma pagamento
 | `migrate-realtime-close-requests.sql` | Realtime de close_requests/close_request_participants (divisão da conta com aceite atualiza ao vivo) |
 | `migrate-couvert.sql` | Couvert (entrada, só mesa) + couvert artístico (por dias da semana + horário); flags em restaurants/menu_items |
 | `migrate-tables-archive.sql` | `tables.archived_at` — arquivar mesa com histórico financeiro (soft-delete) |
+| `migrate-table-waitlist.sql` | Fila de espera por característica de mesa (table_features/map/waitlist + tolerância) — ver `docs/modulos/FILA-ESPERA.md` |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

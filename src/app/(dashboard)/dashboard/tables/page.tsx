@@ -9,6 +9,7 @@ import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { CounterQrModal } from '@/components/dashboard/counter-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
+import { TableFeaturesPanel } from '@/components/dashboard/table-features-panel'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
@@ -297,6 +298,11 @@ export default function TablesPage() {
             Livre → QR Code · Ocupada/Reservada → Gerenciar
           </span>
         </div>
+
+        {/* Características das mesas + fila de espera */}
+        {!DEV_BYPASS && tables.length > 0 && (
+          <TableFeaturesPanel tables={tables.map((t) => ({ id: t.id, number: t.number }))} />
+        )}
 
         {/* Table grid */}
         {realTables.length === 0 ? (

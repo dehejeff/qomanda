@@ -33,6 +33,10 @@ from (
   select 6, 'Tabela', 'close_request_participants (divisão da conta)',
          to_regclass('public.close_request_participants') is not null,
          'schema.sql / migrate.sql'
+  union all
+  select 7, 'Tabela', 'table_waitlist (fila de espera por mesa)',
+         to_regclass('public.table_waitlist') is not null,
+         'migrate-table-waitlist.sql'
 
   -- ── Colunas ───────────────────────────────────────────────
   union all
