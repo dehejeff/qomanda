@@ -9,7 +9,7 @@ import { DEV_BYPASS, mockTables, mockRestaurant } from '@/lib/dev-mock'
 import { TableQrModal } from '@/components/dashboard/table-qr-modal'
 import { CounterQrModal } from '@/components/dashboard/counter-qr-modal'
 import { TableManageModal } from '@/components/dashboard/table-manage-modal'
-import { TableFeaturesPanel } from '@/components/dashboard/table-features-panel'
+import { TableCreateModal } from '@/components/dashboard/table-create-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
@@ -36,6 +36,7 @@ export default function TablesPage() {
   const [planName, setPlanName] = useState('Starter')
   const [maxTables, setMaxTables] = useState<number | null>(20)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   async function loadPlanLimits() {
     try {
@@ -257,7 +258,7 @@ export default function TablesPage() {
               </button>
             )}
             <button
-              onClick={() => addTable('table')}
+              onClick={() => setShowCreateModal(true)}
               disabled={adding}
               className="flex items-center gap-2 px-4 py-2.5 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
@@ -299,17 +300,12 @@ export default function TablesPage() {
           </span>
         </div>
 
-        {/* Características das mesas + fila de espera */}
-        {!DEV_BYPASS && tables.length > 0 && (
-          <TableFeaturesPanel tables={tables.map((t) => ({ id: t.id, number: t.number }))} />
-        )}
-
         {/* Table grid */}
         {realTables.length === 0 ? (
           <div className="tonal-layer-1 ghost-border rounded-xl p-12 text-center">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-30 mb-3 block">table_restaurant</span>
             <p className="text-sm font-mono text-on-surface-variant mb-4">Nenhuma mesa cadastrada</p>
-            <button onClick={() => addTable('table')} className="px-6 py-2 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity">
+            <button onClick={() => setShowCreateModal(true)} className="px-6 py-2 bg-primary-container text-on-primary-container text-sm font-bold font-mono rounded-lg hover:opacity-90 transition-opacity">
               Adicionar primeira mesa
             </button>
           </div>
@@ -436,6 +432,21 @@ export default function TablesPage() {
           onClose={() => setManageTable(null)}
           onTableUpdated={handleTableUpdated}
           onTableSwitched={handleTableSwitched}
+        />
+      )}
+
+      {showCreateModal && (
+        <TableCreateModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(table) => {
+            setTables(prev => sortTablesByNumber([...prev.filter(t => t.id !== table.id), table]))
+            void loadPlanLimits()
+          }}
+          onLimitReached={(data) => {
+            setPlanName(data.planName ?? planName)
+            setMaxTables(data.maxTables ?? maxTables)
+            setUpgradeModalOpen(true)
+          }}
         />
       )}
 

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { X, Download, Copy, Loader2, Printer } from 'lucide-react'
 import QRCode from 'qrcode'
 import { buildTableQrCardDataUrl } from '@/lib/table-qr-image'
+import { TableFeaturesField } from '@/components/dashboard/table-features-field'
 
 interface Props {
   table: RestaurantTable
@@ -138,6 +139,11 @@ export function TableQrModal({ table, url, restaurantName, onClose }: Props) {
             <Printer className="h-4 w-4" />
             Imprimir cartão
           </button>
+
+          {/* Características da mesa (fila de espera) */}
+          <div className="w-full pt-2 border-t border-outline-variant">
+            <TableFeaturesField mode="persist" tableId={table.id} />
+          </div>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { BRAZIL_BANKS } from '@/lib/brazil-banks'
 import type { PayoutBankAccountDto } from '@/app/api/dashboard/payout/bank-account/route'
 import type { OnboardStatusDto } from '@/app/api/dashboard/asaas/onboard/route'
 import type { RestaurantProfileDto } from '@/app/api/dashboard/profile/route'
+import { WaitlistToleranceSetting } from '@/components/dashboard/waitlist-tolerance-setting'
 import type { WhatsAppIntegrationDto } from '@/app/api/dashboard/integrations/whatsapp/route'
 import type { LoyaltyBenefitType, LoyaltyRuleType } from '@/types'
 import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gateway-panel'
@@ -869,6 +870,7 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+          <WaitlistToleranceSetting />
         </div>
       )}
 

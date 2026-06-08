@@ -10,6 +10,7 @@ import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send, ListOrde
 import { formatCurrency } from '@/lib/utils'
 import { SETTLE_TOLERANCE } from '@/lib/session-billing'
 import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-payments-panel'
+import { TableFeaturesField } from '@/components/dashboard/table-features-field'
 
 interface Props {
   table: RestaurantTable
@@ -399,6 +400,11 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
                     Cancelar Reserva
                   </button>
                 )}
+              </div>
+
+              {/* Características da mesa (fila de espera) */}
+              <div className="pt-2 border-t border-outline-variant">
+                <TableFeaturesField mode="persist" tableId={table.id} />
               </div>
             </div>
           )}
