@@ -232,6 +232,12 @@ export async function removeCouvertForCustomer(
     .maybeSingle()
   if (paid) return { ok: false, error: 'Você já efetuou um pagamento — não é possível remover o couvert.' }
 
-  await admin.from('orders').delete().eq('id', orderId) // cascade remove order_items
+  // Cancela (não exclui): reflete no painel via realtime UPDATE e sai do
+  // faturamento (isBillableOrder ignora 'cancelled'). Mais confiável que DELETE.
+  const { error } = await admin
+    .from('orders')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+  if (error) return { ok: false, error: 'Erro ao remover o couvert.' }
   return { ok: true }
 }

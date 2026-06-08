@@ -20,6 +20,7 @@ export async function getRestaurantPlanLimits(
       .from('tables')
       .select('id', { count: 'exact', head: true })
       .eq('restaurant_id', restaurantId)
+      .is('archived_at', null) // mesas arquivadas não contam no limite
       .neq('number', 'BALCAO'), // balcão é livre — não conta no limite do plano
     admin
       .from('restaurants')

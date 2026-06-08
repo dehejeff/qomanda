@@ -19,6 +19,63 @@ export async function GET() {
   }
 }
 
+/**
+ * DELETE /api/dashboard/tables?id=<tableId>
+ * Exclui a mesa. Se houver histórico financeiro (FK restrict de
+ * auditoria/retenção), arquiva em vez de excluir — preserva o histórico fiscal.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const access = await requireOwnerAccess()
+    const admin = createAdminClient()
+
+    const id = req.nextUrl.searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Mesa inválida.' }, { status: 400 })
+
+    const { data: table } = await admin
+      .from('tables')
+      .select('id, restaurant_id, number')
+      .eq('id', id)
+      .maybeSingle()
+    if (!table || table.restaurant_id !== access.restaurantId) {
+      return NextResponse.json({ error: 'Mesa não encontrada.' }, { status: 404 })
+    }
+
+    // Bloqueia exclusão se a mesa estiver em uso (sessão aberta/fechando).
+    const { data: openSession } = await admin
+      .from('sessions')
+      .select('id')
+      .eq('table_id', id)
+      .in('status', ['open', 'closing'])
+      .limit(1)
+      .maybeSingle()
+    if (openSession) {
+      return NextResponse.json({ error: 'Mesa em uso — encerre a sessão antes de excluir.' }, { status: 409 })
+    }
+
+    // Tenta excluir. Se houver histórico financeiro (FK restrict), arquiva.
+    const { error } = await admin.from('tables').delete().eq('id', id)
+    if (error) {
+      const { error: archiveErr } = await admin
+        .from('tables')
+        .update({ archived_at: new Date().toISOString() })
+        .eq('id', id)
+      if (archiveErr) {
+        return NextResponse.json({ error: 'Erro ao excluir a mesa.' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true, archived: true })
+    }
+
+    return NextResponse.json({ ok: true, archived: false })
+  } catch (err) {
+    if (err instanceof RestaurantAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    console.error('[Tables DELETE]', err)
+    return NextResponse.json({ error: 'Erro ao excluir mesa.' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const access = await requireOwnerAccess()

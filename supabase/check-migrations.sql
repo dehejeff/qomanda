@@ -77,6 +77,12 @@ from (
                  where table_schema='public' and table_name='menu_items'
                    and column_name='couvert_kind'),
          'migrate-couvert.sql'
+  union all
+  select 17, 'Coluna', 'tables.archived_at (arquivar mesa)',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='tables'
+                   and column_name='archived_at'),
+         'migrate-tables-archive.sql'
 
   -- ── Índices de performance ────────────────────────────────
   union all

@@ -39,6 +39,11 @@ function isBillable(order: Order) {
   return order.status !== 'cancelled'
 }
 
+/** Pedido de couvert (entrada/artístico) — tem item com couvert_kind != 'none'. */
+function isCouvertOrder(order: Order) {
+  return (order.items ?? []).some(i => ((i.menu_item as { couvert_kind?: string } | undefined)?.couvert_kind ?? 'none') !== 'none')
+}
+
 function totalOf(orders: Order[]) {
   return orders
     .filter(isBillable)
@@ -110,6 +115,7 @@ export default function OrdersPage() {
   const [sessionClosing, setSessionClosing] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
+  const [removingCouvertId, setRemovingCouvertId] = useState<string | null>(null)
   const [paymentProgress, setPaymentProgress] = useState<PaymentProgress[]>([])
   const [sessionBilling, setSessionBilling] = useState<ReturnType<typeof buildSessionBilling> | null>(null)
   const [closeRequestActive, setCloseRequestActive] = useState(false)
@@ -146,6 +152,27 @@ export default function OrdersPage() {
       toast.error('Erro ao cancelar pedido.')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  async function removeCouvert(order: Order) {
+    if (!customerId) { toast.error('Não foi possível identificar sua conta.'); return }
+    setRemovingCouvertId(order.id)
+    try {
+      const res = await fetch('/api/customer/couvert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, customerId, action: 'remove' }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? 'Erro ao remover couvert.'); return }
+      toast.success('Couvert removido.')
+      setMyOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o))
+      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o))
+    } catch {
+      toast.error('Erro ao remover couvert.')
+    } finally {
+      setRemovingCouvertId(null)
     }
   }
 
@@ -479,7 +506,7 @@ export default function OrdersPage() {
                           {cancelled ? formatCurrency(orderItemsTotal(order)) : formatCurrency(ot)}
                         </span>
                       </div>
-                      {order.status === 'pending' && (
+                      {order.status === 'pending' && !isCouvertOrder(order) && (
                         <div className="px-4 pb-3">
                           <button
                             type="button"
@@ -489,6 +516,19 @@ export default function OrdersPage() {
                             style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
                           >
                             {cancellingId === order.id ? 'Cancelando...' : 'Cancelar pedido'}
+                          </button>
+                        </div>
+                      )}
+                      {isCouvertOrder(order) && !cancelled && (
+                        <div className="px-4 pb-3">
+                          <button
+                            type="button"
+                            onClick={() => removeCouvert(order)}
+                            disabled={removingCouvertId === order.id}
+                            className="w-full py-2.5 rounded-lg text-xs font-mono font-bold transition-all active:scale-95 disabled:opacity-50"
+                            style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+                          >
+                            {removingCouvertId === order.id ? 'Removendo...' : 'Remover couvert'}
                           </button>
                         </div>
                       )}

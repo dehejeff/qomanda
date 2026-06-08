@@ -71,7 +71,7 @@ export default function TablesPage() {
       setRestaurantName(r.name ?? '')
       setRestaurantId(r.id)
       setOperationalMode((r.operational_mode as 'dine_in' | 'counter' | 'both') ?? 'both')
-      const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).order('number')
+      const { data } = await supabase.from('tables').select('*').eq('restaurant_id', r.id).is('archived_at', null).order('number')
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
       void loadPlanLimits()
@@ -141,13 +141,24 @@ export default function TablesPage() {
       toast.success('Mesa removida.')
       return
     }
-    const supabase = createClient()
-    const { error } = await supabase.from('tables').delete().eq('id', id)
-    if (error) { toast.error('Erro ao remover mesa'); setDeleting(false); return }
-    setTables((prev) => prev.filter((t) => t.id !== id))
-    setConfirmDeleteId(null)
-    setDeleting(false)
-    toast.success('Mesa removida.')
+    try {
+      const res = await fetch(`/api/dashboard/tables?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error ?? 'Erro ao remover mesa')
+        setDeleting(false)
+        return
+      }
+      setTables((prev) => prev.filter((t) => t.id !== id))
+      setConfirmDeleteId(null)
+      toast.success(data.archived
+        ? 'Mesa arquivada (tinha histórico de pagamentos).'
+        : 'Mesa removida.')
+    } catch {
+      toast.error('Erro ao remover mesa')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function getQrUrl(table: RestaurantTable) {

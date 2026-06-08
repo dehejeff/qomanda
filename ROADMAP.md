@@ -43,12 +43,12 @@
 
 ---
 
-## 🐞 Bugs conhecidos / pendências (corrigir depois)
+## 🐞 Bugs conhecidos / pendências
 
-| # | Item | Hipótese / nota |
-|---|------|-----------------|
-| 1 | **Excluir mesa falha (ex.: mesa B2)** | `tables.delete()` provavelmente barrado por FK (sessions/orders referenciam a mesa) → toast "Erro ao remover mesa". Tratar: encerrar/limpar sessões da mesa antes, ou soft-delete (flag `archived`), e dar mensagem clara. Arquivo: `dashboard/tables/page.tsx` (`deleteTable`) + `api/dashboard/tables`. |
-| 2 | **Couvert cancelado pelo cliente não reflete no painel** | Cliente adiciona couvert (pedido nasce `delivered` = "servido") e depois remove, mas no painel do restaurante o pedido continua como "servido". Verificar: o "remover" do cliente chama `removeCouvertForCustomer` (deleta o pedido) — ver se a remoção realmente ocorreu (bloqueada se já houve pagamento? RLS? realtime não atualizou?). Decidir UX: couvert removível deve sumir do painel; e couvert como `delivered` pode confundir na tela de pedidos. Arquivos: `lib/couvert.ts`, `api/customer/couvert`, telas de pedidos do dashboard. |
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Excluir mesa falha (ex.: mesa B2)** | ✅ Corrigido — era FK `on delete restrict` das tabelas de retenção financeira (não dá pra apagar mesa com histórico de pagamento). Agora: rota `DELETE /api/dashboard/tables` exclui se possível; se houver histórico, **arquiva** (`archived_at`). Bloqueia se a mesa estiver em uso. **Requer `migrate-tables-archive.sql`.** |
+| 2 | **Couvert cancelado não reflete no painel** | ✅ Corrigido — remover couvert agora marca o pedido como `cancelled` (UPDATE realtime confiável, sai do faturamento) em vez de DELETE; e a tela de Pedidos do cliente ganhou botão **"Remover couvert"** (couvert é `delivered`, não tinha como cancelar de lá). |
 
 ---
 
@@ -505,6 +505,7 @@ Cliente confirma pagamento
 | `migrate-service-nfe.sql` | NF-e de serviço Qomanda → restaurante (`service_nfe_invoices`, 1 por fatura) |
 | `migrate-realtime-close-requests.sql` | Realtime de close_requests/close_request_participants (divisão da conta com aceite atualiza ao vivo) |
 | `migrate-couvert.sql` | Couvert (entrada, só mesa) + couvert artístico (por dias da semana + horário); flags em restaurants/menu_items |
+| `migrate-tables-archive.sql` | `tables.archived_at` — arquivar mesa com histórico financeiro (soft-delete) |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 
