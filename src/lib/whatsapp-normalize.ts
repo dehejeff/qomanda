@@ -4,7 +4,7 @@ export function digitsOnly(value: string): string {
 }
 
 export type NormalizedWhatsApp = {
-  /** Dígitos completos com código do país (estilo E.164 sem +). Ex: 5521994622697, 351912345678 */
+  /** Dígitos completos com código do país (estilo E.164 sem +). Ex: 5511987654321, 351912345678 */
   e164: string
   countryCode: string
   isBrazil: boolean

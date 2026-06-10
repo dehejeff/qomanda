@@ -18,8 +18,8 @@ type Props =
 const inputClass = 'h-9 px-2.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none'
 
 /**
- * Campo de características da mesa: lista as tags do restaurante como chips
- * (liga/desliga) e permite criar uma nova tag inline.
+ * Campo de seção da mesa: lista as seções do restaurante como chips
+ * (liga/desliga) e permite criar uma nova seção inline.
  * - mode 'select': controlado (para o modal de criar mesa).
  * - mode 'persist': salva direto na mesa via API (para editar mesa existente).
  */
@@ -78,7 +78,7 @@ export function TableFeaturesField(props: Props) {
   }
 
   async function saveRename(f: TableFeature) {
-    if (!f.name.trim()) { toast.error('A característica precisa de um nome.'); return }
+    if (!f.name.trim()) { toast.error('A seção precisa de um nome.'); return }
     setBusy(true)
     try {
       const res = await fetch('/api/dashboard/table-features', {
@@ -86,14 +86,14 @@ export function TableFeaturesField(props: Props) {
         body: JSON.stringify({ id: f.id, name: f.name.trim(), emoji: f.emoji || null }),
       })
       if (!res.ok) throw new Error()
-      toast.success('Característica atualizada.')
+      toast.success('Seção atualizada.')
     } catch {
-      toast.error('Erro ao atualizar característica.')
+      toast.error('Erro ao atualizar seção.')
     } finally { setBusy(false) }
   }
 
   async function deleteFeature(id: string, name: string) {
-    if (!window.confirm(`Excluir a característica "${name}"? Ela some de todas as mesas.`)) return
+    if (!window.confirm(`Excluir a seção "${name}"? Ela some de todas as mesas.`)) return
     setBusy(true)
     try {
       const res = await fetch(`/api/dashboard/table-features?id=${id}`, { method: 'DELETE' })
@@ -101,9 +101,9 @@ export function TableFeaturesField(props: Props) {
       setFeatures(prev => prev.filter(f => f.id !== id))
       const next = new Set(selected); next.delete(id); setSelected(next)
       if (props.mode === 'select') props.onChange([...next])
-      toast.success('Característica removida.')
+      toast.success('Seção removida.')
     } catch {
-      toast.error('Erro ao remover característica.')
+      toast.error('Erro ao remover seção.')
     } finally { setBusy(false) }
   }
 
@@ -122,7 +122,7 @@ export function TableFeaturesField(props: Props) {
       // já marca a nova como selecionada
       await toggle(data.feature.id)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar característica.')
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar seção.')
     } finally { setAdding(false) }
   }
 
@@ -130,7 +130,7 @@ export function TableFeaturesField(props: Props) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-          Características {busy && <span className="opacity-60">· salvando…</span>}
+          Seção {busy && <span className="opacity-60">· salvando…</span>}
         </span>
         {features.length > 0 && (
           <button type="button" onClick={() => setEditing(e => !e)}
@@ -178,14 +178,14 @@ export function TableFeaturesField(props: Props) {
             )
           })}
           {features.length === 0 && (
-            <span className="text-xs text-on-surface-variant">Nenhuma ainda — crie abaixo.</span>
+            <span className="text-xs text-on-surface-variant">Nenhuma seção ainda — crie abaixo.</span>
           )}
         </div>
       )}
       <div className="flex gap-2">
         <input value={newEmoji} onChange={e => setNewEmoji(e.target.value)} placeholder="🌊" maxLength={4}
           className={`${inputClass} w-12 text-center`} />
-        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nova característica (ex.: Vista praia)"
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nova seção (ex.: Varanda)"
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createFeature() } }}
           className={`${inputClass} flex-1`} />
         <button type="button" onClick={createFeature} disabled={adding || !newName.trim()}

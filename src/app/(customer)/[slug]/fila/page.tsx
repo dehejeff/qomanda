@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhoneInput } from '@/lib/customer-form'
+import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 import { playReadyChime } from '@/lib/ready-chime'
 
 type Feature = { id: string; name: string; emoji: string | null }
@@ -41,6 +42,9 @@ export default function WaitlistPage() {
   const [name, setName] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [partySize, setPartySize] = useState('2')
+  const [showSecond, setShowSecond] = useState(false)
+  const [secondName, setSecondName] = useState('')
+  const [secondWhatsapp, setSecondWhatsapp] = useState('')
   const [joining, setJoining] = useState(false)
 
   const [entries, setEntries] = useState<Entry[]>([])
@@ -94,7 +98,13 @@ export default function WaitlistPage() {
 
   async function joinQueue() {
     if (!name.trim()) { toast.error('Informe seu nome.'); return }
-    if (!featureId) { toast.error('Escolha o tipo de mesa.'); return }
+    if (!featureId) { toast.error('Escolha a seção.'); return }
+    const contacts = parseWaitlistContacts({
+      whatsapp,
+      secondaryName: showSecond ? secondName : null,
+      secondaryWhatsapp: showSecond ? secondWhatsapp : null,
+    })
+    if ('error' in contacts) { toast.error(contacts.error); return }
     setJoining(true)
     try {
       const customerId = localStorage.getItem('qomanda_customer_id')
@@ -102,7 +112,10 @@ export default function WaitlistPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurantId, featureId, name: name.trim(),
-          whatsapp: whatsapp.replace(/\D/g, ''), partySize: Number(partySize),
+          whatsapp: contacts.whatsapp,
+          secondaryName: contacts.secondaryName,
+          secondaryWhatsapp: contacts.whatsappSecondary,
+          partySize: Number(partySize),
           customerId,
         }),
       })
@@ -144,7 +157,7 @@ export default function WaitlistPage() {
         <h1 className="text-2xl font-black mt-2" style={{ fontFamily: 'Geist, sans-serif' }}>Fila de mesas</h1>
         {restaurantName && <p className="text-xs font-mono mt-1" style={{ color: '#a78b7d' }}>{restaurantName}</p>}
         <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
-          Espere por uma mesa com a vista que você gosta. Avisamos aqui quando liberar.
+          Espere por uma mesa com a vista que você gosta. Avisamos aqui e no WhatsApp quando liberar.
         </p>
       </header>
 
@@ -198,7 +211,7 @@ export default function WaitlistPage() {
       ) : (
         <div className="mt-8 space-y-4">
           <div>
-            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>Tipo de mesa</label>
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>Seção</label>
             <div className="flex flex-wrap gap-2 mt-1.5">
               {features.map(f => (
                 <button key={f.id} type="button" onClick={() => setFeatureId(f.id)}
@@ -220,9 +233,25 @@ export default function WaitlistPage() {
               className="h-11 px-3 rounded-lg text-sm outline-none" style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
           </div>
           <input type="tel" inputMode="tel" value={whatsapp} onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
-            placeholder="WhatsApp (opcional)" className="w-full h-11 px-3 rounded-lg text-sm outline-none"
+            placeholder="WhatsApp * — (11) 98765-4321" autoComplete="off"
+            className="w-full h-11 px-3 rounded-lg text-sm outline-none font-mono"
             style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
-          <button onClick={joinQueue} disabled={joining}
+          {!showSecond ? (
+            <button type="button" onClick={() => setShowSecond(true)}
+              className="text-xs font-mono text-left" style={{ color: '#7bd0ff' }}>
+              + Adicionar outra pessoa do grupo (opcional)
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-lg p-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+              <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>2ª pessoa — também recebe aviso</p>
+              <input value={secondName} onChange={e => setSecondName(e.target.value)} placeholder="Nome (opcional)"
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+              <input type="tel" inputMode="tel" value={secondWhatsapp} onChange={e => setSecondWhatsapp(formatPhoneInput(e.target.value))}
+                placeholder="WhatsApp da 2ª pessoa" className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
+                style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+            </div>
+          )}
+          <button onClick={joinQueue} disabled={joining || !whatsapp.trim()}
             className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50"
             style={{ background: '#f97316', color: '#582200' }}>
             {joining ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na fila <span className="material-symbols-outlined">hourglass_top</span></>}

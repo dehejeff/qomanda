@@ -129,3 +129,17 @@ export function gatewayFieldsToDb(input: {
   }
   return patch
 }
+
+/** Recebimento pronto para operar (checklist / go-live). */
+export function isGatewayReadyForOnboarding(gateway: RestaurantGatewayConfig): boolean {
+  // PIX manual salvo — mesmo que o provider no banco ainda seja asaas/MP (aba Pagamentos).
+  if (gateway.manualConfigured) return true
+  // Só dinheiro na mesa (provider manual sem chave PIX).
+  if (gateway.provider === 'manual') return true
+  if (gateway.provider === 'asaas' && gateway.connected) return true
+  if (gateway.provider === 'mercado_pago') {
+    if (gateway.connected) return true
+    if (gateway.mpConnectedVia === 'oauth' && gateway.mpUserId) return true
+  }
+  return false
+}

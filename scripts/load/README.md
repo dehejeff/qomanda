@@ -16,12 +16,25 @@ node scripts/load/load-test.mjs
 | `LOAD_BASE` | `http://localhost:3000` | Alvo das rotas Next (use a URL de staging/prod para números reais) |
 | `LOAD_VUS` | `20` | Jornadas concorrentes (≈ mesas simultâneas) |
 | `LOAD_ITER` | `5` | Iterações por VU |
-| `LOAD_TABLES` | `10` | Mesas no restaurante de teste |
+| `LOAD_TABLES` | `10` | Mesas por restaurante de teste |
+| `LOAD_RESTAURANTS` | `1` | Quantidade de restaurantes isolados no seed |
 
-Exemplo (alvo do roadmap: ~10 restaurantes × 20 mesas) contra staging:
+Cenário do roadmap (**10 restaurantes × 20 mesas**):
 
 ```bash
-LOAD_BASE=https://staging.qomanda.app LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs
+LOAD_RESTAURANTS=10 LOAD_TABLES=20 LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs
+```
+
+Ou atalho:
+
+```bash
+npm run load:10x20
+```
+
+Contra staging (latência Next representativa):
+
+```bash
+LOAD_BASE=https://staging.qomanda.app LOAD_RESTAURANTS=10 LOAD_TABLES=20 LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs
 ```
 
 ## Isolamento e limpeza

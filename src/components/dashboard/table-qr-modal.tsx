@@ -141,7 +141,7 @@ export function TableQrModal({ table, url, restaurantName, onClose }: Props) {
             Imprimir cartão
           </button>
 
-          {/* Características da mesa (fila de espera) */}
+          {/* Seção da mesa (fila de espera) */}
           <div className="w-full pt-2 border-t border-outline-variant space-y-4">
             <TableCapacityField tableId={table.id} initial={table.capacity} />
             <TableFeaturesField mode="persist" tableId={table.id} />

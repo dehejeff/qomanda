@@ -3,7 +3,8 @@
 > Passo a passo para colocar o primeiro cliente (ex.: hamburgueria de pequeno porte)
 > em produção. Ordenado: **🔴 bloqueia o go-live** → **🟡 recomendado** → **🟢 quando quiser/escala**.
 >
-> Legenda: ✅ pronto no código · ⏳ ação operacional sua. Última revisão: 2026-06-05.
+> Legenda: ✅ pronto no código · ⏳ ação operacional sua. Última revisão: 2026-06-05.  
+> **Checklist interativo dos 5 pilotos:** [`/pilotos`](https://qomanda-mu.vercel.app/pilotos) (marcações salvas no navegador).
 
 ---
 
@@ -41,6 +42,8 @@ Ordem completa em `ROADMAP.md` § Migrações. As mais recentes desta fase **pre
 - [ ] ⏳ `migrate-billing-reminders.sql`
 - [ ] ⏳ `migrate-realtime-close-requests.sql`  ← **sem isso a divisão da conta (aceite) não atualiza em tempo real**
 - [ ] ⏳ `migrate-performance-indexes.sql`
+- [ ] ⏳ `migrate-waitlist-allocations.sql`  ← **Flow A/B fila** — reserva de grupo (grid Mesas + apontar mesas na fila); `feature_id` opcional + `table_waitlist_allocations`
+- [ ] ⏳ `migrate-waitlist-notify-contacts.sql`  ← **WhatsApp na fila** — contato secundário + aviso ao chamar mesa (rodar depois de `migrate-waitlist-allocations.sql`)
 
 ## 🔴 4. Crons (Vercel)
 

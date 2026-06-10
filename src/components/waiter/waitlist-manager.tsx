@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { WaitlistAddModal } from './waitlist-add-modal'
+import { WaitlistAddModal, type WaitlistAddPayload } from './waitlist-add-modal'
 import { ReserveTablesModal } from './reserve-tables-modal'
 
 type Feature = { id: string; name: string; emoji: string | null }
 type FreeTable = { id: string; number: string; capacity: number | null }
 type QueueEntry = {
   id: string; featureId: string; name: string; whatsapp: string | null
+  secondaryName: string | null; whatsappSecondary: string | null
   partySize: number; status: 'waiting' | 'notified'; source: string
   expiresAt: string | null; notifiedTableNumber: string | null
   reservedTables: FreeTable[]
@@ -63,28 +64,36 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
     } finally { setLoading(false) }
   }, [])
 
-  /** Nº de mesas que um grupo precisa numa característica (1 se cabe numa só). */
+  /** Nº de mesas que um grupo precisa numa seção (1 se cabe numa só). */
   function tablesNeeded(featureId: string, partySize: number): number {
     const maxCap = featureMaxCapacity[featureId] ?? null
     return maxCap != null && partySize > maxCap ? Math.ceil(partySize / maxCap) : 1
   }
 
   /** Adiciona na fila; se grupo grande e houver mesas livres, abre "apontar mesas". */
-  async function addToQueue(featureId: string, name: string, partySize: number, whatsapp: string) {
+  async function addToQueue(payload: WaitlistAddPayload) {
     setBusy(true)
     try {
       const res = await fetch('/api/dashboard/waitlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'addWalkIn', featureId, name, partySize, whatsapp }),
+        body: JSON.stringify({
+          action: 'addWalkIn',
+          featureId: payload.featureId,
+          name: payload.name,
+          partySize: payload.partySize,
+          whatsapp: payload.whatsapp,
+          secondaryName: payload.secondaryName,
+          secondaryWhatsapp: payload.secondaryWhatsapp,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       await load()
-      const isBig = tablesNeeded(featureId, partySize) > 1
-      const free = freeByFeature[featureId] ?? []
+      const isBig = tablesNeeded(payload.featureId, payload.partySize) > 1
+      const free = freeByFeature[payload.featureId] ?? []
       if (isBig && free.length > 0 && data.entryId) {
-        const feat = features.find(f => f.id === featureId)
-        setReserveFor({ entryId: data.entryId, featureId, featureName: feat ? featureLabel(feat) : 'Mesa', partySize })
+        const feat = features.find(f => f.id === payload.featureId)
+        setReserveFor({ entryId: data.entryId, featureId: payload.featureId, featureName: feat ? featureLabel(feat) : 'Mesa', partySize: payload.partySize })
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao adicionar.')
@@ -92,10 +101,13 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
   }
 
   useEffect(() => {
-    load()
-    const poll = setInterval(load, 5000)
+    void load()
     const tick = setInterval(() => setNow(Date.now()), 1000)
-    return () => { clearInterval(poll); clearInterval(tick) }
+    const poll = setInterval(() => { void load() }, 5000)
+    return () => {
+      clearInterval(tick)
+      clearInterval(poll)
+    }
   }, [load])
 
   async function act(body: Record<string, unknown>) {
@@ -118,7 +130,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
 
   const waiting = queue.filter(e => e.status === 'waiting' && e.featureId)
   const people = waiting.reduce((s, e) => s + (e.partySize || 0), 0)
-  const reservas = queue.filter(e => !e.featureId) // reservas diretas (grid), sem característica
+  const reservas = queue.filter(e => !e.featureId) // reservas diretas (grid), sem seção
 
   return (
     <div className="space-y-5">
@@ -126,7 +138,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
         {!embedded && (
           <>
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Fila de espera</h1>
-            <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>Chame o próximo quando uma mesa com a característica liberar.</p>
+            <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>Chame o próximo quando uma mesa da seção liberar.</p>
           </>
         )}
         <p className="text-xs mt-2 font-mono" style={{ color: '#dae2fd' }}>
@@ -138,7 +150,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
       {features.length === 0 && (
         <div className="rounded-2xl py-10 text-center" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
           <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>
-            Nenhuma característica cadastrada. Cadastre em Mesas → Características.
+            Nenhuma seção cadastrada. Cadastre em Mesas → ao criar ou editar uma mesa.
           </p>
         </div>
       )}

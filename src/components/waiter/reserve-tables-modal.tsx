@@ -72,7 +72,7 @@ export function ReserveTablesModal({ entryId, featureName, partySize, freeTables
         <div className="px-5 py-4 space-y-4">
           {freeTables.length === 0 ? (
             <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>
-              Nenhuma mesa livre dessa característica agora. O grupo segue na fila — reserve quando liberar.
+              Nenhuma mesa livre dessa seção agora. O grupo segue na fila — reserve quando liberar.
             </p>
           ) : (
             <>

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "smoke:garcom": "node scripts/smoke/garcom-smoke.mjs"
+    "smoke:garcom": "node scripts/smoke/garcom-smoke.mjs",
+    "smoke:group-reserve": "node scripts/smoke/group-reserve-grid.mjs",
+    "load:10x20": "LOAD_RESTAURANTS=10 LOAD_TABLES=20 LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",

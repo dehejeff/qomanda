@@ -13,12 +13,21 @@ import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-pa
 import { TableFeaturesField } from '@/components/dashboard/table-features-field'
 import { TableCapacityField } from '@/components/dashboard/table-capacity-field'
 
+type ReservationInfo = {
+  entryId: string
+  name: string
+  partySize: number
+  tables: { id: string; number: string }[]
+}
+
 interface Props {
   table: RestaurantTable
   freeTables: RestaurantTable[]
   onClose: () => void
   onTableUpdated: (tableId: string, status: RestaurantTable['status']) => void
   onTableSwitched: (fromId: string, toId: string) => void
+  /** Libera várias mesas de uma reserva de grupo (Flow A). */
+  onTablesFreed?: (tableIds: string[]) => void
 }
 
 type View = 'detail' | 'switch' | 'waiting'
@@ -38,12 +47,39 @@ interface SessionInfo {
   table_history: TableChange[]
 }
 
-export function TableManageModal({ table, freeTables, onClose, onTableUpdated, onTableSwitched }: Props) {
+export function TableManageModal({ table, freeTables, onClose, onTableUpdated, onTableSwitched, onTablesFreed }: Props) {
   const router = useRouter()
   const [view, setView] = useState<View>('detail')
   const [session, setSession] = useState<SessionInfo | null>(null)
   const [loadingSession, setLoadingSession] = useState(table.status === 'occupied')
+  const [reservation, setReservation] = useState<ReservationInfo | null>(null)
+  const [loadingReservation, setLoadingReservation] = useState(table.status === 'reserved')
   const [acting, setActing] = useState(false)
+
+  useEffect(() => {
+    if (table.status !== 'reserved' || DEV_BYPASS) {
+      setLoadingReservation(false)
+      return
+    }
+    fetch('/api/dashboard/waitlist')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        const entry = (data.queue ?? []).find((e: {
+          id: string; name: string; partySize: number
+          reservedTables?: { id: string; number: string }[]
+        }) => e.reservedTables?.some(t => t.id === table.id))
+        if (entry) {
+          setReservation({
+            entryId: entry.id,
+            name: entry.name,
+            partySize: entry.partySize,
+            tables: entry.reservedTables ?? [],
+          })
+        }
+      })
+      .finally(() => setLoadingReservation(false))
+  }, [table.id, table.status])
 
   useEffect(() => {
     if (table.status !== 'occupied') return
@@ -154,20 +190,62 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
     toast.success('Solicitação enviada ao cliente.')
   }
 
+  function applyFreedTables(ids: string[]) {
+    if (onTablesFreed) onTablesFreed(ids)
+    else ids.forEach(id => onTableUpdated(id, 'free'))
+  }
+
   async function handleCancelReservation() {
     setActing(true)
     if (DEV_BYPASS) {
-      onTableUpdated(table.id, 'free')
+      applyFreedTables([table.id])
       toast.success(`Reserva da Mesa ${table.number} cancelada.`)
       onClose()
+      setActing(false)
       return
     }
-    const supabase = createClient()
-    const { error } = await supabase.from('tables').update({ status: 'free' }).eq('id', table.id)
-    if (error) { toast.error('Erro ao cancelar reserva'); setActing(false); return }
-    onTableUpdated(table.id, 'free')
-    toast.success(`Reserva da Mesa ${table.number} cancelada.`)
-    onClose()
+    try {
+      const res = await fetch('/api/dashboard/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancelByTable', tableId: table.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const freed: string[] = data.freedTableIds ?? [table.id]
+      applyFreedTables(freed)
+      toast.success(freed.length > 1
+        ? `Reserva cancelada — ${freed.length} mesas liberadas.`
+        : `Reserva da Mesa ${table.number} cancelada.`)
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cancelar reserva')
+    } finally { setActing(false) }
+  }
+
+  async function handleGuestSeated() {
+    setActing(true)
+    if (DEV_BYPASS) {
+      applyFreedTables(reservation?.tables.map(t => t.id) ?? [table.id])
+      toast.success('Cliente marcado como sentou.')
+      onClose()
+      setActing(false)
+      return
+    }
+    try {
+      const res = await fetch('/api/dashboard/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'seatByTable', tableId: table.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      applyFreedTables(data.freedTableIds ?? [table.id])
+      toast.success('Cliente sentou — mesas liberadas para check-in no QR.')
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao marcar como sentou')
+    } finally { setActing(false) }
   }
 
   /** Libera uma mesa órfã: ocupada mas sem sessão aberta (estado inconsistente). */
@@ -334,8 +412,25 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
               )}
 
               {table.status === 'reserved' && (
-                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                  <p className="text-sm font-mono text-on-surface-variant text-center">Mesa aguardando cliente reservado.</p>
+                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 space-y-2">
+                  {loadingReservation ? (
+                    <p className="text-sm font-mono text-on-surface-variant text-center">Carregando reserva…</p>
+                  ) : reservation ? (
+                    <>
+                      <p className="text-sm font-semibold text-on-surface text-center">{reservation.name}</p>
+                      <p className="text-xs font-mono text-on-surface-variant text-center">
+                        {reservation.partySize} pessoa{reservation.partySize !== 1 ? 's' : ''}
+                        {reservation.tables.length > 1 && (
+                          <> · {reservation.tables.map(t => `Mesa ${t.number}`).join(', ')}</>
+                        )}
+                      </p>
+                      <p className="text-[11px] font-mono text-on-surface-variant/70 text-center">
+                        Cliente pode escanear o QR da mesa para abrir a sessão.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-mono text-on-surface-variant text-center">Mesa reservada.</p>
+                  )}
                 </div>
               )}
 
@@ -392,18 +487,28 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
                 )}
 
                 {table.status === 'reserved' && (
-                  <button
-                    onClick={handleCancelReservation}
-                    disabled={acting}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-error/10 border border-error/30 text-error font-bold font-mono text-sm rounded-lg hover:bg-error/20 transition-colors disabled:opacity-50"
-                  >
-                    {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                    Cancelar Reserva
-                  </button>
+                  <>
+                    <button
+                      onClick={handleGuestSeated}
+                      disabled={acting}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      Cliente sentou
+                    </button>
+                    <button
+                      onClick={handleCancelReservation}
+                      disabled={acting}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-error/10 border border-error/30 text-error font-bold font-mono text-sm rounded-lg hover:bg-error/20 transition-colors disabled:opacity-50"
+                    >
+                      {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                      Cancelar reserva{reservation && reservation.tables.length > 1 ? ' do grupo' : ''}
+                    </button>
+                  </>
                 )}
               </div>
 
-              {/* Características da mesa (fila de espera) */}
+              {/* Seção da mesa (fila de espera) */}
               <div className="pt-2 border-t border-outline-variant space-y-4">
                 <TableCapacityField tableId={table.id} initial={table.capacity} />
                 <TableFeaturesField mode="persist" tableId={table.id} />

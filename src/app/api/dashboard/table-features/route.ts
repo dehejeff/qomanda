@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
     const { id, name, emoji } = (await req.json()) as { id?: string; name?: string; emoji?: string }
-    if (!name?.trim()) return NextResponse.json({ error: 'Informe o nome da característica.' }, { status: 400 })
+    if (!name?.trim()) return NextResponse.json({ error: 'Informe o nome da seção.' }, { status: 400 })
 
     // Renomear/editar uma característica existente (escopada ao restaurante).
     if (id) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         .eq('restaurant_id', access.restaurantId)
         .select('id, name, emoji')
         .single()
-      if (error || !data) return NextResponse.json({ error: 'Erro ao atualizar característica.' }, { status: 400 })
+      if (error || !data) return NextResponse.json({ error: 'Erro ao atualizar seção.' }, { status: 400 })
       return NextResponse.json({ feature: data })
     }
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       .insert({ restaurant_id: access.restaurantId, name: name.trim(), emoji: emoji?.trim() || null })
       .select('id, name, emoji')
       .single()
-    if (error) return NextResponse.json({ error: 'Erro ao criar característica.' }, { status: 400 })
+    if (error) return NextResponse.json({ error: 'Erro ao criar seção.' }, { status: 400 })
     return NextResponse.json({ feature: data })
   } catch (err) {
     if (err instanceof RestaurantAuthError) return NextResponse.json({ error: err.message }, { status: err.status })
@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest) {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
     const id = req.nextUrl.searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'Característica inválida.' }, { status: 400 })
+    if (!id) return NextResponse.json({ error: 'Seção inválida.' }, { status: 400 })
 
     const { error } = await admin
       .from('table_features')

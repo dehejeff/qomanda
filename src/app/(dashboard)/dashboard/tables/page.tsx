@@ -15,6 +15,8 @@ import { GroupReserveModal } from '@/components/dashboard/group-reserve-modal'
 import { buildTableCheckInUrl } from '@/lib/table-checkin-url'
 import { PlanUpgradeModal } from '@/components/dashboard/plan-upgrade-modal'
 import { nextTableNumber, sortTablesByNumber } from '@/lib/sort-tables'
+import { groupTablesBySection, shouldShowSectionHeaders } from '@/lib/table-sections'
+import type { TableFeature } from '@/app/api/dashboard/table-features/route'
 
 const STATUS_CONFIG: Record<string, { label: string; cardClass: string; labelClass: string; icon: string }> = {
   free:     { label: 'Livre',     cardClass: 'border-outline-variant hover:border-primary cursor-pointer group', labelClass: 'text-on-surface-variant group-hover:text-primary', icon: '' },
@@ -43,6 +45,8 @@ export default function TablesPage() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showGroupReserve, setShowGroupReserve] = useState(false)
+  const [features, setFeatures] = useState<TableFeature[]>([])
+  const [featureAssignments, setFeatureAssignments] = useState<{ table_id: string; feature_id: string }[]>([])
 
   async function loadPlanLimits() {
     try {
@@ -51,6 +55,17 @@ export default function TablesPage() {
         const data = await res.json()
         setPlanName(data.planName ?? 'Starter')
         setMaxTables(data.maxTables ?? null)
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function loadFeatures() {
+    try {
+      const res = await fetch('/api/dashboard/table-features')
+      if (res.ok) {
+        const data = await res.json()
+        setFeatures((data.features ?? []) as TableFeature[])
+        setFeatureAssignments(data.assignments ?? [])
       }
     } catch { /* ignore */ }
   }
@@ -86,6 +101,7 @@ export default function TablesPage() {
       setTables(sortTablesByNumber((data ?? []) as RestaurantTable[]))
       setLoading(false)
       void loadPlanLimits()
+      void loadFeatures()
 
       // O cliente do browser é singleton: remove qualquer canal antigo com o
       // mesmo tópico (sobrevive a StrictMode/HMR) antes de criar/assinar de novo.
@@ -214,12 +230,85 @@ export default function TablesPage() {
     }))
   }
 
+  function handleTablesFreed(tableIds: string[]) {
+    const idSet = new Set(tableIds)
+    setTables((prev) => prev.map((t) => idSet.has(t.id) ? { ...t, status: 'free' as const } : t))
+  }
+
   // Balcão é uma "mesa" especial (number=BALCAO) — não entra no grid/contagem de mesas.
   const realTables = tables.filter((t) => t.number.toUpperCase() !== 'BALCAO')
   const counterTable = tables.find((t) => t.number.toUpperCase() === 'BALCAO') ?? null
   const occupied = realTables.filter((t) => t.status === 'occupied').length
   const reserved = realTables.filter((t) => t.status === 'reserved').length
   const free     = realTables.filter((t) => t.status === 'free').length
+  const tableSections = groupTablesBySection(realTables, features, featureAssignments)
+  const showSectionHeaders = shouldShowSectionHeaders(features)
+
+  function renderTableCard(table: RestaurantTable) {
+    const s = STATUS_CONFIG[table.status] ?? STATUS_CONFIG.free
+    const isConfirming = confirmDeleteId === table.id
+    const isSelected = selectedIds.has(table.id)
+
+    return (
+      <div
+        key={table.id}
+        className={`relative aspect-square rounded-lg flex flex-col items-center justify-center border transition-all ${s.cardClass} ${isSelected ? 'ring-2 ring-primary' : ''} ${selectMode && table.status !== 'free' ? 'opacity-40' : ''} ${selectMode && table.status === 'free' ? 'cursor-pointer' : ''}`}
+        onClick={() => {
+          if (isConfirming) return
+          if (selectMode) { if (table.status === 'free') toggleSelect(table.id); return }
+          if (table.status === 'free') {
+            if (!getQrUrl(table)) {
+              toast.error('Mesa sem token de QR. Rode a migração de tokens ou recrie a mesa.')
+              return
+            }
+            setQrTable(table)
+          } else setManageTable(table)
+        }}
+      >
+        {isConfirming ? (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-error/10 border-error/30 rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[9px] font-mono text-error text-center leading-tight px-1">Excluir?</p>
+            <div className="flex gap-1 mt-1">
+              <button
+                onClick={() => deleteTable(table.id)}
+                disabled={deleting}
+                className="px-2 py-0.5 bg-error text-white text-[9px] font-mono font-bold rounded hover:opacity-90"
+              >
+                {deleting ? '...' : 'Sim'}
+              </button>
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-2 py-0.5 bg-surface-container-highest text-on-surface-variant text-[9px] font-mono rounded hover:bg-surface-variant"
+              >
+                Não
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <span className={`text-xs font-bold font-mono ${s.labelClass}`}>
+              T-{table.number.padStart(2, '0')}
+            </span>
+            {s.icon
+              ? <span className={`material-symbols-outlined text-sm ${s.labelClass}`}>{s.icon}</span>
+              : <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 mt-0.5 group-hover:text-primary transition-colors">qr_code</span>
+            }
+            {!selectMode && table.status === 'free' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(table.id) }}
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-error/20 text-on-surface-variant/50 hover:text-error"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    )
+  }
 
   // ── Reserva de grupo pelo grid (Flow A) ──
   const selectedTables = realTables.filter((t) => selectedIds.has(t.id))
@@ -344,6 +433,13 @@ export default function TablesPage() {
           ))}
         </div>
 
+        {selectMode && (
+          <div className="rounded-xl border border-primary/30 bg-primary-container/10 px-4 py-3 text-xs font-mono text-on-surface-variant">
+            <span className="text-primary font-bold">Modo reserva:</span> toque nas mesas livres para selecionar.
+            {' '}Depois confirme o grupo na barra inferior.
+          </div>
+        )}
+
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-3 md:gap-6">
           <span className="text-xs font-mono text-on-surface-variant">Legenda:</span>
@@ -362,6 +458,12 @@ export default function TablesPage() {
           </span>
         </div>
 
+        {!showSectionHeaders && realTables.length > 0 && (
+          <p className="text-xs font-mono text-on-surface-variant/70 -mt-2">
+            Para separar por seção (Varanda, Salão…), defina a seção ao criar ou editar uma mesa.
+          </p>
+        )}
+
         {/* Table grid */}
         {realTables.length === 0 ? (
           <div className="tonal-layer-1 ghost-border rounded-xl p-12 text-center">
@@ -372,77 +474,25 @@ export default function TablesPage() {
             </button>
           </div>
         ) : (
-          <div className="tonal-layer-1 ghost-border rounded-xl p-6">
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-              {realTables.map((table) => {
-                const s = STATUS_CONFIG[table.status] ?? STATUS_CONFIG.free
-                const isConfirming = confirmDeleteId === table.id
-                const isSelected = selectedIds.has(table.id)
-
-                return (
-                  <div
-                    key={table.id}
-                    className={`relative aspect-square rounded-lg flex flex-col items-center justify-center border transition-all ${s.cardClass} ${isSelected ? 'ring-2 ring-primary' : ''} ${selectMode && table.status !== 'free' ? 'opacity-40' : ''} ${selectMode && table.status === 'free' ? 'cursor-pointer' : ''}`}
-                    onClick={() => {
-                      if (isConfirming) return
-                      if (selectMode) { if (table.status === 'free') toggleSelect(table.id); return }
-                      if (table.status === 'free') {
-                        if (!getQrUrl(table)) {
-                          toast.error('Mesa sem token de QR. Rode a migração de tokens ou recrie a mesa.')
-                          return
-                        }
-                        setQrTable(table)
-                      } else setManageTable(table)
-                    }}
-                  >
-                    {isConfirming ? (
-                      /* Confirmation overlay */
-                      <div
-                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-error/10 border-error/30 rounded-lg"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <p className="text-[9px] font-mono text-error text-center leading-tight px-1">Excluir?</p>
-                        <div className="flex gap-1 mt-1">
-                          <button
-                            onClick={() => deleteTable(table.id)}
-                            disabled={deleting}
-                            className="px-2 py-0.5 bg-error text-white text-[9px] font-mono font-bold rounded hover:opacity-90"
-                          >
-                            {deleting ? '...' : 'Sim'}
-                          </button>
-                          <button
-                            onClick={() => setConfirmDeleteId(null)}
-                            className="px-2 py-0.5 bg-surface-container-highest text-on-surface-variant text-[9px] font-mono rounded hover:bg-surface-variant"
-                          >
-                            Não
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <span className={`text-xs font-bold font-mono ${s.labelClass}`}>
-                          T-{table.number.padStart(2, '0')}
-                        </span>
-                        {s.icon
-                          ? <span className={`material-symbols-outlined text-sm ${s.labelClass}`}>{s.icon}</span>
-                          : <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 mt-0.5 group-hover:text-primary transition-colors">qr_code</span>
-                        }
-
-                        {/* Delete button — só em mesas livres (oculto no modo seleção) */}
-                        {!selectMode && table.status === 'free' && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(table.id) }}
-                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-error/20 text-on-surface-variant/50 hover:text-error"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </>
-                    )}
+          <div className="tonal-layer-1 ghost-border rounded-xl p-6 space-y-8">
+            {tableSections.map((section, idx) => (
+              <div key={section.id} className={idx > 0 && showSectionHeaders ? 'pt-2 border-t border-outline-variant/40' : ''}>
+                {showSectionHeaders && (
+                  <div className="flex flex-wrap items-baseline gap-2 mb-4">
+                    <h3 className="text-sm font-semibold text-on-surface" style={{ fontFamily: 'Geist, sans-serif' }}>
+                      {section.emoji && <span className="mr-1.5">{section.emoji}</span>}
+                      {section.name}
+                    </h3>
+                    <span className="text-xs font-mono text-on-surface-variant">
+                      {section.tables.length} mesa{section.tables.length !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                )
-              })}
-            </div>
+                )}
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                  {section.tables.map((table) => renderTableCard(table))}
+                </div>
+              </div>
+            ))}
 
             {/* Balcão — no modo "both" (counter puro usa o card do topo) */}
             {operationalMode === 'both' && (
@@ -475,7 +525,7 @@ export default function TablesPage() {
           table={qrTable}
           url={getQrUrl(qrTable)!}
           restaurantName={restaurantName || undefined}
-          onClose={() => setQrTable(null)}
+          onClose={() => { setQrTable(null); void loadFeatures() }}
         />
       )}
 
@@ -493,9 +543,10 @@ export default function TablesPage() {
         <TableManageModal
           table={manageTable}
           freeTables={realTables.filter((t) => t.status === 'free')}
-          onClose={() => setManageTable(null)}
+          onClose={() => { setManageTable(null); void loadFeatures() }}
           onTableUpdated={handleTableUpdated}
           onTableSwitched={handleTableSwitched}
+          onTablesFreed={handleTablesFreed}
         />
       )}
 
@@ -535,6 +586,7 @@ export default function TablesPage() {
           onCreated={(table) => {
             setTables(prev => sortTablesByNumber([...prev.filter(t => t.id !== table.id), table]))
             void loadPlanLimits()
+            void loadFeatures()
           }}
           onLimitReached={(data) => {
             setPlanName(data.planName ?? planName)

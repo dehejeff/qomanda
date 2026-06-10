@@ -61,6 +61,10 @@ async function notifyNextForFeature(
     .update({ status: 'notified', notified_table_id: tableId, notified_at: nowIso, expires_at: expiresAt })
     .eq('id', next.id)
     .eq('status', 'waiting') // evita corrida
+  if (!error) {
+    const { enqueueWaitlistReadyNotifications } = await import('@/lib/waitlist-notify')
+    await enqueueWaitlistReadyNotifications(admin, next.id)
+  }
   return !error
 }
 
@@ -91,6 +95,10 @@ export async function callNextForFeature(
     .update({ status: 'notified', notified_table_id: tableId, notified_at: nowIso, expires_at: expiresAt })
     .eq('id', next.id)
     .eq('status', 'waiting')
+  if (!error) {
+    const { enqueueWaitlistReadyNotifications } = await import('@/lib/waitlist-notify')
+    await enqueueWaitlistReadyNotifications(admin, next.id)
+  }
   return !error
 }
 

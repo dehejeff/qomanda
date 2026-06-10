@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2, X } from 'lucide-react'
+import { formatPhoneInput } from '@/lib/customer-form'
+import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 
 type SelectedTable = { id: string; number: string; capacity: number | null }
 
@@ -25,9 +27,14 @@ export function GroupReserveModal({ tables, onClose, onConfirm }: Props) {
 
   async function confirm() {
     if (!name.trim() || busy) return
+    const contacts = parseWaitlistContacts({ whatsapp })
+    if ('error' in contacts) {
+      toast.error(contacts.error)
+      return
+    }
     setBusy(true)
     try {
-      await onConfirm(name.trim(), Math.max(1, Number(party) || tables.length), whatsapp.replace(/\D/g, ''))
+      await onConfirm(name.trim(), Math.max(1, Number(party) || tables.length), contacts.whatsapp)
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao reservar.')
@@ -64,13 +71,13 @@ export function GroupReserveModal({ tables, onClose, onConfirm }: Props) {
                 className="w-full h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none" />
             </div>
             <div className="flex-1">
-              <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1.5 block">WhatsApp <span className="opacity-50 normal-case">(opcional)</span></label>
-              <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} inputMode="tel" placeholder="(11) 9…"
-                className="w-full h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none" />
+              <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1.5 block">WhatsApp *</label>
+              <input value={whatsapp} onChange={e => setWhatsapp(formatPhoneInput(e.target.value))} inputMode="tel" autoComplete="off" placeholder="(11) 98765-4321"
+                className="w-full h-11 px-3 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-sm outline-none font-mono" />
             </div>
           </div>
 
-          <button type="button" onClick={confirm} disabled={busy || !name.trim()}
+          <button type="button" onClick={confirm} disabled={busy || !name.trim() || !whatsapp.trim()}
             className="w-full py-2.5 bg-primary-container text-on-primary-container font-bold font-mono text-sm rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Reservar ${tables.length} mesa${tables.length !== 1 ? 's' : ''}`}
           </button>

@@ -14,20 +14,26 @@
 - **Tolerância:** configurada **pelo restaurante** (minutos).
 - **Sentar:** **anfitrião** marca "Sentou" (abre a sessão) **ou** o **cliente
   escaneia o QR** da mesa liberada (check-in normal encerra a espera).
-- **Canal de aviso:** **somente in-app** (sem WhatsApp/template Meta nesta v1).
-  O WhatsApp é guardado só como referência para a equipe.
+- **Canal de aviso:** **in-app** (banner + som) **e WhatsApp** (fila assíncrona
+  `whatsapp_send`) quando o restaurante tem WhatsApp Business configurado.
+  Contato secundário opcional na mesma entrada da fila.
 - **Escopo:** vale para qualquer mesa com tag (salão e balcão). O gatilho é
   "mesa fica livre"; no balcão é preciso cadastrar lugares específicos como
   mesas (o `BALCAO` único compartilhado não tem ciclo livre/ocupado por assento).
 
-## Modelo de dados (`supabase/migrate-table-waitlist.sql`)
+## Modelo de dados (`supabase/migrate-table-waitlist.sql` + `migrate-waitlist-notify-contacts.sql`)
 - `restaurants.waitlist_tolerance_minutes` (int, default 10).
 - `table_features` — tags por restaurante (`name`, `emoji`).
 - `table_feature_map` — N:N entre `tables` e `table_features`.
-- `table_waitlist` — fila: `feature_id`, `customer_id?`, `name`, `whatsapp?`,
-  `party_size`, `status` (waiting/notified/seated/expired/cancelled), `source`
+- `table_waitlist` — fila: `feature_id`, `customer_id?`, `name`, `whatsapp`,
+  `secondary_name?`, `whatsapp_secondary?`, `whatsapp_notified_at?`, `party_size`, `status`
+  (waiting/notified/seated/expired/cancelled), `source`
   (customer/staff), `notified_table_id`, `notified_at`, `expires_at`,
   `seated_session_id`.
+
+> **Migrações pendentes** (ver `docs/GO-LIVE-CHECKLIST.md` §3):
+> 1. `migrate-waitlist-allocations.sql` — reserva de grupo (Flow A grid Mesas + Flow B fila)
+> 2. `migrate-waitlist-notify-contacts.sql` — 2ª pessoa + aviso WhatsApp ao chamar mesa
 
 **RLS / PII:** `table_features` e `table_feature_map` têm leitura pública (o
 cliente vê as tags) e escrita do dono. `table_waitlist` guarda PII (nome/zap) —

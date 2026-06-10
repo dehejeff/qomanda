@@ -8,13 +8,26 @@ import type { OnboardingState } from '@/lib/restaurant-onboarding'
 export function RestaurantOnboardingPanel() {
   const [state, setState] = useState<OnboardingState | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dismissing, setDismissing] = useState(false)
 
-  useEffect(() => {
+  function loadOnboarding() {
     fetch('/api/dashboard/onboarding')
       .then(r => r.json())
       .then(data => { setState(data); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadOnboarding() }, [])
+
+  async function dismissChecklist() {
+    setDismissing(true)
+    try {
+      const res = await fetch('/api/dashboard/onboarding', { method: 'POST' })
+      if (res.ok) setState(s => s ? { ...s, completed: true } : s)
+    } finally {
+      setDismissing(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -93,6 +106,17 @@ export function RestaurantOnboardingPanel() {
           ))}
         </div>
       )}
+
+      <div className="flex justify-end pt-1">
+        <button
+          type="button"
+          onClick={dismissChecklist}
+          disabled={dismissing}
+          className="text-[10px] font-mono text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+        >
+          {dismissing ? 'Ocultando…' : 'Já configurei — ocultar checklist'}
+        </button>
+      </div>
     </section>
   )
 }

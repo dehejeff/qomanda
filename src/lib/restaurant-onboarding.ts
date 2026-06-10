@@ -4,7 +4,7 @@ import {
   type OperationalMode,
   type RestaurantModelId,
 } from '@/lib/restaurant-models'
-import { loadRestaurantGateway } from '@/lib/restaurant-gateway'
+import { loadRestaurantGateway, isGatewayReadyForOnboarding } from '@/lib/restaurant-gateway'
 
 export type OnboardingCheckItem = {
   id: string
@@ -47,10 +47,7 @@ export async function computeRestaurantOnboarding(
     admin.from('restaurant_members').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('active', true),
   ])
 
-  const gatewayReady =
-    (gateway.provider === 'manual' && gateway.manualConfigured)
-    || (gateway.provider === 'asaas' && gateway.connected)
-    || (gateway.provider === 'mercado_pago' && gateway.connected)
+  const gatewayReady = isGatewayReadyForOnboarding(gateway)
 
   const menuCount = menuRes.count ?? 0
   const tableCount = tablesRes.count ?? 0
@@ -111,7 +108,15 @@ export async function computeRestaurantOnboarding(
     ? Math.round((doneRequired / required.length) * 100)
     : 0
 
-  const completed = progressPercent >= 100 || Boolean(restaurant?.onboarding_completed_at)
+  let completed = progressPercent >= 100 || Boolean(restaurant?.onboarding_completed_at)
+
+  if (progressPercent >= 100 && !restaurant?.onboarding_completed_at) {
+    await admin
+      .from('restaurants')
+      .update({ onboarding_completed_at: new Date().toISOString() })
+      .eq('id', restaurantId)
+    completed = true
+  }
 
   const primaryLinks: { label: string; href: string }[] = []
   if (slug) {

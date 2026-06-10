@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWaitlistStatus } from '@/lib/waitlist'
+import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 
 /**
  * Fila de espera por característica de mesa — operações do cliente.
@@ -25,12 +26,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       restaurantId?: string; featureId?: string; name?: string
-      whatsapp?: string; partySize?: number; customerId?: string
+      whatsapp?: string; secondaryName?: string | null; secondaryWhatsapp?: string | null
+      partySize?: number; customerId?: string
     }
     const { restaurantId, featureId, customerId } = body
     const name = body.name?.trim()
     if (!restaurantId || !featureId || !name) {
-      return NextResponse.json({ error: 'Informe nome e a característica desejada.' }, { status: 400 })
+      return NextResponse.json({ error: 'Informe nome e a seção desejada.' }, { status: 400 })
+    }
+
+    const contacts = parseWaitlistContacts(body)
+    if ('error' in contacts) {
+      return NextResponse.json({ error: contacts.error }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -42,7 +49,7 @@ export async function POST(req: NextRequest) {
       .eq('id', featureId)
       .maybeSingle()
     if (!feature || feature.restaurant_id !== restaurantId) {
-      return NextResponse.json({ error: 'Característica inválida.' }, { status: 404 })
+      return NextResponse.json({ error: 'Seção inválida.' }, { status: 404 })
     }
 
     // Evita duplicar: mesma pessoa já esperando essa característica.
@@ -68,7 +75,9 @@ export async function POST(req: NextRequest) {
         feature_id: featureId,
         customer_id: customerId ?? null,
         name,
-        whatsapp: body.whatsapp?.replace(/\D/g, '') || null,
+        whatsapp: contacts.whatsapp,
+        secondary_name: contacts.secondaryName,
+        whatsapp_secondary: contacts.whatsappSecondary,
         party_size: Math.max(1, Math.min(20, Math.round(Number(body.partySize) || 1))),
         source: 'customer',
       })

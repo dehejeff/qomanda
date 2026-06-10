@@ -63,6 +63,12 @@ const PHASES = [
           'Modelo operacional no portal interno (/internal/clients) ✓',
           'Landing e roadmap alinhados (modelos + comissão mensal) ✓',
           'Busca no header do dashboard (filtra pedidos) ✓',
+          'Checklist piloto 5 restaurantes (/pilotos) ✓',
+          'Plano interno 5 anos + motor comercial 8–10/mês (/plano-interno) ✓',
+          'Materiais de vendas e entrega (/materiais-vendas · /materiais-entrega) ✓',
+          'Flow A reserva de grupo no grid Mesas + smoke group-reserve ✓',
+          'Teste de carga 10×20 (npm run load:10x20) ✓',
+          'Migrações fila allocations + notify-contacts — rodar em prod',
         ],
       },
     ],
@@ -608,6 +614,7 @@ export default function RoadmapPage() {
       {/* Footer */}
       <footer className="py-8 px-6 text-center" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mb-3" style={{ ...mono, color: C.faint }}>
+          <Link href="/pilotos" className="hover:opacity-80">Piloto (5 restaurantes)</Link>
           <Link href="/termos" className="hover:opacity-80">Termos de uso</Link>
           <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
           <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>

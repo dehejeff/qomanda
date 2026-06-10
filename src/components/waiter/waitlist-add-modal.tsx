@@ -1,28 +1,41 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { formatPhoneInput } from '@/lib/customer-form'
+import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 
 type Feature = { id: string; name: string; emoji: string | null }
+
+export type WaitlistAddPayload = {
+  featureId: string
+  name: string
+  partySize: number
+  whatsapp: string
+  secondaryName: string | null
+  secondaryWhatsapp: string | null
+}
 
 interface Props {
   features: Feature[]
   /** Maior capacidade de uma única mesa por característica (null = ilimitada). */
   featureMaxCapacity: Record<string, number | null>
   onClose: () => void
-  onAdd: (featureId: string, name: string, partySize: number, whatsapp: string) => Promise<void>
+  onAdd: (payload: WaitlistAddPayload) => Promise<void>
 }
 
 /**
  * Modal de "Adicionar cliente à fila de espera" (recepção/portaria).
- * Detecta grupo grande: se o nº de pessoas passa da maior mesa da característica,
- * mostra que precisará de N mesas próximas (a equipe junta as mesas na hora).
  */
 export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd }: Props) {
   const [feature, setFeature] = useState('')
   const [name, setName] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [party, setParty] = useState('2')
+  const [showSecond, setShowSecond] = useState(false)
+  const [secondName, setSecondName] = useState('')
+  const [secondWhatsapp, setSecondWhatsapp] = useState('')
   const [busy, setBusy] = useState(false)
 
   const p = Math.max(1, Number(party) || 1)
@@ -32,12 +45,30 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
 
   async function submit() {
     if (!feature || !name.trim() || busy) return
+    const parsed = parseWaitlistContacts({
+      whatsapp,
+      secondaryName: showSecond ? secondName : null,
+      secondaryWhatsapp: showSecond ? secondWhatsapp : null,
+    })
+    if ('error' in parsed) {
+      toast.error(parsed.error)
+      return
+    }
     setBusy(true)
     try {
-      await onAdd(feature, name.trim(), p, whatsapp.replace(/\D/g, ''))
+      await onAdd({
+        featureId: feature,
+        name: name.trim(),
+        partySize: p,
+        whatsapp: parsed.whatsapp,
+        secondaryName: parsed.secondaryName,
+        secondaryWhatsapp: parsed.whatsappSecondary,
+      })
       onClose()
     } finally { setBusy(false) }
   }
+
+  const canSubmit = Boolean(feature && name.trim() && whatsapp.replace(/\D/g, '').length >= 10)
 
   return (
     <div
@@ -56,7 +87,7 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
 
         <div className="px-5 py-4 space-y-4">
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1.5" style={{ color: '#a78b7d' }}>Característica desejada</label>
+            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1.5" style={{ color: '#a78b7d' }}>Seção desejada</label>
             <div className="flex flex-wrap gap-2">
               {features.map(f => (
                 <button key={f.id} type="button" onClick={() => setFeature(f.id)}
@@ -82,19 +113,60 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
           </div>
 
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>WhatsApp <span className="opacity-60">(opcional)</span></label>
-            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" inputMode="tel"
-              className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>
+              WhatsApp <span style={{ color: '#f97316' }}>*</span>
+            </label>
+            <input
+              value={whatsapp}
+              onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
+              placeholder="(11) 98765-4321"
+              inputMode="tel"
+              autoComplete="off"
+              className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
+              style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }}
+            />
+            <p className="text-[10px] mt-1" style={{ color: '#584237' }}>Aviso quando a mesa liberar (WhatsApp do restaurante).</p>
           </div>
+
+          {!showSecond ? (
+            <button
+              type="button"
+              onClick={() => setShowSecond(true)}
+              className="flex items-center gap-1.5 text-xs font-mono"
+              style={{ color: '#7bd0ff' }}
+            >
+              <Plus className="h-3.5 w-3.5" /> Adicionar outra pessoa do grupo (opcional)
+            </button>
+          ) : (
+            <div className="rounded-lg p-3 space-y-3" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid #334155' }}>
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>2ª pessoa — também recebe aviso</p>
+                <button type="button" onClick={() => { setShowSecond(false); setSecondName(''); setSecondWhatsapp('') }}
+                  className="p-1 rounded" style={{ color: '#a78b7d' }} aria-label="Remover segunda pessoa">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <input value={secondName} onChange={e => setSecondName(e.target.value)} placeholder="Nome (opcional)"
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+              <input
+                value={secondWhatsapp}
+                onChange={e => setSecondWhatsapp(formatPhoneInput(e.target.value))}
+                placeholder="WhatsApp da 2ª pessoa"
+                inputMode="tel"
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
+                style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }}
+              />
+            </div>
+          )}
 
           {isBigGroup && (
             <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}>
-              Grupo grande: a maior mesa dessa característica comporta {maxCap} pessoas.
+              Grupo grande: a maior mesa dessa seção comporta {maxCap} pessoas.
               Este grupo precisará de <strong>~{tablesNeeded} mesas próximas</strong> — a equipe junta as mesas ao sentar.
             </div>
           )}
 
-          <button type="button" onClick={submit} disabled={busy || !feature || !name.trim()}
+          <button type="button" onClick={submit} disabled={busy || !canSubmit}
             className="w-full h-11 rounded-lg text-sm font-bold font-mono disabled:opacity-40 flex items-center justify-center gap-2"
             style={{ background: '#f97316', color: '#582200' }}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Adicionar à fila'}

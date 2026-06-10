@@ -1,8 +1,9 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-06  
+> Última atualização: 2026-06-09  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
-> **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)
+> **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)  
+> **Piloto 5 restaurantes (interativo):** [`/pilotos`](https://qomanda-mu.vercel.app/pilotos)
 
 ---
 
@@ -21,11 +22,13 @@
 | **P0** | Smoke test E2E módulos cliente (salão, balcão, híbrido, food hall) | ✅ 2026-06-02 |
 | **P1** | Modelo operacional no portal interno (`/internal/clients/new`) | ✅ Feito |
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
+| **P1** | Checklist piloto 5 restaurantes (`/pilotos`) + plano interno 5 anos + materiais GTM | ✅ Feito 2026-06-09 |
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
 | **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
 | **P0** | **Região Supabase `sa-east-1` (SP)** | ✅ Confirmado (projeto já em São Paulo) |
 | **P0** | Connection pooler (Supavisor 6543) | ➖ N/A no runtime (app usa supabase-js/PostgREST; pooler só p/ migração/BI) — ver `docs/INFRA-SUPABASE-REGION-POOLER.md` |
-| **P1** | Fila assíncrona — NF-e + WhatsApp fora do request de pagamento | ✅ Feito 2026-06-04 |
+| **P1** | Migração `migrate-waitlist-allocations.sql` (reserva grupo — Flow A grid + Flow B fila) | ⏳ Pendente — rodar no Supabase |
+| **P1** | Migração `migrate-waitlist-notify-contacts.sql` (WhatsApp na fila + 2ª pessoa) | ⏳ Pendente — rodar no Supabase (após allocations) |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
 | **P1** | Garçom só entrega + alerta "pedido pronto" (som/vibração/toast) no app do garçom | ✅ Feito 2026-06-06 |
@@ -33,7 +36,7 @@
 | **P1** | Dividir a conta com **aceite obrigatório** + convite WhatsApp + trava de pagamento (só selecionados pagam) | ✅ Feito 2026-06-06 |
 | **P1** | Trava anti-pagamento-duplo no checkout (confirmação se já pagou) | ✅ Feito 2026-06-06 |
 | **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ Código pronto (base + wiring) · falta criar conta/DSN + alertas (`docs/OBSERVABILITY-WIP.md`) |
-| **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ⏳ Planejado |
+| **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ✅ Harness pronto (`npm run load:10x20`) · rodar contra staging p/ baseline real |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
 | **P2** | Mercado Pago OAuth connect | 🟢 Código pronto · falta app MP + domínio qomanda.app |
@@ -56,7 +59,22 @@
 |---|------|------|
 | A | **Capacidade da mesa (nº de pessoas)** | ✅ Entregue — `tables.capacity` (`migrate-table-capacity.sql`) + campo no modal de criar (`TableCreateModal`) e editar (`TableCapacityField` nos modais de QR/gerência). **Fila** respeita capacidade: só chama quem cabe (`party_size ≤ capacity`). **Check-in** respeita capacidade: bloqueia novo check-in (QR) quando a mesa atinge o limite de participantes (`code: TABLE_AT_CAPACITY`, 409) — quem já está reconecta normal. Capacidade `null` = sem limite. |
 | B | **Tela da fila p/ garçom/recepcionista — revisar/expandir** | ✅ Entregue — componente único `WaitlistManager` em 3 lugares: `/garcom/fila` (app), **modal na página Mesas** e **página dedicada `/dashboard/fila`** (menu lateral). Mostra total de grupos/pessoas, capacidade das mesas livres, **"Chamar próximo" com melhor encaixe** e modal **"Adicionar à fila"**. Criado o **papel `recepcionista`** (`migrate-recepcionista-role.sql`): login próprio → cai na aba **Fila** em `/garcom`, nav enxuta, sem pedidos/pagamentos/painel. _(Regularizou o `caixa` na constraint e na API de membros.)_ |
-| C | **Grupo grande (várias mesas próximas)** | ✅ Entregue (Flow B) — ao adicionar grupo grande, o sistema calcula **"~N mesas próximas"** e abre **"Apontar mesas"**: a equipe escolhe as mesas livres da característica (10, 11, 12), o sistema **soma a capacidade** e **reserva** todas (`status=reserved`, `migrate-waitlist-allocations.sql`). Botão "Reservar mesas" também na própria fila. Ao **Sentar/Remover**, as mesas voltam a `free`. ⏳ Flow A (clicar no grid da página Mesas) = próximo incremento. _Sem auto-adjacência: a equipe aponta quais mesas._ |
+| C | **Grupo grande (várias mesas próximas)** | ✅ Entregue — **Flow A** (Mesas → Reservar mesas → selecionar no grid → confirmar grupo) + **Flow B** (fila → Apontar mesas). Cancelar/sentou libera o grupo inteiro (`cancelByTable` / `seatByTable`). Smoke: `npm run smoke:group-reserve`. _Sem auto-adjacência: a equipe aponta quais mesas._ |
+
+---
+
+## 📊 Piloto comercial & páginas internas (noindex)
+
+> URLs escondidas — `robots: noindex` · não linkadas na landing · uso dos sócios/equipe.
+
+| Página | URL | Conteúdo |
+|--------|-----|----------|
+| **Checklist 5 pilotos** | `/pilotos` | Go-live por restaurante + plataforma; progresso salvo no navegador |
+| **Plano 5 anos (KiComanda)** | `/plano-interno` | Projeção financeira 2026–2030 · cenário realista (100→1.050 clientes) · aba **Motor Comercial** (funil 8–10/mês) |
+| **Materiais de vendas** | `/materiais-vendas` | Pitch deck, scripts WhatsApp, FAQ, proposta, one-pager — botão copiar |
+| **Materiais de entrega** | `/materiais-entrega` | Kickoff, cardápio, QR, treino garçom/dono, pós go-live — checklists |
+
+**Meta comercial Ano 1:** 8–10 novos clientes/mês após os 5 pilotos · ver Motor Comercial em `/plano-interno`.
 
 ---
 
@@ -64,6 +82,11 @@
 
 | Entrega | Detalhe |
 |---------|---------|
+| **Flow A reserva de grupo** | Grid Mesas → modo seleção → reservar várias mesas; `cancelByTable` / `seatByTable` na API; smoke `npm run smoke:group-reserve` |
+| **Teste de carga multi-tenant** | `npm run load:10x20` — 10 restaurantes × 20 mesas (`scripts/load/load-test.mjs`) |
+| **Páginas piloto/plano/materiais** | `/pilotos`, `/plano-interno`, `/materiais-vendas`, `/materiais-entrega` (confidenciais) |
+| **Mesas por seção** | Agrupamento no mapa por `table_features`; UI renomeada **Seção** (ex-características) |
+| **Onboarding dashboard** | Checklist Overview alinhado a gateway, balcão e links operacionais |
 | **KDS — Tela de cozinha** | Painel em tempo real (Novos/Preparando/Prontos) + comanda imprimível + auto-impressão |
 | **Restrição de status por papel** | Cozinha avança até `pronto`; garçom/gerente/dono fazem `entregue` |
 | **Perfil Caixa** | Novo papel `caixa` + página `/dashboard/caixa` (busca por código, confirma dinheiro/PIX) |
@@ -517,7 +540,8 @@ Cliente confirma pagamento
 | `migrate-table-waitlist.sql` | Fila de espera por característica de mesa (table_features/map/waitlist + tolerância) — ver `docs/modulos/FILA-ESPERA.md` |
 | `migrate-table-capacity.sql` | `tables.capacity` (nº de pessoas) — usada no matching da fila (não chama grupo maior que a mesa) |
 | `migrate-recepcionista-role.sql` | Papel **recepcionista** (+ regulariza `caixa`) na constraint de `restaurant_members.role` |
-| `migrate-waitlist-allocations.sql` | Alocação de mesas p/ grupo grande (`table_waitlist_allocations`) — reserva várias mesas pra uma entrada da fila |
+| `migrate-waitlist-allocations.sql` | ⏳ **Pendente em prod** — `table_waitlist_allocations` + `feature_id` opcional; habilita Flow A (grid Mesas) e Flow B (apontar mesas na fila) |
+| `migrate-waitlist-notify-contacts.sql` | ⏳ **Pendente em prod** — `secondary_name`, `whatsapp_secondary`, `whatsapp_notified_at` na fila; habilita aviso WhatsApp ao chamar mesa + 2ª pessoa do grupo |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 
