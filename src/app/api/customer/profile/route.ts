@@ -88,6 +88,7 @@ export async function GET(req: NextRequest) {
       .limit(1)
 
     return NextResponse.json({
+      customerId,
       firstName:    customer?.first_name ?? '',
       lastName:     customer?.last_name ?? '',
       whatsapp:     customer?.whatsapp ?? '',

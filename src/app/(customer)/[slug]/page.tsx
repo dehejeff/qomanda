@@ -100,7 +100,7 @@ export default function CheckInPage() {
   const [pinSetupStep, setPinSetupStep] = useState<{ challengeToken: string; firstName: string } | null>(null)
   const [setupPin, setSetupPin] = useState('')
   const [setupPinConfirm, setSetupPinConfirm] = useState('')
-  const [showLogin, setShowLogin] = useState(false)
+  const [accessMode, setAccessMode] = useState<'choose' | 'new' | 'returning'>('choose')
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -346,6 +346,7 @@ export default function CheckInPage() {
       if ('error' in data) {
         toast.error(data.error)
         setShowFullForm(true)
+      setAccessMode('new')
         return
       }
 
@@ -409,6 +410,7 @@ export default function CheckInPage() {
       const err = await res.json().catch(() => ({}))
       toast.error(err.error ?? 'Erro no check-in rápido. Preencha seus dados.')
       setShowFullForm(true)
+      setAccessMode('new')
       setCheckingIn(false)
       return
     }
@@ -577,12 +579,16 @@ export default function CheckInPage() {
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
               {canQuickCheckIn
                 ? 'Toque no botão abaixo para entrar na mesa'
-                : 'Cadastro rápido — menos de 30 segundos'}
+                : accessMode === 'choose'
+                  ? 'Escolha como quer entrar na mesa'
+                  : accessMode === 'returning'
+                    ? 'Entre com o WhatsApp da sua conta KiComanda'
+                    : 'Cadastro rápido — menos de 30 segundos'}
             </p>
           </div>
 
           {/* Indicador de etapa — só para primeira vez */}
-          {!canQuickCheckIn && (
+          {!canQuickCheckIn && accessMode === 'new' && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
@@ -625,24 +631,44 @@ export default function CheckInPage() {
             <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
             Está em outra mesa? Escaneie o QR correto
           </Link>
-          <div className="p-4 rounded-xl flex flex-col justify-between" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e0c0b1' }}>timer</span>
-            <div className="mt-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider block mb-0.5" style={{ color: '#e0c0b1' }}>TEMPO MÉDIO</span>
-              <span className="text-lg font-semibold">-- min</span>
-            </div>
-          </div>
-          <div className="p-4 rounded-xl flex flex-col justify-between" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e0c0b1' }}>person_check</span>
-            <div className="mt-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider block mb-0.5" style={{ color: '#e0c0b1' }}>ATENDIMENTO</span>
-              <span className="text-lg font-semibold">Ativo</span>
-            </div>
-          </div>
+          {!canQuickCheckIn && (
+            <>
+              <button
+                type="button"
+                onClick={() => setAccessMode('new')}
+                className="p-4 rounded-xl flex flex-col items-start gap-2 text-left transition-all active:scale-[0.98]"
+                style={{
+                  background: accessMode === 'new' ? 'rgba(249,115,22,0.12)' : '#1e293b',
+                  border: `1px solid ${accessMode === 'new' ? 'rgba(249,115,22,0.45)' : '#334155'}`,
+                }}
+              >
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#ffb690' }}>person_add</span>
+                <div>
+                  <span className="text-sm font-bold block" style={{ color: '#dae2fd' }}>Primeiro acesso</span>
+                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#a78b7d' }}>Cadastre-se agora</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccessMode('returning')}
+                className="p-4 rounded-xl flex flex-col items-start gap-2 text-left transition-all active:scale-[0.98]"
+                style={{
+                  background: accessMode === 'returning' ? 'rgba(249,115,22,0.12)' : '#1e293b',
+                  border: `1px solid ${accessMode === 'returning' ? 'rgba(249,115,22,0.45)' : '#334155'}`,
+                }}
+              >
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#ffb690' }}>login</span>
+                <div>
+                  <span className="text-sm font-bold block" style={{ color: '#dae2fd' }}>Já tenho cadastro</span>
+                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</span>
+                </div>
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Login "já tenho conta" — oculto por padrão, ativado por link */}
-        {!canQuickCheckIn && showLogin && (
+        {/* Login returning customer */}
+        {!canQuickCheckIn && accessMode === 'returning' && (
           <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
             style={{ background: '#131b2e', border: '1px solid #334155' }}>
             <div className="flex items-center justify-between">
@@ -652,7 +678,13 @@ export default function CheckInPage() {
                   Entre com seu número para check-in rápido.
                 </p>
               </div>
-              <button type="button" onClick={() => setShowLogin(false)}
+              <button type="button" onClick={() => {
+                  setAccessMode('choose')
+                  setPinStep(null)
+                  setPinSetupStep(null)
+                  setLoginPin('')
+                  setLoginWhatsapp('')
+                }}
                 className="w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ background: '#1e293b', color: '#584237' }}>
                 <span className="material-symbols-outlined text-[16px]">close</span>
@@ -734,7 +766,7 @@ export default function CheckInPage() {
                 </>
               )}
             </button>
-            <button type="button" onClick={() => setShowFullForm(true)}
+            <button type="button" onClick={() => { setShowFullForm(true); setAccessMode('new') }}
               className="text-xs font-mono underline underline-offset-2 self-center"
               style={{ color: '#a78b7d' }}>
               Usar outra conta
@@ -743,14 +775,21 @@ export default function CheckInPage() {
         )}
 
         {/* Form */}
-        {!canQuickCheckIn && (
+        {!canQuickCheckIn && accessMode === 'new' && (
         <div className="rounded-xl p-5 flex flex-col gap-4 mb-6"
           style={{ background: '#1e293b', border: '1px solid #334155' }}>
 
           {/* Name row */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: '#ffb690' }}>person</span>
-            <span className="text-sm font-semibold">Seus dados</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]" style={{ color: '#ffb690' }}>person</span>
+              <span className="text-sm font-semibold">Seus dados</span>
+            </div>
+            <button type="button" onClick={() => setAccessMode('choose')}
+              className="text-[11px] font-mono underline underline-offset-2"
+              style={{ color: '#a78b7d' }}>
+              Voltar
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -893,7 +932,7 @@ export default function CheckInPage() {
         )}
 
         {/* CTA */}
-        {!canQuickCheckIn && (
+        {!canQuickCheckIn && accessMode === 'new' && (
         <button onClick={handleCheckIn} disabled={checkingIn || checkedIn || !formValid}
           className="w-full py-5 rounded-xl text-xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.97] disabled:opacity-50"
           style={{
@@ -915,28 +954,8 @@ export default function CheckInPage() {
         </button>
         )}
 
-        {!canQuickCheckIn && !showLogin && (
-          <button type="button" onClick={() => setShowLogin(true)}
-            className="w-full text-center text-sm mt-3 py-2"
-            style={{ color: '#584237' }}>
-            Já usei aqui antes →{' '}
-            <span className="underline underline-offset-2" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</span>
-          </button>
-        )}
-
-        {!canQuickCheckIn && (
-        <p className="text-center text-xs font-mono uppercase tracking-widest mt-4"
-          style={{ color: 'rgba(218,226,253,0.35)' }}>
-          Toque para iniciar o pedido
-        </p>
-        )}
-
         {/* Footer */}
         <div className="mt-10 text-center">
-          <div className="flex items-center justify-center gap-3 mb-1" style={{ color: 'rgba(218,226,253,0.25)' }}>
-            <span className="material-symbols-outlined text-base">wifi</span>
-            <span className="text-xs font-mono">Free Wi-Fi: KICOMANDA_GUEST</span>
-          </div>
           <p className="text-xs font-mono" style={{ color: 'rgba(218,226,253,0.18)' }}>Powered by KiComanda</p>
         </div>
       </div>

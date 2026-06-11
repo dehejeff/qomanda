@@ -17,6 +17,7 @@ import type { Order } from '@/types'
 type Prefs = { notifications: boolean; shareHistory: boolean; newsletter: boolean }
 
 type ProfileData = {
+  customerId: string
   firstName: string
   lastName: string
   whatsapp: string
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [tableNumber, setTableNumber] = useState('')
   const [hasConsumption, setHasConsumption] = useState(false)
   const [openBalance, setOpenBalance] = useState(0)
+  const [profileCustomerId, setProfileCustomerId] = useState<string | null>(null)
   const [leavingTable, setLeavingTable] = useState(false)
 
   useEffect(() => {
@@ -58,6 +60,10 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then((profile: ProfileData) => {
         setData(profile)
+        setProfileCustomerId(profile.customerId)
+        if (profile.customerId && !localStorage.getItem('kicomanda_customer_id')) {
+          localStorage.setItem('kicomanda_customer_id', profile.customerId)
+        }
         setFirstName(profile.firstName)
         setLastName(profile.lastName)
         setLoading(false)
@@ -145,9 +151,9 @@ export default function ProfilePage() {
   async function handleLeaveTable() {
     if (!canLeaveTable || !sessionId) return
 
-    const customerId = localStorage.getItem('kicomanda_customer_id')
+    const customerId = localStorage.getItem('kicomanda_customer_id') ?? profileCustomerId
     if (!customerId) {
-      toast.error('Faça login para sair da mesa.')
+      toast.error('Não foi possível identificar sua conta nesta mesa. Recarregue a página.')
       return
     }
 

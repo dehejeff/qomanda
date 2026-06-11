@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { closeSessionIfSettled, sessionBalance } from '@/lib/close-session-if-settled'
-import { ordersSubtotal, SETTLE_TOLERANCE } from '@/lib/session-billing'
-import type { Order } from '@/types'
+import { SETTLE_TOLERANCE } from '@/lib/session-billing'
 
 /**
  * POST /api/customer/leave-table
@@ -47,13 +46,6 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const { data: orders } = await supabase
-      .from('orders')
-      .select('status, items:order_items(unit_price, quantity)')
-      .eq('session_id', sessionId)
-
-    const consumption = ordersSubtotal((orders ?? []) as Order[])
-
     const { error: removeError } = await supabase
       .from('session_participants')
       .delete()
@@ -71,21 +63,9 @@ export async function POST(req: NextRequest) {
       .eq('session_id', sessionId)
 
     let sessionClosed = false
-
     if ((participantsLeft ?? 0) === 0) {
-      if (consumption <= SETTLE_TOLERANCE) {
-        const now = new Date().toISOString()
-        const { error: closeError } = await supabase
-          .from('sessions')
-          .update({ status: 'closed', closed_at: now })
-          .eq('id', sessionId)
-          .in('status', ['open', 'closing'])
-
-        sessionClosed = !closeError
-      } else {
-        const result = await closeSessionIfSettled(supabase, sessionId)
-        sessionClosed = result.closed
-      }
+      const result = await closeSessionIfSettled(supabase, sessionId)
+      sessionClosed = result.closed
     }
 
     return NextResponse.json({ ok: true, sessionClosed })
