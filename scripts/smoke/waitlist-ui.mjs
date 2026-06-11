@@ -46,6 +46,8 @@ async function main() {
   await cp.getByRole('button', { name: /Entrar na fila/ }).click()
   const posOk = await cp.getByText(/da fila/).first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)
   check('cliente entrou e vê a posição na fila', posOk)
+  const joinHiddenWhileWaiting = await cp.getByRole('button', { name: /Entrar na fila/ }).count().then(c => c === 0).catch(() => false)
+  check('formulário oculto enquanto aguarda na fila', joinHiddenWhileWaiting)
 
   // ── Owner chama o próximo pelo /garcom/fila ──
   console.log('2) Owner: login e "Chamar próximo"…')
@@ -69,6 +71,10 @@ async function main() {
   console.log('3) Cliente: aguarda "Mesa pronta" (poll)…')
   const readyOk = await cp.getByText(/Sua mesa está pronta/).first().waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false)
   check('cliente vê "Sua mesa está pronta"', readyOk)
+  const scanOk = await cp.getByRole('link', { name: /Escanear QR da mesa/ }).first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)
+  check('cliente vê botão de scan (não "Entrar na fila")', scanOk)
+  const joinHidden = await cp.getByRole('button', { name: /Entrar na fila/ }).count().then(c => c === 0).catch(() => false)
+  check('formulário "Entrar na fila" oculto após chamada', joinHidden)
 
   const shotDir = path.join(ROOT, 'scripts', 'smoke', '.cache')
   fs.mkdirSync(shotDir, { recursive: true })

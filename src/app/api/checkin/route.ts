@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertCustomerRecord } from '@/lib/customer-upsert'
 import { whatsappForStorage } from '@/lib/customer-lookup'
 import { isValidLoginPin } from '@/lib/customer-pin-shared'
+import { markWaitlistSeatedOnCheckIn } from '@/lib/waitlist'
 
 export type CheckInRequest = {
   slug: string
@@ -182,13 +183,14 @@ export async function POST(req: NextRequest) {
       )
     if (visitError) console.error('[Check-in] Falha ao registrar visita:', visitError.message)
 
-    // Se o cliente estava na fila de espera, ao fazer check-in (QR) marca como sentado.
-    await supabase
-      .from('table_waitlist')
-      .update({ status: 'seated', seated_session_id: sessionId })
-      .eq('restaurant_id', restaurant.id)
-      .eq('customer_id', customerId)
-      .in('status', ['notified', 'waiting'])
+    // Fila: confirma ocupação ao escanear QR da mesa notificada (ou recepção marca "Sentou").
+    await markWaitlistSeatedOnCheckIn(supabase, {
+      restaurantId: restaurant.id,
+      tableId: table.id,
+      customerId,
+      whatsapp: whatsapp ?? null,
+      sessionId,
+    })
 
     return NextResponse.json({ sessionId, customerId: customerId!, isJoining } satisfies CheckInResponse)
   } catch (err) {

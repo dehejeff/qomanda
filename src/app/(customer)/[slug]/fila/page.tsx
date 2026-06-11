@@ -140,6 +140,8 @@ export default function WaitlistPage() {
     () => entries.filter(e => e.status === 'waiting' || e.status === 'notified'),
     [entries],
   )
+  const inQueue = activeEntries.length > 0
+  const tableReady = activeEntries.some(e => e.status === 'notified')
 
   if (loading) {
     return (
@@ -191,6 +193,12 @@ export default function WaitlistPage() {
                     <p className="text-xs mt-1" style={{ color: '#a78b7d' }}>
                       Vá até a mesa ou escaneie o QR dela para confirmar antes do tempo acabar.
                     </p>
+                    <Link href="/scan"
+                      className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
+                      style={{ background: '#f97316', color: '#582200' }}>
+                      <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+                      Escanear QR da mesa
+                    </Link>
                   </div>
                 ) : (
                   <p className="text-sm mt-2" style={{ color: '#e0c0b1' }}>
@@ -203,8 +211,14 @@ export default function WaitlistPage() {
         </div>
       )}
 
-      {/* Formulário de entrada */}
-      {features.length === 0 ? (
+      {/* Formulário de entrada — só antes de entrar na fila */}
+      {inQueue ? (
+        tableReady ? null : (
+          <p className="mt-8 text-center text-sm leading-relaxed" style={{ color: '#a78b7d' }}>
+            Você já está na fila. Quando sua mesa liberar, avisamos aqui e no WhatsApp.
+          </p>
+        )
+      ) : features.length === 0 ? (
         <div className="mt-8 rounded-xl p-6 text-center" style={{ background: '#131b2e', border: '1px dashed #334155' }}>
           <p className="text-sm" style={{ color: '#a78b7d' }}>Este restaurante ainda não tem mesas com fila de espera.</p>
         </div>

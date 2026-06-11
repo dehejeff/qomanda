@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { whatsappForStorage } from '@/lib/customer-lookup'
 
 /**
  * Fila de espera por característica de mesa. Matching e expiração rodam de forma
@@ -185,4 +186,67 @@ export async function getWaitlistStatus(
     })
   }
   return result
+}
+
+/** Libera mesas reservadas (grupo) vinculadas a uma entrada da fila. */
+async function freeAllocatedTablesForEntry(
+  admin: SupabaseClient,
+  restaurantId: string,
+  entryId: string,
+): Promise<void> {
+  const { data: allocs } = await admin
+    .from('table_waitlist_allocations')
+    .select('table_id')
+    .eq('waitlist_id', entryId)
+  const ids = (allocs ?? []).map(a => a.table_id as string)
+  if (ids.length === 0) return
+  await admin
+    .from('tables')
+    .update({ status: 'free' })
+    .in('id', ids)
+    .eq('status', 'reserved')
+    .eq('restaurant_id', restaurantId)
+  await admin.from('table_waitlist_allocations').delete().eq('waitlist_id', entryId)
+}
+
+/**
+ * Check-in via QR da mesa notificada → marca a entrada como sentada.
+ * Casa por customer_id ou WhatsApp (principal/secundário) e exige mesa correta.
+ */
+export async function markWaitlistSeatedOnCheckIn(
+  admin: SupabaseClient,
+  opts: {
+    restaurantId: string
+    tableId: string
+    customerId: string
+    whatsapp: string | null
+    sessionId: string
+  },
+): Promise<void> {
+  const whatsappNorm = opts.whatsapp ? whatsappForStorage(opts.whatsapp) : null
+
+  const { data: entries } = await admin
+    .from('table_waitlist')
+    .select('id, customer_id, whatsapp, whatsapp_secondary')
+    .eq('restaurant_id', opts.restaurantId)
+    .eq('status', 'notified')
+    .eq('notified_table_id', opts.tableId)
+
+  const matchingIds = (entries ?? [])
+    .filter(e =>
+      e.customer_id === opts.customerId
+      || (whatsappNorm && (e.whatsapp === whatsappNorm || e.whatsapp_secondary === whatsappNorm)),
+    )
+    .map(e => e.id as string)
+
+  if (matchingIds.length === 0) return
+
+  for (const entryId of matchingIds) {
+    await freeAllocatedTablesForEntry(admin, opts.restaurantId, entryId)
+  }
+
+  await admin
+    .from('table_waitlist')
+    .update({ status: 'seated', seated_session_id: opts.sessionId, customer_id: opts.customerId })
+    .in('id', matchingIds)
 }
