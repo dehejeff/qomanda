@@ -42,6 +42,8 @@ Ordem completa em `ROADMAP.md` § Migrações. As mais recentes desta fase **pre
 - [ ] ⏳ `migrate-billing-reminders.sql`
 - [ ] ⏳ `migrate-realtime-close-requests.sql`  ← **sem isso a divisão da conta (aceite) não atualiza em tempo real**
 - [ ] ⏳ `migrate-performance-indexes.sql`
+- [ ] ⏳ `migrate-restaurant-logo-storage.sql`  ← **logo do restaurante** (Settings → Enviar logo); sem isso o bucket `restaurant-logos` não existe
+- [ ] ⏳ `migrate-menu-images-storage.sql`  ← fotos do cardápio (opcional até publicar itens com imagem)
 - [ ] ⏳ `migrate-waitlist-allocations.sql`  ← **Flow A/B fila** — reserva de grupo (grid Mesas + apontar mesas na fila); `feature_id` opcional + `table_waitlist_allocations`
 - [ ] ⏳ `migrate-waitlist-notify-contacts.sql`  ← **WhatsApp na fila** — contato secundário + aviso ao chamar mesa (rodar depois de `migrate-waitlist-allocations.sql`)
 - [ ] ⏳ `migrate-waitlist-whatsapp-templates.sql`  ← **textos WhatsApp** customizáveis (Settings → Fila de espera) + confirmação de reserva
