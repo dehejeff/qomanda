@@ -25,7 +25,7 @@ export type PlanChangeDto = {
 
 const SOURCE_LABELS: Record<PlanChangeSource, string> = {
   owner_upgrade: 'Upgrade pelo restaurante',
-  internal_portal: 'Alteração pela Qomanda',
+  internal_portal: 'Alteração pela KiComanda',
   system: 'Sistema',
 }
 

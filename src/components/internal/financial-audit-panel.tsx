@@ -128,7 +128,7 @@ export function FinancialAuditPanel({ clientId }: Props) {
         </p>
         <p>
           Relatórios do restaurante (até mês anterior) e recibos recentes ficam dentro da janela.
-          Faturamento Qomanda usa agregados quando transações antigas já foram purgadas.
+          Faturamento KiComanda usa agregados quando transações antigas já foram purgadas.
         </p>
       </div>
 

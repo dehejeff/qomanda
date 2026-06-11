@@ -3,7 +3,7 @@
 > Última atualização: 2026-06-09  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
 > **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)  
-> **Piloto 5 restaurantes (interativo):** [`/pilotos`](https://qomanda-mu.vercel.app/pilotos)
+> **Piloto 5 restaurantes (interativo):** [`/pilotos`](https://kicomanda.app/pilotos)
 
 ---
 
@@ -24,7 +24,7 @@
 | **P1** | Landing e roadmap alinhados (modelos + comissão mensal) | ✅ Feito |
 | **P1** | Checklist piloto 5 restaurantes (`/pilotos`) + plano interno 5 anos + materiais GTM | ✅ Feito 2026-06-09 |
 | **P1** | Busca no header do dashboard (filtra pedidos) | ✅ Feito |
-| **P1** | Deploy contínuo na Vercel (`qomanda-mu.vercel.app`) | ✅ Feito |
+| **P1** | Deploy contínuo na Vercel (`kicomanda.app`) | ✅ Feito |
 | **P0** | **Região Supabase `sa-east-1` (SP)** | ✅ Confirmado (projeto já em São Paulo) |
 | **P0** | Connection pooler (Supavisor 6543) | ➖ N/A no runtime (app usa supabase-js/PostgREST; pooler só p/ migração/BI) — ver `docs/INFRA-SUPABASE-REGION-POOLER.md` |
 | **P1** | Migração `migrate-waitlist-allocations.sql` (reserva grupo — Flow A grid + Flow B fila) | ⏳ Pendente — rodar no Supabase |
@@ -39,7 +39,7 @@
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ✅ Harness pronto (`npm run load:10x20`) · rodar contra staging p/ baseline real |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
-| **P2** | Mercado Pago OAuth connect | 🟢 Código pronto · falta app MP + domínio qomanda.app |
+| **P2** | Mercado Pago OAuth connect | 🟢 Código pronto · falta app MP + domínio kicomanda.app |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
 
 **Não bloqueia piloto:** Asaas produção, marketplace split, rodízio, buffet por peso.
@@ -149,7 +149,7 @@
   - [x] OAuth connect + callback + state assinado (HMAC) + refresh token criptografado
   - [x] UI Settings: conectar / desconectar conta MP (token manual vira fallback)
   - [ ] **Criar app no Mercado Pago + definir `MERCADO_PAGO_CLIENT_ID/SECRET` no `.env`**
-  - [ ] **Cadastrar Redirect URI `https://qomanda.app/api/dashboard/gateway/mercadopago/callback`** (fazer quando o domínio qomanda.app estiver ativo)
+  - [ ] **Cadastrar Redirect URI `https://kicomanda.app/api/dashboard/gateway/mercadopago/callback`** (fazer quando o domínio kicomanda.app estiver ativo)
 - [ ] **PagBank**
   - [ ] Onboarding vendedor + PIX/cartão
   - [ ] Webhooks e reconciliação
@@ -210,7 +210,7 @@
 - [x] Sidebar com navegação e logo
 
 ### Portal Interno Qomanda (Staff)
-> Acesso em `/internal` — restrito à equipe Qomanda (`staff_users` ou `QOMANDA_STAFF_EMAILS`).
+> Acesso em `/internal` — restrito à equipe Qomanda (`staff_users` ou `KICOMANDA_STAFF_EMAILS`).
 
 - [x] Login staff com Supabase Auth
 - [x] **Overview** — KPIs (clientes, MRR planos, taxa tx 30d, receita Qomanda, volume Pay/GMV), gráficos de cadastros, distribuição de assinaturas/planos/Pay, fila de atenção e tickets abertos
@@ -281,7 +281,7 @@
 - [x] **PIX manual** — chave do restaurante, sem Asaas obrigatório
 - [x] **Mercado Pago** — access token + PIX/cartão no checkout (v1)
 - [x] **Cobrança automática mensalidade** — cron dia 5 + PIX Asaas master + webhook
-- [~] **Mercado Pago OAuth** — connect/desconectar na UI pronto; falta criar o app no MP + `MERCADO_PAGO_CLIENT_ID/SECRET` + Redirect URI no domínio qomanda.app
+- [~] **Mercado Pago OAuth** — connect/desconectar na UI pronto; falta criar o app no MP + `MERCADO_PAGO_CLIENT_ID/SECRET` + Redirect URI no domínio kicomanda.app
 - [ ] Marketplace split Asaas (legado, opcional — não é o modelo padrão)
 
 ### 2. Notas fiscais
@@ -291,7 +291,7 @@
 - [x] **NF-e automática** — emissão após pagamento confirmado (adapter Focus NFe + modo simulado)
 - [x] Envio da nota fiscal ao cliente via WhatsApp (quando `whatsapp_nfe_enabled`)
 - [x] Vínculo pagamento → nota fiscal (aba Notas Fiscais no painel + recibo do cliente)
-- [x] **NF-e de serviço** — Qomanda → restaurante, emitida ao pagar a fatura mensal (modo simulado; real via env `QOMANDA_NFE_*`)
+- [x] **NF-e de serviço** — Qomanda → restaurante, emitida ao pagar a fatura mensal (modo simulado; real via env `KICOMANDA_NFE_*`)
 - [ ] Emissão real Focus NFe (depende do token de homologação/produção — cliente e serviço)
 
 ### 3. Cobrança SaaS (mensalidade)

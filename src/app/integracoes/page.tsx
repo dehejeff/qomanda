@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 export const metadata: Metadata = {
-  title: 'Integrações · Qomanda',
-  description: 'Gateways de pagamento, notas fiscais e mensageria integrados à Qomanda.',
+  title: 'Integrações · KiComanda',
+  description: 'Gateways de pagamento, notas fiscais e mensageria integrados à KiComanda.',
 }
 
 const C = {
@@ -19,7 +19,7 @@ type Section = { title: string; intro: string; items: Item[] }
 const ENABLED: Section[] = [
   {
     title: 'Pagamentos — disponíveis hoje',
-    intro: 'O dinheiro cai 100% na conta do restaurante. A Qomanda cobra mensalidade + comissão sobre o GMV digital.',
+    intro: 'O dinheiro cai 100% na conta do restaurante. A KiComanda cobra mensalidade + comissão sobre o GMV digital.',
     items: [
       { name: 'PIX manual', desc: 'Chave PIX do próprio restaurante exibida no checkout. Funciona sem nenhum gateway — ativa na hora.', tags: ['PIX', 'sem gateway'] },
       { name: 'Dinheiro', desc: 'Pagamento na mesa/balcão confirmado pelo garçom. Sem comissão.', tags: ['cash', '0% comissão'] },
@@ -31,7 +31,7 @@ const ENABLED: Section[] = [
     title: 'Nota fiscal',
     intro: 'Emissão automática após o pagamento, com envio do link ao cliente.',
     items: [
-      { name: 'Focus NFe', desc: 'NFC-e (modelo 65) e NFS-e por restaurante. Certificado A1 fica no provedor; a Qomanda emite via API.', tags: ['NFC-e', 'NFS-e'] },
+      { name: 'Focus NFe', desc: 'NFC-e (modelo 65) e NFS-e por restaurante. Certificado A1 fica no provedor; a KiComanda emite via API.', tags: ['NFC-e', 'NFS-e'] },
       { name: 'Modo simulado', desc: 'Para testar o fluxo ponta a ponta antes de ligar as credenciais fiscais reais.', tags: ['testes'] },
     ],
   },
@@ -66,8 +66,8 @@ export default function IntegracoesPage() {
     <div className="min-h-screen" style={{ background: C.bg, color: C.text, fontFamily: 'Geist, sans-serif' }}>
       <nav className="flex items-center justify-between px-4 md:px-12 py-5 max-w-6xl mx-auto">
         <Link href="/" className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
         </Link>
         <Link href="/cadastro" className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#582200' }}>
           Começar
@@ -144,7 +144,7 @@ export default function IntegracoesPage() {
             <Link href="/termos" className="hover:opacity-80">Termos</Link>
             <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
           </div>
-          <span>© 2026 Qomanda</span>
+          <span>© 2026 KiComanda</span>
         </div>
       </footer>
     </div>

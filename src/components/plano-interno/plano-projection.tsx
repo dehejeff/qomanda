@@ -381,7 +381,7 @@ function Year1Panel() {
             ['GitHub', <Pill key="p" kind="free">free</Pill>, '—', '—', 'plano gratuito'],
             ['Vercel', <Pill key="p" kind="free">free</Pill>, '—', '—', 'hobby tier'],
             ['Supabase', <Pill key="p" kind="free">free</Pill>, '—', '—', 'free tier'],
-            ['Domínio (qomanda.app)', <Pill key="p" kind="new">comprar</Pill>, 'R$ 15', 'R$ 180', '~$35/ano'],
+            ['Domínio (kicomanda.app + .com.br)', <Pill key="p" kind="new">comprar</Pill>, 'R$ 15', 'R$ 180', '~$35/ano'],
             ['Google Workspace (2 users)', <Pill key="p" kind="new">comprar</Pill>, 'R$ 110', 'R$ 1.320', '~$10/user/mês'],
             ['Gateway Asaas (taxas op.)', <Pill key="p" kind="paid">pago</Pill>, 'R$ 200', 'R$ 2.400', 'cresce com clientes'],
             ['WhatsApp Business API', <Pill key="p" kind="paid">pago</Pill>, 'R$ 150', 'R$ 1.800', 'notificações básicas'],

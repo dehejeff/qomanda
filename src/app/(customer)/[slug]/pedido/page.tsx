@@ -24,7 +24,7 @@ export default function CounterTrackPage() {
   const params = useParams()
   const slug = params.slug as string
   const [orders, setOrders] = useState<OrderTrack[]>([])
-  const sessionId = typeof window !== 'undefined' ? localStorage.getItem('qomanda_session_id') : null
+  const sessionId = typeof window !== 'undefined' ? localStorage.getItem('kicomanda_session_id') : null
 
   useEffect(() => {
     if (!sessionId) return

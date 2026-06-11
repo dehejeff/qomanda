@@ -1,5 +1,6 @@
 import { createClient, getServerUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { staffEmailAllowlistEnv } from '@/lib/kicomanda-env'
 import type { StaffUser } from '@/types/internal'
 import type { User } from '@supabase/supabase-js'
 
@@ -12,7 +13,7 @@ export class StaffAuthError extends Error {
 }
 
 function staffEmailAllowlist(): string[] {
-  return (process.env.QOMANDA_STAFF_EMAILS ?? '')
+  return staffEmailAllowlistEnv()
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean)
@@ -38,7 +39,7 @@ export async function requireStaff(): Promise<StaffContext> {
   if (isInternalDevBypass()) {
     const admin = createAdminClient()
     return {
-      user: { id: 'dev-staff', email: 'dev@qomanda.local' } as User,
+      user: { id: 'dev-staff', email: 'dev@kicomanda.local' } as User,
       staff: null,
       admin,
     }
@@ -56,7 +57,7 @@ export async function requireStaff(): Promise<StaffContext> {
     .maybeSingle()
 
   if (!staff && !isStaffEmailAllowed(user.email)) {
-    throw new StaffAuthError('Acesso restrito à equipe Qomanda.', 403)
+    throw new StaffAuthError('Acesso restrito à equipe KiComanda.', 403)
   }
 
   return { user, staff: staff as StaffUser | null, admin }

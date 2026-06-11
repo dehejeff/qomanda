@@ -130,6 +130,6 @@ export function asaasBaseUrl(environment: AsaasEnvironment): string {
 }
 
 export function appWebhookUrl(): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://qomanda-mu.vercel.app'
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://kicomanda.app'
   return `${base}/api/asaas/webhook`
 }

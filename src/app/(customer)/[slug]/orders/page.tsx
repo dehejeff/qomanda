@@ -121,7 +121,7 @@ export default function OrdersPage() {
   const [closeRequestActive, setCloseRequestActive] = useState(false)
 
   const customerId = typeof window !== 'undefined'
-    ? localStorage.getItem('qomanda_customer_id') : null
+    ? localStorage.getItem('kicomanda_customer_id') : null
 
   async function confirmCancelOrder() {
     if (!cancelTarget) return

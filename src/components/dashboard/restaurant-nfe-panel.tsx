@@ -132,7 +132,7 @@ export function RestaurantNfePanel() {
           <>
             <div className="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant leading-relaxed">
               <span className="font-semibold text-on-surface">Antes de começar:</span> cadastre o certificado digital A1
-              diretamente no painel do seu emissor (Focus NFe, NFe.io, Nota Simples, etc.). A Qomanda usa apenas o token
+              diretamente no painel do seu emissor (Focus NFe, NFe.io, Nota Simples, etc.). A KiComanda usa apenas o token
               de API para emitir a nota após o pagamento. Para enviar ao cliente, configure o WhatsApp na seção acima.
             </div>
 
@@ -149,7 +149,7 @@ export function RestaurantNfePanel() {
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-3">
                 <span className="material-symbols-outlined text-[20px] text-emerald-400 shrink-0">check_circle</span>
                 <div className="text-xs text-emerald-100/90 leading-relaxed">
-                  <span className="font-semibold text-emerald-300 block">Este estabelecimento não emite nota fiscal ao consumidor pela Qomanda.</span>
+                  <span className="font-semibold text-emerald-300 block">Este estabelecimento não emite nota fiscal ao consumidor pela KiComanda.</span>
                   Escolha válida — comum para quem já emite por PDV/SAT próprio. Os clientes não verão nem receberão NF-e. Para passar a emitir, marque a opção acima.
                 </div>
               </div>

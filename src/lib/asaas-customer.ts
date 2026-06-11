@@ -25,8 +25,8 @@ export function buildHolderInfoFromCustomer(customer: CustomerRow) {
 
   const phone = customer.whatsapp.replace(/\D/g, '')
   const email = phone.length >= 10
-    ? `${phone}@cliente.qomanda.app`
-    : `cliente+${customer.id.slice(0, 8)}@qomanda.app`
+    ? `${phone}@cliente.kicomanda.app`
+    : `cliente+${customer.id.slice(0, 8)}@kicomanda.app`
 
   return {
     name: `${customer.first_name} ${customer.last_name}`.trim(),
@@ -60,7 +60,7 @@ export async function resolveAsaasCustomerId(
 
   const holder = buildHolderInfoFromCustomer(customer)
   const asaasCustomer = await upsertCustomer({
-    name: holder.name || 'Cliente Qomanda',
+    name: holder.name || 'Cliente KiComanda',
     cpfCnpj: holder.cpfCnpj,
     mobilePhone: holder.phone,
     externalReference: customer.id,

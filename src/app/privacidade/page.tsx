@@ -2,27 +2,27 @@ import type { Metadata } from 'next'
 import { LegalPageShell, LegalSection } from '@/components/legal-page-shell'
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidade — Qomanda',
-  description: 'Como a Qomanda trata dados pessoais de restaurantes e clientes, em conformidade com a LGPD.',
+  title: 'Política de Privacidade — KiComanda',
+  description: 'Como a KiComanda trata dados pessoais de restaurantes e clientes, em conformidade com a LGPD.',
 }
 
 export default function PrivacidadePage() {
   return (
     <LegalPageShell
       title="Política de Privacidade"
-      subtitle="Esta política descreve como coletamos, usamos, armazenamos e protegemos dados pessoais na plataforma Qomanda, em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)."
+      subtitle="Esta política descreve como coletamos, usamos, armazenamos e protegemos dados pessoais na plataforma KiComanda, em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)."
       updatedAt="31 de maio de 2026"
     >
       <LegalSection title="1. Controlador e contato">
         <p>
-          A Qomanda atua como <strong>operadora de plataforma</strong> na prestação do serviço tecnológico.
+          A KiComanda atua como <strong>operadora de plataforma</strong> na prestação do serviço tecnológico.
           Restaurantes parceiros podem atuar como <strong>controladores</strong> em relação aos dados de
           seus clientes finais (pedidos, visitas, fidelidade).
         </p>
         <p>
           Canal para exercer direitos ou esclarecer dúvidas sobre privacidade:{' '}
-          <a href="mailto:contato@qomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
-            contato@qomanda.com.br
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+            contato@kicomanda.com.br
           </a>
         </p>
       </LegalSection>
@@ -60,7 +60,7 @@ export default function PrivacidadePage() {
         <p>Podemos compartilhar dados estritamente necessários com:</p>
         <ul className="list-disc pl-5 space-y-2">
           <li><strong>Supabase</strong> — hospedagem de banco de dados, autenticação e armazenamento de arquivos;</li>
-          <li><strong>Processadores de pagamento</strong> — PIX, cartão e repasses ao restaurante, quando o Qomanda Pay está ativo;</li>
+          <li><strong>Processadores de pagamento</strong> — PIX, cartão e repasses ao restaurante, quando o KiComanda Pay está ativo;</li>
           <li><strong>Vercel</strong> — hospedagem da aplicação web;</li>
           <li><strong>Restaurante parceiro</strong> — dados de pedidos e visitas vinculados à operação do estabelecimento;</li>
           <li><strong>Autoridades</strong> — quando exigido por lei ou ordem judicial.</li>
@@ -113,8 +113,8 @@ export default function PrivacidadePage() {
         </ul>
         <p>
           Envie pedidos para{' '}
-          <a href="mailto:contato@qomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
-            contato@qomanda.com.br
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+            contato@kicomanda.com.br
           </a>
           . Responderemos em prazo razoável, conforme a legislação.
         </p>
@@ -122,7 +122,7 @@ export default function PrivacidadePage() {
 
       <LegalSection title="9. Crianças e adolescentes">
         <p>
-          A Qomanda não se destina a menores de 18 anos sem supervisão. Dados de menores só devem ser
+          A KiComanda não se destina a menores de 18 anos sem supervisão. Dados de menores só devem ser
           informados com responsabilidade de adulto acompanhante ou conforme permitido pela lei aplicável.
         </p>
       </LegalSection>
@@ -145,8 +145,8 @@ export default function PrivacidadePage() {
       <LegalSection title="12. Contato">
         <p>
           Privacidade e proteção de dados:{' '}
-          <a href="mailto:contato@qomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
-            contato@qomanda.com.br
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+            contato@kicomanda.com.br
           </a>
         </p>
       </LegalSection>

@@ -557,7 +557,7 @@ export default function CheckoutPage() {
   const requestId   = searchParams.get('request') // pre-filled from notification
 
   const myCustomerId = typeof window !== 'undefined'
-    ? localStorage.getItem('qomanda_customer_id') : null
+    ? localStorage.getItem('kicomanda_customer_id') : null
 
   type Participant = { id: string; name: string; myConsumption: number; isMe: boolean; whatsapp: string | null }
 
@@ -864,14 +864,14 @@ export default function CheckoutPage() {
         setCloseMode('individual')
         setSplitAlcohol(false)
         setAlcoholSplitDismissed(true)
-        if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+        if (sessionId) sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
       } else if (myOpenAfterLoad.openSubtotal <= 0.02 && mySub > 0.01) {
         setCloseMode('table')
         setSplitAlcohol(false)
         setAlcoholSplitDismissed(true)
-        if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+        if (sessionId) sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
       } else {
-        const savedSplit = sessionStorage.getItem(`qomanda_split_alcohol_${sessionId}`)
+        const savedSplit = sessionStorage.getItem(`kicomanda_split_alcohol_${sessionId}`)
         const unpaid = unpaidOrderLineItems(myOrdersData, myPayRows)
         const hasAlc = unpaid.some(i => splitConsumptionByAlcohol([i], 1).hasAlcohol)
         if (savedSplit === 'true' && hasAlc) setSplitAlcohol(true)
@@ -1516,7 +1516,7 @@ export default function CheckoutPage() {
       if (splitAlcohol && closeMode === 'individual') {
         const done = await processSplitPayments()
         if (done) {
-          sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+          sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
           setStep('confirmed')
         }
         return
@@ -1600,7 +1600,7 @@ export default function CheckoutPage() {
       }
       const confirmed = await processPayment(getAmountToPay())
       if (confirmed) {
-        sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+        sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
         setStep('confirmed')
       } else if (method === 'pix' || method === 'debit') {
         setStep('pix')
@@ -2418,7 +2418,7 @@ export default function CheckoutPage() {
                   <div className="flex gap-2 mt-3">
                     <button onClick={() => {
                       setSplitAlcohol(true)
-                      if (sessionId) sessionStorage.setItem(`qomanda_split_alcohol_${sessionId}`, 'true')
+                      if (sessionId) sessionStorage.setItem(`kicomanda_split_alcohol_${sessionId}`, 'true')
                     }}
                       className="text-xs font-mono font-bold px-4 py-2 rounded-lg active:scale-95 transition-all"
                       style={{ background: '#f97316', color: '#582200' }}>
@@ -2450,7 +2450,7 @@ export default function CheckoutPage() {
                   <button onClick={() => {
                     setSplitAlcohol(false)
                     setAlcoholSplitDismissed(false)
-                    if (sessionId) sessionStorage.removeItem(`qomanda_split_alcohol_${sessionId}`)
+                    if (sessionId) sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
                   }}
                     className="ml-auto text-[10px] font-mono" style={{ color: '#584237' }}>
                     Desfazer

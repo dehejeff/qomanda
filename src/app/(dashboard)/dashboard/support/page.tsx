@@ -56,7 +56,7 @@ export default function RestaurantSupportPage() {
         <div>
           <h1 className="text-2xl font-black text-on-surface">Suporte</h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Abra tickets, anexe prints e converse com a equipe Qomanda.
+            Abra tickets, anexe prints e converse com a equipe KiComanda.
           </p>
         </div>
         {!showForm && (

@@ -28,7 +28,7 @@ export default function MenuPage() {
   const [placing, setPlacing] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [restaurantName, setRestaurantName] = useState('Qomanda')
+  const [restaurantName, setRestaurantName] = useState('')
   const tabsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function MenuPage() {
 
     if (!session) { toast.error('Sessão inválida.'); setPlacing(false); return }
 
-    const customerId = localStorage.getItem('qomanda_customer_id') ?? null
+    const customerId = localStorage.getItem('kicomanda_customer_id') ?? null
 
     const { data: order, error } = await supabase
       .from('orders')

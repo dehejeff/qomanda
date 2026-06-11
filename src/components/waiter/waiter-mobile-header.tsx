@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { useWaiterApp } from './waiter-app-shell'
 import type { RestaurantRole } from '@/lib/restaurant-auth'
 
@@ -31,7 +31,7 @@ export function WaiterMobileHeader({ restaurantName }: { restaurantName: string 
       }}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <QomandaLogo size={28} />
+        <KiComandaLogo size={28} />
         <div className="min-w-0">
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
             {ROLE_LABEL[role]}

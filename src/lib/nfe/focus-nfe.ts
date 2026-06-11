@@ -93,7 +93,7 @@ function buildFocusPayload(input: NfeEmitInput): Record<string, unknown> {
     }
   }
   // NFS-e (serviço) — estrutura simplificada. Tomador pode ser CPF (consumidor)
-  // ou CNPJ (restaurante, na NF-e de serviço Qomanda→restaurante).
+  // ou CNPJ (restaurante, na NF-e de serviço KiComanda→restaurante).
   const tomadorDoc = doc
     ? (doc.length > 11 ? { cnpj: doc } : { cpf: doc })
     : null

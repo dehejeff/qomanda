@@ -180,7 +180,7 @@ export async function registerCustomerAndStore(payload: Parameters<Props['onSubm
   if (!res.ok) throw new Error(data.error ?? 'Erro ao criar conta.')
 
   const registered = data as CustomerRegisterResponse
-  localStorage.setItem('qomanda_customer_id', registered.customerId)
-  localStorage.setItem('qomanda_customer_name', `${registered.firstName} ${registered.lastName}`)
+  localStorage.setItem('kicomanda_customer_id', registered.customerId)
+  localStorage.setItem('kicomanda_customer_name', `${registered.firstName} ${registered.lastName}`)
   return registered
 }

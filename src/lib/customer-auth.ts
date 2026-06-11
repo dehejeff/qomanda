@@ -64,7 +64,7 @@ export async function findCustomerActiveSession(
 /** Navegação completa para o app do restaurante (confiável após check-in no mobile/PWA). */
 export function navigateToCustomerHome(slug: string, sessionId: string) {
   if (typeof window === 'undefined') return
-  localStorage.setItem('qomanda_session_id', sessionId)
+  localStorage.setItem('kicomanda_session_id', sessionId)
   const path = `/${slug}/home?session=${encodeURIComponent(sessionId)}`
   window.location.replace(path)
 }
@@ -74,7 +74,7 @@ export function resolveCustomerSessionId(searchParams?: Pick<URLSearchParams, 'g
   const fromUrl = searchParams?.get('session') ?? null
   if (fromUrl) return fromUrl
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('qomanda_session_id')
+  return localStorage.getItem('kicomanda_session_id')
 }
 
 /** Persiste identidade do cliente no localStorage (browser). */
@@ -84,10 +84,10 @@ export function persistCustomerAuth(
   lastName: string,
   activeSession?: CustomerActiveSession | null,
 ) {
-  localStorage.setItem('qomanda_customer_id', customerId)
-  localStorage.setItem('qomanda_customer_name', `${firstName} ${lastName}`.trim())
+  localStorage.setItem('kicomanda_customer_id', customerId)
+  localStorage.setItem('kicomanda_customer_name', `${firstName} ${lastName}`.trim())
   if (activeSession) {
-    localStorage.setItem('qomanda_session_id', activeSession.sessionId)
+    localStorage.setItem('kicomanda_session_id', activeSession.sessionId)
   }
 }
 
@@ -96,8 +96,8 @@ import {
   CUSTOMER_SESSION_RENEWAL_HEADER,
 } from '@/lib/customer-session-shared'
 
-const SESSION_TOKEN_KEY = 'qomanda_customer_session_token'
-const SESSION_LAST_ACTIVITY_KEY = 'qomanda_customer_session_last_activity'
+const SESSION_TOKEN_KEY = 'kicomanda_customer_session_token'
+const SESSION_LAST_ACTIVITY_KEY = 'kicomanda_customer_session_last_activity'
 
 /** Token de sessão autenticada (emitido após a senha de 6 dígitos). */
 export function setCustomerSessionToken(token: string) {
@@ -207,9 +207,9 @@ export function startCustomerSessionIdleWatch(onIdle: () => void): () => void {
 
 /** Limpa toda autenticação do cliente neste aparelho. */
 export function clearCustomerAuth() {
-  localStorage.removeItem('qomanda_customer_id')
-  localStorage.removeItem('qomanda_customer_name')
-  localStorage.removeItem('qomanda_session_id')
+  localStorage.removeItem('kicomanda_customer_id')
+  localStorage.removeItem('kicomanda_customer_name')
+  localStorage.removeItem('kicomanda_session_id')
   clearCustomerSessionToken()
 }
 
@@ -224,8 +224,8 @@ export function authHeaders(extra?: Record<string, string>): Record<string, stri
 
 /** Cliente encerra visita ao restaurante (mantém login WhatsApp → hub). */
 export function leaveRestaurantSession(router: AppRouterInstance, restaurantSlug?: string) {
-  localStorage.removeItem('qomanda_session_id')
-  if (localStorage.getItem('qomanda_customer_id')) {
+  localStorage.removeItem('kicomanda_session_id')
+  if (localStorage.getItem('kicomanda_customer_id')) {
     router.replace('/hub')
     return
   }

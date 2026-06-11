@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import Link from 'next/link'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 import type { HubActiveSession, HubReceiptSummary, HubVisit } from '@/app/api/customer/hub/route'
 import { Loader2 } from 'lucide-react'
@@ -56,7 +56,7 @@ function CustomerHubContent() {
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    setCustomerId(localStorage.getItem('qomanda_customer_id'))
+    setCustomerId(localStorage.getItem('kicomanda_customer_id'))
     setInitialized(true)
   }, [])
 
@@ -85,8 +85,8 @@ function HubGuestView() {
       <header className="sticky top-0 z-40 px-6 h-16 flex items-center justify-between"
         style={{ background: 'rgba(11,19,38,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
         </div>
       </header>
       <main className="px-5 pt-6 space-y-6 max-w-lg mx-auto">
@@ -136,7 +136,7 @@ function HubAuthenticatedView({ customerId }: { customerId: string }) {
 
   const loadHub = useCallback(async () => {
     setLoading(true)
-    const sessionId = localStorage.getItem('qomanda_session_id')
+    const sessionId = localStorage.getItem('kicomanda_session_id')
     const qs = new URLSearchParams({ customer: customerId })
     if (sessionId) qs.set('session', sessionId)
 
@@ -145,7 +145,7 @@ function HubAuthenticatedView({ customerId }: { customerId: string }) {
     const hub = await res.json() as HubData
     setData(hub)
     if (hub.activeSession) {
-      localStorage.setItem('qomanda_session_id', hub.activeSession.sessionId)
+      localStorage.setItem('kicomanda_session_id', hub.activeSession.sessionId)
     }
     setLoading(false)
   }, [customerId])
@@ -206,8 +206,8 @@ function HubAuthenticatedView({ customerId }: { customerId: string }) {
       <header className="sticky top-0 z-40 px-6 h-16 flex items-center justify-between"
         style={{ background: 'rgba(11,19,38,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
         </div>
         <span className="text-xs font-mono truncate max-w-[140px]" style={{ color: '#a78b7d' }}>{greeting}</span>
       </header>

@@ -470,7 +470,7 @@ Cliente clica em "Pagar agora" → /checkout
 1. Login em `/internal/login` via Supabase Auth
 2. `requireStaff()` valida:
    - registro ativo em `staff_users`, **ou**
-   - e-mail na allowlist `QOMANDA_STAFF_EMAILS`
+   - e-mail na allowlist `KICOMANDA_STAFF_EMAILS`
 3. Em dev com `NEXT_PUBLIC_DEV_BYPASS=true`, acesso liberado sem auth
 
 Provisionamento de contas:
@@ -719,14 +719,14 @@ billing_invoices.status = 'paid'
     │  (webhook Asaas da mensalidade  OU  "Registrar pagamento" no portal interno)
     ▼
 emitServiceNfeForInvoice(admin, billingInvoiceId, { requirePaid })
-    │  prestador = Qomanda (env QOMANDA_NFE_*) · tomador = CNPJ do restaurante
+    │  prestador = Qomanda (env KICOMANDA_NFE_*) · tomador = CNPJ do restaurante
     ├─ sem credenciais → grava 'simulated' (fluxo testável)
     ├─ com credenciais → NFS-e via Focus NFe (adapter compartilhado)
     └─ e-mail do PDF ao e-mail comercial do restaurante
 ```
 
 - Tabela `service_nfe_invoices` — **1 nota por fatura** (`unique(billing_invoice_id)`), idempotente.
-- Config do prestador: `src/lib/nfe/qomanda-fiscal.ts` (`QOMANDA_NFE_TOKEN`, `QOMANDA_CNPJ`, `QOMANDA_NFE_ENVIRONMENT`, `QOMANDA_NFE_CNAE`, `QOMANDA_LEGAL_NAME`, `QOMANDA_NFE_SERVICE_DESCRIPTION`).
+- Config do prestador: `src/lib/nfe/qomanda-fiscal.ts` (`KICOMANDA_NFE_TOKEN`, `KICOMANDA_CNPJ`, `KICOMANDA_NFE_ENVIRONMENT`, `KICOMANDA_NFE_CNAE`, `KICOMANDA_LEGAL_NAME`, `KICOMANDA_NFE_SERVICE_DESCRIPTION`).
 - API interna: `GET/POST /api/internal/clients/[id]/service-nfe` (listar / emitir manual).
 
 ### 10.8.1 Fila assíncrona (NF-e + WhatsApp fora do request)
@@ -854,7 +854,7 @@ _A NF-e será emitida pelo restaurante e enviada em seguida._
 
 **NF-e de serviço** (Qomanda → restaurante) — **implementado** (ver §10.8):
 - Mensalidade + comissão — emitida ao pagar a fatura (webhook Asaas ou "Registrar pagamento" interno)
-- Prestador = Qomanda (env `QOMANDA_NFE_*`); tomador = CNPJ do restaurante
+- Prestador = Qomanda (env `KICOMANDA_NFE_*`); tomador = CNPJ do restaurante
 - **Modo simulado** sem credenciais; e-mail do PDF ao restaurante; aba **NF-e serviço** mostra status real + emissão manual
 
 ---
@@ -1181,19 +1181,19 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_DEV_BYPASS=true        # apenas dev local
 
 # Portal interno
-QOMANDA_STAFF_EMAILS=ops@qomanda.com
+KICOMANDA_STAFF_EMAILS=ops@qomanda.com
 PLATFORM_SECRETS_KEY=              # credenciais gateway plataforma (64 hex)
 
 # NF-e de serviço (Qomanda → restaurante) — opcional; sem isto roda em modo simulado
-QOMANDA_NFE_TOKEN=                 # token Focus NFe da Qomanda (prestador)
-QOMANDA_CNPJ=                      # CNPJ da Qomanda
-QOMANDA_NFE_ENVIRONMENT=homologacao  # ou producao
-QOMANDA_NFE_CNAE=                  # opcional
-QOMANDA_LEGAL_NAME=Qomanda Tecnologia
-QOMANDA_NFE_SERVICE_DESCRIPTION=Assinatura e taxas da plataforma Qomanda
+KICOMANDA_NFE_TOKEN=                 # token Focus NFe da Qomanda (prestador)
+KICOMANDA_CNPJ=                      # CNPJ da Qomanda
+KICOMANDA_NFE_ENVIRONMENT=homologacao  # ou producao
+KICOMANDA_NFE_CNAE=                  # opcional
+KICOMANDA_LEGAL_NAME=Qomanda Tecnologia
+KICOMANDA_NFE_SERVICE_DESCRIPTION=Assinatura e taxas da plataforma Qomanda
 
 # Mercado Pago OAuth (onboarding por restaurante) — opcional; sem isto, só token manual
-# Redirect URI a cadastrar no app MP: https://qomanda.app/api/dashboard/gateway/mercadopago/callback
+# Redirect URI a cadastrar no app MP: https://kicomanda.app/api/dashboard/gateway/mercadopago/callback
 MERCADO_PAGO_CLIENT_ID=
 MERCADO_PAGO_CLIENT_SECRET=
 
@@ -1374,7 +1374,7 @@ Todo dia 5, gera a fatura de cada restaurante ativo e cria a cobrança PIX na co
 **NF-e de serviço** (Qomanda → restaurante) — `lib/nfe/emit-service-nfe.ts`:
 - Gatilho automático ao marcar `billing_invoices.paid` (webhook Asaas + "Registrar
   pagamento" interno) e manual via `POST /api/internal/clients/[id]/service-nfe`.
-- Prestador = Qomanda (`lib/nfe/qomanda-fiscal.ts`, env `QOMANDA_NFE_*`); tomador = CNPJ do
+- Prestador = Qomanda (`lib/nfe/qomanda-fiscal.ts`, env `KICOMANDA_NFE_*`); tomador = CNPJ do
   restaurante. Reusa o `FocusNfeAdapter` (NFS-e). **Simulado** sem credenciais.
 - `service_nfe_invoices` (único por `billing_invoice_id`); e-mail do PDF ao restaurante.
 - **UI:** aba **NF-e serviço** do cliente interno — status real, botão emitir, link PDF.
@@ -1396,4 +1396,4 @@ Rodar no Supabase (ordem em `ROADMAP.md` § Migrações):
 
 ---
 
-*Documento mantido pela equipe Qomanda · contato@qomanda.com.br*
+*Documento mantido pela equipe Qomanda · contato@kicomanda.com.br*

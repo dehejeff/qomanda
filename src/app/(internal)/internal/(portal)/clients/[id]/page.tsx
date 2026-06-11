@@ -32,7 +32,7 @@ type TabId = 'estabelecimento' | 'nfe_cliente' | 'plano' | 'nfe_servico' | 'audi
 const TABS: { id: TabId; label: string }[] = [
   { id: 'estabelecimento', label: 'Estabelecimento' },
   { id: 'nfe_cliente', label: 'NF-e cliente' },
-  { id: 'plano', label: 'Plano Qomanda' },
+  { id: 'plano', label: 'Plano KiComanda' },
   { id: 'auditoria', label: 'Auditoria' },
   { id: 'nfe_servico', label: 'NF-e serviço' },
 ]
@@ -234,7 +234,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         {[
           { label: 'Mensalidade', value: brl(client.monthly_fee) },
           { label: 'Taxa tx', value: `${client.platform_fee_percent.toFixed(2)}%` },
-          { label: 'Qomanda Pay', value: client.digital_status === 'active' ? 'Ativo' : client.digital_status === 'pending' ? 'Análise' : 'Inativo' },
+          { label: 'KiComanda Pay', value: client.digital_status === 'active' ? 'Ativo' : client.digital_status === 'pending' ? 'Análise' : 'Inativo' },
           { label: 'Conta bancária', value: client.payout_configured ? 'Cadastrada' : 'Pendente' },
           { label: 'NF-e cliente', value: NFE_STATUS_LABEL[client.nfe.nfe_status] },
           { label: 'WhatsApp NF-e', value: WHATSAPP_STATUS_LABEL[client.whatsapp.status] },
@@ -287,8 +287,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         {tab === 'plano' && (
           <section className="space-y-4">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Plano Qomanda</p>
-              <h3 className="text-sm font-semibold text-on-surface mt-1">Cobrança Qomanda → restaurante</h3>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Plano KiComanda</p>
+              <h3 className="text-sm font-semibold text-on-surface mt-1">Cobrança KiComanda → restaurante</h3>
               <p className="text-xs text-on-surface-variant mt-1">
                 Assinatura, taxas e status operacional. A NF-e de serviço fica na aba NF-e serviço.
               </p>
@@ -300,7 +300,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 options={plans.map(p => ({ value: p.id, label: `${p.name} — R$ ${p.monthly_fee}` }))} />
               <Select label="Assinatura" value={billingForm.subscriptionStatus} onChange={v => setBillingForm(p => ({ ...p, subscriptionStatus: v as SubscriptionStatus }))}
                 options={SUB_STATUSES.map(s => ({ value: s.id, label: s.label }))} />
-              <Select label="Qomanda Pay (interno)" value={billingForm.asaasOnboardingStatus} onChange={v => setBillingForm(p => ({ ...p, asaasOnboardingStatus: v }))}
+              <Select label="KiComanda Pay (interno)" value={billingForm.asaasOnboardingStatus} onChange={v => setBillingForm(p => ({ ...p, asaasOnboardingStatus: v }))}
                 options={[
                   { value: 'pending', label: 'Pendente' },
                   { value: 'submitted', label: 'Enviado' },

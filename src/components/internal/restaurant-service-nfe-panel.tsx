@@ -78,9 +78,9 @@ export function RestaurantServiceNfePanel(props: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">NF-e de serviço</p>
-          <h3 className="text-sm font-semibold text-on-surface mt-1">Nota fiscal Qomanda → restaurante</h3>
+          <h3 className="text-sm font-semibold text-on-surface mt-1">Nota fiscal KiComanda → restaurante</h3>
           <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-            NFS-e / NF-e emitida pela <strong className="text-on-surface font-medium">Qomanda</strong> para o CNPJ do restaurante,
+            NFS-e / NF-e emitida pela <strong className="text-on-surface font-medium">KiComanda</strong> para o CNPJ do restaurante,
             referente à mensalidade do plano e taxas de transação cobradas pela plataforma.
           </p>
         </div>
@@ -107,7 +107,7 @@ export function RestaurantServiceNfePanel(props: Props) {
           )}
         </SummaryCard>
 
-        <SummaryCard label="Itens faturados pela Qomanda">
+        <SummaryCard label="Itens faturados pela KiComanda">
           {planName ? (
             <>
               <p className="text-sm text-on-surface">Plano {planName}</p>
@@ -119,7 +119,7 @@ export function RestaurantServiceNfePanel(props: Props) {
               )}
             </>
           ) : (
-            <p className="text-xs text-on-surface-variant">Selecione o plano na aba Plano Qomanda.</p>
+            <p className="text-xs text-on-surface-variant">Selecione o plano na aba Plano KiComanda.</p>
           )}
         </SummaryCard>
       </div>
@@ -127,9 +127,9 @@ export function RestaurantServiceNfePanel(props: Props) {
       <div className="rounded-lg border border-dashed border-outline-variant px-4 py-4 space-y-2">
         <p className="text-xs font-mono uppercase tracking-wider text-on-surface-variant">Como funciona</p>
         <ul className="text-xs text-on-surface-variant space-y-1.5 list-disc pl-4">
-          <li>Quando a fatura da mensalidade é paga, a Qomanda emite a NFS-e para o CNPJ cadastrado.</li>
+          <li>Quando a fatura da mensalidade é paga, a KiComanda emite a NFS-e para o CNPJ cadastrado.</li>
           <li>O link do PDF é enviado ao e-mail comercial do restaurante.</li>
-          <li>Sem credenciais fiscais da Qomanda, a nota é registrada como <em>Simulada</em> (fluxo testável); com credenciais, vira emissão real.</li>
+          <li>Sem credenciais fiscais da KiComanda, a nota é registrada como <em>Simulada</em> (fluxo testável); com credenciais, vira emissão real.</li>
         </ul>
       </div>
 
@@ -212,7 +212,7 @@ function ManageInvoices({
           <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Faturas de mensalidade</p>
           <p className="text-xs text-on-surface-variant mt-1">
             Gere faturas do plano. Ao registrar o pagamento, a NF-e de serviço é emitida automaticamente
-            {simulated && <span className="text-amber-400"> (modo simulado — sem credenciais fiscais da Qomanda)</span>}.
+            {simulated && <span className="text-amber-400"> (modo simulado — sem credenciais fiscais da KiComanda)</span>}.
           </p>
         </div>
         {onGenerateInvoice && (
@@ -247,7 +247,7 @@ function ManageInvoices({
             <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
               <div className="min-w-0">
                 <p className="font-mono text-on-surface">{inv.period_start} → {inv.period_end}</p>
-                <p className="text-xs text-on-surface-variant">{inv.notes ?? 'Mensalidade Qomanda'}</p>
+                <p className="text-xs text-on-surface-variant">{inv.notes ?? 'Mensalidade KiComanda'}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {st ? (
                     <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${st.cls}`}>NF-e {st.label}</span>

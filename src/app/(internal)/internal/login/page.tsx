@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -26,13 +26,15 @@ export default function InternalLoginPage() {
       return
     }
 
+    // Garante cookies de sessão antes do fetch server-side
+    await supabase.auth.getSession()
     router.refresh()
 
-    let res = await fetch('/api/internal/overview')
+    let res = await fetch('/api/internal/session')
     if (res.status === 401) {
       await new Promise(r => setTimeout(r, 400))
       router.refresh()
-      res = await fetch('/api/internal/overview')
+      res = await fetch('/api/internal/session')
     }
 
     if (!res.ok) {
@@ -57,10 +59,11 @@ export default function InternalLoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <QomandaLogo size={48} />
+          <KiComandaLogo size={48} />
+          <p className="text-sm font-black text-on-surface">KiComanda</p>
           <div>
             <h1 className="text-xl font-black text-on-surface">Portal interno</h1>
-            <p className="text-sm text-on-surface-variant mt-1">Acesso restrito à equipe Qomanda</p>
+            <p className="text-sm text-on-surface-variant mt-1">Acesso restrito à equipe KiComanda</p>
           </div>
         </div>
 

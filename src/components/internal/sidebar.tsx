@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 const NAV_ITEMS = [
   { href: '/internal',          icon: 'dashboard',   label: 'Overview' },
@@ -29,9 +29,9 @@ export function InternalSidebar({ staffEmail }: { staffEmail: string }) {
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-surface-container border-r border-outline-variant p-4 z-50">
       <div className="flex flex-col gap-1 px-2 mb-8">
         <div className="flex items-center gap-2.5">
-          <QomandaLogo size={32} />
+          <KiComandaLogo size={32} />
           <div>
-            <h1 className="text-lg font-black text-on-surface leading-tight">Qomanda</h1>
+            <h1 className="text-lg font-black text-on-surface leading-tight">KiComanda</h1>
             <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Portal interno</p>
           </div>
         </div>

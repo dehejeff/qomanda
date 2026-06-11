@@ -34,7 +34,7 @@ npm run load:10x20
 Contra staging (latência Next representativa):
 
 ```bash
-LOAD_BASE=https://staging.qomanda.app LOAD_RESTAURANTS=10 LOAD_TABLES=20 LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs
+LOAD_BASE=https://staging.kicomanda.app LOAD_RESTAURANTS=10 LOAD_TABLES=20 LOAD_VUS=200 LOAD_ITER=3 node scripts/load/load-test.mjs
 ```
 
 ## Isolamento e limpeza

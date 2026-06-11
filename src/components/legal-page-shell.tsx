@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 export const LEGAL_C = {
   bg: '#0b1326',
@@ -33,8 +33,8 @@ export function LegalPageShell({ title, subtitle, updatedAt, children }: Props) 
         }}
       >
         <Link href="/" className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
         </Link>
         <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: LEGAL_C.muted }}>
           ← Voltar ao site
@@ -67,10 +67,10 @@ export function LegalPageShell({ title, subtitle, updatedAt, children }: Props) 
           <Link href="/roadmap" className="hover:opacity-80">Roadmap</Link>
           <Link href="/termos" className="hover:opacity-80">Termos de uso</Link>
           <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
-          <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
+          <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80">contato@kicomanda.com.br</a>
         </div>
         <p className="text-xs" style={{ ...mono, color: LEGAL_C.faint }}>
-          © 2026 Qomanda. Todos os direitos reservados.
+          © 2026 KiComanda. Todos os direitos reservados.
         </p>
       </footer>
     </div>

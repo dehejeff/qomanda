@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { getAvailableRestaurantModels, RESTAURANT_MODELS } from '@/lib/restaurant-models'
 
 // ── Design tokens (inline styles para não depender do Tailwind config) ──────
@@ -38,7 +38,7 @@ const MODEL_BENEFITS: Record<string, string[]> = {
     'Salão com mesas + balcão no mesmo cardápio',
     'Dois fluxos configurados automaticamente no cadastro',
     '100% do pagamento digital na conta do restaurante',
-    'Comissão Qomanda faturada no dia 5 — não na hora da venda',
+    'Comissão KiComanda faturada no dia 5 — não na hora da venda',
   ],
   food_hall: [
     'Mesmo fluxo do balcão — ideal para praça de alimentação',
@@ -140,7 +140,7 @@ function PricingCard({
 const FAQS = [
   {
     q: 'Preciso de equipamento específico?',
-    a: 'Não. A Qomanda funciona 100% no navegador. Seus clientes usam o próprio celular; você gerencia pelo computador ou tablet. Não precisa instalar app.',
+    a: 'Não. A KiComanda funciona 100% no navegador. Seus clientes usam o próprio celular; você gerencia pelo computador ou tablet. Não precisa instalar app.',
   },
   {
     q: 'Como funciona o check-in na mesa?',
@@ -151,8 +151,8 @@ const FAQS = [
     a: 'Não. Cada QR combina restaurante, número da mesa e um token secreto gerado pelo sistema. Só funciona na mesa correta — não dá para adivinhar ou reutilizar em outro lugar.',
   },
   {
-    q: 'Como funciona a comissão da Qomanda?',
-    a: 'Cobramos mensalidade fixa + comissão progressiva apenas sobre vendas digitais registradas pelo app (PIX e cartão via Qomanda). O valor pago pelo cliente cai 100% na sua conta (PIX manual ou Asaas). A comissão é somada no mês e faturada todo dia 5. Dinheiro na mesa: 0% de comissão.',
+    q: 'Como funciona a comissão da KiComanda?',
+    a: 'Cobramos mensalidade fixa + comissão progressiva apenas sobre vendas digitais registradas pelo app (PIX e cartão via KiComanda). O valor pago pelo cliente cai 100% na sua conta (PIX manual ou Asaas). A comissão é somada no mês e faturada todo dia 5. Dinheiro na mesa: 0% de comissão.',
   },
   {
     q: 'Preciso usar Asaas ou maquininha?',
@@ -184,8 +184,8 @@ export default function LandingPage() {
         style={{ background: 'rgba(11,19,38,0.95)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
         <div className="flex justify-between items-center px-5 md:px-12 h-16">
           <div className="flex items-center gap-2.5">
-            <QomandaLogo size={28} />
-            <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>Qomanda</span>
+            <KiComandaLogo size={28} />
+            <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>KiComanda</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             {['Funcionalidades', 'Modelos', 'Como funciona', 'Preços', 'FAQ'].map(item => (
@@ -269,7 +269,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-base md:text-xl leading-relaxed max-w-2xl mx-auto mb-8 md:mb-10 px-2" style={{ color: C.muted }}>
-            Escolha salão, balcão ou os dois no cadastro — o sistema já vem configurado. Pagamento cai 100% na sua conta; comissão Qomanda só sobre vendas digitais, faturada mensalmente.
+            Escolha salão, balcão ou os dois no cadastro — o sistema já vem configurado. Pagamento cai 100% na sua conta; comissão KiComanda só sobre vendas digitais, faturada mensalmente.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -334,7 +334,7 @@ export default function LandingPage() {
           <FeatureCard icon="point_of_sale" title="Caixa e confirmação"
             desc="Tela de caixa com busca por código de pagamento. Confirma dinheiro e PIX manual, valida o recibo e libera a saída do cliente com segurança." />
           <FeatureCard icon="account_balance_wallet" title="Recebimento na sua conta"
-            desc="PIX manual, Asaas ou Mercado Pago — o dinheiro cai 100% na sua conta. Sem split na hora; comissão Qomanda faturada todo dia 5 sobre vendas digitais." />
+            desc="PIX manual, Asaas ou Mercado Pago — o dinheiro cai 100% na sua conta. Sem split na hora; comissão KiComanda faturada todo dia 5 sobre vendas digitais." />
           <FeatureCard icon="groups" title="Divisão de conta inteligente"
             desc="Cada um paga a própria parte — ou paga a conta de outro na mesa. O sistema calcula saldo, taxa de serviço e quem falta pagar, com proteção contra fechamento acidental." />
           <FeatureCard icon="badge" title="Equipe com perfis"
@@ -443,7 +443,7 @@ export default function LandingPage() {
                 step: '03',
                 icon: 'trending_up',
                 title: 'Atenda e receba na sua conta',
-                desc: 'Clientes pedem e pagam pelo celular. Você confirma PIX/dinheiro quando necessário. Comissão Qomanda faturada todo dia 5.',
+                desc: 'Clientes pedem e pagam pelo celular. Você confirma PIX/dinheiro quando necessário. Comissão KiComanda faturada todo dia 5.',
               },
             ].map(step => (
               <div key={step.step} className="flex flex-col gap-5">
@@ -502,7 +502,7 @@ export default function LandingPage() {
           </div>
           <div className="px-5 py-3" style={{ background: `${C.primary}08`, borderTop: `1px solid ${C.border}` }}>
             <p className="text-xs leading-relaxed" style={{ color: C.muted }}>
-              <span style={{ color: C.primary, fontWeight: 600 }}>Como funciona:</span> pagamentos digitais caem 100% na sua conta (PIX manual ou Asaas seu). A Qomanda registra o GMV digital e fatura mensalidade + comissão progressiva (2,99%→1,49%) todo dia 5. Implantação piloto R$ 1.990.
+              <span style={{ color: C.primary, fontWeight: 600 }}>Como funciona:</span> pagamentos digitais caem 100% na sua conta (PIX manual ou Asaas seu). A KiComanda registra o GMV digital e fatura mensalidade + comissão progressiva (2,99%→1,49%) todo dia 5. Implantação piloto R$ 1.990.
             </p>
           </div>
         </div>
@@ -570,23 +570,23 @@ export default function LandingPage() {
         <p className="text-center text-sm mt-8 max-w-xl mx-auto leading-relaxed" style={{ ...mono, color: C.faint }}>
           14 dias grátis · Implantação piloto R$ 1.990 · Fatura mensal (dia 5)
           <br />
-          <span style={{ color: C.muted }}>* Comissão flat sobre GMV digital do mês (PIX/cartão via app): Starter 0,7% · Growth 0,5% · Pro 0,3%. Dinheiro: 0%. O recebimento cai 100% na conta do restaurante — a comissão Qomanda é faturada à parte no dia 5. Gateways: PIX manual, Asaas e Mercado Pago hoje · PagBank, Stone e Cielo no <Link href="/roadmap" className="underline" style={{ color: C.blue }}>roadmap</Link>.</span>
+          <span style={{ color: C.muted }}>* Comissão flat sobre GMV digital do mês (PIX/cartão via app): Starter 0,7% · Growth 0,5% · Pro 0,3%. Dinheiro: 0%. O recebimento cai 100% na conta do restaurante — a comissão KiComanda é faturada à parte no dia 5. Gateways: PIX manual, Asaas e Mercado Pago hoje · PagBank, Stone e Cielo no <Link href="/roadmap" className="underline" style={{ color: C.blue }}>roadmap</Link>.</span>
         </p>
       </section>
 
       {/* ── COMPARISON ──────────────────────────────────────── */}
       <section className="py-16 px-4 md:px-12 w-full max-w-4xl mx-auto">
         <h3 className="text-2xl font-black text-center mb-10" style={{ letterSpacing: '-0.02em' }}>
-          Por que a Qomanda?
+          Por que a KiComanda?
         </h3>
         <div className="rounded-2xl overflow-hidden overflow-x-auto" style={{ border: `1px solid ${C.borderBlu}` }}>
           <table className="w-full text-sm" style={{ minWidth: 400 }}>
             <thead>
               <tr style={{ background: C.bgCard }}>
                 <th className="text-left px-5 py-4 font-mono text-xs uppercase tracking-wider" style={{ color: C.muted }}>Funcionalidade</th>
-                {['Qomanda', 'Goomer', 'Anota AI', 'iFood'].map(h => (
+                {['KiComanda', 'Goomer', 'Anota AI', 'iFood'].map(h => (
                   <th key={h} className="px-4 py-4 text-center font-mono text-xs uppercase tracking-wider"
-                    style={{ color: h === 'Qomanda' ? C.primary : C.muted }}>
+                    style={{ color: h === 'KiComanda' ? C.primary : C.muted }}>
                     {h}
                   </th>
                 ))}
@@ -660,7 +660,7 @@ export default function LandingPage() {
             style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
         </div>
         <div className="relative z-10 max-w-2xl mx-auto text-center">
-          <QomandaLogo size={56} className="mx-auto mb-6" />
+          <KiComandaLogo size={56} className="mx-auto mb-6" />
           <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ letterSpacing: '-0.02em' }}>
             Pronto para colocar<br />seu restaurante no ar?
           </h2>
@@ -683,18 +683,18 @@ export default function LandingPage() {
       <footer className="py-12 px-4 md:px-12 w-full" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           <div className="flex items-center gap-2.5">
-            <QomandaLogo size={28} />
-            <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>
+            <KiComandaLogo size={28} />
+            <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
           </div>
           <div className="flex items-center gap-6 text-sm" style={{ ...mono, color: C.faint }}>
             <Link href="/integracoes" className="hover:opacity-80 transition-opacity">Integrações</Link>
             <Link href="/roadmap" className="hover:opacity-80 transition-opacity">Roadmap</Link>
             <Link href="/termos" className="hover:opacity-80 transition-opacity">Termos de uso</Link>
             <Link href="/privacidade" className="hover:opacity-80 transition-opacity">Privacidade</Link>
-            <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80 transition-opacity">contato@qomanda.com.br</a>
+            <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80 transition-opacity">contato@kicomanda.com.br</a>
           </div>
           <p className="text-xs" style={{ ...mono, color: C.faint }}>
-            © 2026 Qomanda. Todos os direitos reservados.
+            © 2026 KiComanda. Todos os direitos reservados.
           </p>
         </div>
       </footer>

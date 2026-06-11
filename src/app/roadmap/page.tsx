@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 const C = {
   bg: '#0b1326', bgCard: '#131b2e', bgCard2: '#1e293b',
@@ -44,7 +44,7 @@ const PHASES = [
         title: 'Infra & validação',
         items: [
           'Smoke test E2E — salão, balcão, híbrido, food hall, garçom ✓',
-          'Deploy contínuo na Vercel (qomanda-mu.vercel.app) ✓',
+          'Deploy contínuo na Vercel (kicomanda.app) ✓',
           'Rodar migrações Supabase pendentes em produção (se ainda não aplicadas)',
         ],
       },
@@ -85,7 +85,7 @@ const PHASES = [
         title: 'Regra em todos',
         items: [
           '100% do valor na conta do restaurante',
-          'Comissão Qomanda faturada todo dia 5 (sem split na hora)',
+          'Comissão KiComanda faturada todo dia 5 (sem split na hora)',
           'Um gateway ativo por restaurante no Settings',
         ],
       },
@@ -143,7 +143,7 @@ const PHASES = [
           'Confirmar pagamento em dinheiro (mesa e pedidos da mesa)',
           'Settings: Pagamentos, Mensalidade, Fidelidade, Integrações (WhatsApp)',
           'Checklist “Primeiros passos” no Overview',
-          'Cadastro de conta bancária de repasse (Qomanda Pay)',
+          'Cadastro de conta bancária de repasse (KiComanda Pay)',
           'Suporte — tickets com mensagens e anexos',
           'Segurança: senha de cartão, sessão idle 15 min',
         ],
@@ -162,7 +162,7 @@ const PHASES = [
           'PIX manual (chave do restaurante) — sem Asaas obrigatório',
           'Asaas na conta do restaurante (PIX e cartão automáticos)',
           'Mercado Pago — access token + PIX/cartão no checkout',
-          'Dinheiro na mesa — 0% comissão Qomanda',
+          'Dinheiro na mesa — 0% comissão KiComanda',
           'Comissão progressiva faturada mensalmente (dia 5)',
           'Cobrança automática da mensalidade SaaS (cron dia 5)',
           'Webhook de confirmação de pagamentos',
@@ -203,7 +203,7 @@ const PHASES = [
           'Modo balcão + pedido # ✓',
           'Garçom confirma PIX/dinheiro no app (/garcom) ✓',
           'Cobrança automática mensalidade SaaS (cron dia 5) ✓',
-          'NF-e de serviço Qomanda → restaurante (junto com fatura)',
+          'NF-e de serviço KiComanda → restaurante (junto com fatura)',
         ],
       },
       {
@@ -220,7 +220,7 @@ const PHASES = [
       {
         title: '3 · Operação',
         items: [
-          'Suporte com tickets — restaurante e equipe Qomanda ✓',
+          'Suporte com tickets — restaurante e equipe KiComanda ✓',
           'Webhook de pagamentos robusto (retry, idempotência, logs)',
           'Botão "Chamar Garçom" — notificação no dashboard',
           'OAuth connect Mercado Pago (substituir token manual)',
@@ -410,8 +410,8 @@ export default function RoadmapPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-12 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
         <Link href="/" className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
         </Link>
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>← Voltar ao site</Link>
@@ -457,7 +457,7 @@ export default function RoadmapPage() {
                 Esteira de gateways de integração
               </h2>
               <p className="text-sm mt-2 max-w-xl" style={{ color: C.muted }}>
-                Sequência oficial #1–#8. Itens 1–4 operacionais (PIX manual, dinheiro, Asaas, Mercado Pago); 5–8 entram nesta ordem. Sempre na conta do restaurante — comissão Qomanda no dia 5.
+                Sequência oficial #1–#8. Itens 1–4 operacionais (PIX manual, dinheiro, Asaas, Mercado Pago); 5–8 entram nesta ordem. Sempre na conta do restaurante — comissão KiComanda no dia 5.
               </p>
             </div>
           </div>
@@ -596,7 +596,7 @@ export default function RoadmapPage() {
             Somos movidos pelo feedback dos nossos clientes. Diga o que é mais importante para o seu negócio.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="mailto:contato@qomanda.com.br"
+            <a href="mailto:contato@kicomanda.com.br"
               className="flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90"
               style={{ background: C.primary, color: '#582200' }}>
               <span className="material-symbols-outlined text-[18px]">mail</span>
@@ -617,10 +617,10 @@ export default function RoadmapPage() {
           <Link href="/pilotos" className="hover:opacity-80">Piloto (5 restaurantes)</Link>
           <Link href="/termos" className="hover:opacity-80">Termos de uso</Link>
           <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
-          <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
+          <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80">contato@kicomanda.com.br</a>
         </div>
         <p className="text-xs" style={{ ...mono, color: C.faint }}>
-          © 2026 Qomanda · <a href="mailto:contato@qomanda.com.br" className="hover:opacity-80">contato@qomanda.com.br</a>
+          © 2026 KiComanda · <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80">contato@kicomanda.com.br</a>
         </p>
       </footer>
     </div>

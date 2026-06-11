@@ -77,7 +77,7 @@ export default function RestaurantSupportDetailPage({ params }: { params: Promis
           onSubmit={handleReply}
           submitting={replying}
           disabled={closed}
-          placeholder={closed ? 'Ticket encerrado.' : 'Responder à equipe Qomanda…'}
+          placeholder={closed ? 'Ticket encerrado.' : 'Responder à equipe KiComanda…'}
           submitLabel="Enviar resposta"
         />
       </div>

@@ -24,14 +24,14 @@ function HubProfileContent() {
   const [activeSession, setActiveSession] = useState<HubActiveSession | null>(null)
 
   useEffect(() => {
-    const cid = localStorage.getItem('qomanda_customer_id')
+    const cid = localStorage.getItem('kicomanda_customer_id')
     if (!cid) {
       router.replace('/login?perfil=cliente')
       return
     }
     setCustomerId(cid)
 
-    const sessionId = localStorage.getItem('qomanda_session_id')
+    const sessionId = localStorage.getItem('kicomanda_session_id')
     const qs = new URLSearchParams({ customer: cid })
     if (sessionId) qs.set('session', sessionId)
 
@@ -44,7 +44,7 @@ function HubProfileContent() {
         setWhatsapp(data.customer.whatsapp)
         setActiveSession(data.activeSession ?? null)
         if (data.activeSession) {
-          localStorage.setItem('qomanda_session_id', data.activeSession.sessionId)
+          localStorage.setItem('kicomanda_session_id', data.activeSession.sessionId)
         }
         setLoading(false)
       })

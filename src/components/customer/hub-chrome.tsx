@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 export function HubPageHeader({ title, backHref }: { title?: string; backHref?: string }) {
   return (
@@ -13,7 +13,7 @@ export function HubPageHeader({ title, backHref }: { title?: string; backHref?: 
         </Link>
       ) : (
         <div className="flex items-center gap-2.5">
-          <QomandaLogo size={28} />
+          <KiComandaLogo size={28} />
           <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
         </div>
       )}

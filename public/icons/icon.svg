@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#0b1326"/>
-  <!-- Q ring -->
-  <path fill="#f97316" fill-rule="evenodd"
-    d="M236 96a160 160 0 1 0 120 266l46 50 -38-86A160 160 0 0 0 236 96zm0 80a80 80 0 1 1 0 160 80 80 0 0 1 0-160z"/>
+  <g transform="translate(100 88) scale(3.4)">
+    <path fill="#f97316" d="M16 18Q14 12 20 12H32V42L80 14H86V26L36 46H16V18Z"/>
+    <path fill="#ffb690" d="M38 52L82 90L78 94L82 98L74 94L78 98L70 94L74 98L62 94L66 98L54 94L58 98L46 94L50 98L38 94L38 52Z"/>
+  </g>
 </svg>

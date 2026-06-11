@@ -251,7 +251,7 @@ export function RestaurantBillingPanel() {
       <section className="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-4">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Histórico</p>
-          <h3 className="text-lg font-bold text-on-surface mt-1">Faturas Qomanda</h3>
+          <h3 className="text-lg font-bold text-on-surface mt-1">Faturas KiComanda</h3>
           <p className="text-xs text-on-surface-variant mt-1">Mensalidade do plano + comissão sobre vendas digitais do período.</p>
         </div>
 

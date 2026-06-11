@@ -1,5 +1,5 @@
 /**
- * Cria (ou atualiza) as contas da equipe Qomanda no Supabase Auth + staff_users.
+ * Cria (ou atualiza) as contas da equipe KiComanda no Supabase Auth + staff_users.
  *
  * Uso:
  *   node scripts/setup-internal-staff.mjs
@@ -15,7 +15,6 @@ import { createClient } from '@supabase/supabase-js'
 
 const STAFF = [
   { email: 'jeff@qomanda.com', name: 'Jeff', role: 'superadmin' },
-  { email: 'daniel@qomanda.com', name: 'Daniel', role: 'superadmin' },
 ]
 
 function loadEnvLocal() {
@@ -62,7 +61,7 @@ async function findUserByEmail(email) {
 }
 
 async function main() {
-  console.log('Configurando equipe Qomanda...\n')
+  console.log('Configurando equipe KiComanda...\n')
 
   for (const person of STAFF) {
     let user = await findUserByEmail(person.email)
@@ -103,7 +102,7 @@ async function main() {
     if (staffErr) {
       if (staffErr.message.includes('staff_users') || staffErr.code === '42P01') {
         console.warn(`  staff_users ainda não existe — rode migrate-internal-portal.sql no Supabase.`)
-        console.warn(`  Enquanto isso, QOMANDA_STAFF_EMAILS no .env já libera o acesso.`)
+        console.warn(`  Enquanto isso, KICOMANDA_STAFF_EMAILS no .env já libera o acesso.`)
       } else {
         console.error(`  Erro staff_users: ${staffErr.message}`)
       }
@@ -114,10 +113,10 @@ async function main() {
 
   console.log('\n---')
   console.log('Login: https://SEU_DOMINIO/internal/login')
-  console.log(`Senha inicial (ambos): ${password}`)
+  console.log(`Senha inicial: ${password}`)
   console.log('Troque a senha depois no Supabase → Authentication → Users.')
   console.log('\nLembre de adicionar na Vercel:')
-  console.log('QOMANDA_STAFF_EMAILS=jeff@qomanda.com,daniel@qomanda.com')
+  console.log('KICOMANDA_STAFF_EMAILS=jeff@qomanda.com')
 }
 
 main().catch(err => {

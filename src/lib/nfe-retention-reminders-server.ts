@@ -152,8 +152,8 @@ async function processReminderDay(
       const settingsUrl = `${appBaseUrl.replace(/\/$/, '')}/dashboard/settings?tab=notas#nfe-notas`
       const subject =
         daysBefore === 5
-          ? `[Qomanda] Último aviso: ${count} NF-e serão removidas em 5 dias`
-          : `[Qomanda] ${count} NF-e serão removidas em ${daysBefore} dias — ${restaurant.name}`
+          ? `[KiComanda] Último aviso: ${count} NF-e serão removidas em 5 dias`
+          : `[KiComanda] ${count} NF-e serão removidas em ${daysBefore} dias — ${restaurant.name}`
 
       const emailResult = await sendTransactionalEmail({
         to: owner.email,

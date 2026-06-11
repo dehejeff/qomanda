@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { CustomerSignupForm, registerCustomerAndStore } from '@/components/customer/customer-signup-form'
 import { friendlyAuthError } from '@/lib/supabase/auth-errors'
 import { toast } from 'sonner'
@@ -103,7 +103,7 @@ export default function CadastroPage() {
     // Provisiona plano starter + trial de 14 dias em background (não bloqueia o redirect)
     fetch('/api/auth/provision-trial', { method: 'POST' }).catch(() => {})
 
-    toast.success('Conta criada! Bem-vindo à Qomanda 🎉')
+    toast.success('Conta criada! Bem-vindo à KiComanda 🎉')
     router.push('/dashboard')
   }
 
@@ -137,7 +137,7 @@ export default function CadastroPage() {
 
       <div className="relative z-10 w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <QomandaLogo size={48} />
+          <KiComandaLogo size={48} />
           <div className="text-center">
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>
               {isRestaurant
@@ -336,7 +336,7 @@ export default function CadastroPage() {
                   <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Link do cardápio</label>
                   <div className="flex items-center h-12 px-4 rounded-xl text-sm"
                     style={{ background: '#0b1326', border: '1px solid #1e293b' }}>
-                    <span style={{ color: '#584237', fontFamily: 'JetBrains Mono, monospace' }}>qomanda.app/</span>
+                    <span style={{ color: '#584237', fontFamily: 'JetBrains Mono, monospace' }}>kicomanda.app/</span>
                     <span style={{ color: restSlug ? '#ffb690' : '#584237', fontFamily: 'JetBrains Mono, monospace' }}>
                       {restSlug || 'seu-restaurante'}
                     </span>

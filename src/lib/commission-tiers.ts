@@ -1,5 +1,5 @@
 /**
- * Comissão Qomanda sobre GMV digital (faturada mensalmente — recebimento direto na conta do restaurante).
+ * Comissão KiComanda sobre GMV digital (faturada mensalmente — recebimento direto na conta do restaurante).
  * Modelo flat por plano (sem faixas progressivas): Starter 0,7% · Growth 0,5% · Pro 0,3% · Enterprise 0%.
  * Implementado como base única (0,7%) − desconto por plano, reaproveitando a infra existente.
  */

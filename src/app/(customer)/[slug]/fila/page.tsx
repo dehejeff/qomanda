@@ -21,7 +21,7 @@ type Entry = {
   expiresAt: string | null
 }
 
-function storageKey(slug: string) { return `qomanda_waitlist_${slug}` }
+function storageKey(slug: string) { return `kicomanda_waitlist_${slug}` }
 function readIds(slug: string): string[] {
   try { return JSON.parse(localStorage.getItem(storageKey(slug)) ?? '[]') } catch { return [] }
 }
@@ -52,7 +52,7 @@ export default function WaitlistPage() {
   const notifiedSeen = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    setName(localStorage.getItem('qomanda_customer_name') ?? '')
+    setName(localStorage.getItem('kicomanda_customer_name') ?? '')
     async function load() {
       const supabase = createClient()
       const { data: r } = await supabase
@@ -107,7 +107,7 @@ export default function WaitlistPage() {
     if ('error' in contacts) { toast.error(contacts.error); return }
     setJoining(true)
     try {
-      const customerId = localStorage.getItem('qomanda_customer_id')
+      const customerId = localStorage.getItem('kicomanda_customer_id')
       const res = await fetch('/api/customer/waitlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

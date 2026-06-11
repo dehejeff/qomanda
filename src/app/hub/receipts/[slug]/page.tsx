@@ -35,7 +35,7 @@ function HubReceiptsRestaurantContent() {
   const [days, setDays] = useState<ReceiptDayGroup[]>([])
 
   useEffect(() => {
-    const cid = localStorage.getItem('qomanda_customer_id')
+    const cid = localStorage.getItem('kicomanda_customer_id')
     if (!cid) {
       router.replace('/login?perfil=cliente')
       return

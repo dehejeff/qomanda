@@ -50,7 +50,7 @@ export default function CustomerHomePage() {
 
   async function toggleCouvert() {
     if (!sessionId || couvertBusy) return
-    const customerId = localStorage.getItem('qomanda_customer_id')
+    const customerId = localStorage.getItem('kicomanda_customer_id')
     if (!customerId) return
     const removing = couvertAdded
     setCouvertBusy(true)
@@ -99,7 +99,7 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
-    const name = localStorage.getItem('qomanda_customer_name') ?? 'Cliente'
+    const name = localStorage.getItem('kicomanda_customer_name') ?? 'Cliente'
     setCustomerName(name)
     if (!searchParams.get('session') && sessionId) {
       window.history.replaceState(null, '', `/${params.slug}/home?session=${encodeURIComponent(sessionId)}`)
@@ -119,7 +119,7 @@ export default function CustomerHomePage() {
           .single()
 
         if (sessionError || !session) {
-          localStorage.removeItem('qomanda_session_id')
+          localStorage.removeItem('kicomanda_session_id')
           router.replace(`/${params.slug}`)
           return
         }
@@ -147,7 +147,7 @@ export default function CustomerHomePage() {
           label: (restaurant as { couvert_label?: string } | null)?.couvert_label ?? 'Couvert',
         })
 
-      const customerId = localStorage.getItem('qomanda_customer_id')
+      const customerId = localStorage.getItem('kicomanda_customer_id')
 
       // Couvert artístico: materializa (se na janela do show) antes de ler a conta.
       await fetch('/api/customer/couvert/artistico', {
@@ -263,7 +263,7 @@ export default function CustomerHomePage() {
       .subscribe()
 
     // Subscribe to close request invites
-    const myCustomerId = localStorage.getItem('qomanda_customer_id')
+    const myCustomerId = localStorage.getItem('kicomanda_customer_id')
     if (myCustomerId) {
       const ch = supabase.channel('close-invite')
         .on('postgres_changes', {

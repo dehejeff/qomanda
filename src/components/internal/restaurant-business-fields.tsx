@@ -227,7 +227,7 @@ export function RestaurantBusinessFields({
             mono
             required
             className="md:col-span-2"
-            hint="Obrigatório para ativação do Qomanda Pay quando o CPF/CNPJ é de pessoa física."
+            hint="Obrigatório para ativação do KiComanda Pay quando o CPF/CNPJ é de pessoa física."
           />
         </div>
       </section>

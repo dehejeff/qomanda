@@ -1,5 +1,5 @@
 /**
- * Qomanda — Mercado Pago API Client (conta do restaurante)
+ * KiComanda — Mercado Pago API Client (conta do restaurante)
  * Documentação: https://www.mercadopago.com.br/developers/pt/reference
  */
 

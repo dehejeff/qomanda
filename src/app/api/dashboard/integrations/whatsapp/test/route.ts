@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Configure Phone Number ID e Access Token antes de testar.' }, { status: 400 })
     }
 
-    const message = `✅ *${restaurant.name}* — teste Qomanda\n\nSe você recebeu esta mensagem, o WhatsApp Business está conectado corretamente.`
+    const message = `✅ *${restaurant.name}* — teste KiComanda\n\nSe você recebeu esta mensagem, o WhatsApp Business está conectado corretamente.`
     const phoneNumber = toE164(digits)
     const url = `https://graph.facebook.com/v18.0/${restaurant.whatsapp_phone_id}/messages`
 

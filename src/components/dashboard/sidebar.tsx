@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 type OperationalMode = 'dine_in' | 'counter' | 'both'
 
@@ -56,7 +56,7 @@ export function DashboardSidebar({
         {/* Logo */}
         <div className="flex flex-col gap-1 px-2 mb-8">
           <div className="flex items-center gap-2.5">
-            <QomandaLogo size={32} />
+            <KiComandaLogo size={32} />
             <h1 className="text-xl font-black text-on-surface leading-tight" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</h1>
           </div>
           <p className="text-[11px] text-on-surface-variant opacity-60 font-mono truncate pl-1">{restaurantName}</p>

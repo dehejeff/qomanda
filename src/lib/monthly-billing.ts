@@ -121,7 +121,7 @@ export async function generateMonthlyInvoice(
             customerId,
             value: amount,
             billingType,
-            description: `Qomanda — Mensalidade ${pad(month)}/${year}`,
+            description: `KiComanda — Mensalidade ${pad(month)}/${year}`,
             dueDate,
             externalReference: `inv:${invoice.id}`,
           })
@@ -188,7 +188,7 @@ export async function chargeInvoice(
       customerId,
       value: Number(invoice.amount),
       billingType,
-      description: `Qomanda — Mensalidade ${pad(invoice.period_month ?? 0)}/${invoice.period_year ?? ''}`.trim(),
+      description: `KiComanda — Mensalidade ${pad(invoice.period_month ?? 0)}/${invoice.period_year ?? ''}`.trim(),
       dueDate,
       externalReference: `inv:${invoice.id}`,
     })

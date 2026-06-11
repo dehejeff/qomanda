@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PLAYBOOK } from '@/lib/internal-playbook'
 
-const STORAGE_KEY = 'qomanda_playbook_checks'
+const STORAGE_KEY = 'kicomanda_playbook_checks'
 
 /** Conteúdo do playbook (implementação + suporte). Reutilizado na página
  *  escondida /internal/playbook e embutido na aba Playbook do Suporte. */

@@ -105,7 +105,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (!body) return NextResponse.json({ error: 'Escreva uma resposta.' }, { status: 400 })
 
     const now = new Date().toISOString()
-    const authorName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? 'Equipe Qomanda'
+    const authorName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? 'Equipe KiComanda'
 
     const { data: message, error: msgErr } = await admin
       .from('support_ticket_messages')

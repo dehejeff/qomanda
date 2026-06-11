@@ -1,5 +1,5 @@
 /**
- * Qomanda — Asaas API Client (conta master — configurável no portal interno)
+ * KiComanda — Asaas API Client (conta master — configurável no portal interno)
  * Documentação: https://docs.asaas.com
  */
 
@@ -205,7 +205,7 @@ export async function createPixPayment(params: {
       billingType: 'PIX',
       value: params.value,
       dueDate,
-      description: params.description ?? 'Qomanda — Pagamento de mesa',
+      description: params.description ?? 'KiComanda — Pagamento de mesa',
       externalReference: params.externalReference,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),
     }),
@@ -234,7 +234,7 @@ export async function createCharge(params: {
       billingType: params.billingType,
       value: params.value,
       dueDate,
-      description: params.description ?? 'Qomanda — Mensalidade',
+      description: params.description ?? 'KiComanda — Mensalidade',
       externalReference: params.externalReference,
     }),
   }, params.gateway)
@@ -269,7 +269,7 @@ export async function createCreditCardPayment(params: {
       dueDate,
       installmentCount: installmentCount > 1 ? installmentCount : undefined,
       installmentValue: installmentCount > 1 ? installmentValue : undefined,
-      description: params.description ?? 'Qomanda — Pagamento de mesa',
+      description: params.description ?? 'KiComanda — Pagamento de mesa',
       externalReference: params.externalReference,
       creditCard: {
         holderName: params.creditCard.holderName,
@@ -337,7 +337,7 @@ export async function createCreditCardPaymentWithToken(params: {
       dueDate,
       installmentCount: installmentCount > 1 ? installmentCount : undefined,
       installmentValue: installmentCount > 1 ? installmentValue : undefined,
-      description: params.description ?? 'Qomanda — Pagamento de mesa',
+      description: params.description ?? 'KiComanda — Pagamento de mesa',
       externalReference: params.externalReference,
       creditCardToken: params.creditCardToken,
       ...(params.split && params.split.length > 0 ? { split: params.split } : {}),

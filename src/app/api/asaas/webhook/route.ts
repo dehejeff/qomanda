@@ -94,7 +94,7 @@ async function processAsaasEvent(
     .maybeSingle()
 
   if (!internalPayment) {
-    // Pode ser uma cobrança de MENSALIDADE (fatura SaaS Qomanda → restaurante)
+    // Pode ser uma cobrança de MENSALIDADE (fatura SaaS KiComanda → restaurante)
     const { data: invoice } = await supabase
       .from('billing_invoices')
       .select('id, status')
@@ -108,7 +108,7 @@ async function processAsaasEvent(
           .update({ status: 'paid', paid_at: new Date().toISOString() })
           .eq('id', invoice.id)
         console.log(`[Asaas Webhook] Mensalidade paga: fatura ${invoice.id}`)
-        // Emite a NF-e de serviço (Qomanda → restaurante) — degradável/idempotente.
+        // Emite a NF-e de serviço (KiComanda → restaurante) — degradável/idempotente.
         const { emitServiceNfeForInvoice } = await import('@/lib/nfe/emit-service-nfe')
         await emitServiceNfeForInvoice(supabase, invoice.id, { requirePaid: true })
       } else if (st === 'OVERDUE') {

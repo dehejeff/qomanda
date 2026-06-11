@@ -1,6 +1,6 @@
 {
-  "name": "Qomanda",
-  "short_name": "Qomanda",
+  "name": "KiComanda",
+  "short_name": "KiComanda",
   "description": "Cardápio digital e pagamento para restaurantes",
   "start_url": "/scan",
   "display": "standalone",
@@ -10,15 +10,15 @@
   "categories": ["food", "lifestyle"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/brand/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/brand/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],

@@ -51,7 +51,7 @@ export type PayoutBankAccountDto = {
 
 function mapDigitalStatus(walletId: string | null, onboardingStatus: string | null): Pick<PayoutBankAccountDto, 'digitalStatus' | 'digitalStatusLabel'> {
   if (walletId && onboardingStatus === 'approved') {
-    return { digitalStatus: 'active', digitalStatusLabel: 'Qomanda Pay ativo' }
+    return { digitalStatus: 'active', digitalStatusLabel: 'KiComanda Pay ativo' }
   }
   if (walletId || onboardingStatus === 'submitted') {
     return { digitalStatus: 'pending', digitalStatusLabel: 'Em análise' }
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       provisioned: provision.provisioned,
       message: provision.provisioned
-        ? 'Conta bancária salva. Qomanda Pay em processo de ativação.'
+        ? 'Conta bancária salva. KiComanda Pay em processo de ativação.'
         : 'Conta bancária salva. Validaremos os dados para liberar PIX e cartão em breve.',
       account: {
         configured: true,

@@ -39,7 +39,7 @@ Atualize `ROADMAP.md` e `docs/DOCUMENTACAO.md` quando entregar features signific
 |------------|-------|------|
 | **Cliente (PWA)** | `src/app/(customer)/[slug]/*` | Sessão local (sessionId) |
 | **Dashboard restaurante** | `src/app/(dashboard)/dashboard/*` | Supabase Auth (owner) |
-| **Portal interno Qomanda** | `src/app/(internal)/internal/*` | Staff (`staff_users` + `QOMANDA_STAFF_EMAILS`) |
+| **Portal interno Qomanda** | `src/app/(internal)/internal/*` | Staff (`staff_users` + `KICOMANDA_STAFF_EMAILS`) |
 
 Libs por domínio:
 - Cliente: `src/lib/customer-*`, `src/app/api/customer/*`

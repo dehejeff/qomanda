@@ -42,7 +42,7 @@ function buildComandaHtml(o: KOrder): string {
   </style></head><body>
     <div class="hd"><div class="loc">${esc(o.label)}</div>${o.customerName ? `<div class="tm">${esc(o.customerName)}</div>` : ''}<div class="tm">${esc(orderCode(o.id))} · ${new Date(o.createdAt).toLocaleString('pt-BR')}</div></div>
     ${items || '<div class="it">—</div>'}
-    <div class="ft">Qomanda · cozinha</div>
+    <div class="ft">KiComanda · cozinha</div>
     <script>window.onload=function(){window.print();setTimeout(function(){window.close()},500)}</script>
   </body></html>`
 }
@@ -65,7 +65,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
   const autoPrintRef = useRef(false)
 
   useEffect(() => {
-    setAutoPrint(localStorage.getItem('qomanda_kds_autoprint') === '1')
+    setAutoPrint(localStorage.getItem('kicomanda_kds_autoprint') === '1')
   }, [])
   useEffect(() => { autoPrintRef.current = autoPrint }, [autoPrint])
 
@@ -152,7 +152,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
   }
 
   function toggleAutoPrint() {
-    setAutoPrint(v => { const n = !v; localStorage.setItem('qomanda_kds_autoprint', n ? '1' : '0'); return n })
+    setAutoPrint(v => { const n = !v; localStorage.setItem('kicomanda_kds_autoprint', n ? '1' : '0'); return n })
   }
 
   return (

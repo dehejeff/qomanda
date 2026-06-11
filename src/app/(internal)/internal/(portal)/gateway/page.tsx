@@ -90,9 +90,9 @@ export default function InternalGatewayPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-1">Infraestrutura</p>
-        <h1 className="text-2xl font-black text-on-surface">Gateway Qomanda Pay</h1>
+        <h1 className="text-2xl font-black text-on-surface">Gateway KiComanda Pay</h1>
         <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-          Conta master Asaas da Qomanda — usada para PIX, cartão e split para os restaurantes.
+          Conta master Asaas da KiComanda — usada para PIX, cartão e split para os restaurantes.
           Restaurantes <strong>não</strong> veem estas configurações.
         </p>
       </div>

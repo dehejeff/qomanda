@@ -1,5 +1,5 @@
 /**
- * Qomanda Design System — fonte única de verdade para tokens visuais.
+ * KiComanda Design System — fonte única de verdade para tokens visuais.
  * Importe estas constantes em todos os componentes em vez de escrever
  * classes Tailwind diretamente para garantir consistência.
  */

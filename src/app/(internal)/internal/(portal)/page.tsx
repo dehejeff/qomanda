@@ -111,7 +111,7 @@ export default function InternalOverviewPage() {
       {/* Sinal de saúde do sistema (verde/amarelo/vermelho) */}
       <OverviewHealthBanner />
 
-      {/* KPIs — receita Qomanda vs volume restaurante */}
+      {/* KPIs — receita KiComanda vs volume restaurante */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard label="Clientes" value={stats.total} sub={`+${stats.newThisMonth} este mês`} icon="storefront" />
         <StatCard
@@ -129,8 +129,8 @@ export default function InternalOverviewPage() {
           accent="#f97316"
         />
         <StatCard
-          label="Receita Qomanda 30d"
-          value={brl(stats.qomandaRevenueLast30Days)}
+          label="Receita KiComanda 30d"
+          value={brl(stats.kicomandaRevenueLast30Days)}
           sub="Taxas tx (mensalidade entra após trial)"
           icon="account_balance_wallet"
           accent="#fbbf24"
@@ -142,13 +142,13 @@ export default function InternalOverviewPage() {
           icon="point_of_sale"
           accent="#a78bfa"
         />
-        <StatCard label="Qomanda Pay" value={stats.payActive} sub={`${stats.payPending} em análise`} icon="payments" accent="#60a5fa" />
+        <StatCard label="KiComanda Pay" value={stats.payActive} sub={`${stats.payPending} em análise`} icon="payments" accent="#60a5fa" />
       </div>
 
       <div className="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant leading-relaxed">
         <span className="font-semibold text-on-surface">Como ler:</span>{' '}
         <strong className="text-on-surface font-medium">Volume Pay</strong> é o que os clientes pagaram nas mesas (dinheiro do restaurante).
-        <strong className="text-on-surface font-medium"> Taxa tx</strong> é a comissão Qomanda (% do plano) sobre PIX/cartão.
+        <strong className="text-on-surface font-medium"> Taxa tx</strong> é a comissão KiComanda (% do plano) sobre PIX/cartão.
         <strong className="text-on-surface font-medium"> MRR planos</strong> é a mensalidade contratada — durante trial aparece aqui, mas só entra na receita quando a assinatura vira ativa.
       </div>
 
@@ -202,7 +202,7 @@ export default function InternalOverviewPage() {
 
         <div className="bg-surface-container border border-outline-variant rounded-xl p-5 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-on-surface">Qomanda Pay</h2>
+            <h2 className="text-sm font-semibold text-on-surface">KiComanda Pay</h2>
             <p className="text-xs text-on-surface-variant mt-0.5">Status digital por cliente</p>
           </div>
           <HorizontalBars items={data.payDistribution.map(p => ({ label: p.label, count: p.count }))} />

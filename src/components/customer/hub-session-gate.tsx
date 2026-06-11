@@ -56,7 +56,7 @@ export function HubSessionGate({ customerId, children, onUnlocked }: Props) {
   }, [customerId])
 
   useEffect(() => {
-    const name = localStorage.getItem('qomanda_customer_name')?.split(' ')[0] ?? ''
+    const name = localStorage.getItem('kicomanda_customer_name')?.split(' ')[0] ?? ''
     setFirstName(name)
     checkAccess().catch(() => setGate('enter'))
   }, [checkAccess])

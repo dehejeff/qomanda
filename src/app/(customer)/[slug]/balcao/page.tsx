@@ -56,8 +56,8 @@ export default function BalcaoPage() {
   const [setupPinConfirm, setSetupPinConfirm] = useState('')
 
   useEffect(() => {
-    const cid = localStorage.getItem('qomanda_customer_id')
-    const cname = localStorage.getItem('qomanda_customer_name') ?? ''
+    const cid = localStorage.getItem('kicomanda_customer_id')
+    const cname = localStorage.getItem('kicomanda_customer_name') ?? ''
     if (cid) { setSavedCustomerId(cid); setSavedCustomerName(cname) }
 
     async function loadMode() {
@@ -92,10 +92,10 @@ export default function BalcaoPage() {
         toast.error(data.error ?? 'Erro no check-in.')
         return false
       }
-      localStorage.setItem('qomanda_session_id', data.sessionId)
-      localStorage.setItem('qomanda_customer_id', data.customerId)
-      localStorage.setItem('qomanda_service_mode', 'counter')
-      if (displayName) localStorage.setItem('qomanda_customer_name', displayName)
+      localStorage.setItem('kicomanda_session_id', data.sessionId)
+      localStorage.setItem('kicomanda_customer_id', data.customerId)
+      localStorage.setItem('kicomanda_service_mode', 'counter')
+      if (displayName) localStorage.setItem('kicomanda_customer_name', displayName)
       router.push(`/${slug}/menu?session=${data.sessionId}`)
       return true
     } finally {

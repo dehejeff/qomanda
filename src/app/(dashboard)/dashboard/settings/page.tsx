@@ -491,7 +491,7 @@ export default function SettingsPage() {
   const [wpTesting, setWpTesting] = useState(false)
   const [wpTestPhone, setWpTestPhone] = useState('')
 
-  // Conta bancária de repasse (Qomanda Pay)
+  // Conta bancária de repasse (KiComanda Pay)
   const [payoutAccount, setPayoutAccount] = useState<PayoutBankAccountDto | null>(null)
   const [payoutLoading, setPayoutLoading] = useState(true)
   const [payoutSaving, setPayoutSaving] = useState(false)
@@ -559,7 +559,7 @@ export default function SettingsPage() {
       if (res.ok) {
         setAsaasStatus(data)
         if (data.status === 'approved' && payoutAccount) {
-          setPayoutAccount({ ...payoutAccount, digitalStatus: 'active', digitalStatusLabel: 'Qomanda Pay ativo' })
+          setPayoutAccount({ ...payoutAccount, digitalStatus: 'active', digitalStatusLabel: 'KiComanda Pay ativo' })
         }
         if (data.status === 'approved') toast.success('Conta aprovada! PIX e cartão liberados.')
         else if (data.refreshed) toast.message('Ainda em análise. Tente novamente em breve.')
@@ -725,7 +725,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `qomanda-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `kicomanda-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -854,7 +854,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Link do cardápio</label>
                     <div className="h-10 px-3 rounded-lg text-sm font-mono flex items-center bg-surface-dim border border-outline-variant text-on-surface-variant">
-                      qomanda.app/<span className="text-primary">{profile?.slug ?? '...'}</span>
+                      kicomanda.app/<span className="text-primary">{profile?.slug ?? '...'}</span>
                     </div>
                   </div>
 
@@ -878,7 +878,7 @@ export default function SettingsPage() {
       {tab === 'pagamentos' && (
         <div className="space-y-card-gap">
           <RestaurantGatewayPanel />
-          {/* Qomanda Pay + conta bancária (legado marketplace — opcional) */}
+          {/* KiComanda Pay + conta bancária (legado marketplace — opcional) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
             <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -888,7 +888,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h2 className="text-base font-semibold text-on-surface">Qomanda Pay</h2>
+                    <h2 className="text-base font-semibold text-on-surface">KiComanda Pay</h2>
                     <span className={`px-2 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider rounded border ${
                       digitalActive
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -1085,7 +1085,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
-                        Status Qomanda Pay
+                        Status KiComanda Pay
                       </p>
                       {digitalActive ? (
                         <div className="flex items-center gap-2">
@@ -1215,7 +1215,7 @@ export default function SettingsPage() {
             <div className="px-6 py-5 border-b border-outline-variant flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-on-surface">Histórico de Transações</h2>
-                <p className="text-sm text-on-surface-variant">Pagamentos registrados no Qomanda (últimos 100).</p>
+                <p className="text-sm text-on-surface-variant">Pagamentos registrados no KiComanda (últimos 100).</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -1342,7 +1342,7 @@ export default function SettingsPage() {
               <h2 className="text-base font-semibold text-on-surface mb-1">Notas Fiscais</h2>
               <p className="text-sm text-on-surface-variant leading-relaxed">
                 Notas emitidas automaticamente após cada pagamento confirmado (quando a NF-e está ativa)
-                e enviadas ao cliente por WhatsApp. Configure o emissor e o tipo de nota com a equipe Qomanda.
+                e enviadas ao cliente por WhatsApp. Configure o emissor e o tipo de nota com a equipe KiComanda.
               </p>
             </div>
           </div>
@@ -1352,7 +1352,7 @@ export default function SettingsPage() {
               <h3 className="text-sm font-semibold text-on-surface">Histórico de notas</h3>
               <p className="text-xs text-on-surface-variant">
                 Últimas 100 notas emitidas neste estabelecimento. Baixe os PDFs (DANFE) para seu arquivo —
-                após 90 dias as notas são removidas da base Qomanda (você recebe avisos com 20, 15 e 5 dias de antecedência).
+                após 90 dias as notas são removidas da base KiComanda (você recebe avisos com 20, 15 e 5 dias de antecedência).
               </p>
             </div>
             {nfeLoading ? (
@@ -1806,7 +1806,7 @@ export default function SettingsPage() {
                   <input
                     value={wpPhoneId} onChange={e => setWpPhoneId(e.target.value)}
                     placeholder="Ex: 123456789012345"
-                    name="qomanda-whatsapp-phone-id"
+                    name="kicomanda-whatsapp-phone-id"
                     autoComplete="off"
                     inputMode="numeric"
                     className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
@@ -1822,7 +1822,7 @@ export default function SettingsPage() {
                   <input
                     type="password" value={wpToken} onChange={e => setWpToken(e.target.value)}
                     placeholder={wpIntegration?.hasToken ? `Salvo (${wpIntegration.tokenMasked ?? '••••'}) — deixe vazio para manter` : 'EAAxxxxxxxxxxxxx...'}
-                    name="qomanda-whatsapp-access-token"
+                    name="kicomanda-whatsapp-access-token"
                     autoComplete="new-password"
                     className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"
                   />
@@ -1839,7 +1839,7 @@ export default function SettingsPage() {
                 <input
                   value={wpTestPhone} onChange={e => setWpTestPhone(e.target.value)}
                   placeholder="Usa telefone comercial se vazio"
-                  name="qomanda-whatsapp-test-phone"
+                  name="kicomanda-whatsapp-test-phone"
                   autoComplete="off"
                   inputMode="tel"
                   className="h-10 px-3 rounded-lg text-sm font-mono outline-none bg-surface-dim border border-outline-variant text-on-surface focus:border-primary transition-colors"

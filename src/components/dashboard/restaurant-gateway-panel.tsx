@@ -132,7 +132,7 @@ export function RestaurantGatewayPanel() {
         <h3 className="text-lg font-bold text-on-surface mt-1">Pagamentos caem 100% na sua conta</h3>
         <p className="text-sm text-on-surface-variant mt-1">
           PIX manual, Asaas ou Mercado Pago — escolha onde receber PIX e cartão.
-          A Qomanda cobra mensalidade + comissão progressiva na fatura mensal (dia 5).{' '}
+          A KiComanda cobra mensalidade + comissão progressiva na fatura mensal (dia 5).{' '}
           <a href="/dashboard/settings?tab=mensalidade" className="text-primary hover:underline font-mono text-xs">
             Ver mensalidade →
           </a>

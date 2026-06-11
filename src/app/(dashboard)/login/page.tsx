@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { isInvalidRefreshTokenError } from '@/lib/supabase/auth-errors'
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (role !== 'customer') return
-    const cid = localStorage.getItem('qomanda_customer_id')
+    const cid = localStorage.getItem('kicomanda_customer_id')
     if (cid) router.replace('/hub')
   }, [role, router])
 
@@ -119,7 +119,8 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <QomandaLogo size={48} />
+          <KiComandaLogo size={48} />
+          <p className="text-sm font-black tracking-tight text-on-surface">KiComanda</p>
           <div className="text-center">
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>{copy.title}</h1>
             <p className="text-sm mt-1 max-w-[280px] mx-auto leading-relaxed" style={{ color: '#a78b7d' }}>

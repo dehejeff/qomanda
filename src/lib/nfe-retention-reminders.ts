@@ -28,7 +28,7 @@ export function buildNfeRetentionNotification(
 
   const body =
     `${nfeCount} nota${plural ? 's' : ''} fiscal${plural ? 'is' : ''} ` +
-    `será${plural ? 'ão' : ''} excluída${plural ? 's' : ''} da base Qomanda em ${daysBefore} dias ` +
+    `será${plural ? 'ão' : ''} excluída${plural ? 's' : ''} da base KiComanda em ${daysBefore} dias ` +
     `(previsão: ${purgeOn}). Baixe e arquive os PDFs em Configurações → NF-e para sua guarda fiscal.`
 
   return {
@@ -57,9 +57,9 @@ export function buildNfeRetentionEmailHtml(input: {
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><title>Retenção de NF-e — Qomanda</title></head>
+<head><meta charset="utf-8"><title>Retenção de NF-e — KiComanda</title></head>
 <body style="font-family:system-ui,sans-serif;line-height:1.5;color:#1a1a1a;max-width:560px;margin:0 auto;padding:24px">
-  <p style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.08em">Qomanda · Retenção de dados</p>
+  <p style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.08em">KiComanda · Retenção de dados</p>
   <h1 style="font-size:20px;margin:0 0 12px">Olá, ${ownerName}</h1>
   <p>
     O restaurante <strong>${restaurantName}</strong> tem
@@ -69,7 +69,7 @@ export function buildNfeRetentionEmailHtml(input: {
   </p>
   <p>${urgency}</p>
   <p>
-    A Qomanda mantém NF-e por ${FINANCIAL_RETENTION_DAYS} dias por custo operacional e minimização de dados.
+    A KiComanda mantém NF-e por ${FINANCIAL_RETENTION_DAYS} dias por custo operacional e minimização de dados.
     Totais de faturamento mensal permanecem no painel — apenas os arquivos detalhados (PDF/XML) saem do sistema.
   </p>
   <p style="margin:24px 0">
@@ -78,7 +78,7 @@ export function buildNfeRetentionEmailHtml(input: {
     </a>
   </p>
   <p style="font-size:12px;color:#666">
-    Se o botão não funcionar, acesse Configurações → NF-e no painel Qomanda e baixe os PDFs (DANFE) das notas listadas.
+    Se o botão não funcionar, acesse Configurações → NF-e no painel KiComanda e baixe os PDFs (DANFE) das notas listadas.
   </p>
 </body>
 </html>`
@@ -96,9 +96,9 @@ export function buildNfeRetentionEmailText(input: {
   return [
     `Olá, ${ownerName}`,
     '',
-    `${restaurantName}: ${nfeCount} nota${plural ? 's' : ''} fiscal${plural ? 'is' : ''} será${plural ? 'ão' : ''} removida${plural ? 's' : ''} da base Qomanda em ${daysBefore} dias (previsão: ${purgeOn}).`,
+    `${restaurantName}: ${nfeCount} nota${plural ? 's' : ''} fiscal${plural ? 'is' : ''} será${plural ? 'ão' : ''} removida${plural ? 's' : ''} da base KiComanda em ${daysBefore} dias (previsão: ${purgeOn}).`,
     '',
-    'Baixe e arquive os PDFs em Configurações → NF-e no painel Qomanda.',
+    'Baixe e arquive os PDFs em Configurações → NF-e no painel KiComanda.',
     '',
     `Retenção: ${FINANCIAL_RETENTION_DAYS} dias. Totais mensais de faturamento permanecem no sistema.`,
   ].join('\n')

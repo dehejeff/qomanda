@@ -4,7 +4,7 @@
 > em produção. Ordenado: **🔴 bloqueia o go-live** → **🟡 recomendado** → **🟢 quando quiser/escala**.
 >
 > Legenda: ✅ pronto no código · ⏳ ação operacional sua. Última revisão: 2026-06-05.  
-> **Checklist interativo dos 5 pilotos:** [`/pilotos`](https://qomanda-mu.vercel.app/pilotos) (marcações salvas no navegador).
+> **Checklist interativo dos 5 pilotos:** [`/pilotos`](https://kicomanda.app/pilotos) (marcações salvas no navegador).
 
 ---
 
@@ -14,7 +14,7 @@
 - [x] ➖ **Connection pooler (Supavisor 6543)** — N/A no runtime: o app usa `supabase-js`/PostgREST (HTTPS), sem conexão Postgres direta. Pooler só p/ migração/BI. Ver `docs/INFRA-SUPABASE-REGION-POOLER.md`.
 - [ ] ⏳ **Compute do banco** — hoje `t4g.nano` (60 conns); avaliar upgrade e **ativar backups/PITR** antes do go-live.
 - [ ] ⏳ **Deploy na Vercel** com o projeto ligado ao repo (`master`). Plano **Pro** recomendado (timeout 60s, crons confiáveis).
-- [ ] ⏳ **Domínio** apontado (ex.: `qomanda.app`) e `NEXT_PUBLIC_APP_URL` apontando para ele.
+- [ ] ⏳ **Domínios** `kicomanda.app` e `kicomanda.com.br` comprados, DNS na Vercel e `NEXT_PUBLIC_APP_URL=https://kicomanda.app`.
 
 ## 🔴 2. Variáveis de ambiente (Vercel → Production)
 
@@ -24,7 +24,7 @@ Mínimo para operar (ver `docs/DOCUMENTACAO.md` §16 para a lista completa):
 - [ ] ⏳ `CPF_ENCRYPTION_KEY` (64 hex) e `CPF_HASH_SALT` — **não trocar depois** (quebra hashes de CPF)
 - [ ] ⏳ `PLATFORM_SECRETS_KEY` (64 hex) — criptografa credenciais de gateway
 - [ ] ⏳ `CRON_SECRET` — protege as rotas `/api/cron/*` (a Vercel envia no header dos crons)
-- [ ] ⏳ `QOMANDA_STAFF_EMAILS` — e-mails da equipe que acessa `/internal`
+- [ ] ⏳ `KICOMANDA_STAFF_EMAILS` — e-mails da equipe que acessa `/internal`
 - [ ] ⏳ `NEXT_PUBLIC_DEV_BYPASS=false` em produção (NUNCA `true`)
 - [ ] ⏳ `RESEND_API_KEY` — envio real de e-mail (cobrança, lembretes, NF-e retenção). Sem ela, e-mail vira mock.
 - [ ] ⏳ `ASAAS_API_KEY` + `ASAAS_ENVIRONMENT=production` + `ASAAS_WEBHOOK_TOKEN` — cobrança da mensalidade (conta master Qomanda)
@@ -86,9 +86,9 @@ Com o ambiente de staging/produção no ar:
 
 ## 🟢 8. Quando quiser / escala
 
-- [ ] **Mercado Pago OAuth** — criar o app no MP, definir `MERCADO_PAGO_CLIENT_ID/SECRET` e cadastrar o redirect `https://qomanda.app/api/dashboard/gateway/mercadopago/callback` (código pronto).
+- [ ] **Mercado Pago OAuth** — criar o app no MP, definir `MERCADO_PAGO_CLIENT_ID/SECRET` e cadastrar o redirect `https://kicomanda.app/api/dashboard/gateway/mercadopago/callback` (código pronto).
 - [ ] **NF-e real (cliente)** — credenciais Focus NFe por restaurante (hoje em modo simulado).
-- [ ] **NF-e de serviço real** — `QOMANDA_NFE_TOKEN` + `QOMANDA_CNPJ` (hoje simulado).
+- [ ] **NF-e de serviço real** — `KICOMANDA_NFE_TOKEN` + `KICOMANDA_CNPJ` (hoje simulado).
 - [ ] **Impressão na cozinha / KDS** — hoje a cozinha vê os pedidos em tela; não há impressora térmica.
 - [ ] Itens de escala (Fase 1–2 do `ROADMAP.md`): Upstash cache, índices adicionais, workers dedicados, multi-unidades.
 

@@ -23,7 +23,7 @@ function HubReceiptsContent() {
   const [totalReceipts, setTotalReceipts] = useState(0)
 
   useEffect(() => {
-    const cid = localStorage.getItem('qomanda_customer_id')
+    const cid = localStorage.getItem('kicomanda_customer_id')
     if (!cid) {
       router.replace('/login?perfil=cliente')
       return
@@ -66,7 +66,7 @@ function HubReceiptsContent() {
             <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: '#584237' }}>receipt_long</span>
             <p className="text-sm font-semibold">Nenhum recibo ainda</p>
             <p className="text-xs mt-2 leading-relaxed max-w-[260px] mx-auto" style={{ color: '#a78b7d' }}>
-              Após pagar pela Qomanda, seus comprovantes aparecem aqui organizados por restaurante.
+              Após pagar pela KiComanda, seus comprovantes aparecem aqui organizados por restaurante.
             </p>
           </div>
         ) : (

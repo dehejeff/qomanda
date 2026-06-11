@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 const C = {
   bg: '#0b1326', bgCard: '#131b2e', bgCard2: '#1e293b',
@@ -11,18 +11,18 @@ const C = {
   green: '#34d399', amber: '#fbbf24', red: '#f87171', blue: '#7bd0ff',
 }
 const mono = { fontFamily: 'JetBrains Mono, ui-monospace, monospace' }
-const STORAGE_KEY = 'qomanda_pilotos_checklist_v2'
+const STORAGE_KEY = 'kicomanda_pilotos_checklist_v2'
 
 type CheckItem = { id: string; label: string; hint?: string; optional?: boolean }
 
 const PLATFORM_ITEMS: CheckItem[] = [
   { id: 'plat-deploy', label: 'Deploy Vercel ligado ao repo (produção)' },
   { id: 'plat-app-url', label: 'NEXT_PUBLIC_APP_URL apontando para a URL de produção' },
-  { id: 'plat-env', label: 'Variáveis de ambiente em Production', hint: 'Supabase, CPF_ENCRYPTION_KEY, CPF_HASH_SALT, CRON_SECRET, PLATFORM_SECRETS_KEY, QOMANDA_STAFF_EMAILS, NEXT_PUBLIC_DEV_BYPASS=false' },
+  { id: 'plat-env', label: 'Variáveis de ambiente em Production', hint: 'Supabase, CPF_ENCRYPTION_KEY, CPF_HASH_SALT, CRON_SECRET, PLATFORM_SECRETS_KEY, KICOMANDA_STAFF_EMAILS, NEXT_PUBLIC_DEV_BYPASS=false' },
   { id: 'plat-crons', label: 'Crons ativos no painel Vercel', hint: 'process-jobs, monthly-billing, billing-reminders, financial-retention' },
   { id: 'plat-mig-core', label: 'Migrações Supabase — núcleo operacional', hint: 'call-waiter, async-jobs, realtime-notifications, realtime-close-requests, webhook-events, service-nfe, billing-reminders, performance-indexes' },
   { id: 'plat-mig-fila', label: 'Migrações fila (se usar reserva de grupo / WhatsApp na fila)', hint: 'waitlist-allocations → waitlist-notify-contacts', optional: true },
-  { id: 'plat-billing', label: 'Cobrança Qomanda configurada', hint: 'ASAAS_API_KEY master + webhook /api/asaas/webhook + RESEND_API_KEY para e-mails', optional: true },
+  { id: 'plat-billing', label: 'Cobrança KiComanda configurada', hint: 'ASAAS_API_KEY master + webhook /api/asaas/webhook + RESEND_API_KEY para e-mails', optional: true },
   { id: 'plat-smokes', label: 'Smokes automatizados passando', hint: 'npm run smoke:garcom + scripts/smoke/internal-health.mjs' },
   { id: 'plat-load', label: 'Teste de carga baseline', hint: 'npm run load:10x20 (ou contra staging)', optional: true },
   { id: 'plat-health', label: 'Painel /internal/health em 🟢 antes do 1º go-live' },
@@ -60,7 +60,7 @@ const DEFER_ITEMS = [
   'Fila de espera com WhatsApp (após migrações allocations + notify-contacts)',
   'NF-e real Focus NFe (hoje simulado)',
   'Mercado Pago OAuth (token manual basta no piloto)',
-  'Domínio qomanda.app (Vercel .vercel.app serve)',
+  'Domínio kicomanda.app + kicomanda.com.br (comprar e apontar na Vercel)',
 ]
 
 type State = {
@@ -191,7 +191,7 @@ export function PilotosChecklist() {
       <header className="sticky top-0 z-40 px-6 py-4 flex items-center justify-between backdrop-blur-md"
         style={{ background: 'rgba(11,19,38,0.92)', borderBottom: `1px solid ${C.border}` }}>
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <QomandaLogo className="h-7 w-auto" />
+          <KiComandaLogo size={30} />
         </Link>
         <div className="flex items-center gap-3 text-xs" style={{ color: C.muted }}>
           <Link href="/roadmap" className="hover:text-[#dae2fd] hidden sm:inline">Roadmap</Link>
@@ -209,7 +209,7 @@ export function PilotosChecklist() {
             5 primeiros restaurantes
           </h1>
           <p className="text-base leading-relaxed max-w-2xl" style={{ color: C.muted }}>
-            Checklist operacional da equipe Qomanda. Marque conforme avança — o progresso fica salvo neste navegador.
+            Checklist operacional da equipe KiComanda. Marque conforme avança — o progresso fica salvo neste navegador.
             Comece com <strong style={{ color: C.text }}>1 casa na semana 1</strong>; só abra as próximas depois do smoke verde.
           </p>
         </div>
@@ -371,7 +371,7 @@ export function PilotosChecklist() {
           <Link href="/termos" className="hover:opacity-80">Termos</Link>
           <Link href="/privacidade" className="hover:opacity-80">Privacidade</Link>
         </div>
-        <p className="text-xs" style={{ color: C.faint }}>© 2026 Qomanda · Uso interno · equipe piloto</p>
+        <p className="text-xs" style={{ color: C.faint }}>© 2026 KiComanda · Uso interno · equipe piloto</p>
       </footer>
     </div>
   )

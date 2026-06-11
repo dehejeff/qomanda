@@ -29,7 +29,7 @@ export const PLAYBOOK: PlaybookPart[] = [
           { text: 'Forma de recebimento desejada: PIX manual, Asaas ou Mercado Pago' },
           { text: 'Dados bancários / chave PIX do recebimento' },
           { text: 'Cardápio (categorias, itens, preços, fotos) e itens com álcool' },
-          { text: 'Precisa emitir NF-e pela Qomanda? Se já usa PDV/SAT, NF-e é opcional' },
+          { text: 'Precisa emitir NF-e pela KiComanda? Se já usa PDV/SAT, NF-e é opcional' },
           { text: 'Plano contratado (Starter/Growth/Pro) e eventuais taxas custom' },
         ],
       },
@@ -39,7 +39,7 @@ export const PLAYBOOK: PlaybookPart[] = [
         intro: '/internal/clients/new — cadastro com abas.',
         items: [
           { text: 'Aba Estabelecimento: modelo operacional + razão social, CNPJ, endereço, contato' },
-          { text: 'Aba Plano Qomanda: plano, status da assinatura (trial/ativo), taxas custom se houver' },
+          { text: 'Aba Plano KiComanda: plano, status da assinatura (trial/ativo), taxas custom se houver' },
           { text: 'Conferir que o slug ficou correto (vira a URL pública /<slug>)' },
           { text: 'Salvar — o sistema provisiona assinatura/trial automaticamente' },
         ],
@@ -82,7 +82,7 @@ export const PLAYBOOK: PlaybookPart[] = [
       {
         id: 'impl-nfe',
         title: '6. NF-e (opcional)',
-        intro: 'Só se a Qomanda for emitir. Caso contrário, pular.',
+        intro: 'Só se a KiComanda for emitir. Caso contrário, pular.',
         items: [
           { text: 'Definir o tipo de nota por restaurante (NFC-e modelo 65 ou NFS-e)' },
           { text: 'Sem credenciais Focus NFe → roda em modo SIMULADO (testável, não vale fiscalmente)' },

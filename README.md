@@ -1,4 +1,4 @@
-# Qomanda
+# KiComanda
 
 Plataforma SaaS de **cardápio digital**, **pedidos na mesa** e **pagamento integrado** para restaurantes e bares.
 
@@ -6,7 +6,7 @@ Plataforma SaaS de **cardápio digital**, **pedidos na mesa** e **pagamento inte
 - **Dashboard (restaurante):** mesas, pedidos, cardápio, pagamentos, integrações, suporte
 - **Portal interno (staff Qomanda):** overview comercial, clientes, suporte, gateway Pay
 
-Deploy: [qomanda-mu.vercel.app](https://qomanda-mu.vercel.app)
+Deploy: [kicomanda.app](https://kicomanda.app)
 
 ---
 
@@ -70,7 +70,7 @@ Com `NEXT_PUBLIC_DEV_BYPASS=true`, auth é ignorada em dev (dashboard e portal i
 node scripts/setup-internal-staff.mjs
 ```
 
-Requer `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. Define `QOMANDA_STAFF_EMAILS` no Vercel para fallback de acesso.
+Requer `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. Define `KICOMANDA_STAFF_EMAILS` no Vercel para fallback de acesso.
 
 ---
 
@@ -89,7 +89,7 @@ CPF_ENCRYPTION_KEY=                # 64 chars hex
 CPF_HASH_SALT=                     # 64 chars hex
 
 NEXT_PUBLIC_APP_URL=https://...
-QOMANDA_STAFF_EMAILS=ops@qomanda.com
+KICOMANDA_STAFF_EMAILS=ops@qomanda.com
 
 # Opcional — criptografia credenciais gateway plataforma
 PLATFORM_SECRETS_KEY=

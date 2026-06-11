@@ -1,5 +1,5 @@
 /**
- * Modelos operacionais Qomanda — preset no cadastro deixa ~90% configurado.
+ * Modelos operacionais KiComanda — preset no cadastro deixa ~90% configurado.
  * Só falta gateway de pagamento (+ cardápio/mesas conforme o modelo).
  */
 
@@ -81,7 +81,7 @@ export const RESTAURANT_MODELS: RestaurantModelDef[] = [
     setupSteps: [
       'Cadastrar chave PIX (ou conectar Asaas)',
       'Publicar cardápio',
-      'Divulgar link do balcão (qomanda.app/seu-slug/balcao)',
+      'Divulgar link do balcão (kicomanda.app/seu-slug/balcao)',
     ],
   },
   {
@@ -157,7 +157,7 @@ export const RESTAURANT_MODELS: RestaurantModelDef[] = [
     setupSteps: [
       'Cadastrar chave PIX (ou conectar Asaas)',
       'Publicar cardápio (todas as cozinhas/estações)',
-      'Divulgar link do balcão (qomanda.app/seu-slug/balcao)',
+      'Divulgar link do balcão (kicomanda.app/seu-slug/balcao)',
     ],
   },
 ]

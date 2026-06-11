@@ -38,7 +38,7 @@ export function readTableCheckInQuery(searchParams?: Pick<URLSearchParams, 'get'
   }
 }
 
-const PENDING_CHECKIN_KEY = 'qomanda_pending_table_checkin'
+const PENDING_CHECKIN_KEY = 'kicomanda_pending_table_checkin'
 const PENDING_TTL_MS = 30 * 60 * 1000
 
 export function stashPendingTableCheckIn(slug: string, mesa: string, token: string) {
@@ -111,7 +111,7 @@ export function parseCheckInTargetFromQr(rawValue: string): string | null {
   try {
     const url = raw.includes('://')
       ? new URL(raw)
-      : new URL(raw.startsWith('/') ? raw : `/${raw}`, 'https://qomanda.local')
+      : new URL(raw.startsWith('/') ? raw : `/${raw}`, 'https://kicomanda.local')
     pathname = url.pathname.replace(/\/$/, '') || url.pathname
     search = url.search
   } catch {
@@ -149,7 +149,7 @@ export type ParsedCheckInPath = {
 
 export function parseCheckInPath(relativePath: string): ParsedCheckInPath | null {
   try {
-    const url = new URL(relativePath.startsWith('/') ? relativePath : `/${relativePath}`, 'https://qomanda.local')
+    const url = new URL(relativePath.startsWith('/') ? relativePath : `/${relativePath}`, 'https://kicomanda.local')
     const slug = url.pathname.split('/').filter(Boolean)[0]
     const mesa = url.searchParams.get('mesa')
     const token = url.searchParams.get('t') ?? url.searchParams.get('token')

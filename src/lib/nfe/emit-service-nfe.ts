@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { FocusNfeAdapter } from '@/lib/nfe/focus-nfe'
-import { getQomandaFiscalConfig } from '@/lib/nfe/qomanda-fiscal'
+import { getKiComandaFiscalConfig } from '@/lib/nfe/kicomanda-fiscal'
 import type { NfeEmitResult } from '@/lib/nfe/types'
 import { sendTransactionalEmail } from '@/lib/send-email'
 
@@ -14,10 +14,10 @@ export type EmitServiceNfeOutcome = {
 const focus = new FocusNfeAdapter()
 
 /**
- * Emite a NF-e de serviço (NFS-e) da Qomanda para o CNPJ do restaurante,
+ * Emite a NF-e de serviço (NFS-e) da KiComanda para o CNPJ do restaurante,
  * referente a uma fatura de mensalidade (billing_invoices). Idempotente por fatura.
  *
- * Degradável: sem credenciais fiscais da Qomanda, grava 'simulated' (fluxo testável)
+ * Degradável: sem credenciais fiscais da KiComanda, grava 'simulated' (fluxo testável)
  * em vez de chamar a prefeitura/provedor. Nunca lança — sempre retorna outcome.
  *
  * @param opts.requirePaid quando true (gatilho automático), só emite se a fatura
@@ -65,12 +65,12 @@ export async function emitServiceNfeForInvoice(
     const tomadorDoc = (r.document_number ?? '').replace(/\D/g, '')
     if (!tomadorDoc) return { emitted: false, reason: 'tomador_document_missing' }
 
-    const config = getQomandaFiscalConfig()
+    const config = getKiComandaFiscalConfig()
     const description = invoice.notes?.trim() || config.serviceDescription
 
     let result: NfeEmitResult
     if (!config.hasCredentials) {
-      // Modo simulado — Qomanda ainda sem credenciais fiscais reais.
+      // Modo simulado — KiComanda ainda sem credenciais fiscais reais.
       result = { status: 'simulated' }
     } else {
       result = await focus.emit({
@@ -115,7 +115,7 @@ export async function emitServiceNfeForInvoice(
     if (deliverable && r.contact_email) {
       const sent = await sendTransactionalEmail({
         to: r.contact_email,
-        subject: `[Qomanda] Nota fiscal de serviço — ${formatPeriod(invoice.period_start, invoice.period_end)}`,
+        subject: `[KiComanda] Nota fiscal de serviço — ${formatPeriod(invoice.period_start, invoice.period_end)}`,
         html: buildServiceNfeEmailHtml({
           restaurantName: r.legal_name ?? r.name,
           amount,
@@ -163,12 +163,12 @@ function buildServiceNfeEmailHtml(p: {
     : `<p>Sua nota está sendo emitida e o PDF chegará por aqui em instantes.</p>`
   return `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
-      <h2 style="color:#f97316">Nota fiscal de serviço — Qomanda</h2>
+      <h2 style="color:#f97316">Nota fiscal de serviço — KiComanda</h2>
       <p>Olá, <strong>${p.restaurantName}</strong>.</p>
       <p>Referente a: ${p.description}.</p>
       <p><strong>Valor:</strong> ${brl(p.amount)}</p>
       ${linkBlock}
-      <p style="font-size:12px;color:#888;margin-top:24px">Qomanda — plataforma de gestão para restaurantes.</p>
+      <p style="font-size:12px;color:#888;margin-top:24px">KiComanda — plataforma de gestão para restaurantes.</p>
     </div>`
 }
 
@@ -181,5 +181,5 @@ function buildServiceNfeEmailText(p: {
   const link = p.status === 'issued' && p.danfeUrl
     ? `Baixar PDF: ${p.danfeUrl}`
     : 'Sua nota está sendo emitida e o PDF chegará em instantes.'
-  return `Nota fiscal de serviço — Qomanda\n\nOlá, ${p.restaurantName}.\nValor: ${brl(p.amount)}\n${link}\n\nQomanda`
+  return `Nota fiscal de serviço — KiComanda\n\nOlá, ${p.restaurantName}.\nValor: ${brl(p.amount)}\n${link}\n\nKiComanda`
 }

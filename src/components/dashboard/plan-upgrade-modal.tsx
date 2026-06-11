@@ -106,7 +106,7 @@ export function PlanUpgradeModal({
             </div>
           ) : upgrades.length === 0 ? (
             <p className="text-sm text-on-surface-variant text-center py-4">
-              Nenhum plano de upgrade disponível. Entre em contato com a Qomanda.
+              Nenhum plano de upgrade disponível. Entre em contato com a KiComanda.
             </p>
           ) : (
             <div className="space-y-2">

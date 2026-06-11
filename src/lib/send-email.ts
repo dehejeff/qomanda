@@ -1,3 +1,6 @@
+import { BRAND_NAME, NOREPLY_EMAIL } from '@/lib/brand'
+import { fromEmailEnv } from '@/lib/kicomanda-env'
+
 export type SendEmailResult = { ok: true; id?: string; mock?: boolean } | { ok: false; error: string }
 
 type SendEmailInput = {
@@ -13,7 +16,7 @@ type SendEmailInput = {
  */
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
-  const from = process.env.QOMANDA_FROM_EMAIL?.trim() ?? 'Qomanda <noreply@qomanda.com.br>'
+  const from = fromEmailEnv() || `${BRAND_NAME} <${NOREPLY_EMAIL}>`
 
   if (!apiKey) {
     if (process.env.NODE_ENV === 'development') {

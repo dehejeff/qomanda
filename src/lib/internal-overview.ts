@@ -21,15 +21,15 @@ export type OverviewStats = {
   /** Mensalidade de assinaturas já ativas (cobrança em curso) */
   mrrBilled: number
   arr: number
-  /** Volume total pago nas mesas (GMV) — dinheiro do consumidor, não receita Qomanda */
+  /** Volume total pago nas mesas (GMV) — dinheiro do consumidor, não receita KiComanda */
   gmvLast30Days: number
   platformPaymentsLast30Days: number
-  /** Estimativa da taxa Qomanda retida no split (tx %) sobre pagamentos digitais */
+  /** Estimativa da taxa KiComanda retida no split (tx %) sobre pagamentos digitais */
   txRevenueLast30Days: number
   /** Taxa tx média ponderada pelo volume (30d) */
   avgTxFeePercent: number
-  /** Receita Qomanda estimada no período = taxas tx (mensalidade trial ainda não entra) */
-  qomandaRevenueLast30Days: number
+  /** Receita KiComanda estimada no período = taxas tx (mensalidade trial ainda não entra) */
+  kicomandaRevenueLast30Days: number
 }
 
 export type OverviewSeriesPoint = { date: string; count: number; label?: string }
@@ -170,7 +170,7 @@ export async function buildInternalOverview(admin: SupabaseClient): Promise<Inte
     platformPaymentsLast30Days: 0,
     txRevenueLast30Days: 0,
     avgTxFeePercent: 0,
-    qomandaRevenueLast30Days: 0,
+    kicomandaRevenueLast30Days: 0,
   }
 
   const signupByDay = new Map<string, number>()
@@ -236,7 +236,7 @@ export async function buildInternalOverview(admin: SupabaseClient): Promise<Inte
       })
     } else if (c.digital_status === 'pending') {
       attention.push({
-        id: `${c.id}-pay`, name: c.name, slug: c.slug, reason: 'Qomanda Pay em análise',
+        id: `${c.id}-pay`, name: c.name, slug: c.slug, reason: 'KiComanda Pay em análise',
         severity: 'medium', href: `/internal/clients/${c.id}`,
       })
     } else if (!c.payout_configured && c.status === 'active') {
@@ -303,7 +303,7 @@ export async function buildInternalOverview(admin: SupabaseClient): Promise<Inte
     stats.avgTxFeePercent = gmvDigital > 0
       ? Math.round((txRevenue / gmvDigital) * 10000) / 100
       : (clientsEnriched[0]?.platform_fee_percent ?? 0)
-    stats.qomandaRevenueLast30Days = stats.txRevenueLast30Days
+    stats.kicomandaRevenueLast30Days = stats.txRevenueLast30Days
   } catch {
     // ok
   }

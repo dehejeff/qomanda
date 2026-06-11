@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { HubBottomNav } from '@/components/customer/hub-bottom-nav'
 import { TestTableCheckInLink } from '@/components/customer/test-table-checkin-link'
 import {
@@ -15,7 +15,7 @@ import {
 
 type ScanStatus = 'starting' | 'scanning' | 'detected' | 'invalid' | 'denied'
 
-const SCANNER_ID = 'qomanda-qr-reader'
+const SCANNER_ID = 'kicomanda-qr-reader'
 
 export default function ScanPage() {
   const router = useRouter()
@@ -150,8 +150,8 @@ export default function ScanPage() {
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <div className="flex items-center gap-2">
-          <QomandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', color: '#ffffff', letterSpacing: '-0.02em' }}>Qomanda</span>
+          <KiComandaLogo size={28} />
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', color: '#ffffff', letterSpacing: '-0.02em' }}>KiComanda</span>
         </div>
         <div className="w-8" />
       </header>

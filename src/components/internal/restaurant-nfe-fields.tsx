@@ -140,8 +140,8 @@ export function RestaurantNfeFields({ form, setForm, documentType, hasExistingTo
 
       {!isRestaurant && (
         <div className="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant leading-relaxed">
-          <span className="font-semibold text-on-surface">Não confundir:</span> isto <em>não</em> é a nota que a Qomanda emite para cobrar mensalidade ou taxa de transação do restaurante.
-          A cobrança Qomanda → restaurante fica na aba <span className="font-mono text-on-surface">Plano Qomanda</span> e na aba <span className="font-mono text-on-surface">NF-e serviço</span>.
+          <span className="font-semibold text-on-surface">Não confundir:</span> isto <em>não</em> é a nota que a KiComanda emite para cobrar mensalidade ou taxa de transação do restaurante.
+          A cobrança KiComanda → restaurante fica na aba <span className="font-mono text-on-surface">Plano KiComanda</span> e na aba <span className="font-mono text-on-surface">NF-e serviço</span>.
         </div>
       )}
 

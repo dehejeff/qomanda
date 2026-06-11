@@ -32,7 +32,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'modelo', label: 'Modelo' },
   { id: 'estabelecimento', label: 'Estabelecimento' },
   { id: 'nfe_cliente', label: 'NF-e cliente' },
-  { id: 'plano', label: 'Plano Qomanda' },
+  { id: 'plano', label: 'Plano KiComanda' },
   { id: 'nfe_servico', label: 'NF-e serviço' },
 ]
 
@@ -155,8 +155,8 @@ export default function NewClientPage() {
         className="relative bg-surface-container border border-outline-variant rounded-xl p-6 space-y-6"
       >
         <div className="absolute opacity-0 pointer-events-none h-0 overflow-hidden" aria-hidden tabIndex={-1}>
-          <input type="text" name="qomanda_autofill_trap_email" autoComplete="username" tabIndex={-1} defaultValue="" />
-          <input type="password" name="qomanda_autofill_trap_password" autoComplete="current-password" tabIndex={-1} defaultValue="" />
+          <input type="text" name="kicomanda_autofill_trap_email" autoComplete="username" tabIndex={-1} defaultValue="" />
+          <input type="password" name="kicomanda_autofill_trap_password" autoComplete="current-password" tabIndex={-1} defaultValue="" />
         </div>
 
         <InternalFormTabs tabs={TABS} active={tab} onChange={id => setTab(id as TabId)} />
@@ -240,10 +240,10 @@ export default function NewClientPage() {
         {tab === 'plano' && (
           <section className="space-y-4">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Plano Qomanda</p>
-              <h3 className="text-sm font-semibold text-on-surface mt-1">Cobrança Qomanda → restaurante</h3>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Plano KiComanda</p>
+              <h3 className="text-sm font-semibold text-on-surface mt-1">Cobrança KiComanda → restaurante</h3>
               <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                Mensalidade e taxa de transação que o restaurante paga à Qomanda. A NF-e de serviço correspondente fica na aba NF-e serviço.
+                Mensalidade e taxa de transação que o restaurante paga à KiComanda. A NF-e de serviço correspondente fica na aba NF-e serviço.
               </p>
             </div>
             <select

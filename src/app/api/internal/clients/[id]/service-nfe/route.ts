@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { StaffAuthError, requireStaff } from '@/lib/staff-auth'
 import { emitServiceNfeForInvoice } from '@/lib/nfe/emit-service-nfe'
-import { getQomandaFiscalConfig } from '@/lib/nfe/qomanda-fiscal'
+import { getKiComandaFiscalConfig } from '@/lib/nfe/kicomanda-fiscal'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
-/** GET — lista as NF-e de serviço (Qomanda → restaurante) deste cliente. */
+/** GET — lista as NF-e de serviço (KiComanda → restaurante) deste cliente. */
 export async function GET(_req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return NextResponse.json({ serviceNotes: data ?? [], simulated: !getQomandaFiscalConfig().hasCredentials })
+    return NextResponse.json({ serviceNotes: data ?? [], simulated: !getKiComandaFiscalConfig().hasCredentials })
   } catch (err) {
     if (err instanceof StaffAuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status })

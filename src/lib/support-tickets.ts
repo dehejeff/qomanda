@@ -25,7 +25,7 @@ export type SupportAuthorType = 'restaurant' | 'staff'
 
 export const SUPPORT_CATEGORIES: { id: SupportTicketCategory; label: string }[] = [
   { id: 'bug', label: 'Problema / bug' },
-  { id: 'payments', label: 'Pagamentos / Qomanda Pay' },
+  { id: 'payments', label: 'Pagamentos / KiComanda Pay' },
   { id: 'nfe', label: 'NF-e' },
   { id: 'billing', label: 'Mensalidade / cobrança' },
   { id: 'account', label: 'Conta e acesso' },

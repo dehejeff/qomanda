@@ -76,10 +76,10 @@ export function TicketThread({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <div>
                 <p className="text-sm font-semibold text-on-surface">
-                  {msg.author_name ?? (isStaff ? 'Equipe Qomanda' : 'Restaurante')}
+                  {msg.author_name ?? (isStaff ? 'Equipe KiComanda' : 'Restaurante')}
                 </p>
                 <p className="text-[10px] font-mono text-on-surface-variant">
-                  {isStaff ? 'Suporte Qomanda' : 'Restaurante'} · {formatWhen(msg.created_at)}
+                  {isStaff ? 'Suporte KiComanda' : 'Restaurante'} · {formatWhen(msg.created_at)}
                 </p>
               </div>
             </div>

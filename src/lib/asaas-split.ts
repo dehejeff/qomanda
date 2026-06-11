@@ -1,8 +1,8 @@
 /**
  * Cálculo do split do marketplace Asaas.
  *
- * A Qomanda (conta master) cria a cobrança e envia a parte do restaurante
- * para a subconta dele (walletId). A taxa da Qomanda = total − parte do
+ * A KiComanda (conta master) cria a cobrança e envia a parte do restaurante
+ * para a subconta dele (walletId). A taxa da KiComanda = total − parte do
  * restaurante, e fica na conta master (não entra no array de split).
  *
  * Taxa por restaurante (plano): percentual + valor fixo.
@@ -22,7 +22,7 @@ export type AsaasSplitEntry = {
 export type SplitResult = {
   /** Valor líquido enviado ao restaurante (fixedValue do split). */
   restaurantNet: number
-  /** Taxa retida pela Qomanda (fica na conta master). */
+  /** Taxa retida pela KiComanda (fica na conta master). */
   platformFee: number
   /** Array pronto para o campo `split` da cobrança Asaas (vazio se não aplicável). */
   split: AsaasSplitEntry[]

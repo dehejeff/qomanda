@@ -108,8 +108,8 @@ export default function CheckInPage() {
   const cpfValid    = cpfComplete && validateCPF(cpf)
 
   useEffect(() => {
-    const cid = localStorage.getItem('qomanda_customer_id')
-    const cname = localStorage.getItem('qomanda_customer_name') ?? ''
+    const cid = localStorage.getItem('kicomanda_customer_id')
+    const cname = localStorage.getItem('kicomanda_customer_name') ?? ''
     if (cid) {
       setSavedCustomerId(cid)
       setSavedCustomerName(cname)
@@ -183,7 +183,7 @@ export default function CheckInPage() {
     }
     if (loading || !restaurant) return
 
-    const customerId = localStorage.getItem('qomanda_customer_id')
+    const customerId = localStorage.getItem('kicomanda_customer_id')
     if (!customerId) {
       setOpenSession(null)
       return
@@ -247,9 +247,9 @@ export default function CheckInPage() {
 
     const { sessionId, customerId } = (await res.json()) as CheckInResponse
 
-    localStorage.setItem('qomanda_session_id', sessionId)
-    localStorage.setItem('qomanda_customer_id', customerId)
-    localStorage.setItem('qomanda_customer_name', `${name} ${surname}`)
+    localStorage.setItem('kicomanda_session_id', sessionId)
+    localStorage.setItem('kicomanda_customer_id', customerId)
+    localStorage.setItem('kicomanda_customer_name', `${name} ${surname}`)
     setCheckedIn(true)
     setCheckingIn(false)
     clearPendingTableCheckIn()
@@ -414,8 +414,8 @@ export default function CheckInPage() {
     }
 
     const { sessionId, customerId } = (await res.json()) as CheckInResponse
-    localStorage.setItem('qomanda_session_id', sessionId)
-    localStorage.setItem('qomanda_customer_id', customerId)
+    localStorage.setItem('kicomanda_session_id', sessionId)
+    localStorage.setItem('kicomanda_customer_id', customerId)
     setCheckedIn(true)
     setCheckingIn(false)
     clearPendingTableCheckIn()
@@ -935,9 +935,9 @@ export default function CheckInPage() {
         <div className="mt-10 text-center">
           <div className="flex items-center justify-center gap-3 mb-1" style={{ color: 'rgba(218,226,253,0.25)' }}>
             <span className="material-symbols-outlined text-base">wifi</span>
-            <span className="text-xs font-mono">Free Wi-Fi: QOMANDA_GUEST</span>
+            <span className="text-xs font-mono">Free Wi-Fi: KICOMANDA_GUEST</span>
           </div>
-          <p className="text-xs font-mono" style={{ color: 'rgba(218,226,253,0.18)' }}>Powered by Qomanda</p>
+          <p className="text-xs font-mono" style={{ color: 'rgba(218,226,253,0.18)' }}>Powered by KiComanda</p>
         </div>
       </div>
     </div>

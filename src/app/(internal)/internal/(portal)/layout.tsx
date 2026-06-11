@@ -6,7 +6,7 @@ export default async function InternalLayout({ children }: { children: React.Rea
   const session = await getStaffSession()
   if (!session) redirect('/internal/login')
 
-  const staffEmail = session.user.email ?? (isInternalDevBypass() ? 'dev@qomanda.local' : 'staff')
+  const staffEmail = session.user.email ?? (isInternalDevBypass() ? 'dev@kicomanda.local' : 'staff')
 
   return (
     <div className="min-h-screen bg-background">

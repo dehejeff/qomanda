@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
-import { QomandaLogo } from '@/components/qomanda-logo'
+import { KiComandaLogo } from '@/components/kicomanda-logo'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
@@ -49,7 +49,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
 
-    const customerId = typeof window !== 'undefined' ? localStorage.getItem('qomanda_customer_id') : null
+    const customerId = typeof window !== 'undefined' ? localStorage.getItem('kicomanda_customer_id') : null
     const profileUrl = customerId
       ? `/api/customer/profile?session=${sessionId}&customer=${customerId}`
       : `/api/customer/profile?session=${sessionId}`
@@ -71,7 +71,7 @@ export default function ProfilePage() {
 
     async function loadTableState() {
       const supabase = createClient()
-      const customerId = localStorage.getItem('qomanda_customer_id')
+      const customerId = localStorage.getItem('kicomanda_customer_id')
 
       const { data: session } = await supabase
         .from('sessions')
@@ -124,7 +124,7 @@ export default function ProfilePage() {
     })
 
     if (res.ok) {
-      localStorage.setItem('qomanda_customer_name', `${firstName.trim()} ${lastName.trim()}`)
+      localStorage.setItem('kicomanda_customer_name', `${firstName.trim()} ${lastName.trim()}`)
       setData(prev => prev ? { ...prev, firstName: firstName.trim(), lastName: lastName.trim() } : prev)
       toast.success('Dados atualizados!')
       setEditing(false)
@@ -145,7 +145,7 @@ export default function ProfilePage() {
   async function handleLeaveTable() {
     if (!canLeaveTable || !sessionId) return
 
-    const customerId = localStorage.getItem('qomanda_customer_id')
+    const customerId = localStorage.getItem('kicomanda_customer_id')
     if (!customerId) {
       toast.error('Faça login para sair da mesa.')
       return
@@ -393,8 +393,8 @@ export default function ProfilePage() {
 
         <div className="flex flex-col items-center gap-2 py-2">
           <div className="flex items-center gap-2 opacity-30">
-            <QomandaLogo size={16} />
-            <span className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Powered by Qomanda</span>
+            <KiComandaLogo size={18} />
+            <span className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Powered by KiComanda</span>
           </div>
         </div>
       </main>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
+import { ClientStorageBootstrap } from '@/components/client-storage-bootstrap'
 
 export const metadata: Metadata = {
   title: 'KiComanda',
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="h-full antialiased">
+        <ClientStorageBootstrap />
         {children}
         <Toaster position="top-center" richColors />
       </body>

@@ -23,7 +23,7 @@ function row(cells: (string | number | null | undefined)[]): string {
 /** CSV multi-seção (com BOM p/ Excel) do Analytics. */
 export function buildAnalyticsCsv(data: AnalyticsData, periodLabel: string): string {
   const lines: string[] = []
-  lines.push(row(['Qomanda — Analytics', periodLabel]))
+  lines.push(row(['KiComanda — Analytics', periodLabel]))
   lines.push('')
 
   lines.push(row(['Resumo', 'Valor']))
@@ -124,6 +124,6 @@ export function buildAnalyticsHtml(data: AnalyticsData, periodLabel: string, res
   <h2>Faturamento por dia da semana</h2>
   <table><thead><tr><th>Dia</th><th class="r">Faturamento</th><th class="r">Pedidos</th></tr></thead><tbody>${weekdayHtml}</tbody></table>
 
-  <p class="foot">Qomanda · relatório operacional</p>
+  <p class="foot">KiComanda · relatório operacional</p>
 </body></html>`
 }

@@ -108,7 +108,7 @@ export async function requireRestaurantAccess(
   // Sem login real → mock apenas para desenvolvimento local sem Supabase.
   if (DEV_BYPASS) {
     return {
-      user: { id: 'dev-owner', email: 'dev@qomanda.local' } as User,
+      user: { id: 'dev-owner', email: 'dev@kicomanda.local' } as User,
       restaurantId: mockRestaurant.id,
       restaurantName: mockRestaurant.name,
       role: 'owner',
