@@ -68,7 +68,7 @@ const PHASES = [
           'Materiais de vendas e entrega (/materiais-vendas · /materiais-entrega) ✓',
           'Flow A reserva de grupo no grid Mesas + smoke group-reserve ✓',
           'Teste de carga 10×20 (npm run load:10x20) ✓',
-          'Migrações fila allocations + notify-contacts — rodar em prod',
+          'Migrações fila allocations + notify-contacts + whatsapp-templates — rodar em prod',
         ],
       },
     ],

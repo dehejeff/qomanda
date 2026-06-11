@@ -681,19 +681,28 @@ export default function LandingPage() {
 
       {/* ── FOOTER ──────────────────────────────────────────── */}
       <footer className="py-12 px-4 md:px-12 w-full" style={{ borderTop: `1px solid ${C.border}` }}>
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-          <div className="flex items-center gap-2.5">
-            <KiComandaLogo size={28} />
-            <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+        <div className="max-w-6xl mx-auto flex flex-col gap-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="flex items-center justify-center sm:justify-start gap-2.5 shrink-0">
+              <KiComandaLogo size={28} />
+              <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+            </div>
+            <nav
+              className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-3 text-sm"
+              style={{ ...mono, color: C.faint }}
+              aria-label="Links do rodapé"
+            >
+              <Link href="/integracoes" className="hover:opacity-80 transition-opacity whitespace-nowrap">Integrações</Link>
+              <Link href="/roadmap" className="hover:opacity-80 transition-opacity whitespace-nowrap">Roadmap</Link>
+              <Link href="/termos" className="hover:opacity-80 transition-opacity whitespace-nowrap">Termos de uso</Link>
+              <Link href="/privacidade" className="hover:opacity-80 transition-opacity whitespace-nowrap">Privacidade</Link>
+              <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80 transition-opacity whitespace-nowrap">contato@kicomanda.com.br</a>
+            </nav>
           </div>
-          <div className="flex items-center gap-6 text-sm" style={{ ...mono, color: C.faint }}>
-            <Link href="/integracoes" className="hover:opacity-80 transition-opacity">Integrações</Link>
-            <Link href="/roadmap" className="hover:opacity-80 transition-opacity">Roadmap</Link>
-            <Link href="/termos" className="hover:opacity-80 transition-opacity">Termos de uso</Link>
-            <Link href="/privacidade" className="hover:opacity-80 transition-opacity">Privacidade</Link>
-            <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80 transition-opacity">contato@kicomanda.com.br</a>
-          </div>
-          <p className="text-xs" style={{ ...mono, color: C.faint }}>
+          <p
+            className="text-xs text-center sm:text-left pt-6"
+            style={{ ...mono, color: C.faint, borderTop: `1px solid ${C.border}` }}
+          >
             © 2026 KiComanda. Todos os direitos reservados.
           </p>
         </div>

@@ -44,6 +44,7 @@ Ordem completa em `ROADMAP.md` § Migrações. As mais recentes desta fase **pre
 - [ ] ⏳ `migrate-performance-indexes.sql`
 - [ ] ⏳ `migrate-waitlist-allocations.sql`  ← **Flow A/B fila** — reserva de grupo (grid Mesas + apontar mesas na fila); `feature_id` opcional + `table_waitlist_allocations`
 - [ ] ⏳ `migrate-waitlist-notify-contacts.sql`  ← **WhatsApp na fila** — contato secundário + aviso ao chamar mesa (rodar depois de `migrate-waitlist-allocations.sql`)
+- [ ] ⏳ `migrate-waitlist-whatsapp-templates.sql`  ← **textos WhatsApp** customizáveis (Settings → Fila de espera) + confirmação de reserva
 
 ## 🔴 4. Crons (Vercel)
 

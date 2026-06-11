@@ -21,7 +21,7 @@ const PLATFORM_ITEMS: CheckItem[] = [
   { id: 'plat-env', label: 'Variáveis de ambiente em Production', hint: 'Supabase, CPF_ENCRYPTION_KEY, CPF_HASH_SALT, CRON_SECRET, PLATFORM_SECRETS_KEY, KICOMANDA_STAFF_EMAILS, NEXT_PUBLIC_DEV_BYPASS=false' },
   { id: 'plat-crons', label: 'Crons ativos no painel Vercel', hint: 'process-jobs, monthly-billing, billing-reminders, financial-retention' },
   { id: 'plat-mig-core', label: 'Migrações Supabase — núcleo operacional', hint: 'call-waiter, async-jobs, realtime-notifications, realtime-close-requests, webhook-events, service-nfe, billing-reminders, performance-indexes' },
-  { id: 'plat-mig-fila', label: 'Migrações fila (se usar reserva de grupo / WhatsApp na fila)', hint: 'waitlist-allocations → waitlist-notify-contacts', optional: true },
+  { id: 'plat-mig-fila', label: 'Migrações fila (se usar reserva de grupo / WhatsApp na fila)', hint: 'allocations → notify-contacts → whatsapp-templates', optional: true },
   { id: 'plat-billing', label: 'Cobrança KiComanda configurada', hint: 'ASAAS_API_KEY master + webhook /api/asaas/webhook + RESEND_API_KEY para e-mails', optional: true },
   { id: 'plat-smokes', label: 'Smokes automatizados passando', hint: 'npm run smoke:garcom + scripts/smoke/internal-health.mjs' },
   { id: 'plat-load', label: 'Teste de carga baseline', hint: 'npm run load:10x20 (ou contra staging)', optional: true },

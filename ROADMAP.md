@@ -29,6 +29,8 @@
 | **P0** | Connection pooler (Supavisor 6543) | ➖ N/A no runtime (app usa supabase-js/PostgREST; pooler só p/ migração/BI) — ver `docs/INFRA-SUPABASE-REGION-POOLER.md` |
 | **P1** | Migração `migrate-waitlist-allocations.sql` (reserva grupo — Flow A grid + Flow B fila) | ⏳ Pendente — rodar no Supabase |
 | **P1** | Migração `migrate-waitlist-notify-contacts.sql` (WhatsApp na fila + 2ª pessoa) | ⏳ Pendente — rodar no Supabase (após allocations) |
+| **P1** | Migração `migrate-waitlist-whatsapp-templates.sql` (textos WhatsApp fila + confirmação reserva) | ⏳ Pendente — rodar no Supabase (após notify-contacts) |
+| **P1** | Textos WhatsApp customizáveis + confirmação ao reservar mesas | ✅ Feito 2026-06-10 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
 | **P1** | Garçom só entrega + alerta "pedido pronto" (som/vibração/toast) no app do garçom | ✅ Feito 2026-06-06 |
@@ -542,6 +544,7 @@ Cliente confirma pagamento
 | `migrate-recepcionista-role.sql` | Papel **recepcionista** (+ regulariza `caixa`) na constraint de `restaurant_members.role` |
 | `migrate-waitlist-allocations.sql` | ⏳ **Pendente em prod** — `table_waitlist_allocations` + `feature_id` opcional; habilita Flow A (grid Mesas) e Flow B (apontar mesas na fila) |
 | `migrate-waitlist-notify-contacts.sql` | ⏳ **Pendente em prod** — `secondary_name`, `whatsapp_secondary`, `whatsapp_notified_at` na fila; habilita aviso WhatsApp ao chamar mesa + 2ª pessoa do grupo |
+| `migrate-waitlist-whatsapp-templates.sql` | ⏳ **Pendente em prod** — `waitlist_ready_whatsapp_template` + `waitlist_reserve_whatsapp_template`; textos em Settings → Fila de espera |
 
 Demais migrações em `supabase/migrate-*.sql` cobrem hub do cliente, PIN, pagamentos cash, fidelidade, etc.
 

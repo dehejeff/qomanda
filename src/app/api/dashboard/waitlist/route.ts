@@ -238,6 +238,8 @@ export async function POST(req: NextRequest) {
         await admin.from('table_waitlist_allocations')
           .insert(freeIds.map(tid => ({ waitlist_id: entry.id, table_id: tid })))
         await admin.from('tables').update({ status: 'reserved' }).in('id', freeIds).eq('restaurant_id', access.restaurantId)
+        const { enqueueWaitlistReserveNotifications } = await import('@/lib/waitlist-notify')
+        await enqueueWaitlistReserveNotifications(admin, entry.id)
         return NextResponse.json({ ok: true, reserved: freeIds.length, entryId: entry.id })
       }
       case 'allocate': {
@@ -261,6 +263,8 @@ export async function POST(req: NextRequest) {
         await admin.from('table_waitlist_allocations')
           .upsert(freeIds.map(tid => ({ waitlist_id: body.entryId, table_id: tid })), { onConflict: 'waitlist_id,table_id' })
         await admin.from('tables').update({ status: 'reserved' }).in('id', freeIds).eq('restaurant_id', access.restaurantId)
+        const { enqueueWaitlistReserveNotifications } = await import('@/lib/waitlist-notify')
+        await enqueueWaitlistReserveNotifications(admin, body.entryId!)
         return NextResponse.json({ ok: true, reserved: freeIds.length })
       }
       default:

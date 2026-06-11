@@ -17,6 +17,8 @@
 - **Canal de aviso:** **in-app** (banner + som) **e WhatsApp** (fila assíncrona
   `whatsapp_send`) quando o restaurante tem WhatsApp Business configurado.
   Contato secundário opcional na mesma entrada da fila.
+- **Textos WhatsApp:** customizáveis em **Settings → Fila de espera** (templates
+  com placeholders). Confirmação automática ao **reservar mesas** (grid ou fila).
 - **Escopo:** vale para qualquer mesa com tag (salão e balcão). O gatilho é
   "mesa fica livre"; no balcão é preciso cadastrar lugares específicos como
   mesas (o `BALCAO` único compartilhado não tem ciclo livre/ocupado por assento).
@@ -34,6 +36,7 @@
 > **Migrações pendentes** (ver `docs/GO-LIVE-CHECKLIST.md` §3):
 > 1. `migrate-waitlist-allocations.sql` — reserva de grupo (Flow A grid Mesas + Flow B fila)
 > 2. `migrate-waitlist-notify-contacts.sql` — 2ª pessoa + aviso WhatsApp ao chamar mesa
+> 3. `migrate-waitlist-whatsapp-templates.sql` — textos customizáveis (Settings)
 
 **RLS / PII:** `table_features` e `table_feature_map` têm leitura pública (o
 cliente vê as tags) e escrita do dono. `table_waitlist` guarda PII (nome/zap) —

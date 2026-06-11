@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireOwnerAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
+import {
+  DEFAULT_WAITLIST_READY_TEMPLATE,
+  DEFAULT_WAITLIST_RESERVE_TEMPLATE,
+  normalizeWaitlistTemplateInput,
+} from '@/lib/waitlist-messages'
 
 export type TableFeature = { id: string; name: string; emoji: string | null }
 export type TableFeatureAssignment = { table_id: string; feature_id: string }
@@ -15,13 +20,20 @@ export async function GET() {
       admin.from('table_features').select('id, name, emoji').eq('restaurant_id', access.restaurantId).order('created_at'),
       admin.from('table_feature_map').select('table_id, feature_id, feature:table_features!inner(restaurant_id)')
         .eq('feature.restaurant_id', access.restaurantId),
-      admin.from('restaurants').select('waitlist_tolerance_minutes').eq('id', access.restaurantId).single(),
+      admin.from('restaurants').select(
+        'waitlist_tolerance_minutes, waitlist_ready_whatsapp_template, waitlist_reserve_whatsapp_template',
+      ).eq('id', access.restaurantId).single(),
     ])
 
+    const r = restaurantRes.data
     return NextResponse.json({
       features: (featuresRes.data ?? []) as TableFeature[],
       assignments: (mapRes.data ?? []).map((m: { table_id: string; feature_id: string }) => ({ table_id: m.table_id, feature_id: m.feature_id })),
-      toleranceMinutes: Number(restaurantRes.data?.waitlist_tolerance_minutes ?? 10),
+      toleranceMinutes: Number(r?.waitlist_tolerance_minutes ?? 10),
+      readyWhatsappTemplate: r?.waitlist_ready_whatsapp_template ?? null,
+      reserveWhatsappTemplate: r?.waitlist_reserve_whatsapp_template ?? null,
+      defaultReadyWhatsappTemplate: DEFAULT_WAITLIST_READY_TEMPLATE,
+      defaultReserveWhatsappTemplate: DEFAULT_WAITLIST_RESERVE_TEMPLATE,
     })
   } catch (err) {
     if (err instanceof RestaurantAuthError) return NextResponse.json({ error: err.message }, { status: err.status })
@@ -114,19 +126,34 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-/** PATCH — tolerância (minutos) { minutes }. */
+/** PATCH — tolerância e/ou templates WhatsApp da fila. */
 export async function PATCH(req: NextRequest) {
   try {
     const access = await requireOwnerAccess()
     const admin = createAdminClient()
-    const { minutes } = (await req.json()) as { minutes?: number }
-    const value = Math.max(1, Math.min(120, Math.round(Number(minutes) || 10)))
-    const { error } = await admin
-      .from('restaurants')
-      .update({ waitlist_tolerance_minutes: value })
-      .eq('id', access.restaurantId)
-    if (error) return NextResponse.json({ error: 'Erro ao salvar tolerância.' }, { status: 400 })
-    return NextResponse.json({ ok: true, toleranceMinutes: value })
+    const body = (await req.json()) as {
+      minutes?: number
+      readyWhatsappTemplate?: string | null
+      reserveWhatsappTemplate?: string | null
+    }
+
+    const patch: Record<string, unknown> = {}
+    if (body.minutes != null) {
+      patch.waitlist_tolerance_minutes = Math.max(1, Math.min(120, Math.round(Number(body.minutes) || 10)))
+    }
+    if ('readyWhatsappTemplate' in body) {
+      patch.waitlist_ready_whatsapp_template = normalizeWaitlistTemplateInput(body.readyWhatsappTemplate)
+    }
+    if ('reserveWhatsappTemplate' in body) {
+      patch.waitlist_reserve_whatsapp_template = normalizeWaitlistTemplateInput(body.reserveWhatsappTemplate)
+    }
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'Nada para salvar.' }, { status: 400 })
+    }
+
+    const { error } = await admin.from('restaurants').update(patch).eq('id', access.restaurantId)
+    if (error) return NextResponse.json({ error: 'Erro ao salvar configurações da fila.' }, { status: 400 })
+    return NextResponse.json({ ok: true, ...patch })
   } catch (err) {
     if (err instanceof RestaurantAuthError) return NextResponse.json({ error: err.message }, { status: err.status })
     console.error('[table-features PATCH]', err)
