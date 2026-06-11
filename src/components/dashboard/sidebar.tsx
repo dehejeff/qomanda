@@ -52,7 +52,7 @@ export function DashboardSidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-surface-container border-r border-outline-variant p-4 gap-base z-50">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-surface-container border-r border-outline-variant p-4 gap-base z-50 overflow-y-auto">
         {/* Logo */}
         <div className="flex flex-col gap-1 px-2 mb-8">
           <div className="flex items-center gap-2.5">
