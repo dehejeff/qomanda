@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   description: 'Cardápio digital e pagamento para restaurantes',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'KiComanda' },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icons/icon.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: [{ url: '/icons/icon.png', type: 'image/png', sizes: '180x180' }],
+    shortcut: '/favicon.ico',
+  },
 }
 
 export const viewport: Viewport = {
