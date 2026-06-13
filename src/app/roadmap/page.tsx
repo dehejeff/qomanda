@@ -10,6 +10,18 @@ const C = {
 const font = { fontFamily: 'Geist, system-ui, sans-serif' }
 const mono = { fontFamily: 'JetBrains Mono, monospace' }
 
+const DONE_SUFFIX = /\s✓\s*$/
+
+function isRoadmapItemDone(item: string, phaseStatus: string) {
+  return phaseStatus === 'done' || DONE_SUFFIX.test(item)
+}
+
+function roadmapItemIcon(done: boolean, phaseStatus: string) {
+  if (done) return 'check_circle'
+  if (phaseStatus === 'next') return 'radio_button_unchecked'
+  return 'circle'
+}
+
 /** Ordem planejada de integração — mesma sequência do ROADMAP.md */
 const GATEWAY_ORDER = [
   { order: 1, name: 'PIX manual', methods: 'PIX', connection: 'Chave PIX do restaurante + confirmação no painel', when: 'Disponível', status: 'done' as const },
@@ -77,16 +89,16 @@ const PHASES = [
     id: 'gateways',
     label: 'Pagamentos',
     title: 'Gateways — ordem de integração',
-    status: 'planned',
+    status: 'next',
     color: C.amber,
-    period: 'v1 disponível · v2 em diante',
+    period: 'v1 (#1–4) pronto · #5–8 planejados',
     groups: [
       {
         title: 'Regra em todos',
         items: [
-          '100% do valor na conta do restaurante',
-          'Comissão KiComanda faturada todo dia 5 (sem split na hora)',
-          'Um gateway ativo por restaurante no Settings',
+          '100% do valor na conta do restaurante ✓',
+          'Comissão KiComanda faturada todo dia 5 (sem split na hora) ✓',
+          'Um gateway ativo por restaurante no Settings ✓',
         ],
       },
       {
@@ -96,15 +108,15 @@ const PHASES = [
           '6 · Stone — API e-commerce (2027)',
           '7 · Cielo — checkout crédito/débito (2027)',
           '8 · Getnet — backlog enterprise',
-          'OAuth Mercado Pago (hoje: access token manual)',
+          'OAuth Mercado Pago — código pronto · falta app MP + env',
         ],
       },
       {
         title: 'Arquitetura',
         items: [
           'Interface PaymentProvider unificada',
-          'Webhooks → confirmPaymentRecord + comissão',
-          'Credenciais criptografadas por restaurante',
+          'Webhooks → confirmPaymentRecord + comissão ✓',
+          'Credenciais criptografadas por restaurante ✓',
         ],
       },
     ],
@@ -203,7 +215,7 @@ const PHASES = [
           'Modo balcão + pedido # ✓',
           'Garçom confirma PIX/dinheiro no app (/garcom) ✓',
           'Cobrança automática mensalidade SaaS (cron dia 5) ✓',
-          'NF-e de serviço KiComanda → restaurante (junto com fatura)',
+          'NF-e de serviço KiComanda → restaurante (simulado; real via env) ✓',
         ],
       },
       {
@@ -221,9 +233,9 @@ const PHASES = [
         title: '3 · Operação',
         items: [
           'Suporte com tickets — restaurante e equipe KiComanda ✓',
-          'Webhook de pagamentos robusto (retry, idempotência, logs)',
-          'Botão "Chamar Garçom" — notificação no dashboard',
-          'OAuth connect Mercado Pago (substituir token manual)',
+          'Webhook de pagamentos robusto (retry, idempotência, logs) ✓',
+          'Botão "Chamar Garçom" — sino no dashboard + banner no garçom ✓',
+          'OAuth connect Mercado Pago — código pronto · falta app MP + domínio',
         ],
       },
     ],
@@ -239,28 +251,28 @@ const PHASES = [
       {
         title: 'Decisão — manter Vercel + Supabase',
         items: [
-          'App Next.js na Vercel Pro — escala HTTP/SSR automaticamente',
-          'Supabase Pro (sa-east-1) — Postgres, Auth, Realtime, Storage',
-          'Gargalo atual: NF-e + WhatsApp síncronos no confirm-payment, não a Vercel',
+          'Decisão arquitetura Vercel + Supabase (sem migrar GCP) ✓',
+          'Supabase em sa-east-1 (São Paulo) ✓',
+          'Upgrade Vercel Pro + Supabase Pro — pendente plano pago',
         ],
       },
       {
         title: 'Fase 0 — Agora (~20 restaurantes)',
         items: [
-          'Supabase Pro + região sa-east-1 + connection pooler (Supavisor)',
-          'Fila assíncrona — NF-e (Focus) e WhatsApp fora do request de pagamento',
-          'Webhooks idempotentes — Asaas e Mercado Pago (event_id + fila)',
-          'Sentry + alertas em erro 5xx (API routes e jobs)',
-          'Runbook — pagamento OK mesmo se NF-e/WhatsApp atrasarem',
+          'Fila assíncrona — NF-e e WhatsApp fora do request de pagamento ✓',
+          'Webhooks idempotentes — Asaas e Mercado Pago ✓',
+          'Sentry — wiring no código ✓ · conta/DSN + alertas pendente',
+          'Runbook modo degradado — pendente (ver UPGRADE-PLANOS-PAGOS.md)',
+          'Connection pooler (6543) — N/A no runtime (PostgREST/HTTPS)',
         ],
       },
       {
         title: 'Fase 1 — Crescimento (~100 restaurantes)',
         items: [
-          'Upstash Redis — rate limit, cache de cardápio, locks',
-          'WhatsApp em fila com throttle por restaurante (limites Meta)',
-          'Teste de carga — 10 restaurantes × 20 mesas em paralelo',
-          'Monitoramento Postgres — índices, CPU, conexões',
+          'Rate limiting — lib pronta ✓ · Upstash Redis pendente env',
+          'WhatsApp em fila com throttle por restaurante ✓',
+          'Teste de carga 10×20 — harness ✓ · baseline staging pendente',
+          'Índices Postgres ✓ · alertas CPU/conexões pendente',
         ],
       },
       {
@@ -320,10 +332,10 @@ const PHASES = [
       {
         title: 'Analytics',
         items: [
-          'Gráfico de receita por período',
-          'Ranking de pratos mais pedidos e horário de pico',
-          'Ticket médio por mesa e por cliente',
-          'Exportação de relatórios (CSV/PDF)',
+          'Gráfico de receita por período ✓',
+          'Ranking de pratos mais pedidos e horário de pico ✓',
+          'Ticket médio por mesa e por cliente ✓',
+          'Exportação de relatórios (CSV + HTML imprimível) ✓',
         ],
       },
       {
@@ -332,7 +344,7 @@ const PHASES = [
           'App Garçom mobile (/garcom) — pedidos, pagamentos, mesas ✓',
           'Confirmar PIX manual e dinheiro na mesa ✓',
           'Gestão de equipe — convite de garçons (Settings → Equipe) ✓',
-          'Receber e responder alertas "Chamar Garçom"',
+          'Alertas "Chamar Garçom" — sino dashboard + banner garçom ✓',
           'Controle de acesso refinado por perfil',
           '2FA e histórico de sessões do administrador',
         ],
@@ -341,7 +353,8 @@ const PHASES = [
         title: 'Comunicação',
         items: [
           'WhatsApp Business API — confirmação de pedidos',
-          'Envio de nota fiscal via WhatsApp',
+          'Envio de nota fiscal via WhatsApp (após pagamento, se habilitado) ✓',
+          'WhatsApp na fila de espera + templates customizáveis ✓',
           'Campanhas de promoção para clientes fiéis',
         ],
       },
@@ -373,7 +386,9 @@ const PHASES = [
       {
         title: 'Produto',
         items: [
-          'PWA instalável (manifest + service worker) — parcial',
+          'PWA instalável (manifest + service worker) ✓',
+          'Fila de espera por seção — cliente + garçom/recepção ✓',
+          'Reserva de grupo (várias mesas) — grid Mesas + fila ✓',
           'Sistema de reservas com confirmação via WhatsApp',
           'Multi-cardápio por turno (almoço / jantar)',
           'Reembolsos e disputas no painel',
@@ -398,7 +413,7 @@ const STATUS_SUMMARY = [
   { label: 'WhatsApp (config + envio NF-e)', pct: 60, color: C.amber  },
   { label: 'Onboarding restaurante',        pct: 92, color: C.green  },
   { label: 'Infraestrutura & escala',       pct: 20, color: C.amber  },
-  { label: 'Observabilidade (Sentry)',      pct: 10, color: C.red    },
+  { label: 'Observabilidade (Sentry)',      pct: 85, color: C.amber  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
 ]
 
@@ -518,7 +533,7 @@ export default function RoadmapPage() {
         {/* Progress overview */}
         <div className="rounded-2xl p-6 mb-16" style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ ...mono, color: C.muted }}>
-            Status do produto · Junho 2026 (atualizado 03/06)
+            Status do produto · Junho 2026 (atualizado 12/06)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STATUS_SUMMARY.map(s => (
@@ -566,15 +581,22 @@ export default function RoadmapPage() {
                       {group.title}
                     </p>
                     <ul className="space-y-2.5">
-                      {group.items.map(item => (
-                        <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: phase.status === 'done' ? C.text : C.muted }}>
-                          <span className="material-symbols-outlined text-[14px] shrink-0 mt-0.5"
-                            style={{ color: phase.color, fontVariationSettings: phase.status === 'done' ? "'FILL' 1" : "'FILL' 0" }}>
-                            {phase.status === 'done' ? 'check_circle' : phase.status === 'next' ? 'radio_button_unchecked' : 'circle'}
-                          </span>
-                          {item}
-                        </li>
-                      ))}
+                      {group.items.map(item => {
+                        const done = isRoadmapItemDone(item, phase.status)
+                        return (
+                          <li key={item} className="flex items-start gap-2.5 text-sm"
+                            style={{ color: done ? C.text : C.muted }}>
+                            <span className="material-symbols-outlined text-[14px] shrink-0 mt-0.5"
+                              style={{
+                                color: done ? C.green : phase.color,
+                                fontVariationSettings: done ? "'FILL' 1" : "'FILL' 0",
+                              }}>
+                              {roadmapItemIcon(done, phase.status)}
+                            </span>
+                            {item}
+                          </li>
+                        )
+                      })}
                     </ul>
                   </div>
                 ))}

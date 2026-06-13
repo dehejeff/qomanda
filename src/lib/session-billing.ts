@@ -42,8 +42,35 @@ export function isBillableOrder(order: Pick<Order, 'status'>) {
   return order.status !== 'cancelled'
 }
 
+export function billableItemQuantity(item: {
+  quantity: number
+  cancelled_qty?: number | null
+  cancelled_at?: string | null
+}) {
+  if (item.cancelled_at) return 0
+  const cancelled = Math.max(0, Number(item.cancelled_qty ?? 0))
+  return Math.max(0, item.quantity - cancelled)
+}
+
+export function isBillableItem(item: {
+  quantity: number
+  cancelled_qty?: number | null
+  cancelled_at?: string | null
+}) {
+  return billableItemQuantity(item) > 0
+}
+
+export function orderItemLineTotal(item: {
+  unit_price: number
+  quantity: number
+  cancelled_qty?: number | null
+  cancelled_at?: string | null
+}) {
+  return item.unit_price * billableItemQuantity(item)
+}
+
 export function orderSubtotal(order: Order) {
-  return (order.items ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0)
+  return (order.items ?? []).reduce((s, i) => s + orderItemLineTotal(i), 0)
 }
 
 export function ordersSubtotal(orders: Order[]) {
@@ -69,7 +96,7 @@ export function ordersCouvertSubtotal(orders: Order[]): number {
     orders.filter(isBillableOrder)
       .flatMap(o => o.items ?? [])
       .filter(isCouvertLine)
-      .reduce((s, i) => s + i.unit_price * i.quantity, 0),
+      .reduce((s, i) => s + i.unit_price * billableItemQuantity(i), 0),
   )
 }
 
@@ -141,7 +168,9 @@ export function unpaidOrderLineItems(
 
   for (const order of sorted) {
     for (const item of order.items ?? []) {
-      const lineTotal = item.unit_price * item.quantity
+      if (!isBillableItem(item)) continue
+      const qty = billableItemQuantity(item)
+      const lineTotal = item.unit_price * qty
 
       if (creditLeft >= lineTotal - SETTLE_TOLERANCE) {
         creditLeft = roundMoney(creditLeft - lineTotal)
@@ -152,8 +181,8 @@ export function unpaidOrderLineItems(
         const remaining = roundMoney(lineTotal - creditLeft)
         creditLeft = 0
         unpaid.push({
-          unit_price: roundMoney(remaining / item.quantity),
-          quantity: item.quantity,
+          unit_price: roundMoney(remaining / qty),
+          quantity: qty,
           menu_item: item.menu_item as OrderLineItem['menu_item'],
         })
         continue
@@ -161,7 +190,7 @@ export function unpaidOrderLineItems(
 
       unpaid.push({
         unit_price: item.unit_price,
-        quantity: item.quantity,
+        quantity: qty,
         menu_item: item.menu_item as OrderLineItem['menu_item'],
       })
     }
@@ -442,12 +471,24 @@ export function allocatePaymentToItemLines(
   const lines: ItemPaymentLine[] = []
   for (const order of sortedOrders) {
     for (const [i, item] of (order.items ?? []).entries()) {
-      const lineTotal = item.unit_price * item.quantity
+      if (!isBillableItem(item)) {
+        lines.push({
+          orderId: order.id,
+          itemKey: `${order.id}-${(item as { id?: string }).id ?? i}`,
+          name: item.menu_item?.name ?? 'Item',
+          quantity: item.quantity,
+          lineTotal: item.unit_price * item.quantity,
+          paymentStatus: 'cancelled',
+        })
+        continue
+      }
+      const qty = billableItemQuantity(item)
+      const lineTotal = orderItemLineTotal(item)
       lines.push({
         orderId: order.id,
         itemKey: `${order.id}-${(item as { id?: string }).id ?? i}`,
         name: item.menu_item?.name ?? 'Item',
-        quantity: item.quantity,
+        quantity: qty,
         lineTotal,
         paymentStatus: isBillableOrder(order) ? 'pending' : 'cancelled',
       })

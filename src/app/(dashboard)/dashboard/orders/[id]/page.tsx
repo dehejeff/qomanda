@@ -8,6 +8,7 @@ import type { Order } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { isBillableItem, billableItemQuantity, orderItemLineTotal, orderSubtotal } from '@/lib/session-billing'
 import { DEV_BYPASS, mockOrders } from '@/lib/dev-mock'
 import { useOrderRealtime } from '@/lib/use-restaurant-realtime'
 
@@ -35,6 +36,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [advancing, setAdvancing] = useState(false)
+  const [acting, setActing] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -122,6 +124,51 @@ export default function OrderDetailPage() {
     toast.success('Status atualizado.')
   }
 
+  async function removeItem(orderItemId: string, quantity?: number) {
+    const msg = quantity === 1
+      ? 'Remover 1 unidade deste item da conta? O valor sai do pagamento do cliente.'
+      : quantity != null
+        ? `Remover ${quantity} unidades deste item da conta? O valor sai do pagamento do cliente.`
+        : 'Remover este item da conta? O valor sai do pagamento do cliente.'
+    if (!confirm(msg)) return
+    setActing(orderItemId)
+    try {
+      const res = await fetch('/api/dashboard/orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderItemId, ...(quantity != null ? { quantity } : {}) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success('Item removido da conta.')
+      window.location.reload()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover item.')
+    } finally {
+      setActing(null)
+    }
+  }
+
+  async function cancelWholeOrder() {
+    if (!order || !confirm('Cancelar o pedido inteiro? Todos os itens saem da conta.')) return
+    setActing(order.id)
+    try {
+      const res = await fetch('/api/dashboard/orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success('Pedido cancelado.')
+      window.location.reload()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao cancelar.')
+    } finally {
+      setActing(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -147,7 +194,9 @@ export default function OrderDetailPage() {
   }
 
   const s = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
-  const total = (order.items ?? []).reduce((a, i) => a + i.unit_price * i.quantity, 0)
+  const total = orderSubtotal(order)
+  const cancelled = order.status === 'cancelled'
+  const billableItems = (order.items ?? []).filter(isBillableItem)
   const tableNumber = order.session?.table?.number
   const customerName = order.customer
     ? [order.customer.first_name, order.customer.last_name].filter(Boolean).join(' ')
@@ -212,14 +261,60 @@ export default function OrderDetailPage() {
           {(order.items ?? []).length === 0 ? (
             <p className="px-5 py-8 text-sm font-mono text-on-surface-variant text-center">Nenhum item</p>
           ) : (
-            (order.items ?? []).map((item) => (
-              <div key={item.id} className="px-5 py-4 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-on-surface font-mono">
-                    <span className="text-on-surface-variant/60 mr-1">{item.quantity}×</span>
+            (order.items ?? []).map((item) => {
+              const billableQty = billableItemQuantity(item)
+              const itemFullyCancelled = billableQty === 0 || cancelled
+              const partialRemoved = (item.cancelled_qty ?? 0) > 0 && billableQty > 0
+              return (
+              <div key={item.id} className={`px-5 py-4 space-y-1 ${itemFullyCancelled ? 'opacity-60' : ''}`}>
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className={`text-on-surface font-mono ${itemFullyCancelled ? 'line-through' : ''}`}>
+                    <span className="text-on-surface-variant/60 mr-1">
+                      {partialRemoved ? `${billableQty}× (de ${item.quantity})` : `${item.quantity}×`}
+                    </span>
                     {item.menu_item?.name ?? 'Item'}
+                    {partialRemoved && (
+                      <span className="block text-[10px] font-mono text-red-400/80 mt-0.5 not-italic">
+                        {item.cancelled_qty} removida{(item.cancelled_qty ?? 0) !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </span>
-                  <span className="text-on-surface font-mono tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-on-surface font-mono tabular-nums ${itemFullyCancelled ? 'line-through' : ''}`}>
+                      {formatCurrency(orderItemLineTotal(item))}
+                    </span>
+                    {!itemFullyCancelled && !cancelled && (
+                      billableQty > 1 ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={acting === item.id}
+                            onClick={() => void removeItem(item.id, 1)}
+                            className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-outline-variant hover:text-red-400 hover:border-red-500/30 disabled:opacity-50"
+                          >
+                            {acting === item.id ? '…' : '−1'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={acting === item.id}
+                            onClick={() => void removeItem(item.id, billableQty)}
+                            className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            {acting === item.id ? '…' : 'Todos'}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={acting === item.id}
+                          onClick={() => void removeItem(item.id)}
+                          className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-outline-variant hover:text-red-400 hover:border-red-500/30 disabled:opacity-50"
+                        >
+                          {acting === item.id ? '…' : 'Remover'}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
                 {item.notes && (
                   <p className="text-[11px] font-mono text-amber-400/90 pl-5 flex items-start gap-1">
@@ -228,7 +323,7 @@ export default function OrderDetailPage() {
                   </p>
                 )}
               </div>
-            ))
+            )})
           )}
         </div>
         {order.notes && (
@@ -245,17 +340,29 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {s.next && (
-        <button
-          type="button"
-          onClick={advanceStatus}
-          disabled={advancing}
-          className="w-full sm:w-auto text-sm font-bold font-mono text-on-primary-container bg-primary-container hover:opacity-90 px-6 py-3 rounded-xl transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {advancing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {s.next} →
-        </button>
-      )}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {s.next && (
+          <button
+            type="button"
+            onClick={advanceStatus}
+            disabled={advancing}
+            className="w-full sm:w-auto text-sm font-bold font-mono text-on-primary-container bg-primary-container hover:opacity-90 px-6 py-3 rounded-xl transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {advancing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {s.next} →
+          </button>
+        )}
+        {!cancelled && billableItems.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void cancelWholeOrder()}
+            disabled={acting === order.id}
+            className="w-full sm:w-auto text-sm font-bold font-mono px-6 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+          >
+            {acting === order.id ? 'Cancelando…' : 'Cancelar pedido (sai da conta)'}
+          </button>
+        )}
+      </div>
 
       <Link href="/dashboard/orders" className="inline-block text-xs font-mono text-primary hover:underline">
         Ver fila de pedidos em aberto

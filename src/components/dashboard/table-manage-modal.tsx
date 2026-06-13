@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { RestaurantTable } from '@/types'
+import type { Order, RestaurantTable } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { DEV_BYPASS } from '@/lib/dev-mock'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { X, Loader2, ArrowLeftRight, XCircle, ChevronLeft, Clock, Send, ListOrdered } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { SETTLE_TOLERANCE } from '@/lib/session-billing'
+import { SETTLE_TOLERANCE, ordersSubtotal } from '@/lib/session-billing'
 import { PendingCashPaymentsPanel } from '@/components/dashboard/pending-cash-payments-panel'
 import { TableFeaturesField } from '@/components/dashboard/table-features-field'
 import { TableCapacityField } from '@/components/dashboard/table-capacity-field'
@@ -113,13 +113,11 @@ export function TableManageModal({ table, freeTables, onClose, onTableUpdated, o
 
         const { data: orders } = await supabase
           .from('orders')
-          .select('id, items:order_items(unit_price, quantity)')
+          .select('id, status, items:order_items(unit_price, quantity, cancelled_qty, cancelled_at)')
           .eq('session_id', data.id)
 
-        const orderList = orders ?? []
-        const total = orderList
-          .flatMap((o) => o.items ?? [])
-          .reduce((a, i) => a + i.unit_price * i.quantity, 0)
+        const orderList = (orders ?? []) as Order[]
+        const total = ordersSubtotal(orderList)
 
         setSession({
           id: data.id,

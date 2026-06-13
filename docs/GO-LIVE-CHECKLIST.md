@@ -3,7 +3,8 @@
 > Passo a passo para colocar o primeiro cliente (ex.: hamburgueria de pequeno porte)
 > em produção. Ordenado: **🔴 bloqueia o go-live** → **🟡 recomendado** → **🟢 quando quiser/escala**.
 >
-> Legenda: ✅ pronto no código · ⏳ ação operacional sua. Última revisão: 2026-06-05.  
+> Legenda: ✅ pronto no código · ⏳ ação operacional sua. Última revisão: 2026-06-12.  
+> **Upgrade free → planos pagos (ordem exata):** [`docs/UPGRADE-PLANOS-PAGOS.md`](UPGRADE-PLANOS-PAGOS.md)  
 > **Checklist interativo dos 5 pilotos:** [`/pilotos`](https://kicomanda.app/pilotos) (marcações salvas no navegador).
 
 ---

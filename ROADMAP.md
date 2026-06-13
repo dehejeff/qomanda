@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-09  
+> Última atualização: 2026-06-12  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
 > **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)  
 > **Piloto 5 restaurantes (interativo):** [`/pilotos`](https://kicomanda.app/pilotos)
@@ -126,8 +126,11 @@
 
 ## 💳 Gateways de pagamento — ordem planejada (#1–#8)
 
-> **Regra em todos os gateways:** cobrança na **conta do restaurante** (100% do valor). Comissão Qomanda sobre GMV digital, **faturada mensalmente (dia 5)** — sem split na hora da venda.  
-> Arquitetura alvo: interface `PaymentProvider` unificando checkout, webhooks e credenciais por restaurante (`payment_gateway_provider`).
+> **Regra em todos os gateways (v1 #1–4):** cobrança na **conta do restaurante** (100% do valor). Comissão KiComanda sobre GMV digital, **faturada mensalmente (dia 5)** — sem split na hora da venda.  
+> - [x] 100% na conta do restaurante (PIX manual, Asaas, MP — split desligado no checkout)  
+> - [x] Comissão faturada dia 5 (`monthly-billing` + `billing_invoices`)  
+> - [x] Um gateway ativo por restaurante (`payment_gateway_provider` em Settings)  
+> Arquitetura alvo (gateways #5–8): interface `PaymentProvider` unificando checkout, webhooks e credenciais.
 
 | # | Gateway | Métodos | Como conecta | Fase | Previsão |
 |---|---------|---------|--------------|------|----------|
@@ -143,6 +146,8 @@
 ### Por gateway — escopo técnico (v2+)
 
 - [ ] **Abstração `PaymentProvider`** — resolver gateway no checkout, webhooks e painel Settings
+- [x] **Webhooks + comissão** — Asaas/MP idempotentes → `confirmPaymentRecord` + registro de comissão
+- [x] **Credenciais criptografadas** — `payment_gateway_api_key_encrypted` (`PLATFORM_SECRETS_KEY`)
 - [x] **Mercado Pago (v1)**
   - [x] Access token + PIX/cartão no checkout
   - [x] Webhook confirmação → `confirmPaymentRecord` + comissão
@@ -347,7 +352,8 @@
 - [x] **Gestão de equipe** (Settings → Equipe) — convite de garçons
 - [x] **Garçom confirma PIX manual e dinheiro** — fila + badge + alerta
 - [x] **Benefícios de fidelidade visíveis ao garçom** — aba Benefícios + banner Pedidos
-- [ ] Receber e responder alertas "Chamar Garçom"
+- [x] **Receber alertas "Chamar Garçom"** — sino no dashboard + banner no app garçom
+- [ ] Responder / encerrar chamada pelo painel (ack explícito)
 - [ ] Controle de acesso refinado por perfil
 - [ ] Log de atividades por colaborador
 
@@ -358,6 +364,8 @@
 
 ### Comunicação
 - [ ] **WhatsApp Business API** — confirmação de pedido via WhatsApp
+- [x] **Envio de NF-e via WhatsApp** — após pagamento, se `whatsapp_nfe_enabled`
+- [x] **WhatsApp na fila de espera** — aviso mesa pronta + templates (Settings → Fila)
 - [ ] Campanhas de promoção para clientes fiéis
 
 ---
@@ -410,7 +418,8 @@
 ## 🏗️ Infraestrutura & escala
 
 > **Decisão de arquitetura (2026-06):** manter **Vercel** (app Next.js) + **Supabase** (Postgres, Auth, Realtime, Storage). O gargalo não é a hospedagem do frontend — é processamento síncrono (NF-e + WhatsApp no `confirm-payment`), conexões Postgres em serverless e falta de fila/observabilidade.  
-> Detalhes técnicos: [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md) § Arquitetura.
+> Detalhes técnicos: [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md) § Arquitetura.  
+> **Checklist operacional ao assinar planos pagos:** [`docs/UPGRADE-PLANOS-PAGOS.md`](docs/UPGRADE-PLANOS-PAGOS.md) (enquanto no free, manter item em ~20%).
 
 ### Stack alvo por camada
 
@@ -433,19 +442,19 @@
 
 - [x] **Supabase em `sa-east-1` (São Paulo)** — confirmado (projeto `supabase-qomanda` em sa-east-1)
 - [~] **Connection pooler (Supavisor 6543)** — *não se aplica ao runtime*: o app usa `supabase-js`/PostgREST (HTTPS), sem conexão Postgres direta. Pooler só para migração/ferramentas externas. Risco real de escala = **higiene de Realtime** (canais sem filtro). Detalhes: `docs/INFRA-SUPABASE-REGION-POOLER.md`
-- [ ] **Compute/observabilidade do banco** — instância atual `t4g.nano` (60 conns, RAM ~55% ocioso). Avaliar upgrade de compute e **ativar backups/PITR** antes do go-live
+- [ ] **Compute/observabilidade do banco** — upgrade Pro + **backups/PITR** (pendente plano pago; ver `docs/UPGRADE-PLANOS-PAGOS.md`)
 - [x] **Fila assíncrona** — `async_jobs` + worker `/api/cron/process-jobs` (retry/backoff); `confirmPaymentRecord` enfileira `nfe_emit` (NF-e + WhatsApp) em vez de aguardar inline
-- [ ] **Webhooks** Asaas/MP — responder 200 rápido, processar na fila, idempotência por `event_id`
-- [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5)
-- [ ] **▶️ Finalizar Sentry** — wiring em jobs/webhooks + DSN + alerta e-mail/Slack em erro 5xx — *prioridade de go-live escolhida* (base pronta: `docs/OBSERVABILITY-WIP.md`)
-- [ ] **Runbook** — modo degradado (pagamento OK, NF-e/WhatsApp na fila se provedor cair)
+- [x] **Webhooks** Asaas/MP — responder 200 rápido, idempotência por `event_id`, processamento em `after()` + fila de jobs
+- [ ] **Vercel Pro** — timeout 60s, mais concorrência, crons confiáveis (billing dia 5) — pendente plano pago
+- [~] **Sentry** — wiring em jobs/webhooks ✅ · falta conta/DSN + alertas (`docs/OBSERVABILITY-WIP.md`)
+- [ ] **Runbook** — modo degradado (pagamento OK, NF-e/WhatsApp na fila se provedor cair) — ver `docs/UPGRADE-PLANOS-PAGOS.md` §8
 
 **Capacidade esperada:** dezenas a ~100 restaurantes no horário de pico, com pooler + fila + Pro.
 
 ### Fase 1 — Crescimento (~20–100 restaurantes)
 
 - [x] **Rate limiting** — lib plugável (`src/lib/rate-limit.ts`) aplicada em rotas públicas sensíveis (login, verify-pin, register, call-waiter); janela em memória por padrão, **Upstash REST** quando configurado (`UPSTASH_REDIS_REST_*`)
-- [ ] **Upstash Redis** — ligar o rate limit distribuído + cache de cardápio + locks de idempotência
+- [~] **Upstash Redis** — lib pronta; falta ligar env para rate limit distribuído + cache de cardápio + locks
 - [x] **Índices Postgres** — `payments(restaurant_id,status,paid_at)`, `payments(asaas_payment_id)`, `orders(restaurant_id,created_at)`, `sessions(restaurant_id,status)` (`migrate-performance-indexes.sql`); _falta: alertas CPU/conexões no Supabase_
 - [x] **WhatsApp em fila** — job `whatsapp_send` (NF-e enfileira em vez de enviar inline) com retry próprio + **throttle por restaurante** (20/min, limites Meta); worker adia sem consumir tentativa quando estoura
 - [x] **Teste de carga** — harness Node (`scripts/load/`, jornada concorrente; sem k6/Artillery), configurável (`LOAD_VUS/ITER/BASE`). Baseline dev 20 VUs × 5: Supabase 0 erros (read p95 278ms, write p95 149ms). _Capacidade real: rodar contra staging via `LOAD_BASE`._

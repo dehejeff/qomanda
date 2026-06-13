@@ -17,6 +17,8 @@ import {
   amountWithServiceFeeExCouvert,
   unpaidOrderLineItems,
   roundMoney,
+  isBillableItem,
+  orderItemLineTotal,
 } from '@/lib/session-billing'
 import type { Order } from '@/types'
 import { CustomerBottomNav } from '@/components/customer/bottom-nav'
@@ -786,7 +788,7 @@ export default function CheckoutPage() {
       const [sessionRes, participantsRes, ordersRes, paymentsRes, pendingCashRes, pendingManualPixRes] = await Promise.all([
         supabase.from('sessions').select('*, table:tables(number), restaurant:restaurants(id,name,whatsapp_nfe_enabled)').eq('id', sessionId).single(),
         supabase.from('session_participants').select('customer_id, customer:customers(first_name,last_name,whatsapp)').eq('session_id', sessionId),
-        supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,menu_item:menu_items(name,contains_alcohol,couvert_kind,category:menu_categories(name)))').eq('session_id', sessionId),
+        supabase.from('orders').select('id, customer_id, status, created_at, items:order_items(unit_price,quantity,cancelled_qty,cancelled_at,menu_item:menu_items(name,contains_alcohol,couvert_kind,category:menu_categories(name)))').eq('session_id', sessionId),
         supabase.from('payments').select('id, amount, customer_id, method, split_type, service_fee_included, confirmation_code, paid_at, created_at').eq('session_id', sessionId).eq('status', 'paid'),
         myCustomerId
           ? supabase.from('payments').select('id, amount, status, confirmation_code').eq('session_id', sessionId).eq('customer_id', myCustomerId).eq('method', 'cash').eq('status', 'pending').maybeSingle()
@@ -829,13 +831,14 @@ export default function CheckoutPage() {
       setIsCounterSession((sessionRes.data as { service_mode?: string }).service_mode === 'counter')
 
       const billableOrders = (ordersRes.data ?? []).filter((o: any) => o.status !== 'cancelled')
-      const allItems   = billableOrders.flatMap((o: any) => o.items ?? [])
-      const sub        = allItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      const billableItems = (items: any[]) => (items ?? []).filter(isBillableItem)
+      const allItems   = billableOrders.flatMap((o: any) => billableItems(o.items))
+      const sub        = allItems.reduce((s: number, i: any) => s + orderItemLineTotal(i), 0)
       // Couvert (entrada/artístico) — separa para tirar da base da taxa de serviço.
       const couvertOf = (items: any[]) => roundMoney(
         items
           .filter((i: any) => (i.menu_item?.couvert_kind ?? 'none') !== 'none')
-          .reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0),
+          .reduce((s: number, i: any) => s + orderItemLineTotal(i), 0),
       )
       const subCouvertLocal = couvertOf(allItems)
       const allPayments = paymentsRes.data ?? []
@@ -849,8 +852,8 @@ export default function CheckoutPage() {
       setMyAlreadyPaid(myPaid)
 
       const myOrdersData = billableOrders.filter((o: any) => o.customer_id === myCustomerId) as unknown as Order[]
-      const myAllItems   = myOrdersData.flatMap((o: any) => o.items ?? [])
-      const mySub = myAllItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+      const myAllItems   = myOrdersData.flatMap((o: any) => billableItems(o.items))
+      const mySub = myAllItems.reduce((s: number, i: any) => s + orderItemLineTotal(i), 0)
       const myCouvertLocal = couvertOf(myAllItems)
       setMySubtotal(mySub)
       setMyCouvert(myCouvertLocal)
@@ -881,7 +884,7 @@ export default function CheckoutPage() {
       const parts: Participant[] = (participantsRes.data ?? []).map((p: any) => {
         const pOrders = billableOrders.filter((o: any) => o.customer_id === p.customer_id)
         const pItems  = pOrders.flatMap((o: any) => o.items ?? [])
-        const pSub    = pItems.reduce((s: number, i: any) => s + i.unit_price * i.quantity, 0)
+        const pSub    = pItems.reduce((s: number, i: any) => s + orderItemLineTotal(i), 0)
         const pPay    = allPayments.filter((pay: any) => pay.customer_id === p.customer_id)
         const pOpen   = computeOpenBalance(pSub, pPay, true, couvertOf(pItems))
         return {

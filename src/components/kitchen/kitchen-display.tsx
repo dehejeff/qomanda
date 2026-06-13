@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { resolveWaiterRestaurantId } from '@/lib/waiter-restaurant-id'
 import { formatCounterOrderLabel } from '@/lib/counter-orders'
+import { billableItemQuantity, isBillableItem } from '@/lib/session-billing'
 
 type KItem = { name: string; quantity: number; notes: string | null }
 type KOrder = { id: string; status: string; label: string; customerName: string; createdAt: string; items: KItem[] }
@@ -78,7 +79,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
       .select(`id, status, display_number, order_channel, created_at,
         session:sessions ( table:tables ( number ) ),
         customer:customers ( first_name, last_name ),
-        items:order_items ( quantity, notes, menu_item:menu_items ( name ) )`)
+        items:order_items ( quantity, cancelled_qty, notes, cancelled_at, menu_item:menu_items ( name ) )`)
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
       .order('created_at', { ascending: true })
@@ -95,10 +96,12 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
       const cRaw = (row as { customer?: { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[] | null }).customer
       const c = Array.isArray(cRaw) ? cRaw[0] : cRaw
       const customerName = c ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() : ''
-      const items: KItem[] = ((row.items ?? []) as Array<{ quantity: number; notes: string | null; menu_item: { name?: string } | { name?: string }[] | null }>).map(it => {
+      const items: KItem[] = ((row.items ?? []) as Array<{ quantity: number; cancelled_qty?: number | null; notes: string | null; cancelled_at?: string | null; menu_item: { name?: string } | { name?: string }[] | null }>)
+        .filter(it => isBillableItem(it))
+        .map(it => {
         const miRaw = it.menu_item
         const mi = Array.isArray(miRaw) ? miRaw[0] : miRaw
-        return { name: mi?.name ?? 'Item', quantity: Number(it.quantity), notes: it.notes ?? null }
+        return { name: mi?.name ?? 'Item', quantity: billableItemQuantity(it), notes: it.notes ?? null }
       })
       return { id: row.id, status: row.status, label, customerName, createdAt: row.created_at, items }
     })

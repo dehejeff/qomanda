@@ -155,6 +155,8 @@ export interface OrderItem {
   quantity: number
   unit_price: number
   notes: string | null
+  cancelled_at?: string | null
+  cancelled_qty?: number
   menu_item?: MenuItem
 }
 
