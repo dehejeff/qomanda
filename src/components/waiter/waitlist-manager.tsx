@@ -128,9 +128,9 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
     return <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} /></div>
   }
 
-  const waiting = queue.filter(e => e.status === 'waiting' && e.featureId)
+  const waiting = queue.filter(e => e.status === 'waiting')
   const people = waiting.reduce((s, e) => s + (e.partySize || 0), 0)
-  const reservas = queue.filter(e => !e.featureId) // reservas diretas (grid), sem seção
+  const reservas = queue.filter(e => !e.featureId && e.status !== 'waiting') // reservas diretas (grid)
 
   return (
     <div className="space-y-5">
@@ -156,7 +156,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
       )}
 
       {features.map(f => {
-        const entries = queue.filter(e => e.featureId === f.id)
+        const entries = queue.filter(e => f.id === '__any__' ? !e.featureId : e.featureId === f.id)
         const free = freeByFeature[f.id] ?? []
         const seatable = nextSeatable(entries, free)
         return (

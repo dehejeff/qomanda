@@ -103,6 +103,51 @@ export async function callNextForFeature(
   return !error
 }
 
+/** Notifica o próximo 'waiting' sem seção específica (feature_id IS NULL). */
+export async function callNextForAnySection(
+  admin: SupabaseClient,
+  restaurantId: string,
+  tableId: string,
+  toleranceMin: number,
+  capacity?: number | null,
+): Promise<boolean> {
+  const nowIso = new Date().toISOString()
+  const { data: active } = await admin
+    .from('table_waitlist')
+    .select('id')
+    .eq('restaurant_id', restaurantId)
+    .is('feature_id', null)
+    .eq('status', 'notified')
+    .gte('expires_at', nowIso)
+    .limit(1)
+    .maybeSingle()
+  if (active) return false
+
+  let nextQ = admin
+    .from('table_waitlist')
+    .select('id')
+    .eq('restaurant_id', restaurantId)
+    .is('feature_id', null)
+    .eq('status', 'waiting')
+    .order('created_at', { ascending: true })
+    .limit(1)
+  if (capacity != null) nextQ = nextQ.lte('party_size', capacity)
+  const { data: next } = await nextQ.maybeSingle()
+  if (!next) return false
+
+  const expiresAt = new Date(Date.now() + toleranceMin * 60_000).toISOString()
+  const { error } = await admin
+    .from('table_waitlist')
+    .update({ status: 'notified', notified_table_id: tableId, notified_at: nowIso, expires_at: expiresAt })
+    .eq('id', next.id)
+    .eq('status', 'waiting')
+  if (!error) {
+    const { enqueueWaitlistReadyNotifications } = await import('@/lib/waitlist-notify')
+    await enqueueWaitlistReadyNotifications(admin, next.id)
+  }
+  return !error
+}
+
 /** Mesa ficou livre → chama o próximo da fila para cada característica da mesa. */
 export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?: string | null): Promise<void> {
   if (!tableId) return
@@ -130,6 +175,11 @@ export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?:
     for (const f of feats ?? []) {
       await notifyNextForFeature(admin, restaurantId, (f as { feature_id: string }).feature_id, tableId, tolerance, capacity)
     }
+
+    // Mesa sem seção atribuída → notifica entradas com feature_id IS NULL.
+    if ((feats ?? []).length === 0) {
+      await callNextForAnySection(admin, restaurantId, tableId, tolerance, capacity)
+    }
   } catch (err) {
     console.error('[waitlist] notifyWaitlistOnTableFree', err)
   }
@@ -137,7 +187,7 @@ export async function notifyWaitlistOnTableFree(admin: SupabaseClient, tableId?:
 
 export type WaitlistEntryStatus = {
   id: string
-  featureId: string
+  featureId: string | null
   featureName: string
   featureEmoji: string | null
   status: 'waiting' | 'notified' | 'seated' | 'expired' | 'cancelled'
@@ -164,21 +214,22 @@ export async function getWaitlistStatus(
   for (const e of entries as Record<string, unknown>[]) {
     let position: number | null = null
     if (e.status === 'waiting') {
-      const { count } = await admin
+      let posQ = admin
         .from('table_waitlist')
         .select('id', { count: 'exact', head: true })
-        .eq('feature_id', e.feature_id as string)
         .eq('status', 'waiting')
         .lt('created_at', e.created_at as string)
+      posQ = e.feature_id ? posQ.eq('feature_id', e.feature_id as string) : posQ.is('feature_id', null)
+      const { count } = await posQ
       position = (count ?? 0) + 1
     }
     const feat = Array.isArray(e.feature) ? e.feature[0] : e.feature
     const tbl = Array.isArray(e.table) ? e.table[0] : e.table
     result.push({
       id: e.id as string,
-      featureId: e.feature_id as string,
-      featureName: (feat as { name?: string })?.name ?? 'Mesa',
-      featureEmoji: (feat as { emoji?: string | null })?.emoji ?? null,
+      featureId: (e.feature_id as string | null) ?? null,
+      featureName: (feat as { name?: string })?.name ?? 'Qualquer seção',
+      featureEmoji: (feat as { emoji?: string | null })?.emoji ?? '🪑',
       status: e.status as WaitlistEntryStatus['status'],
       position,
       notifiedTableNumber: (tbl as { number?: string } | null)?.number ?? null,

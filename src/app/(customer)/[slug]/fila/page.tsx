@@ -10,7 +10,7 @@ import { formatPhoneInput } from '@/lib/customer-form'
 import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 import { playReadyChime } from '@/lib/ready-chime'
 
-type Feature = { id: string; name: string; emoji: string | null }
+type Feature = { id: string; name: string; emoji: string | null; virtual?: boolean }
 type Entry = {
   id: string
   featureName: string
@@ -62,8 +62,37 @@ export default function WaitlistPage() {
       setRestaurantName(r.name)
       const { data: feats } = await supabase
         .from('table_features').select('id, name, emoji').eq('restaurant_id', r.id).order('created_at')
-      setFeatures((feats ?? []) as Feature[])
-      setFeatureId((feats ?? [])[0]?.id ?? '')
+
+      const featureList = (feats ?? []) as Feature[]
+      const featureIds = featureList.map(f => f.id)
+
+      // Quais features têm mesas atribuídas?
+      const { data: fmap } = featureIds.length > 0
+        ? await supabase.from('table_feature_map').select('feature_id').in('feature_id', featureIds)
+        : { data: [] }
+
+      const assignedFeatureIds = new Set((fmap ?? []).map((m: { feature_id: string }) => m.feature_id))
+
+      // Mantém apenas sections com mesas cadastradas (espelha o mapa do dashboard).
+      const withTables = featureList.filter(f => assignedFeatureIds.has(f.id))
+
+      // Conta total de mesas e mesas atribuídas para detectar "Sem seção".
+      const [{ count: totalTables }, { count: assignedTables }] = await Promise.all([
+        supabase.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id).is('archived_at', null),
+        featureIds.length > 0
+          ? supabase.from('table_feature_map').select('table_id', { count: 'exact', head: true }).in('feature_id', featureIds)
+          : Promise.resolve({ count: 0 }),
+      ])
+
+      const hasUnassignedTables = (totalTables ?? 0) > (assignedTables ?? 0)
+
+      const allSections: Feature[] = [
+        ...withTables,
+        ...(hasUnassignedTables ? [{ id: '', name: 'Qualquer seção', emoji: '🪑', virtual: true }] : []),
+      ]
+
+      setFeatures(allSections)
+      setFeatureId(allSections[0]?.id ?? '')
       setLoading(false)
     }
     load()
@@ -98,7 +127,8 @@ export default function WaitlistPage() {
 
   async function joinQueue() {
     if (!name.trim()) { toast.error('Informe seu nome.'); return }
-    if (!featureId) { toast.error('Escolha a seção.'); return }
+    const selectedSection = features.find(f => f.id === featureId)
+    if (!selectedSection) { toast.error('Escolha a seção.'); return }
     const contacts = parseWaitlistContacts({
       whatsapp,
       secondaryName: showSecond ? secondName : null,
@@ -111,7 +141,7 @@ export default function WaitlistPage() {
       const res = await fetch('/api/customer/waitlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          restaurantId, featureId, name: name.trim(),
+          restaurantId, featureId: featureId || null, name: name.trim(),
           whatsapp: contacts.whatsapp,
           secondaryName: contacts.secondaryName,
           secondaryWhatsapp: contacts.whatsappSecondary,

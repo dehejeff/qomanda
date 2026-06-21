@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
     const { restaurantId, featureId, customerId } = body
     const name = body.name?.trim()
-    if (!restaurantId || !featureId || !name) {
+    if (!restaurantId || !name) {
       return NextResponse.json({ error: 'Informe nome e a seção desejada.' }, { status: 400 })
     }
 
@@ -42,26 +42,28 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // Característica pertence ao restaurante?
-    const { data: feature } = await admin
-      .from('table_features')
-      .select('id, restaurant_id')
-      .eq('id', featureId)
-      .maybeSingle()
-    if (!feature || feature.restaurant_id !== restaurantId) {
-      return NextResponse.json({ error: 'Seção inválida.' }, { status: 404 })
+    // Valida característica apenas quando informada.
+    if (featureId) {
+      const { data: feature } = await admin
+        .from('table_features')
+        .select('id, restaurant_id')
+        .eq('id', featureId)
+        .maybeSingle()
+      if (!feature || feature.restaurant_id !== restaurantId) {
+        return NextResponse.json({ error: 'Seção inválida.' }, { status: 404 })
+      }
     }
 
-    // Evita duplicar: mesma pessoa já esperando essa característica.
+    // Evita duplicar: mesma pessoa já esperando essa característica (ou sem seção).
     if (customerId) {
-      const { data: existing } = await admin
+      let dupQ = admin
         .from('table_waitlist')
         .select('id, status, created_at, feature_id')
-        .eq('feature_id', featureId)
         .eq('customer_id', customerId)
         .in('status', ['waiting', 'notified'])
         .limit(1)
-        .maybeSingle()
+      dupQ = featureId ? dupQ.eq('feature_id', featureId) : dupQ.is('feature_id', null)
+      const { data: existing } = await dupQ.maybeSingle()
       if (existing) {
         const [status] = await getWaitlistStatus(admin, [existing.id])
         return NextResponse.json({ id: existing.id, alreadyInQueue: true, status })
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
       .from('table_waitlist')
       .insert({
         restaurant_id: restaurantId,
-        feature_id: featureId,
+        feature_id: featureId ?? null,
         customer_id: customerId ?? null,
         name,
         whatsapp: contacts.whatsapp,

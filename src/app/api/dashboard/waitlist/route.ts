@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireRestaurantAccess, RestaurantAuthError } from '@/lib/restaurant-auth'
-import { expireStaleNotified, callNextForFeature } from '@/lib/waitlist'
+import { expireStaleNotified, callNextForFeature, callNextForAnySection } from '@/lib/waitlist'
 import { parseWaitlistContacts } from '@/lib/waitlist-contact'
 
 const STAFF = ['owner', 'manager', 'waiter', 'recepcionista'] as const
@@ -81,8 +81,24 @@ export async function GET() {
       }
     })
 
+    // Mesas livres sem feature → disponíveis para entradas "Qualquer seção".
+    const assignedTableIds = new Set(
+      Object.values(freeByFeature).flatMap(ts => ts.map(t => t.id))
+    )
+    const freeTables = (allTablesRes.data ?? []) as Record<string, unknown>[]
+    const freeUnassigned = freeTables.filter(
+      t => t.status === 'free' && !(t.map as { feature_id: string }[]).length && !assignedTableIds.has(t.id as string)
+    ).map(t => ({ id: t.id as string, number: t.number as string, capacity: (t.capacity as number | null) ?? null }))
+
+    if (freeUnassigned.length > 0) {
+      freeByFeature['__any__'] = freeUnassigned
+    }
+
     return NextResponse.json({
-      features: featuresRes.data ?? [],
+      features: [
+        ...(featuresRes.data ?? []),
+        ...(freeUnassigned.length > 0 ? [{ id: '__any__', name: 'Qualquer seção', emoji: '🪑' }] : []),
+      ],
       queue,
       freeByFeature,
       featureMaxCapacity,
@@ -143,11 +159,13 @@ export async function POST(req: NextRequest) {
 
     switch (body.action) {
       case 'callNext': {
-        if (!body.featureId || !body.tableId) return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 })
+        if (!body.tableId) return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 })
         const { data: tbl } = await admin
           .from('tables').select('capacity').eq('id', body.tableId).eq('restaurant_id', access.restaurantId).maybeSingle()
         const capacity = (tbl as { capacity?: number | null } | null)?.capacity ?? null
-        const ok = await callNextForFeature(admin, access.restaurantId, body.featureId, body.tableId, tolerance, capacity)
+        const ok = body.featureId === '__any__' || !body.featureId
+          ? await callNextForAnySection(admin, access.restaurantId, body.tableId, tolerance, capacity)
+          : await callNextForFeature(admin, access.restaurantId, body.featureId, body.tableId, tolerance, capacity)
         return NextResponse.json(
           ok ? { ok: true } : { error: capacity != null ? `Ninguém na fila cabe nessa mesa (até ${capacity} pessoas).` : 'Ninguém na fila dessa seção.' },
           { status: ok ? 200 : 400 },
@@ -196,12 +214,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, freedTableIds: [body.tableId] })
       }
       case 'addWalkIn': {
-        if (!body.featureId || !body.name?.trim()) return NextResponse.json({ error: 'Informe nome e seção.' }, { status: 400 })
+        if (!body.name?.trim()) return NextResponse.json({ error: 'Informe nome e seção.' }, { status: 400 })
+        const walkInFeatureId = (body.featureId === '__any__' || !body.featureId) ? null : body.featureId
         const contacts = parseWaitlistContacts(body)
         if ('error' in contacts) return NextResponse.json({ error: contacts.error }, { status: 400 })
         const { data: created } = await admin.from('table_waitlist').insert({
           restaurant_id: access.restaurantId,
-          feature_id: body.featureId,
+          feature_id: walkInFeatureId,
           name: body.name.trim(),
           whatsapp: contacts.whatsapp,
           secondary_name: contacts.secondaryName,
