@@ -2,6 +2,57 @@ type TableQrCardOptions = {
   restaurantName?: string
 }
 
+/** Gera PNG com QR do cardápio público + chamada "Veja nosso cardápio" (para entrada do restaurante). */
+export async function buildMenuQrCardDataUrl(
+  qrDataUrl: string,
+  options: TableQrCardOptions = {},
+): Promise<string> {
+  const qrSize = 320
+  const padding = 28
+  const labelBlock = options.restaurantName ? 128 : 96
+  const width = qrSize + padding * 2
+  const height = qrSize + padding * 2 + labelBlock
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas não disponível.')
+
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, width, height)
+
+  const img = new Image()
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Falha ao carregar QR.'))
+    img.src = qrDataUrl
+  })
+  ctx.drawImage(img, padding, padding, qrSize, qrSize)
+
+  const centerX = width / 2
+  let textY = qrSize + padding + 40
+
+  ctx.fillStyle = '#0b1326'
+  ctx.font = 'bold 36px Geist, system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('Veja nosso cardápio', centerX, textY)
+
+  textY += 28
+  ctx.font = '600 20px ui-monospace, SFMono-Regular, Menlo, monospace'
+  ctx.fillStyle = '#f97316'
+  ctx.fillText('📋 CARDÁPIO DIGITAL', centerX, textY)
+
+  if (options.restaurantName) {
+    textY += 30
+    ctx.font = '500 16px Geist, system-ui, sans-serif'
+    ctx.fillStyle = '#94a3b8'
+    ctx.fillText(options.restaurantName, centerX, textY)
+  }
+
+  return canvas.toDataURL('image/png')
+}
+
 /** Gera PNG com QR + número da mesa visível (ideal para impressão). */
 export async function buildTableQrCardDataUrl(
   qrDataUrl: string,

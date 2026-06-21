@@ -18,6 +18,7 @@ import { RestaurantGatewayPanel } from '@/components/dashboard/restaurant-gatewa
 import { RestaurantBillingPanel } from '@/components/dashboard/restaurant-billing-panel'
 import { RestaurantTeamPanel } from '@/components/dashboard/restaurant-team-panel'
 import { RestaurantNfePanel } from '@/components/dashboard/restaurant-nfe-panel'
+import { MenuQrModal } from '@/components/dashboard/menu-qr-modal'
 
 type Tab = 'perfil' | 'pagamentos' | 'mensalidade' | 'notas' | 'fidelidade' | 'couvert' | 'integracoes' | 'seguranca' | 'equipe'
 
@@ -138,6 +139,7 @@ export default function SettingsPage() {
   // Perfil do restaurante
   const [profile, setProfile] = useState<RestaurantProfileDto | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [showMenuQr, setShowMenuQr] = useState(false)
   const [profileName, setProfileName] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
@@ -857,6 +859,17 @@ export default function SettingsPage() {
                       kicomanda.app/<span className="text-primary">{profile?.slug ?? '...'}</span>
                     </div>
                   </div>
+
+                  {profile?.slug && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMenuQr(true)}
+                      className="flex items-center gap-2 h-10 px-4 rounded-lg text-sm font-mono border border-outline-variant bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-primary">qr_code</span>
+                      QR Code do cardápio (entrada)
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -1897,6 +1910,14 @@ export default function SettingsPage() {
           <p className="text-base font-semibold text-on-surface mb-4">Equipe</p>
           <RestaurantTeamPanel />
         </div>
+      )}
+
+      {showMenuQr && profile?.slug && (
+        <MenuQrModal
+          url={`${typeof window !== 'undefined' ? window.location.origin : ''}/${profile.slug}/cardapio`}
+          restaurantName={profile.name || undefined}
+          onClose={() => setShowMenuQr(false)}
+        />
       )}
     </div>
   )
