@@ -613,6 +613,14 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams()
   const router      = useRouter()
   const sessionId   = searchParams.get('session')
+
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push(`/${params.slug}/orders${sessionId ? `?session=${sessionId}` : ''}`)
+    }
+  }
   const requestId   = searchParams.get('request') // pre-filled from notification
 
   const myCustomerId = typeof window !== 'undefined'
@@ -1999,7 +2007,7 @@ export default function CheckoutPage() {
         style={{ background: 'rgba(123,208,255,0.04)', filter: 'blur(80px)' }} />
       <header className="sticky top-0 z-40 flex items-center px-6 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={() => router.back()} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={goBack} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#ffb690' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
@@ -2090,7 +2098,7 @@ export default function CheckoutPage() {
                 </p>
               </div>
               <button
-                onClick={() => router.back()}
+                onClick={goBack}
                 className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
                 style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}>
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -2177,7 +2185,7 @@ export default function CheckoutPage() {
               </Link>
             )}
             <button
-              onClick={() => router.back()}
+              onClick={goBack}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
               style={{ background: '#f97316', color: '#582200' }}
             >

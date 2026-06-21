@@ -99,6 +99,14 @@ export default function OrdersPage() {
   const router      = useRouter()
   const sessionId   = searchParams.get('session')
 
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push(`/${params.slug}${sessionId ? `?session=${sessionId}` : ''}`)
+    }
+  }
+
   type PaymentProgress = {
     participantId: string
     name: string
@@ -340,7 +348,7 @@ export default function OrdersPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pedidos</h1>

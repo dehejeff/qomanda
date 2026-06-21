@@ -133,25 +133,25 @@ export default function PublicMenuPage() {
           <p className="text-sm font-semibold truncate" style={{ fontFamily: 'Geist, sans-serif' }}>{restaurantName}</p>
           <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Cardápio digital</p>
         </div>
-        {hasWaitlist && (
-          <Link href={`/${slug}/fila`}
-            className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-full shrink-0"
-            style={{ background: 'rgba(249,115,22,0.12)', color: '#f97316', border: '1px solid rgba(249,115,22,0.3)' }}>
-            <span className="material-symbols-outlined text-[14px]">group</span>
-            Fila de espera
-          </Link>
-        )}
+        <Link href={`/${slug}`}
+          className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-full shrink-0"
+          style={{ background: 'rgba(249,115,22,0.12)', color: '#f97316', border: '1px solid rgba(249,115,22,0.3)' }}>
+          <span className="material-symbols-outlined text-[14px]">qr_code_scanner</span>
+          Escaneie a mesa
+        </Link>
       </header>
 
-      {/* CTA check-in */}
-      <div className="px-5 pt-4 pb-2">
-        <Link href={`/${slug}`}
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl font-semibold text-sm"
-          style={{ background: '#f97316', color: '#582200', boxShadow: '0 4px 20px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
-          <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
-          Escaneie a mesa para fazer pedidos
-        </Link>
-      </div>
+      {/* CTA fila de espera */}
+      {hasWaitlist && (
+        <div className="px-5 pt-4 pb-2">
+          <Link href={`/${slug}/fila`}
+            className="flex items-center justify-center gap-2 w-full h-12 rounded-xl font-semibold text-sm"
+            style={{ background: '#f97316', color: '#582200', boxShadow: '0 4px 20px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
+            <span className="material-symbols-outlined text-[20px]">group</span>
+            Fila de espera
+          </Link>
+        </div>
+      )}
 
       {/* Category tabs */}
       {categories.length > 1 && (
