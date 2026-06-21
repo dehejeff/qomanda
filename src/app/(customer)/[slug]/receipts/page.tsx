@@ -9,6 +9,7 @@ import type { PaymentReceiptRecord, ReceiptContext } from '@/lib/payment-receipt
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { popNav } from '@/lib/nav-history'
 
 export default function ReceiptsPage() {
   const params = useParams<{ slug: string }>()
@@ -17,11 +18,8 @@ export default function ReceiptsPage() {
   const sessionId = searchParams.get('session')
 
   function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-    } else {
-      router.push(`/${params.slug}/orders${sessionId ? `?session=${sessionId}` : ''}`)
-    }
+    const prev = popNav()
+    router.push(prev ?? `/${params.slug}/orders${sessionId ? `?session=${sessionId}` : ''}`)
   }
 
   const [payments, setPayments] = useState<PaymentReceiptRecord[]>([])

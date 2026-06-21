@@ -39,6 +39,7 @@ import { MANUAL_PIX_KEY_TYPE_LABELS } from '@/lib/restaurant-payment-config'
 import { formatServiceLocationLabel } from '@/lib/counter-orders'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { popNav } from '@/lib/nav-history'
 
 type SessionPaymentRow = PaymentReceiptRecord & { customer_id: string | null }
 
@@ -615,11 +616,8 @@ export default function CheckoutPage() {
   const sessionId   = searchParams.get('session')
 
   function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-    } else {
-      router.push(`/${params.slug}/orders${sessionId ? `?session=${sessionId}` : ''}`)
-    }
+    const prev = popNav()
+    router.push(prev ?? `/${params.slug}/orders${sessionId ? `?session=${sessionId}` : ''}`)
   }
   const requestId   = searchParams.get('request') // pre-filled from notification
 

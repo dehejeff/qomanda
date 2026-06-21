@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { formatWhatsAppDisplay } from '@/lib/customer-form'
+import { popNav } from '@/lib/nav-history'
 import { buildSessionBilling, ordersSubtotal, SETTLE_TOLERANCE } from '@/lib/session-billing'
 import { leaveRestaurantSession } from '@/lib/customer-auth'
 import type { Order } from '@/types'
@@ -35,11 +36,8 @@ export default function ProfilePage() {
   const sessionId   = searchParams.get('session')
 
   function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-    } else {
-      router.push(`/${params.slug}${sessionId ? `?session=${sessionId}` : ''}`)
-    }
+    const prev = popNav()
+    router.push(prev ?? `/${params.slug}${sessionId ? `?session=${sessionId}` : ''}`)
   }
 
   const [data, setData]         = useState<ProfileData | null>(null)

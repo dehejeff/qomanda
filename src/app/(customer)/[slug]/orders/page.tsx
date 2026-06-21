@@ -18,6 +18,7 @@ import { ParticipantPaymentRow } from '@/components/customer/participant-payment
 import { ItemStatusIcon } from '@/components/customer/item-status-icon'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { popNav } from '@/lib/nav-history'
 
 type Tab = 'mine' | 'table'
 
@@ -100,11 +101,8 @@ export default function OrdersPage() {
   const sessionId   = searchParams.get('session')
 
   function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-    } else {
-      router.push(`/${params.slug}${sessionId ? `?session=${sessionId}` : ''}`)
-    }
+    const prev = popNav()
+    router.push(prev ?? `/${params.slug}${sessionId ? `?session=${sessionId}` : ''}`)
   }
 
   type PaymentProgress = {
