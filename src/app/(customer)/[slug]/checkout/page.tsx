@@ -54,6 +54,7 @@ function ManualPixScreen({
   onSubmit,
   onBack,
   loading,
+  splitInfo,
 }: {
   suggestedAmount: number
   fixedAmount: boolean
@@ -61,6 +62,7 @@ function ManualPixScreen({
   onSubmit: (amount: number) => void
   onBack: () => void
   loading: boolean
+  splitInfo?: { food: number; alcohol: number } | null
 }) {
   const [amount, setAmount] = useState(suggestedAmount.toFixed(2))
   const [copied, setCopied] = useState(false)
@@ -159,6 +161,23 @@ function ManualPixScreen({
           <p className="text-xs" style={{ color: '#34d399' }}>+{formatCurrency(extraAmt)} virará saldo da mesa.</p>
         )}
       </div>
+
+      {splitInfo && (
+        <div className="rounded-xl p-4 space-y-2"
+          style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            Divisão para reembolso
+          </p>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#34d399' }}>🍽️ Alimentação (empresa)</span>
+            <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -359,6 +378,7 @@ function CashAmountScreen({
   onSubmit,
   onBack,
   loading,
+  splitInfo,
 }: {
   minimumOwed: number
   amount: string
@@ -366,6 +386,7 @@ function CashAmountScreen({
   onSubmit: () => void
   onBack: () => void
   loading: boolean
+  splitInfo?: { food: number; alcohol: number } | null
 }) {
   const parsed = parseFloat(amount.replace(',', '.')) || 0
   const extra = Math.max(0, roundMoney(parsed - minimumOwed))
@@ -429,6 +450,23 @@ function CashAmountScreen({
         )}
       </div>
 
+      {splitInfo && (
+        <div className="rounded-xl p-4 space-y-2"
+          style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            Divisão para reembolso
+          </p>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#34d399' }}>🍽️ Alimentação (empresa)</span>
+            <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onSubmit}
@@ -455,6 +493,7 @@ function CashPendingScreen({
   onCancel,
   cancelling,
   variant = 'cash',
+  splitInfo,
 }: {
   amount: number
   minimumOwed?: number
@@ -465,6 +504,7 @@ function CashPendingScreen({
   onCancel: () => void
   cancelling: boolean
   variant?: 'cash' | 'pix'
+  splitInfo?: { food: number; alcohol: number } | null
 }) {
   const extra = minimumOwed != null ? Math.max(0, roundMoney(amount - minimumOwed)) : 0
   const isPix = variant === 'pix'
@@ -523,6 +563,23 @@ function CashPendingScreen({
           <p className="text-[11px]" style={{ color: '#584237' }}>
             O caixa usa este código para confirmar o recebimento
           </p>
+        </div>
+      )}
+
+      {splitInfo && (
+        <div className="rounded-xl p-4 space-y-2"
+          style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            Divisão para reembolso
+          </p>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#34d399' }}>🍽️ Alimentação (empresa)</span>
+            <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+          </div>
         </div>
       )}
 
@@ -587,6 +644,8 @@ export default function CheckoutPage() {
   const [pendingManualPixPaymentId, setPendingManualPixPaymentId] = useState('')
   const [pendingManualPixAmount, setPendingManualPixAmount] = useState(0)
   const [pendingManualPixMinOwed, setPendingManualPixMinOwed] = useState(0)
+  const [pendingCashSplitInfo, setPendingCashSplitInfo] = useState<{ food: number; alcohol: number } | null>(null)
+  const [pendingManualPixSplitInfo, setPendingManualPixSplitInfo] = useState<{ food: number; alcohol: number } | null>(null)
   const [paymentConfig, setPaymentConfig] = useState<PublicPaymentConfig | null>(null)
   const [cashAmountInput, setCashAmountInput] = useState('')
   const [tableNumber, setTableNumber] = useState('')
@@ -696,11 +755,11 @@ export default function CheckoutPage() {
   const usesManualPix = paymentConfig?.provider === 'manual' && paymentConfig.manualReady
 
   const availablePaymentMethods = useMemo(() => {
-    const all = [
-      { value: 'pix'    as PaymentMethod, icon: 'qr_code_2',   label: 'PIX'     },
-      { value: 'debit'  as PaymentMethod, icon: 'credit_card', label: 'Débito'  },
-      { value: 'credit' as PaymentMethod, icon: 'contactless', label: 'Crédito' },
-      { value: 'cash'   as PaymentMethod, icon: 'payments',    label: 'Dinheiro', disabled: splitAlcohol },
+    const all: { value: PaymentMethod; icon: string; label: string; disabled: boolean }[] = [
+      { value: 'pix',    icon: 'qr_code_2',   label: 'PIX',      disabled: false },
+      { value: 'debit',  icon: 'credit_card', label: 'Débito',   disabled: false },
+      { value: 'credit', icon: 'contactless', label: 'Crédito',  disabled: false },
+      { value: 'cash',   icon: 'payments',    label: 'Dinheiro', disabled: false },
     ]
     if (usesManualPix) {
       return all.filter(m => m.value === 'pix' || m.value === 'cash')
@@ -712,7 +771,6 @@ export default function CheckoutPage() {
       return all.filter(m => m.value === 'cash')
     }
     return all.map(m => {
-      if (m.value === 'cash') return { ...m, disabled: Boolean(m.disabled) }
       if (m.value === 'pix') {
         const pixOk = usesManualPix || Boolean(paymentConfig?.digitalMethods.includes('pix'))
         return { ...m, disabled: !pixOk }
@@ -1028,6 +1086,7 @@ export default function CheckoutPage() {
   }, [pendingManualPixPaymentId, customerWhatsapp, pendingManualPixAmount])
 
   async function processManualPixPayment(amount: number, minimumOwed: number): Promise<void> {
+    setPendingManualPixSplitInfo(splitAlcohol && alcoholSplit.hasAlcohol ? alcoholPaymentAmounts() : null)
     setPaying(true)
     try {
       const res = await fetch('/api/payments/manual-pix', {
@@ -1066,6 +1125,7 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao cancelar.')
       setPendingManualPixPaymentId('')
       setPendingManualPixAmount(0)
+      setPendingManualPixSplitInfo(null)
       setStep('manual_pix')
       toast.message('Solicitação de PIX cancelada.')
     } catch (err) {
@@ -1332,6 +1392,7 @@ export default function CheckoutPage() {
       toast.error(`O valor mínimo é ${formatCurrency(cashMinimumOwed)}.`)
       return
     }
+    setPendingCashSplitInfo(splitAlcohol && alcoholSplit.hasAlcohol ? alcoholPaymentAmounts() : null)
     await processCashPayment(parsed, cashMinimumOwed)
   }
 
@@ -1347,6 +1408,7 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao cancelar.')
       setPendingCashPaymentId('')
       setPendingCashAmount(0)
+      setPendingCashSplitInfo(null)
       setStep('mode')
       toast.message('Solicitação de pagamento em dinheiro cancelada.')
     } catch (err) {
@@ -1573,10 +1635,6 @@ export default function CheckoutPage() {
     }
 
     if (method === 'cash') {
-      if (splitAlcohol) {
-        toast.error('Pagamento em dinheiro não está disponível com recibos separados.')
-        return
-      }
       await createCloseRequest()
       setCashAmountInput(cashMinimumOwed > 0.01 ? cashMinimumOwed.toFixed(2) : '0.00')
       setStep('cash_amount')
@@ -1584,10 +1642,6 @@ export default function CheckoutPage() {
     }
 
     if (method === 'pix' && usesManualPix) {
-      if (splitAlcohol) {
-        toast.error('PIX manual não está disponível com recibos separados.')
-        return
-      }
       await createCloseRequest()
       setStep('manual_pix')
       return
@@ -1788,6 +1842,7 @@ export default function CheckoutPage() {
             }}
             onBack={() => setStep('mode')}
             loading={paying}
+            splitInfo={splitAlcohol && alcoholSplit.hasAlcohol ? alcoholPaymentAmounts() : null}
           />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
@@ -1812,6 +1867,7 @@ export default function CheckoutPage() {
             onCancel={cancelManualPixPayment}
             cancelling={paying}
             variant="pix"
+            splitInfo={pendingManualPixSplitInfo}
           />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
@@ -1858,6 +1914,7 @@ export default function CheckoutPage() {
             onSubmit={submitCashAmount}
             onBack={() => setStep('mode')}
             loading={paying}
+            splitInfo={splitAlcohol && alcoholSplit.hasAlcohol ? alcoholPaymentAmounts() : null}
           />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
@@ -1882,6 +1939,7 @@ export default function CheckoutPage() {
             onBack={() => setStep('cash_amount')}
             onCancel={cancelCashPayment}
             cancelling={paying}
+            splitInfo={pendingCashSplitInfo}
           />
         </main>
         <CustomerBottomNav slug={params.slug} sessionId={sessionId ?? ''} />
