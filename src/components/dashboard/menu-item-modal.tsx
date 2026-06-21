@@ -58,6 +58,7 @@ export function MenuItemModal({
   )
   const [categoryId, setCategoryId] = useState(item?.category_id ?? defaultCategoryId ?? categories[0]?.id ?? NEW_CATEGORY)
   const [imageUrl, setImageUrl] = useState(item?.image_url ?? '')
+  const [videoUrl, setVideoUrl] = useState(item?.video_url ?? '')
   const [available, setAvailable] = useState(item?.available ?? true)
   const [containsAlcohol, setContainsAlcohol] = useState(item?.contains_alcohol ?? false)
   const [isChefPick, setIsChefPick] = useState(item?.is_chef_pick ?? false)
@@ -72,6 +73,7 @@ export function MenuItemModal({
     setPromoPrice(item.promo_price != null ? String(item.promo_price).replace('.', ',') : '')
     setCategoryId(item.category_id)
     setImageUrl(item.image_url ?? '')
+    setVideoUrl(item.video_url ?? '')
     setAvailable(item.available)
     setContainsAlcohol(item.contains_alcohol)
     setIsChefPick(item.is_chef_pick ?? false)
@@ -173,6 +175,7 @@ export function MenuItemModal({
       price: priceNum,
       promo_price: promoNum,
       image_url: imageUrl.trim() || null,
+      video_url: videoUrl.trim() || null,
       available,
       contains_alcohol: containsAlcohol,
       is_chef_pick: isChefPick,
@@ -371,6 +374,19 @@ export function MenuItemModal({
                 />
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1.5 block">
+              Vídeo do produto <span className="opacity-50 normal-case">(opcional — URL do YouTube)</span>
+            </label>
+            <input
+              type="url"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className={fieldClass}
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">

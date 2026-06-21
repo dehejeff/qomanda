@@ -1,8 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import type { MenuItem } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { menuItemEffectivePrice, menuItemHasPromo } from '@/lib/menu-item-pricing'
+
+function getYoutubeEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    let videoId: string | null = null
+    if (parsed.hostname.includes('youtube.com')) {
+      videoId = parsed.searchParams.get('v')
+    } else if (parsed.hostname === 'youtu.be') {
+      videoId = parsed.pathname.slice(1).split('?')[0]
+    }
+    if (!videoId) return null
+    return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1`
+  } catch {
+    return null
+  }
+}
 
 type Props = {
   item: MenuItem
@@ -25,6 +42,8 @@ export function MenuItemDetailModal({
 }: Props) {
   const effectivePrice = menuItemEffectivePrice(item)
   const lineTotal = effectivePrice * quantity
+  const [showVideo, setShowVideo] = useState(false)
+  const embedUrl = item.video_url ? getYoutubeEmbedUrl(item.video_url) : null
 
   return (
     <div
@@ -42,24 +61,51 @@ export function MenuItemDetailModal({
         onClick={e => e.stopPropagation()}
       >
         <div className="relative shrink-0 h-52 sm:h-56 overflow-hidden" style={{ background: '#1e293b' }}>
-          {item.image_url ? (
-            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+          {showVideo && embedUrl ? (
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={`Vídeo de ${item.name}`}
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="material-symbols-outlined text-[72px]" style={{ color: '#334155' }}>restaurant</span>
-            </div>
+            <>
+              {item.image_url ? (
+                <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[72px]" style={{ color: '#334155' }}>restaurant</span>
+                </div>
+              )}
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(19,27,46,0.85) 0%, transparent 50%)' }} />
+              {embedUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowVideo(true)}
+                  className="absolute inset-0 flex items-center justify-center group"
+                  aria-label="Ver vídeo do produto"
+                >
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center transition-transform group-active:scale-90"
+                    style={{ background: 'rgba(249,115,22,0.9)', boxShadow: '0 4px 20px rgba(249,115,22,0.5)' }}
+                  >
+                    <span className="material-symbols-outlined text-[28px]" style={{ color: '#fff' }}>play_arrow</span>
+                  </div>
+                </button>
+              )}
+            </>
           )}
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(19,27,46,0.85) 0%, transparent 50%)' }} />
           <button
             type="button"
-            onClick={onClose}
+            onClick={showVideo ? () => setShowVideo(false) : onClose}
             className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: 'rgba(11,19,38,0.75)', border: '1px solid #334155', color: '#dae2fd' }}
-            aria-label="Fechar"
+            aria-label={showVideo ? 'Voltar' : 'Fechar'}
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <span className="material-symbols-outlined text-[20px]">{showVideo ? 'arrow_back' : 'close'}</span>
           </button>
-          {item.is_chef_pick && (
+          {!showVideo && item.is_chef_pick && (
             <span
               className="absolute top-3 left-3 text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-1 rounded"
               style={{ background: '#ffb690', color: '#552100' }}

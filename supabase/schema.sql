@@ -282,6 +282,7 @@ create table if not exists menu_items (
   description      text,
   price            numeric(10,2)  not null check (price >= 0),
   image_url        text,
+  video_url        text,
   available        boolean        not null default true,
   contains_alcohol boolean        not null default false,
   created_at       timestamptz    not null default now()

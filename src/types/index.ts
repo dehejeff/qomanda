@@ -128,6 +128,7 @@ export interface MenuItem {
   price: number
   promo_price?: number | null
   image_url: string | null
+  video_url?: string | null
   available: boolean
   contains_alcohol: boolean
   is_chef_pick?: boolean
