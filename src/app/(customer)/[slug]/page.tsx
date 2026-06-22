@@ -90,8 +90,12 @@ export default function CheckInPage() {
   const [passport, setPassport]   = useState('')
   const [checkInPin, setCheckInPin] = useState('')
   const [checkInPinConfirm, setCheckInPinConfirm] = useState('')
-  const [savedCustomerId, setSavedCustomerId] = useState<string | null>(null)
-  const [savedCustomerName, setSavedCustomerName] = useState('')
+  const [savedCustomerId, setSavedCustomerId] = useState<string | null>(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('kicomanda_customer_id') : null)
+  )
+  const [savedCustomerName, setSavedCustomerName] = useState(
+    () => (typeof window !== 'undefined' ? (localStorage.getItem('kicomanda_customer_name') ?? '') : '')
+  )
   const [showFullForm, setShowFullForm] = useState(false)
   const [loginWhatsapp, setLoginWhatsapp] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
@@ -108,13 +112,6 @@ export default function CheckInPage() {
   const cpfValid    = cpfComplete && validateCPF(cpf)
 
   useEffect(() => {
-    const cid = localStorage.getItem('kicomanda_customer_id')
-    const cname = localStorage.getItem('kicomanda_customer_name') ?? ''
-    if (cid) {
-      setSavedCustomerId(cid)
-      setSavedCustomerName(cname)
-    }
-
     async function verifyTable() {
       setVerifyLoading(true)
       setVerifyError(null)
@@ -288,7 +285,8 @@ export default function CheckInPage() {
           navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
         }
-        toast.success(`PIN criado! Olá, ${data.firstName}! Faça check-in na mesa.`)
+        const checked = await autoCheckInAfterLogin(data.customerId, data.firstName)
+        if (!checked) toast.success(`PIN criado! Olá, ${data.firstName}! Toque para entrar na mesa.`)
       } catch {
         toast.error('Erro ao criar PIN.')
       } finally {
@@ -325,7 +323,8 @@ export default function CheckInPage() {
           navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
         }
-        toast.success(`Olá, ${data.firstName}! Faça check-in na mesa.`)
+        const checked = await autoCheckInAfterLogin(data.customerId, data.firstName)
+        if (!checked) toast.success(`Olá, ${data.firstName}! Toque para entrar na mesa.`)
       } catch {
         toast.error('Erro ao verificar PIN.')
       } finally {
@@ -345,8 +344,10 @@ export default function CheckInPage() {
       const data = await loginWithWhatsApp(phone)
       if ('error' in data) {
         toast.error(data.error)
-        setShowFullForm(true)
-      setAccessMode('new')
+        if (!savedCustomerId) {
+          setShowFullForm(true)
+          setAccessMode('new')
+        }
         return
       }
 
@@ -388,11 +389,36 @@ export default function CheckInPage() {
         return
       }
 
-      toast.success(`Olá, ${data.firstName}! Faça check-in na mesa.`)
+      const checked = await autoCheckInAfterLogin(data.customerId, data.firstName)
+      if (!checked) toast.success(`Olá, ${data.firstName}! Toque para entrar na mesa.`)
     } catch {
       toast.error('Erro ao entrar. Tente novamente.')
     } finally {
       setLoggingIn(false)
+    }
+  }
+
+  async function autoCheckInAfterLogin(customerId: string, firstName: string): Promise<boolean> {
+    if (!tableToken || !restaurant) return false
+    setCheckingIn(true)
+    try {
+      const res = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: params.slug, mesa: tableNumber, tableToken, customerId }),
+      })
+      if (!res.ok) return false
+      const { sessionId, customerId: cid } = (await res.json()) as CheckInResponse
+      localStorage.setItem('kicomanda_session_id', sessionId)
+      localStorage.setItem('kicomanda_customer_id', cid)
+      clearPendingTableCheckIn()
+      toast.success(`Bem-vindo de volta, ${firstName}!`)
+      navigateToCustomerHome(params.slug, sessionId)
+      return true
+    } catch {
+      return false
+    } finally {
+      setCheckingIn(false)
     }
   }
 
