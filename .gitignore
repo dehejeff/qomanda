@@ -63,3 +63,4 @@ scripts/smoke/.cache/
 
 # Claude runtime
 .claude/scheduled_tasks.lock
+test-results/
