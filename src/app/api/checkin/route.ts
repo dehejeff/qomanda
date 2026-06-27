@@ -23,6 +23,8 @@ export type CheckInResponse = {
   sessionId: string
   customerId: string
   isJoining: boolean      // true = entrou em sessão existente
+  firstName: string
+  lastName: string
 }
 
 export async function POST(req: NextRequest) {
@@ -192,7 +194,7 @@ export async function POST(req: NextRequest) {
       sessionId,
     })
 
-    return NextResponse.json({ sessionId, customerId: customerId!, isJoining } satisfies CheckInResponse)
+    return NextResponse.json({ sessionId, customerId: customerId!, isJoining, firstName: firstName ?? '', lastName: lastName ?? '' } satisfies CheckInResponse)
   } catch (err) {
     console.error('[CheckIn API Error]', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

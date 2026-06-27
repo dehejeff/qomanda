@@ -408,11 +408,13 @@ export default function CheckInPage() {
         body: JSON.stringify({ slug: params.slug, mesa: tableNumber, tableToken, customerId }),
       })
       if (!res.ok) return false
-      const { sessionId, customerId: cid } = (await res.json()) as CheckInResponse
+      const { sessionId, customerId: cid, firstName: retFirst, lastName: retLast } = (await res.json()) as CheckInResponse
       localStorage.setItem('kicomanda_session_id', sessionId)
       localStorage.setItem('kicomanda_customer_id', cid)
+      const resolvedName = retFirst ? `${retFirst} ${retLast}`.trim() : firstName
+      if (resolvedName) localStorage.setItem('kicomanda_customer_name', resolvedName)
       clearPendingTableCheckIn()
-      toast.success(`Bem-vindo de volta, ${firstName}!`)
+      toast.success(`Bem-vindo de volta, ${retFirst || firstName}!`)
       navigateToCustomerHome(params.slug, sessionId)
       return true
     } catch {
@@ -441,13 +443,15 @@ export default function CheckInPage() {
       return
     }
 
-    const { sessionId, customerId } = (await res.json()) as CheckInResponse
+    const { sessionId, customerId, firstName: retFirst, lastName: retLast } = (await res.json()) as CheckInResponse
+    const resolvedName = retFirst ? `${retFirst} ${retLast}`.trim() : savedCustomerName
     localStorage.setItem('kicomanda_session_id', sessionId)
     localStorage.setItem('kicomanda_customer_id', customerId)
+    if (resolvedName) localStorage.setItem('kicomanda_customer_name', resolvedName)
     setCheckedIn(true)
     setCheckingIn(false)
     clearPendingTableCheckIn()
-    const first = savedCustomerName.split(' ')[0] || 'Cliente'
+    const first = (retFirst || savedCustomerName.split(' ')[0]) || 'Cliente'
     toast.success(`Bem-vindo de volta, ${first}!`)
     navigateToCustomerHome(params.slug, sessionId)
   }
