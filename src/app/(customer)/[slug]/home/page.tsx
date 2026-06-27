@@ -47,6 +47,28 @@ export default function CustomerHomePage() {
   const [couvertCfg, setCouvertCfg] = useState<{ enabled: boolean; price: number; label: string }>({ enabled: false, price: 0, label: 'Couvert' })
   const [couvertAdded, setCouvertAdded] = useState(false)
   const [couvertBusy, setCouvertBusy] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
+  async function handleSaveName() {
+    const name = nameInput.trim()
+    if (!name || !sessionId) return
+    setSavingName(true)
+    try {
+      const res = await fetch('/api/customer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, firstName: name, lastName: '' }),
+      })
+      if (res.ok) {
+        localStorage.setItem('kicomanda_customer_name', name)
+        setCustomerName(name)
+        toast.success(`Olá, ${name}! 👋`)
+      }
+    } finally {
+      setSavingName(false)
+    }
+  }
 
   async function toggleCouvert() {
     if (!sessionId || couvertBusy) return
@@ -413,12 +435,36 @@ export default function CustomerHomePage() {
 
       <main className="px-6 pt-6 space-y-5 relative z-10">
         {/* Welcome */}
-        <div>
-          <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Bem-vindo de volta,</p>
-          <h1 className="text-3xl font-bold tracking-tight mt-0.5" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
-            Olá, <span style={{ color: '#ffb690' }}>{firstName}!</span>
-          </h1>
-        </div>
+        {customerName && customerName !== 'Cliente' ? (
+          <div>
+            <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Bem-vindo de volta,</p>
+            <h1 className="text-3xl font-bold tracking-tight mt-0.5" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
+              Olá, <span style={{ color: '#ffb690' }}>{firstName}!</span>
+            </h1>
+          </div>
+        ) : (
+          <div className="rounded-xl p-4" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+            <p className="text-sm font-mono mb-3" style={{ color: '#ffb690' }}>Como podemos te chamar?</p>
+            <div className="flex gap-2">
+              <input
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                placeholder="Seu primeiro nome"
+                className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#dae2fd' }}
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={savingName || !nameInput.trim()}
+                className="px-4 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 disabled:opacity-40"
+                style={{ background: '#f97316', color: '#fff' }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mesa quitada — código de saída */}
         {sessionSettled && (
