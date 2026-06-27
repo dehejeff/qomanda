@@ -149,6 +149,21 @@ export default function CustomerHomePage() {
 
       const customerId = localStorage.getItem('kicomanda_customer_id')
 
+      // Fallback: busca nome do servidor quando o localStorage não tem (sessões antigas ou limpas)
+      const storedName = localStorage.getItem('kicomanda_customer_name')
+      if (!storedName && customerId) {
+        const qs = new URLSearchParams({ session: sessionId!, customer: customerId })
+        const profileRes = await fetch(`/api/customer/profile?${qs}`).catch(() => null)
+        if (profileRes?.ok) {
+          const profile = await profileRes.json() as { firstName?: string; lastName?: string }
+          const resolvedName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
+          if (resolvedName) {
+            localStorage.setItem('kicomanda_customer_name', resolvedName)
+            setCustomerName(resolvedName)
+          }
+        }
+      }
+
       // Couvert artístico: materializa (se na janela do show) antes de ler a conta.
       await fetch('/api/customer/couvert/artistico', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }),

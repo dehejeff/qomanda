@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
           restaurant_id: session.restaurant_id,
           session_id: sessionId,
         },
-        { onConflict: 'session_id' },
+        { onConflict: 'customer_id,session_id' },
       )
 
     const { data: customer } = await supabase
