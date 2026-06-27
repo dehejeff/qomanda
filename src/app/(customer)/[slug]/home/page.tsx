@@ -99,11 +99,20 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     if (!sessionId) { router.replace(`/${params.slug}`); return }
-    const name = localStorage.getItem('kicomanda_customer_name') ?? 'Cliente'
-    setCustomerName(name)
-    if (!searchParams.get('session') && sessionId) {
-      window.history.replaceState(null, '', `/${params.slug}/home?session=${encodeURIComponent(sessionId)}`)
+
+    // ?cn= vem do check-in (via navigateToCustomerHome) — prioridade máxima,
+    // funciona mesmo quando o PWA está servindo JS cacheado.
+    const nameFromUrl = searchParams.get('cn')
+    if (nameFromUrl) {
+      localStorage.setItem('kicomanda_customer_name', nameFromUrl)
+      setCustomerName(nameFromUrl)
+    } else {
+      const name = localStorage.getItem('kicomanda_customer_name') ?? 'Cliente'
+      setCustomerName(name)
     }
+
+    // Limpa ?cn= da URL (não precisa poluir o histórico)
+    window.history.replaceState(null, '', `/${params.slug}/home?session=${encodeURIComponent(sessionId!)}`)
   }, [sessionId, params.slug, router, searchParams])
 
   useEffect(() => {

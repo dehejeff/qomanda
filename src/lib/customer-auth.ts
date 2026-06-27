@@ -61,11 +61,16 @@ export async function findCustomerActiveSession(
   return null
 }
 
-/** Navegação completa para o app do restaurante (confiável após check-in no mobile/PWA). */
+/** Navegação completa para o app do restaurante (confiável após check-in no mobile/PWA).
+ *  Embute o nome do cliente na URL (?cn=) para que a home page exiba o nome correto
+ *  mesmo quando o service worker do PWA estiver servindo JS cacheado.
+ */
 export function navigateToCustomerHome(slug: string, sessionId: string) {
   if (typeof window === 'undefined') return
   localStorage.setItem('kicomanda_session_id', sessionId)
-  const path = `/${slug}/home?session=${encodeURIComponent(sessionId)}`
+  const name = localStorage.getItem('kicomanda_customer_name') ?? ''
+  const cn   = name ? `&cn=${encodeURIComponent(name)}` : ''
+  const path = `/${slug}/home?session=${encodeURIComponent(sessionId)}${cn}`
   window.location.replace(path)
 }
 
