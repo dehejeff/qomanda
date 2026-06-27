@@ -109,9 +109,10 @@ export async function GET(req: NextRequest) {
 /**
  * PATCH /api/customer/profile
  * Atualiza nome do cliente (WhatsApp é imutável — é a chave de identidade).
+ * Aceita customerId opcional; valida que é participante da sessão.
  */
 export async function PATCH(req: NextRequest) {
-  const { sessionId, firstName, lastName } = await req.json()
+  const { sessionId, customerId: bodyCustomerId, firstName, lastName } = await req.json()
 
   if (!sessionId || !firstName?.trim()) {
     return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
@@ -130,10 +131,23 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Sessão inválida.' }, { status: 404 })
     }
 
+    let resolvedCustomerId = session.customer_id
+
+    if (bodyCustomerId && bodyCustomerId !== session.customer_id) {
+      const { data: participant } = await supabase
+        .from('session_participants')
+        .select('customer_id')
+        .eq('session_id', sessionId)
+        .eq('customer_id', bodyCustomerId)
+        .maybeSingle()
+
+      if (participant) resolvedCustomerId = bodyCustomerId
+    }
+
     await supabase
       .from('customers')
       .update({ first_name: firstName.trim(), last_name: lastName?.trim() ?? '' })
-      .eq('id', session.customer_id)
+      .eq('id', resolvedCustomerId)
 
     return NextResponse.json({ success: true })
   } catch (err) {

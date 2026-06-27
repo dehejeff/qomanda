@@ -105,6 +105,10 @@ export default function CheckInPage() {
   const [setupPin, setSetupPin] = useState('')
   const [setupPinConfirm, setSetupPinConfirm] = useState('')
   const [accessMode, setAccessMode] = useState<'choose' | 'new' | 'returning'>('choose')
+  // Quando first_name está vazio no banco: segura a navegação e pede o nome
+  const [nameEntry, setNameEntry] = useState<{ sessionId: string; customerId: string } | null>(null)
+  const [nameEntryInput, setNameEntryInput] = useState('')
+  const [savingEntryName, setSavingEntryName] = useState(false)
 
   // CPF validation state
   const cpfDigits   = cpf.replace(/\D/g, '')
@@ -281,6 +285,10 @@ export default function CheckInPage() {
         setSetupPinConfirm('')
 
         if (data.activeSession?.slug === params.slug) {
+          if (!data.firstName) {
+            setNameEntry({ sessionId: data.activeSession.sessionId, customerId: data.customerId })
+            return
+          }
           toast.success(`PIN criado! Bem-vindo, ${data.firstName}!`)
           navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
@@ -319,6 +327,10 @@ export default function CheckInPage() {
         setLoginPin('')
 
         if (data.activeSession?.slug === params.slug) {
+          if (!data.firstName) {
+            setNameEntry({ sessionId: data.activeSession.sessionId, customerId: data.customerId })
+            return
+          }
           toast.success(`Bem-vindo de volta, ${data.firstName}!`)
           navigateToCustomerHome(params.slug, data.activeSession.sessionId)
           return
@@ -384,6 +396,10 @@ export default function CheckInPage() {
       setShowFullForm(false)
 
       if (data.activeSession?.slug === params.slug) {
+        if (!data.firstName) {
+          setNameEntry({ sessionId: data.activeSession.sessionId, customerId: data.customerId })
+          return
+        }
         toast.success(`Bem-vindo de volta, ${data.firstName}!`)
         navigateToCustomerHome(params.slug, data.activeSession.sessionId)
         return
@@ -395,6 +411,23 @@ export default function CheckInPage() {
       toast.error('Erro ao entrar. Tente novamente.')
     } finally {
       setLoggingIn(false)
+    }
+  }
+
+  async function handleSaveEntryName() {
+    if (!nameEntry || !nameEntryInput.trim()) return
+    setSavingEntryName(true)
+    try {
+      const name = nameEntryInput.trim()
+      await fetch('/api/customer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: nameEntry.sessionId, customerId: nameEntry.customerId, firstName: name, lastName: '' }),
+      })
+      localStorage.setItem('kicomanda_customer_name', name)
+      navigateToCustomerHome(params.slug, nameEntry.sessionId)
+    } finally {
+      setSavingEntryName(false)
     }
   }
 
@@ -412,10 +445,15 @@ export default function CheckInPage() {
       localStorage.setItem('kicomanda_session_id', sessionId)
       localStorage.setItem('kicomanda_customer_id', cid)
       const resolvedName = retFirst ? `${retFirst} ${retLast}`.trim() : firstName
-      if (resolvedName) localStorage.setItem('kicomanda_customer_name', resolvedName)
       clearPendingTableCheckIn()
-      toast.success(`Bem-vindo de volta, ${retFirst || firstName}!`)
-      navigateToCustomerHome(params.slug, sessionId)
+      if (resolvedName) {
+        localStorage.setItem('kicomanda_customer_name', resolvedName)
+        toast.success(`Bem-vindo de volta, ${resolvedName.split(' ')[0]}!`)
+        navigateToCustomerHome(params.slug, sessionId)
+      } else {
+        // first_name vazio no banco: pede nome antes de entrar
+        setNameEntry({ sessionId, customerId: cid })
+      }
       return true
     } catch {
       return false
@@ -447,13 +485,17 @@ export default function CheckInPage() {
     const resolvedName = retFirst ? `${retFirst} ${retLast}`.trim() : savedCustomerName
     localStorage.setItem('kicomanda_session_id', sessionId)
     localStorage.setItem('kicomanda_customer_id', customerId)
-    if (resolvedName) localStorage.setItem('kicomanda_customer_name', resolvedName)
+    clearPendingTableCheckIn()
     setCheckedIn(true)
     setCheckingIn(false)
-    clearPendingTableCheckIn()
-    const first = (retFirst || savedCustomerName.split(' ')[0]) || 'Cliente'
-    toast.success(`Bem-vindo de volta, ${first}!`)
-    navigateToCustomerHome(params.slug, sessionId)
+    if (resolvedName) {
+      localStorage.setItem('kicomanda_customer_name', resolvedName)
+      toast.success(`Bem-vindo de volta, ${resolvedName.split(' ')[0]}!`)
+      navigateToCustomerHome(params.slug, sessionId)
+    } else {
+      // first_name vazio no banco: pede nome antes de entrar
+      setNameEntry({ sessionId, customerId })
+    }
   }
 
   const tableLabel = tableNumber ? tableNumber.padStart(2, '0') : '—'
@@ -576,6 +618,42 @@ export default function CheckInPage() {
               Ir para o Hub da minha conta
             </Link>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Name entry (when DB has empty first_name) ────────────
+  if (nameEntry) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8"
+        style={{ background: '#0b1326', color: '#dae2fd' }}>
+        <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
+          style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+        <div className="relative z-10 max-w-sm w-full space-y-5">
+          <div className="text-center space-y-1">
+            <span className="material-symbols-outlined block mx-auto mb-3" style={{ fontSize: 48, color: '#f97316' }}>waving_hand</span>
+            <h1 className="text-xl font-semibold">Como quer ser chamado?</h1>
+            <p className="text-sm" style={{ color: '#e0c0b1' }}>Informe seu nome para continuar.</p>
+          </div>
+          <input
+            type="text"
+            autoFocus
+            value={nameEntryInput}
+            onChange={e => setNameEntryInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleSaveEntryName() }}
+            placeholder="Seu nome"
+            className="w-full h-12 rounded-xl px-4 text-sm outline-none"
+            style={{ background: '#1e293b', border: '1px solid #334155', color: '#dae2fd' }}
+          />
+          <button
+            type="button"
+            onClick={handleSaveEntryName}
+            disabled={savingEntryName || !nameEntryInput.trim()}
+            className="w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98] disabled:opacity-50"
+            style={{ background: '#f97316', color: '#582200' }}>
+            {savingEntryName ? 'Salvando…' : 'Continuar'}
+          </button>
         </div>
       </div>
     )
