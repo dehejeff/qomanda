@@ -47,11 +47,13 @@ export async function requireRestaurantAccess(
   if (user?.email) {
     const admin = createAdminClient()
 
-    const { data: owned } = await admin
+    const { data: owned, error: ownedError } = await admin
       .from('restaurants')
-      .select('id, name, operational_mode, restaurant_model')
+      .select('id, name, operational_mode')
       .eq('owner_id', user.id)
       .maybeSingle()
+
+    if (ownedError) console.error('[Auth] restaurants lookup error:', ownedError.message)
 
     if (owned) {
       const role: RestaurantRole = 'owner'
@@ -65,16 +67,18 @@ export async function requireRestaurantAccess(
         role,
         isOwner: true,
         operationalMode: (owned.operational_mode as OperationalMode) ?? 'both',
-        restaurantModel: owned.restaurant_model ?? null,
+        restaurantModel: null,
       }
     }
 
-    const { data: member } = await admin
+    const { data: member, error: memberError } = await admin
       .from('restaurant_members')
-      .select('restaurant_id, role, user_id, restaurants ( name, operational_mode, restaurant_model )')
+      .select('restaurant_id, role, user_id, restaurants ( name, operational_mode )')
       .eq('email', user.email.toLowerCase())
       .eq('active', true)
       .maybeSingle()
+
+    if (memberError) console.error('[Auth] restaurant_members lookup error:', memberError.message)
 
     if (member) {
       const role = member.role as RestaurantRole
@@ -89,7 +93,7 @@ export async function requireRestaurantAccess(
           .eq('restaurant_id', member.restaurant_id)
       }
       const rest = (Array.isArray(member.restaurants) ? member.restaurants[0] : member.restaurants) as
-        { name?: string; operational_mode?: string; restaurant_model?: string } | null
+        { name?: string; operational_mode?: string } | null
       return {
         user,
         restaurantId: member.restaurant_id,
@@ -97,7 +101,7 @@ export async function requireRestaurantAccess(
         role,
         isOwner: false,
         operationalMode: (rest?.operational_mode as OperationalMode) ?? 'both',
-        restaurantModel: rest?.restaurant_model ?? null,
+        restaurantModel: null,
       }
     }
 
