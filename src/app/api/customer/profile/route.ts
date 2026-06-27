@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         { session_id: sessionId, customer_id: customerId },
         { onConflict: 'session_id,customer_id' },
       )
+      .then(() => {})  // erro não bloqueia resposta do perfil
 
     // Contagem: sessões distintas em que participou neste restaurante
     const { data: participations } = await supabase
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
       return restaurantId === session.restaurant_id
     }).length
 
-    // Mantém customer_visits sincronizado (fidelidade / relatórios)
+    // Mantém customer_visits sincronizado (fidelidade / relatórios) — falha não bloqueia perfil
     await supabase
       .from('customer_visits')
       .upsert(
@@ -70,6 +71,8 @@ export async function GET(req: NextRequest) {
         },
         { onConflict: 'customer_id,session_id' },
       )
+      .then(() => {})
+      .catch((err: unknown) => console.error('[Profile] customer_visits upsert:', err))
 
     const { data: customer } = await supabase
       .from('customers')
