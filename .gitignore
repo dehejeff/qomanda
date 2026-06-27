@@ -64,3 +64,4 @@ scripts/smoke/.cache/
 # Claude runtime
 .claude/scheduled_tasks.lock
 test-results/
+e2e/.test-run-context.json

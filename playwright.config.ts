@@ -1,40 +1,25 @@
 import { defineConfig, devices } from '@playwright/test'
+import * as dotenv from 'dotenv'
+import * as path from 'path'
 
-/**
- * Playwright E2E configuration for the Qomanda app.
- *
- * The dev server must be running separately (`npm run dev`) before executing
- * these tests.  Tests are written to be resilient against a missing Supabase
- * backend — they assert on structural page elements that are rendered even
- * before any async data resolves.
- */
+// Load .env.local so Supabase vars are available in globalSetup/Teardown
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+
 export default defineConfig({
   testDir: './e2e',
-
-  // Allow the full page lifecycle to settle before timing out a test.
   timeout: 30_000,
-
-  // Each test gets a fresh, isolated browser context.
   fullyParallel: false,
-
-  // Fail the run on any test.only left in source.
   forbidOnly: Boolean(process.env.CI),
-
-  // Retry once in CI so transient flakes don't break the pipeline.
   retries: process.env.CI ? 1 : 0,
-
   reporter: 'list',
+
+  globalSetup: './e2e/setup/global-setup.ts',
+  globalTeardown: './e2e/setup/global-teardown.ts',
 
   use: {
     baseURL: 'http://localhost:3000',
-
-    // Capture a trace on the first retry — use `npx playwright show-trace` to inspect.
     trace: 'on-first-retry',
-
-    // Capture a screenshot on failure automatically.
     screenshot: 'only-on-failure',
-
-    // Use a mobile viewport to match the PWA's primary device target.
     viewport: { width: 390, height: 844 },
   },
 
