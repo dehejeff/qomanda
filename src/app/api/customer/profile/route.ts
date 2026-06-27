@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     }).length
 
     // Mantém customer_visits sincronizado (fidelidade / relatórios) — falha não bloqueia perfil
-    await supabase
+    supabase
       .from('customer_visits')
       .upsert(
         {
