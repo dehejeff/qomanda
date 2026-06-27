@@ -157,22 +157,20 @@ export default function CustomerHomePage() {
 
       const customerId = localStorage.getItem('kicomanda_customer_id')
 
-      // Fallback: busca nome do servidor quando ausente do localStorage (novo dispositivo, cache limpo, etc.)
-      const storedName = localStorage.getItem('kicomanda_customer_name')
-      if (!storedName) {
-        const qs = new URLSearchParams({ session: sessionId! })
-        if (customerId) qs.set('customer', customerId)
-        const profileRes = await fetch(`/api/customer/profile?${qs}`).catch(() => null)
-        if (profileRes?.ok) {
-          const profile = await profileRes.json() as { firstName?: string; lastName?: string; customerId?: string }
-          const resolvedName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
-          if (resolvedName) {
-            localStorage.setItem('kicomanda_customer_name', resolvedName)
-            setCustomerName(resolvedName)
-          }
-          if (profile.customerId && !customerId) {
-            localStorage.setItem('kicomanda_customer_id', profile.customerId)
-          }
+      // Sempre busca o nome do servidor — garante que o nome aparece
+      // independente do estado do localStorage ou do cache do PWA.
+      const qs = new URLSearchParams({ session: sessionId! })
+      if (customerId) qs.set('customer', customerId)
+      const profileRes = await fetch(`/api/customer/profile?${qs}`).catch(() => null)
+      if (profileRes?.ok) {
+        const profile = await profileRes.json() as { firstName?: string; lastName?: string; customerId?: string }
+        const resolvedName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
+        if (resolvedName) {
+          localStorage.setItem('kicomanda_customer_name', resolvedName)
+          setCustomerName(resolvedName)
+        }
+        if (profile.customerId && !customerId) {
+          localStorage.setItem('kicomanda_customer_id', profile.customerId)
         }
       }
 
