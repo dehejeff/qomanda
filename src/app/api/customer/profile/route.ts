@@ -40,13 +40,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Garante registro do participante (sessões criadas antes da tabela)
-    await supabase
+    void supabase
       .from('session_participants')
       .upsert(
         { session_id: sessionId, customer_id: customerId },
         { onConflict: 'session_id,customer_id' },
       )
-      .then(() => {})  // erro não bloqueia resposta do perfil
+      .then(() => {}, () => {})  // erro não bloqueia resposta do perfil
 
     // Contagem: sessões distintas em que participou neste restaurante
     const { data: participations } = await supabase
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     }).length
 
     // Mantém customer_visits sincronizado (fidelidade / relatórios) — falha não bloqueia perfil
-    supabase
+    void supabase
       .from('customer_visits')
       .upsert(
         {
@@ -71,8 +71,7 @@ export async function GET(req: NextRequest) {
         },
         { onConflict: 'customer_id,session_id' },
       )
-      .then(() => {})
-      .catch((err: unknown) => console.error('[Profile] customer_visits upsert:', err))
+      .then(() => {}, (err: unknown) => console.error('[Profile] customer_visits upsert:', err))
 
     const { data: customer } = await supabase
       .from('customers')
