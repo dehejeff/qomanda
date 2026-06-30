@@ -426,7 +426,7 @@ export default function RoadmapPage() {
         style={{ background: 'rgba(13,17,23,0.9)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
         <Link href="/" className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </Link>
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>← Voltar ao site</Link>

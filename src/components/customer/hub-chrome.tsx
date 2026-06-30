@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
@@ -14,7 +14,7 @@ export function HubPageHeader({ title, backHref }: { title?: string; backHref?: 
       ) : (
         <div className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </div>
       )}
       {title ? (

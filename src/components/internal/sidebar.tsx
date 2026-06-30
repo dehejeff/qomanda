@@ -32,7 +32,7 @@ export function InternalSidebar({ staffEmail }: { staffEmail: string }) {
         <div className="flex items-center gap-2.5">
           <KiComandaLogo size={32} />
           <div>
-            <h1 className="text-lg font-black text-on-surface leading-tight">KiComanda</h1>
+            <h1 className="text-lg font-black text-on-surface leading-tight">KiComanda<span style={{ color: '#00E676' }}>.</span></h1>
             <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Portal interno</p>
           </div>
         </div>

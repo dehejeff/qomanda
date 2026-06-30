@@ -67,7 +67,7 @@ export default function IntegracoesPage() {
       <nav className="flex items-center justify-between px-4 md:px-12 py-5 max-w-6xl mx-auto">
         <Link href="/" className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </Link>
         <Link href="/cadastro" className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#003319' }}>
           Começar

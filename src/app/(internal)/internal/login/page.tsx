@@ -60,7 +60,7 @@ export default function InternalLoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <KiComandaLogo size={48} />
-          <p className="text-sm font-black text-on-surface">KiComanda</p>
+          <p className="text-sm font-black text-on-surface">KiComanda<span style={{ color: '#00E676' }}>.</span></p>
           <div>
             <h1 className="text-xl font-black text-on-surface">Portal interno</h1>
             <p className="text-sm text-on-surface-variant mt-1">Acesso restrito à equipe KiComanda</p>

@@ -185,7 +185,7 @@ export default function LandingPage() {
         <div className="flex justify-between items-center px-5 md:px-12 h-16">
           <div className="flex items-center gap-2.5">
             <KiComandaLogo size={28} />
-            <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>KiComanda</span>
+            <span className="text-base font-black" style={{ color: C.text, letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             {['Funcionalidades', 'Modelos', 'Como funciona', 'Preços', 'FAQ'].map(item => (
@@ -723,7 +723,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="flex items-center justify-center sm:justify-start gap-2.5 shrink-0">
               <KiComandaLogo size={28} />
-              <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+              <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
             </div>
             <nav
               className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-3 text-sm"

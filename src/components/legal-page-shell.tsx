@@ -1,4 +1,4 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 export const LEGAL_C = {
@@ -34,7 +34,7 @@ export function LegalPageShell({ title, subtitle, updatedAt, children }: Props) 
       >
         <Link href="/" className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </Link>
         <Link href="/" className="text-sm transition-colors hover:opacity-80" style={{ ...mono, color: LEGAL_C.muted }}>
           ← Voltar ao site

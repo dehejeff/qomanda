@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -151,7 +151,7 @@ export default function ScanPage() {
         </Link>
         <div className="flex items-center gap-2">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', color: '#ffffff', letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', color: '#ffffff', letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </div>
         <div className="w-8" />
       </header>

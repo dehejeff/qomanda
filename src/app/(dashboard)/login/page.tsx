@@ -120,7 +120,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3">
           <KiComandaLogo size={48} />
-          <p className="text-sm font-black tracking-tight text-on-surface">KiComanda</p>
+          <p className="text-sm font-black tracking-tight text-on-surface">KiComanda<span style={{ color: '#00E676' }}>.</span></p>
           <div className="text-center">
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>{copy.title}</h1>
             <p className="text-sm mt-1 max-w-[280px] mx-auto leading-relaxed" style={{ color: '#8B949E' }}>

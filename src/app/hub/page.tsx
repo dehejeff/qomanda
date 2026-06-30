@@ -86,7 +86,7 @@ function HubGuestView() {
         style={{ background: 'rgba(13,17,23,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </div>
       </header>
       <main className="px-5 pt-6 space-y-6 max-w-lg mx-auto">
@@ -207,7 +207,7 @@ function HubAuthenticatedView({ customerId }: { customerId: string }) {
         style={{ background: 'rgba(13,17,23,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
-          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda</span>
+          <span className="font-black text-base" style={{ fontFamily: 'Geist, sans-serif', letterSpacing: '-0.02em' }}>KiComanda<span style={{ color: '#00E676' }}>.</span></span>
         </div>
         <span className="text-xs font-mono truncate max-w-[140px]" style={{ color: '#8B949E' }}>{greeting}</span>
       </header>

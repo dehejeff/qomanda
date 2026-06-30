@@ -1,91 +1,70 @@
 import Image from 'next/image'
 
-/** Cores laranja da marca (globals.css) */
-export const KICOMANDA_ORANGE = '#00E676'
-export const KICOMANDA_ORANGE_LIGHT = '#00E676'
-export const KICOMANDA_NAVY = '#0D1117'
-
-/** Arquivos em public/brand/ */
-export const KICOMANDA_LOGO = {
-  /** Logo oficial — fundo laranja + K branco */
-  default: '/brand/logo.png',
-  orangeWhite: '/brand/logo-orange-bg-k-white.png',
-  /** Alternativas */
-  navy: '/brand/logo-navy-bg-k-orange.png',
-  orangeNavy: '/brand/logo-orange-bg-k-navy.png',
-  icon: '/brand/logo-icon.png',
-} as const
-
-export type KiComandaLogoVariant = keyof typeof KICOMANDA_LOGO
-
-/** PNG tem margem interna — escala unifica o tamanho visual em todo o app */
-const LOGO_DISPLAY_SCALE = 1.2
+export const KICOMANDA_GREEN = '#00E676'
+export const KICOMANDA_NAVY  = '#0D1117'
 
 type IconProps = {
-  size?: number
+  size?:      number
   className?: string
-  variant?: KiComandaLogoVariant
 }
 
-/** Ícone KiComanda (PNG oficial) */
-export function KiComandaLogo({
-  size = 40,
-  className,
-  variant = 'default',
-}: IconProps) {
-  const src = KICOMANDA_LOGO[variant]
-  const px = Math.round(size * LOGO_DISPLAY_SCALE)
+/** Mascote KiComanda */
+export function KiComandaLogo({ size = 40, className }: IconProps) {
   return (
     <Image
-      src={src}
+      src="/Mascotinho/comandinha-mascote.png"
       alt="KiComanda"
-      width={px}
-      height={px}
+      width={size}
+      height={size}
       className={className ?? 'shrink-0'}
-      priority={px >= 56}
+      priority={size >= 56}
+      style={{ objectFit: 'contain' }}
     />
+  )
+}
+
+type TextProps = {
+  fontSize?:  number
+  className?: string
+}
+
+/** "KiComanda" branco + "." verde — use dentro de wordmarks */
+export function KiComandaText({ fontSize = 16, className }: TextProps) {
+  return (
+    <span
+      className={`font-black leading-none select-none ${className ?? ''}`}
+      style={{ fontFamily: 'Geist, sans-serif', fontSize, letterSpacing: '-0.02em', color: '#FFFFFF' }}
+    >
+      KiComanda<span style={{ color: KICOMANDA_GREEN }}>.</span>
+    </span>
+  )
+}
+
+type WordmarkProps = {
+  size?:      number
+  className?: string
+}
+
+/** Lockup horizontal: mascote + "KiComanda." */
+export function KiComandaWordmark({ size = 36, className }: WordmarkProps) {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 ${className ?? ''}`}
+      role="img"
+      aria-label="KiComanda"
+    >
+      <KiComandaLogo size={Math.round(size * 0.9)} />
+      <KiComandaText fontSize={size} />
+    </div>
   )
 }
 
 /** @deprecated use KiComandaLogo */
 export const QomandaLogo = KiComandaLogo
-
-type WordmarkProps = {
-  size?: number
-  color?: string
-  variant?: KiComandaLogoVariant
-  className?: string
-}
-
-/** Wordmark — ícone + “iComanda” */
-export function KiComandaWordmark({
-  size = 36,
-  color = '#ffffff',
-  variant = 'default',
-  className,
-}: WordmarkProps) {
-  const iconSize = Math.round(size * 0.95)
-  return (
-    <div
-      className={`inline-flex items-center gap-2.5 ${className ?? ''}`}
-      role="img"
-      aria-label="KiComanda"
-    >
-      <KiComandaLogo size={iconSize} variant={variant} />
-      <span
-        className="font-black leading-none"
-        style={{
-          fontFamily: 'Geist, sans-serif',
-          fontSize: size * 0.95,
-          color,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        iComanda
-      </span>
-    </div>
-  )
-}
-
 /** @deprecated use KiComandaWordmark */
 export const QomandaWordmark = KiComandaWordmark
+/** @deprecated use KICOMANDA_GREEN */
+export const KICOMANDA_ORANGE       = KICOMANDA_GREEN
+export const KICOMANDA_ORANGE_LIGHT = KICOMANDA_GREEN
+export const KICOMANDA_LOGO = { default: '/Mascotinho/comandinha-mascote.png' } as const
+export type KiComandaLogoVariant = 'default'
