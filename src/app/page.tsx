@@ -652,6 +652,44 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── DEMO / LEAD ─────────────────────────────────────── */}
+      <section className="py-24 px-4 md:px-12 w-full" style={{ background: C.bg }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-3xl overflow-hidden flex flex-col md:flex-row"
+            style={{ background: C.bgCard, border: `1px solid ${C.borderBlu}` }}>
+            {/* Left — accent strip */}
+            <div className="flex-shrink-0 w-full md:w-2 self-stretch"
+              style={{ background: `linear-gradient(180deg, ${C.primary}, ${C.blue})` }} />
+            <div className="flex-1 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+              {/* Icon */}
+              <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: `${C.primary}15`, border: `1px solid ${C.primary}30` }}>
+                <span className="material-symbols-outlined text-[32px]" style={{ color: C.primary }}>waving_hand</span>
+              </div>
+              {/* Text */}
+              <div className="flex-1 text-center md:text-left">
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ ...mono, color: C.primary }}>Antes de assinar</p>
+                <h2 className="text-2xl md:text-3xl font-black mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Quer ver a KiComanda<br className="hidden md:block" /> funcionando de perto?
+                </h2>
+                <p className="text-sm leading-relaxed" style={{ color: C.muted }}>
+                  Deixe seus dados — nossa equipe entra em contato pelo WhatsApp para marcar uma demo rápida e tirar todas as suas dúvidas antes de você começar.
+                </p>
+              </div>
+              {/* CTA */}
+              <div className="flex-shrink-0">
+                <Link href="/lead"
+                  className="inline-flex items-center gap-2 px-7 py-4 rounded-xl font-bold text-sm transition-all active:scale-95 hover:opacity-90 whitespace-nowrap"
+                  style={{ background: C.primary, color: '#582200', boxShadow: `0 8px 30px ${C.primary}30` }}>
+                  <span className="material-symbols-outlined text-[20px]">chat</span>
+                  Quero uma demonstração
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FINAL CTA ───────────────────────────────────────── */}
       <section className="py-24 px-6 md:px-12 relative overflow-hidden"
         style={{ background: C.bgCard }}>
@@ -699,12 +737,21 @@ export default function LandingPage() {
               <a href="mailto:contato@kicomanda.com.br" className="hover:opacity-80 transition-opacity whitespace-nowrap">contato@kicomanda.com.br</a>
             </nav>
           </div>
-          <p
-            className="text-xs text-center sm:text-left pt-6"
-            style={{ ...mono, color: C.faint, borderTop: `1px solid ${C.border}` }}
+          <div
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-6"
+            style={{ borderTop: `1px solid ${C.border}` }}
           >
-            © 2026 KiComanda. Todos os direitos reservados.
-          </p>
+            <p className="text-xs text-center sm:text-left" style={{ ...mono, color: C.faint }}>
+              © 2026 KiComanda. Todos os direitos reservados.
+            </p>
+            <Link
+              href="/internal"
+              className="text-xs text-center sm:text-right transition-opacity hover:opacity-60"
+              style={{ ...mono, color: `${C.faint}80` }}
+            >
+              Acesso interno
+            </Link>
+          </div>
         </div>
       </footer>
 
