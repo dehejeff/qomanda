@@ -13,7 +13,7 @@ const C = {
   text: '#e2e8f4',
   muted: '#718096',
   green: '#10b981',
-  orange: '#f97316',
+  orange: '#00E676',
   blue: '#60a5fa',
 } as const
 
@@ -183,7 +183,7 @@ export function MateriaisView({ content }: { content: MateriaisPageContent }) {
     <div className="min-h-screen" style={{ background: C.bg, color: C.text, ...mono, fontSize: 13 }}>
       <div
         className="fixed inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 50% 40% at 10% 0%, rgba(249,115,22,0.05) 0%, transparent 55%)' }}
+        style={{ background: 'radial-gradient(ellipse 50% 40% at 10% 0%, rgba(0,230,118,0.05) 0%, transparent 55%)' }}
       />
       <div className="relative max-w-[900px] mx-auto px-6 py-10 pb-20">
         <header className="mb-8 pb-6" style={{ borderBottom: `1px solid ${C.border2}` }}>

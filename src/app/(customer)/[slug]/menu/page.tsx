@@ -209,29 +209,29 @@ export default function MenuPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen pb-36" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-36" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       {/* Header */}
       <header
         className="sticky top-0 z-50 flex justify-between items-center px-6 h-16"
-        style={{ background: '#0b1326', borderBottom: '1px solid rgba(88,66,55,0.35)' }}
+        style={{ background: '#0D1117', borderBottom: '1px solid rgba(88,66,55,0.35)' }}
       >
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined" style={{ color: '#ffb690' }}>restaurant_menu</span>
-          <h1 className="text-base font-bold tracking-tight" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+          <span className="material-symbols-outlined" style={{ color: '#00E676' }}>restaurant_menu</span>
+          <h1 className="text-base font-bold tracking-tight" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
             {restaurantName}
           </h1>
         </div>
         <button
           onClick={() => router.push(`/${params.slug}/home?session=${sessionId}`)}
           className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-          style={{ background: '#1e293b', border: '1px solid #334155', color: '#e0c0b1' }}
+          style={{ background: '#21262D', border: '1px solid #30363D', color: '#e0c0b1' }}
         >
           <span className="material-symbols-outlined text-[20px]">home</span>
         </button>
@@ -241,7 +241,7 @@ export default function MenuPage() {
       <nav
         ref={tabsRef}
         className="sticky top-16 z-40 flex gap-2 px-6 py-3 overflow-x-auto"
-        style={{ background: '#0b1326', borderBottom: '1px solid rgba(88,66,55,0.25)', scrollbarWidth: 'none' }}
+        style={{ background: '#0D1117', borderBottom: '1px solid rgba(88,66,55,0.25)', scrollbarWidth: 'none' }}
       >
         {categories.map(cat => (
           <button
@@ -272,26 +272,26 @@ export default function MenuPage() {
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }}>
-                <span className="material-symbols-outlined text-[72px]" style={{ color: '#334155' }}>restaurant</span>
+              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #21262D, #0f172a)' }}>
+                <span className="material-symbols-outlined text-[72px]" style={{ color: '#30363D' }}>restaurant</span>
               </div>
             )}
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #0b1326 0%, transparent 60%)' }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #0D1117 0%, transparent 60%)' }} />
             <div className="absolute bottom-4 left-4">
               <span
                 className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2 inline-block"
-                style={{ background: '#ffb690', color: '#552100' }}
+                style={{ background: '#00E676', color: '#552100' }}
               >
                 SUGESTÃO DO CHEF
               </span>
               <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>{featuredItem.name}</h2>
               <div className="flex items-center gap-2">
                 {menuItemHasPromo(featuredItem) && (
-                  <span className="text-xs font-mono line-through" style={{ color: '#a78b7d' }}>
+                  <span className="text-xs font-mono line-through" style={{ color: '#8B949E' }}>
                     {formatCurrency(featuredItem.price)}
                   </span>
                 )}
-                <p className="text-sm font-mono" style={{ color: '#ffb690' }}>
+                <p className="text-sm font-mono" style={{ color: '#00E676' }}>
                   {formatCurrency(menuItemEffectivePrice(featuredItem))}
                 </p>
               </div>
@@ -299,7 +299,7 @@ export default function MenuPage() {
             <div className="absolute bottom-4 right-4">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ background: '#f97316', color: '#582200' }}
+                style={{ background: '#00E676', color: '#003319' }}
               >
                 <span className="material-symbols-outlined text-[20px]">add</span>
               </div>
@@ -311,8 +311,8 @@ export default function MenuPage() {
         <div className="space-y-3">
           {activeItems.length === 0 ? (
             <div className="py-12 text-center">
-              <span className="material-symbols-outlined text-[48px] block mb-2" style={{ color: '#584237' }}>restaurant_menu</span>
-              <p className="text-sm" style={{ color: '#a78b7d' }}>Nenhum item disponível nesta categoria</p>
+              <span className="material-symbols-outlined text-[48px] block mb-2" style={{ color: '#30363D' }}>restaurant_menu</span>
+              <p className="text-sm" style={{ color: '#8B949E' }}>Nenhum item disponível nesta categoria</p>
             </div>
           ) : (
             activeItems.map(item => {
@@ -328,7 +328,7 @@ export default function MenuPage() {
                   className="flex items-stretch gap-3 rounded-xl p-3 transition-all cursor-pointer active:scale-[0.99]"
                   style={{
                     background: 'rgba(30,41,59,0.7)',
-                    border: qty > 0 ? '1px solid #f97316' : '1px solid #334155',
+                    border: qty > 0 ? '1px solid #00E676' : '1px solid #30363D',
                     backdropFilter: 'blur(12px)',
                   }}
                 >
@@ -340,8 +340,8 @@ export default function MenuPage() {
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: '#1e293b' }}>
-                        <span className="material-symbols-outlined text-[32px]" style={{ color: '#584237' }}>fastfood</span>
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: '#21262D' }}>
+                        <span className="material-symbols-outlined text-[32px]" style={{ color: '#30363D' }}>fastfood</span>
                       </div>
                     )}
                   </div>
@@ -362,15 +362,15 @@ export default function MenuPage() {
                       <div>
                         {menuItemHasPromo(item) ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono line-through" style={{ color: '#a78b7d' }}>
+                            <span className="text-xs font-mono line-through" style={{ color: '#8B949E' }}>
                               {formatCurrency(item.price)}
                             </span>
-                            <span className="text-sm font-mono font-semibold" style={{ color: '#ffb690' }}>
+                            <span className="text-sm font-mono font-semibold" style={{ color: '#00E676' }}>
                               {formatCurrency(menuItemEffectivePrice(item))}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm font-mono font-semibold" style={{ color: '#ffb690' }}>
+                          <span className="text-sm font-mono font-semibold" style={{ color: '#00E676' }}>
                             {formatCurrency(item.price)}
                           </span>
                         )}
@@ -378,16 +378,16 @@ export default function MenuPage() {
                       {qty > 0 ? (
                         <span
                           className="min-w-[28px] h-7 px-2 rounded-full text-xs font-mono font-bold flex items-center justify-center"
-                          style={{ background: '#f97316', color: '#582200' }}
+                          style={{ background: '#00E676', color: '#003319' }}
                         >
                           {qty}×
                         </span>
                       ) : (
-                        <span className="material-symbols-outlined text-[22px]" style={{ color: '#f97316' }}>add_circle</span>
+                        <span className="material-symbols-outlined text-[22px]" style={{ color: '#00E676' }}>add_circle</span>
                       )}
                     </div>
                     {notes[item.id] && (
-                      <p className="text-[11px] font-mono mt-1.5 line-clamp-1 flex items-center gap-1" style={{ color: '#a78b7d' }}>
+                      <p className="text-[11px] font-mono mt-1.5 line-clamp-1 flex items-center gap-1" style={{ color: '#8B949E' }}>
                         <span className="material-symbols-outlined text-[13px]">edit_note</span>
                         {notes[item.id]}
                       </p>
@@ -408,8 +408,8 @@ export default function MenuPage() {
             disabled={placing}
             className="w-full flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-all disabled:opacity-60"
             style={{
-              background: 'linear-gradient(135deg, #f97316, #ea580c)',
-              boxShadow: '0 8px 32px rgba(249,115,22,0.45), 0 0 0 1px rgba(249,115,22,0.3)',
+              background: 'linear-gradient(135deg, #00E676, #ea580c)',
+              boxShadow: '0 8px 32px rgba(0,230,118,0.45), 0 0 0 1px rgba(0,230,118,0.3)',
             }}
           >
             <div className="flex items-center gap-3">

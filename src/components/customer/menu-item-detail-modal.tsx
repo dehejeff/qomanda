@@ -54,13 +54,13 @@ export function MenuItemDetailModal({
       <div
         className="w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl overflow-hidden"
         style={{
-          background: '#131b2e',
-          border: '1px solid #334155',
+          background: '#161B22',
+          border: '1px solid #30363D',
           boxShadow: '0 16px 48px rgba(0,0,0,0.45)',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="relative shrink-0 h-52 sm:h-56 overflow-hidden" style={{ background: '#1e293b' }}>
+        <div className="relative shrink-0 h-52 sm:h-56 overflow-hidden" style={{ background: '#21262D' }}>
           {showVideo && embedUrl ? (
             <iframe
               src={embedUrl}
@@ -75,7 +75,7 @@ export function MenuItemDetailModal({
                 <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[72px]" style={{ color: '#334155' }}>restaurant</span>
+                  <span className="material-symbols-outlined text-[72px]" style={{ color: '#30363D' }}>restaurant</span>
                 </div>
               )}
               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(19,27,46,0.85) 0%, transparent 50%)' }} />
@@ -88,7 +88,7 @@ export function MenuItemDetailModal({
                 >
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center transition-transform group-active:scale-90"
-                    style={{ background: 'rgba(249,115,22,0.9)', boxShadow: '0 4px 20px rgba(249,115,22,0.5)' }}
+                    style={{ background: 'rgba(0,230,118,0.9)', boxShadow: '0 4px 20px rgba(0,230,118,0.5)' }}
                   >
                     <span className="material-symbols-outlined text-[28px]" style={{ color: '#fff' }}>play_arrow</span>
                   </div>
@@ -100,7 +100,7 @@ export function MenuItemDetailModal({
             type="button"
             onClick={showVideo ? () => setShowVideo(false) : onClose}
             className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(11,19,38,0.75)', border: '1px solid #334155', color: '#dae2fd' }}
+            style={{ background: 'rgba(11,19,38,0.75)', border: '1px solid #30363D', color: '#FFFFFF' }}
             aria-label={showVideo ? 'Voltar' : 'Fechar'}
           >
             <span className="material-symbols-outlined text-[20px]">{showVideo ? 'arrow_back' : 'close'}</span>
@@ -108,7 +108,7 @@ export function MenuItemDetailModal({
           {!showVideo && item.is_chef_pick && (
             <span
               className="absolute top-3 left-3 text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-1 rounded"
-              style={{ background: '#ffb690', color: '#552100' }}
+              style={{ background: '#00E676', color: '#552100' }}
             >
               Sugestão do chef
             </span>
@@ -117,16 +117,16 @@ export function MenuItemDetailModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <div>
-            <h2 className="text-xl font-bold leading-tight" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
+            <h2 className="text-xl font-bold leading-tight" style={{ fontFamily: 'Geist, sans-serif', color: '#FFFFFF' }}>
               {item.name}
             </h2>
             <div className="flex items-center gap-2 mt-2">
               {menuItemHasPromo(item) && (
-                <span className="text-sm font-mono line-through" style={{ color: '#a78b7d' }}>
+                <span className="text-sm font-mono line-through" style={{ color: '#8B949E' }}>
                   {formatCurrency(item.price)}
                 </span>
               )}
-              <span className="text-lg font-mono font-bold" style={{ color: '#ffb690' }}>
+              <span className="text-lg font-mono font-bold" style={{ color: '#00E676' }}>
                 {formatCurrency(effectivePrice)}
               </span>
             </div>
@@ -137,13 +137,13 @@ export function MenuItemDetailModal({
               {item.description}
             </p>
           ) : (
-            <p className="text-sm italic" style={{ color: '#584237' }}>
+            <p className="text-sm italic" style={{ color: '#30363D' }}>
               Sem descrição cadastrada.
             </p>
           )}
 
           <div>
-            <label className="text-[10px] font-mono uppercase tracking-widest mb-2 block" style={{ color: '#a78b7d' }}>
+            <label className="text-[10px] font-mono uppercase tracking-widest mb-2 block" style={{ color: '#8B949E' }}>
               Observações
             </label>
             <textarea
@@ -152,35 +152,35 @@ export function MenuItemDetailModal({
               placeholder="ex: sem cebola, ponto bem passado, molho à parte…"
               rows={3}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none font-mono"
-              style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-              onFocus={e => (e.target.style.borderColor = '#f97316')}
-              onBlur={e => (e.target.style.borderColor = '#584237')}
+              style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+              onFocus={e => (e.target.style.borderColor = '#00E676')}
+              onBlur={e => (e.target.style.borderColor = '#30363D')}
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-            <span className="text-sm font-mono" style={{ color: '#a78b7d' }}>Quantidade</span>
+          <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: '#21262D', border: '1px solid #30363D' }}>
+            <span className="text-sm font-mono" style={{ color: '#8B949E' }}>Quantidade</span>
             <div
               className="flex items-center rounded-full p-1"
-              style={{ background: '#2d3449', border: '1px solid rgba(88,66,55,0.3)' }}
+              style={{ background: '#30363D', border: '1px solid rgba(88,66,55,0.3)' }}
             >
               <button
                 type="button"
                 onClick={() => onQuantityChange(Math.max(0, quantity - 1))}
                 className="w-10 h-10 flex items-center justify-center rounded-full active:scale-90 transition-all"
-                style={{ color: '#f97316' }}
+                style={{ color: '#00E676' }}
                 aria-label="Diminuir quantidade"
               >
                 <span className="material-symbols-outlined text-[20px]">remove</span>
               </button>
-              <span className="px-3 text-base font-mono font-bold min-w-[32px] text-center" style={{ color: '#ffb690' }}>
+              <span className="px-3 text-base font-mono font-bold min-w-[32px] text-center" style={{ color: '#00E676' }}>
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={() => onQuantityChange(quantity + 1)}
                 className="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-all"
-                style={{ background: '#f97316', color: '#582200' }}
+                style={{ background: '#00E676', color: '#003319' }}
                 aria-label="Aumentar quantidade"
               >
                 <span className="material-symbols-outlined text-[20px]">add</span>
@@ -189,10 +189,10 @@ export function MenuItemDetailModal({
           </div>
         </div>
 
-        <div className="shrink-0 px-5 py-4 space-y-2" style={{ borderTop: '1px solid #334155' }}>
+        <div className="shrink-0 px-5 py-4 space-y-2" style={{ borderTop: '1px solid #30363D' }}>
           {quantity > 0 && (
-            <p className="text-xs text-center font-mono" style={{ color: '#a78b7d' }}>
-              Subtotal: <strong style={{ color: '#ffb690' }}>{formatCurrency(lineTotal)}</strong>
+            <p className="text-xs text-center font-mono" style={{ color: '#8B949E' }}>
+              Subtotal: <strong style={{ color: '#00E676' }}>{formatCurrency(lineTotal)}</strong>
             </p>
           )}
           <button
@@ -200,10 +200,10 @@ export function MenuItemDetailModal({
             onClick={onConfirm}
             className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             style={{
-              background: quantity <= 0 ? 'rgba(248,113,113,0.15)' : '#f97316',
-              color: quantity <= 0 ? '#f87171' : '#582200',
+              background: quantity <= 0 ? 'rgba(248,113,113,0.15)' : '#00E676',
+              color: quantity <= 0 ? '#f87171' : '#003319',
               border: quantity <= 0 ? '1px solid rgba(248,113,113,0.35)' : 'none',
-              boxShadow: quantity > 0 ? '0 8px 24px rgba(249,115,22,0.25)' : 'none',
+              boxShadow: quantity > 0 ? '0 8px 24px rgba(0,230,118,0.25)' : 'none',
             }}
           >
             {quantity <= 0 ? (

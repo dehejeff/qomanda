@@ -40,7 +40,7 @@ export function ItemStatusIcon({ status }: { status: ItemPayStatus }) {
   return (
     <span
       className="material-symbols-outlined text-[13px] shrink-0 leading-none"
-      style={{ color: '#584237' }}
+      style={{ color: '#30363D' }}
       title="Pendente"
       aria-label="Pendente"
     >

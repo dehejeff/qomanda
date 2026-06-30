@@ -39,13 +39,13 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
   const loading     = externalLoading ?? submitting
 
   const inputStyle: React.CSSProperties = {
-    background: '#131b2e', border: '1px solid #584237', color: '#dae2fd',
+    background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF',
     outline: 'none', width: '100%', height: 48, borderRadius: 12,
     padding: '0 16px', fontSize: 14, fontFamily: 'Geist, sans-serif',
     transition: 'border-color 0.15s',
   }
-  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#f97316' }
-  const onBlur  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#584237' }
+  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#00E676' }
+  const onBlur  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = '#30363D' }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -79,13 +79,13 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Nome</label>
+          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Nome</label>
           <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
             placeholder="João" required autoComplete="given-name"
             style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Sobrenome</label>
+          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Sobrenome</label>
           <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
             placeholder="Silva" required autoComplete="family-name"
             style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -93,7 +93,7 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>WhatsApp</label>
+        <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>WhatsApp</label>
         <input type="tel" inputMode="tel" value={whatsapp}
           onChange={e => setWhatsapp(docType === 'passport' ? formatPhoneInput(e.target.value) : formatWhatsApp(e.target.value))}
           placeholder={docType === 'passport' ? '+351 912 345 678' : '(11) 99999-9999'} required autoComplete="tel"
@@ -101,28 +101,28 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
       </div>
 
       <div className="space-y-2">
-        <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>PIN de 4 dígitos</label>
-        <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+        <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>PIN de 4 dígitos</label>
+        <p className="text-[11px] leading-relaxed" style={{ color: '#30363D' }}>
           Obrigatório para acessar sua conta no Hub.
         </p>
         <PinInput value={pin} onChange={setPin} length={4} />
-        <label className="text-[11px] font-mono uppercase tracking-wider pt-1 block" style={{ color: '#a78b7d' }}>Confirmar PIN</label>
+        <label className="text-[11px] font-mono uppercase tracking-wider pt-1 block" style={{ color: '#8B949E' }}>Confirmar PIN</label>
         <PinInput value={pinConfirm} onChange={setPinConfirm} length={4} />
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-px" style={{ background: '#334155' }} />
-        <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>Identificação (opcional)</span>
-        <div className="flex-1 h-px" style={{ background: '#334155' }} />
+        <div className="flex-1 h-px" style={{ background: '#30363D' }} />
+        <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#30363D' }}>Identificação (opcional)</span>
+        <div className="flex-1 h-px" style={{ background: '#30363D' }} />
       </div>
 
-      <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #334155' }}>
+      <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #30363D' }}>
         {(['cpf', 'passport'] as const).map(t => (
           <button key={t} type="button" onClick={() => setDocType(t)}
             className="flex-1 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all"
             style={{
-              background: docType === t ? '#f97316' : 'transparent',
-              color: docType === t ? '#582200' : '#a78b7d',
+              background: docType === t ? '#00E676' : 'transparent',
+              color: docType === t ? '#003319' : '#8B949E',
             }}>
             {t === 'cpf' ? '🇧🇷 CPF' : '🌍 Passaporte'}
           </button>
@@ -131,11 +131,11 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
 
       {docType === 'cpf' ? (
         <div className="space-y-1.5">
-          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>CPF</label>
+          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>CPF</label>
           <input type="text" inputMode="numeric" value={cpf}
             onChange={e => setCpf(maskCPF(e.target.value))}
             placeholder="000.000.000-00" maxLength={14}
-            style={{ ...inputStyle, borderColor: cpfComplete ? (cpfValid ? '#34d399' : '#f87171') : '#584237' }}
+            style={{ ...inputStyle, borderColor: cpfComplete ? (cpfValid ? '#34d399' : '#f87171') : '#30363D' }}
             onFocus={onFocus} onBlur={onBlur} />
           {cpfComplete && !cpfValid && (
             <p className="text-[11px] font-mono" style={{ color: '#f87171' }}>CPF inválido.</p>
@@ -143,21 +143,21 @@ export function CustomerSignupForm({ submitLabel = 'Criar minha conta', loading:
         </div>
       ) : (
         <div className="space-y-1.5">
-          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Passaporte</label>
+          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Passaporte</label>
           <input type="text" value={passport}
             onChange={e => setPassport(e.target.value.toUpperCase())}
             placeholder="AB123456" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
         </div>
       )}
 
-      <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+      <p className="text-[11px] leading-relaxed" style={{ color: '#30363D' }}>
         <span className="material-symbols-outlined text-[13px] align-middle mr-1">lock</span>
         Dados usados para NF-e, fidelidade e histórico. Seu WhatsApp + PIN protegem sua conta.
       </p>
 
       <button type="submit" disabled={loading}
         className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-        style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
+        style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}>
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
           <>
             <span className="material-symbols-outlined text-[18px]">person_add</span>

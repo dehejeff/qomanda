@@ -16,10 +16,10 @@ import { toast } from 'sonner'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; progress: number }> = {
   pending:   { label: 'Aguardando confirmação', color: '#f59e0b', icon: 'pending',       progress: 15  },
-  confirmed: { label: 'Pedido confirmado',      color: '#7bd0ff', icon: 'check_circle',  progress: 35  },
-  preparing: { label: 'Preparando com carinho', color: '#f97316', icon: 'skillet',       progress: 65  },
+  confirmed: { label: 'Pedido confirmado',      color: '#58A6FF', icon: 'check_circle',  progress: 35  },
+  preparing: { label: 'Preparando com carinho', color: '#00E676', icon: 'skillet',       progress: 65  },
   ready:     { label: 'Pronto! A caminho',       color: '#34d399', icon: 'done_all',      progress: 90  },
-  delivered: { label: 'Entregue',               color: '#a78b7d', icon: 'check',         progress: 100 },
+  delivered: { label: 'Entregue',               color: '#8B949E', icon: 'check',         progress: 100 },
 }
 
 export default function CustomerHomePage() {
@@ -325,8 +325,8 @@ export default function CustomerHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -339,9 +339,9 @@ export default function CustomerHomePage() {
   const isCounter = serviceMode === 'counter'
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       {/* Ambient glow */}
-      <div className="pointer-events-none fixed top-[-10%] right-[-5%] w-[50%] h-[40%] rounded-full" style={{ background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)' }} />
+      <div className="pointer-events-none fixed top-[-10%] right-[-5%] w-[50%] h-[40%] rounded-full" style={{ background: 'rgba(0,230,118,0.06)', filter: 'blur(100px)' }} />
       <div className="pointer-events-none fixed bottom-0 left-[-10%] w-[40%] h-[30%] rounded-full" style={{ background: 'rgba(123,208,255,0.06)', filter: 'blur(80px)' }} />
 
       {/* Header */}
@@ -353,7 +353,7 @@ export default function CustomerHomePage() {
           {logoUrl ? (
             <img src={logoUrl} alt={restaurantName} className="h-8 w-auto object-contain" />
           ) : (
-            <span className="font-bold text-base" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+            <span className="font-bold text-base" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
               {restaurantName}
             </span>
           )}
@@ -362,9 +362,9 @@ export default function CustomerHomePage() {
         <span
           className="text-xs font-mono px-3 py-1.5 rounded-lg"
           style={{
-            background: sessionSettled ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
-            color: sessionSettled ? '#34d399' : '#ffb690',
-            border: sessionSettled ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(249,115,22,0.2)',
+            background: sessionSettled ? 'rgba(52,211,153,0.12)' : 'rgba(0,230,118,0.12)',
+            color: sessionSettled ? '#34d399' : '#00E676',
+            border: sessionSettled ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(0,230,118,0.2)',
           }}
         >
           {sessionSettled ? (isCounter ? 'Conta quitada' : 'Mesa quitada') : locationLabel}
@@ -378,20 +378,20 @@ export default function CustomerHomePage() {
           <div className="rounded-xl p-4 shadow-2xl"
             style={{ background: '#1e3a5f', border: '2px solid rgba(123,208,255,0.4)', backdropFilter: 'blur(12px)' }}>
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-[22px] shrink-0 mt-0.5" style={{ color: '#7bd0ff' }}>receipt_long</span>
+              <span className="material-symbols-outlined text-[22px] shrink-0 mt-0.5" style={{ color: '#58A6FF' }}>receipt_long</span>
               <div className="flex-1">
-                <p className="text-sm font-bold" style={{ color: '#dae2fd' }}>
+                <p className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
                   {closeInvite.initiatorName} quer fechar a mesa!
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
-                  Sua parte calculada: <strong style={{ color: '#ffb690' }}>{formatCurrency(closeInvite.amountOwed)}</strong>
+                <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
+                  Sua parte calculada: <strong style={{ color: '#00E676' }}>{formatCurrency(closeInvite.amountOwed)}</strong>
                 </p>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
               <button onClick={() => setCloseInvite(null)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-mono transition-all"
-                style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}>
+                style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#8B949E' }}>
                 Recusar
               </button>
               <button
@@ -400,7 +400,7 @@ export default function CustomerHomePage() {
                   router.push(`/${params.slug}/checkout?session=${sessionId}&request=${closeInvite.requestId}`)
                 }}
                 className="flex-[2] py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95"
-                style={{ background: '#7bd0ff', color: '#001e2c' }}>
+                style={{ background: '#58A6FF', color: '#001e2c' }}>
                 Confirmar e Pagar
               </button>
             </div>
@@ -411,9 +411,9 @@ export default function CustomerHomePage() {
       <main className="px-6 pt-6 space-y-5 relative z-10">
         {/* Welcome */}
         <div>
-          <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Bem-vindo de volta,</p>
-          <h1 className="text-3xl font-bold tracking-tight mt-0.5" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
-            Olá, <span style={{ color: '#ffb690' }}>{firstName || customerName || 'Cliente'}!</span>
+          <p className="text-sm font-mono" style={{ color: '#8B949E' }}>Bem-vindo de volta,</p>
+          <h1 className="text-3xl font-bold tracking-tight mt-0.5" style={{ fontFamily: 'Geist, sans-serif', color: '#FFFFFF' }}>
+            Olá, <span style={{ color: '#00E676' }}>{firstName || customerName || 'Cliente'}!</span>
           </h1>
         </div>
 
@@ -430,20 +430,20 @@ export default function CustomerHomePage() {
         {!sessionSettled && orderSummary && primaryCfg ? (
           <div
             className="rounded-xl p-5 relative overflow-hidden"
-            style={{ background: 'linear-gradient(145deg, #1e293b 0%, #131b2e 100%)', border: '1px solid #334155' }}
+            style={{ background: 'linear-gradient(145deg, #21262D 0%, #161B22 100%)', border: '1px solid #30363D' }}
           >
             {/* Totais */}
             <div className="flex items-end justify-between mb-3">
               <div>
-                <p className="text-xs font-mono uppercase tracking-widest mb-0.5" style={{ color: '#a78b7d' }}>Seus pedidos</p>
-                <p className="text-lg font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                <p className="text-xs font-mono uppercase tracking-widest mb-0.5" style={{ color: '#8B949E' }}>Seus pedidos</p>
+                <p className="text-lg font-bold" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                   {orderSummary.totalItems} {orderSummary.totalItems === 1 ? 'item' : 'itens'} · {formatCurrency(orderSummary.totalValue)}
                 </p>
               </div>
               <Link
                 href={`/${params.slug}/orders?session=${sessionId}`}
                 className="flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors"
-                style={{ background: '#2d3449', color: '#a78b7d', border: '1px solid #334155' }}
+                style={{ background: '#30363D', color: '#8B949E', border: '1px solid #30363D' }}
               >
                 Ver detalhes
                 <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
@@ -482,7 +482,7 @@ export default function CustomerHomePage() {
             </div>
 
             {/* Barra de progresso do status mais avançado */}
-            <div className="h-1 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: '#30363D' }}>
               <div
                 className="h-full rounded-full transition-all duration-1000"
                 style={{ width: `${primaryCfg.progress}%`, background: primaryCfg.color, boxShadow: `0 0 12px ${primaryCfg.color}60` }}
@@ -492,12 +492,12 @@ export default function CustomerHomePage() {
         ) : !sessionSettled ? (
           <div
             className="rounded-xl p-5 flex items-center gap-4"
-            style={{ background: '#131b2e', border: '1px dashed rgba(88,66,55,0.5)' }}
+            style={{ background: '#161B22', border: '1px dashed rgba(88,66,55,0.5)' }}
           >
-            <span className="material-symbols-outlined text-[32px]" style={{ color: '#584237' }}>receipt_long</span>
+            <span className="material-symbols-outlined text-[32px]" style={{ color: '#30363D' }}>receipt_long</span>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Nenhum pedido ainda</p>
-              <p className="text-xs" style={{ color: '#a78b7d' }}>Acesse o cardápio e faça seu pedido</p>
+              <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Nenhum pedido ainda</p>
+              <p className="text-xs" style={{ color: '#8B949E' }}>Acesse o cardápio e faça seu pedido</p>
             </div>
           </div>
         ) : null}
@@ -510,28 +510,28 @@ export default function CustomerHomePage() {
             disabled={couvertBusy}
             className="w-full flex items-center gap-3 p-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 text-left"
             style={{
-              background: couvertAdded ? 'rgba(52,211,153,0.1)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
-              border: `1px solid ${couvertAdded ? 'rgba(52,211,153,0.4)' : 'rgba(249,115,22,0.35)'}`,
+              background: couvertAdded ? 'rgba(52,211,153,0.1)' : 'linear-gradient(145deg,#21262D,#161B22)',
+              border: `1px solid ${couvertAdded ? 'rgba(52,211,153,0.4)' : 'rgba(0,230,118,0.35)'}`,
             }}
           >
             <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: couvertAdded ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.15)' }}>
+              style={{ background: couvertAdded ? 'rgba(52,211,153,0.15)' : 'rgba(0,230,118,0.15)' }}>
               <span className="material-symbols-outlined text-[22px]"
-                style={{ color: couvertAdded ? '#34d399' : '#f97316', fontVariationSettings: couvertAdded ? "'FILL' 1" : "'FILL' 0" }}>
+                style={{ color: couvertAdded ? '#34d399' : '#00E676', fontVariationSettings: couvertAdded ? "'FILL' 1" : "'FILL' 0" }}>
                 {couvertBusy ? 'hourglass_top' : couvertAdded ? 'check_circle' : 'bakery_dining'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: couvertAdded ? '#34d399' : '#dae2fd' }}>
+              <p className="text-sm font-semibold" style={{ color: couvertAdded ? '#34d399' : '#FFFFFF' }}>
                 {couvertAdded ? `${couvertCfg.label} adicionado` : `Adicionar ${couvertCfg.label}`}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+              <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
                 {couvertAdded
                   ? 'Toque para remover · sem taxa de serviço'
                   : `${formatCurrency(couvertCfg.price)} por pessoa · sem taxa de serviço`}
               </p>
             </div>
-            <span className="text-xs font-mono shrink-0" style={{ color: couvertAdded ? '#34d399' : '#ffb690' }}>
+            <span className="text-xs font-mono shrink-0" style={{ color: couvertAdded ? '#34d399' : '#00E676' }}>
               {couvertAdded ? 'Remover' : `+ ${formatCurrency(couvertCfg.price)}`}
             </span>
           </button>
@@ -539,7 +539,7 @@ export default function CustomerHomePage() {
 
         {/* Quick actions */}
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest mb-3" style={{ color: '#a78b7d' }}>Acesso rápido</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-3" style={{ color: '#8B949E' }}>Acesso rápido</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               ...(!sessionSettled ? [{
@@ -547,14 +547,14 @@ export default function CustomerHomePage() {
                 icon: 'restaurant_menu',
                 label: 'Cardápio',
                 desc: 'Ver todos os pratos',
-                accent: '#f97316',
+                accent: '#00E676',
               }] : []),
               {
                 href: `/${params.slug}/orders?session=${sessionId}`,
                 icon: 'list_alt',
                 label: 'Meus Pedidos',
                 desc: sessionSettled ? 'Ver histórico' : 'Acompanhar status',
-                accent: '#7bd0ff',
+                accent: '#58A6FF',
               },
               ...(sessionSettled ? [{
                 href: `/${params.slug}/receipts?session=${sessionId}`,
@@ -574,7 +574,7 @@ export default function CustomerHomePage() {
                 icon: callingWaiter ? 'hourglass_top' : waiterCalledAt ? 'check_circle' : 'support_agent',
                 label: 'Chamar Garçom',
                 desc: callingWaiter ? 'Chamando…' : waiterCalledAt ? 'Garçom avisado!' : 'Toque para chamar',
-                accent: waiterCalledAt ? '#34d399' : '#f97316',
+                accent: waiterCalledAt ? '#34d399' : '#00E676',
               }] : []),
             ].map(item => {
               const content = (
@@ -588,13 +588,13 @@ export default function CustomerHomePage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{item.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{item.desc}</p>
+                    <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{item.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>{item.desc}</p>
                   </div>
                 </>
               )
               const cardClass = 'flex flex-col gap-3 p-4 rounded-xl transition-all active:scale-95 text-left'
-              const cardStyle = { background: '#1e293b', border: '1px solid #334155' } as const
+              const cardStyle = { background: '#21262D', border: '1px solid #30363D' } as const
 
               if ('action' in item && item.action === 'callWaiter') {
                 return (
@@ -623,11 +623,11 @@ export default function CustomerHomePage() {
         {!sessionSettled && (
         <div
           className="rounded-xl px-5 py-4 flex items-center justify-between"
-          style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.3)' }}
+          style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.3)' }}
         >
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>info</span>
-            <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>info</span>
+            <span className="text-xs font-mono" style={{ color: '#8B949E' }}>
               {restaurantName} · {locationLabel}
             </span>
           </div>

@@ -175,19 +175,19 @@ export default function WaitlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-md mx-auto" style={{ background: '#0b1326', color: '#dae2fd' }}>
-      <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#a78b7d' }}>← Voltar</Link>
+    <div className="min-h-screen px-6 py-8 max-w-md mx-auto" style={{ background: '#0D1117', color: '#FFFFFF' }}>
+      <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#8B949E' }}>← Voltar</Link>
       <header className="mt-5 text-center">
-        <span className="material-symbols-outlined text-[40px]" style={{ color: '#f97316' }}>deck</span>
+        <span className="material-symbols-outlined text-[40px]" style={{ color: '#00E676' }}>deck</span>
         <h1 className="text-2xl font-black mt-2" style={{ fontFamily: 'Geist, sans-serif' }}>Fila de mesas</h1>
-        {restaurantName && <p className="text-xs font-mono mt-1" style={{ color: '#a78b7d' }}>{restaurantName}</p>}
+        {restaurantName && <p className="text-xs font-mono mt-1" style={{ color: '#8B949E' }}>{restaurantName}</p>}
         <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
           Espere por uma mesa com a vista que você gosta. Avisamos aqui e no WhatsApp quando liberar.
         </p>
@@ -205,12 +205,12 @@ export default function WaitlistPage() {
             return (
               <div key={e.id} className="rounded-2xl p-5"
                 style={{
-                  background: ready ? 'rgba(52,211,153,0.1)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
-                  border: `1px solid ${ready ? 'rgba(52,211,153,0.4)' : '#334155'}`,
+                  background: ready ? 'rgba(52,211,153,0.1)' : 'linear-gradient(145deg,#21262D,#161B22)',
+                  border: `1px solid ${ready ? 'rgba(52,211,153,0.4)' : '#30363D'}`,
                 }}>
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">{e.featureEmoji} {e.featureName}</p>
-                  <button onClick={() => cancelEntry(e.id)} className="text-[11px] font-mono" style={{ color: '#a78b7d' }}>Sair</button>
+                  <button onClick={() => cancelEntry(e.id)} className="text-[11px] font-mono" style={{ color: '#8B949E' }}>Sair</button>
                 </div>
                 {ready ? (
                   <div className="mt-3 text-center">
@@ -220,19 +220,19 @@ export default function WaitlistPage() {
                     <p className="text-3xl font-black font-mono mt-1" style={{ color: secsLeft < 60 ? '#f87171' : '#34d399' }}>
                       {mm}:{ss}
                     </p>
-                    <p className="text-xs mt-1" style={{ color: '#a78b7d' }}>
+                    <p className="text-xs mt-1" style={{ color: '#8B949E' }}>
                       Vá até a mesa ou escaneie o QR dela para confirmar antes do tempo acabar.
                     </p>
                     <Link href="/scan"
                       className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-                      style={{ background: '#f97316', color: '#582200' }}>
+                      style={{ background: '#00E676', color: '#003319' }}>
                       <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
                       Escanear QR da mesa
                     </Link>
                   </div>
                 ) : (
                   <p className="text-sm mt-2" style={{ color: '#e0c0b1' }}>
-                    Você é o <strong style={{ color: '#ffb690' }}>{e.position ?? '—'}º</strong> da fila. Aguarde o aviso aqui.
+                    Você é o <strong style={{ color: '#00E676' }}>{e.position ?? '—'}º</strong> da fila. Aguarde o aviso aqui.
                   </p>
                 )}
               </div>
@@ -244,13 +244,13 @@ export default function WaitlistPage() {
       {/* Formulário de entrada — só antes de entrar na fila */}
       {inQueue ? (
         tableReady ? null : (
-          <p className="mt-8 text-center text-sm leading-relaxed" style={{ color: '#a78b7d' }}>
+          <p className="mt-8 text-center text-sm leading-relaxed" style={{ color: '#8B949E' }}>
             Você já está na fila. Quando sua mesa liberar, avisamos aqui e no WhatsApp.
           </p>
         )
       ) : features.length === 0 ? (
-        <div className="mt-8 rounded-xl p-6 text-center" style={{ background: '#131b2e', border: '1px dashed #334155' }}>
-          <p className="text-sm" style={{ color: '#a78b7d' }}>Este restaurante ainda não tem mesas com fila de espera.</p>
+        <div className="mt-8 rounded-xl p-6 text-center" style={{ background: '#161B22', border: '1px dashed #30363D' }}>
+          <p className="text-sm" style={{ color: '#8B949E' }}>Este restaurante ainda não tem mesas com fila de espera.</p>
         </div>
       ) : (
         <div className="mt-8 space-y-4">
@@ -261,9 +261,9 @@ export default function WaitlistPage() {
                 <button key={f.id} type="button" onClick={() => setFeatureId(f.id)}
                   className="px-3 py-2 rounded-lg text-sm font-mono transition-all"
                   style={{
-                    background: featureId === f.id ? '#f97316' : 'transparent',
-                    color: featureId === f.id ? '#582200' : '#a78b7d',
-                    border: `1px solid ${featureId === f.id ? '#f97316' : '#334155'}`,
+                    background: featureId === f.id ? '#00E676' : 'transparent',
+                    color: featureId === f.id ? '#003319' : '#8B949E',
+                    border: `1px solid ${featureId === f.id ? '#00E676' : '#30363D'}`,
                   }}>
                   {f.emoji} {f.name}
                 </button>
@@ -272,32 +272,32 @@ export default function WaitlistPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome"
-              className="h-11 px-3 rounded-lg text-sm outline-none" style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
+              className="h-11 px-3 rounded-lg text-sm outline-none" style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} />
             <input type="number" min={1} max={20} value={partySize} onChange={e => setPartySize(e.target.value)} placeholder="Pessoas"
-              className="h-11 px-3 rounded-lg text-sm outline-none" style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
+              className="h-11 px-3 rounded-lg text-sm outline-none" style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} />
           </div>
           <input type="tel" inputMode="tel" value={whatsapp} onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
             placeholder="WhatsApp * — (11) 98765-4321" autoComplete="off"
             className="w-full h-11 px-3 rounded-lg text-sm outline-none font-mono"
-            style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
+            style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} />
           {!showSecond ? (
             <button type="button" onClick={() => setShowSecond(true)}
-              className="text-xs font-mono text-left" style={{ color: '#7bd0ff' }}>
+              className="text-xs font-mono text-left" style={{ color: '#58A6FF' }}>
               + Adicionar outra pessoa do grupo (opcional)
             </button>
           ) : (
-            <div className="space-y-2 rounded-lg p-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-              <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>2ª pessoa — também recebe aviso</p>
+            <div className="space-y-2 rounded-lg p-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
+              <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>2ª pessoa — também recebe aviso</p>
               <input value={secondName} onChange={e => setSecondName(e.target.value)} placeholder="Nome (opcional)"
-                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
               <input type="tel" inputMode="tel" value={secondWhatsapp} onChange={e => setSecondWhatsapp(formatPhoneInput(e.target.value))}
                 placeholder="WhatsApp da 2ª pessoa" className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
-                style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
             </div>
           )}
           <button onClick={joinQueue} disabled={joining || !whatsapp.trim()}
             className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {joining ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na fila <span className="material-symbols-outlined">hourglass_top</span></>}
           </button>
         </div>

@@ -125,7 +125,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
   }
 
   if (loading) {
-    return <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} /></div>
+    return <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin" style={{ color: '#00E676' }} /></div>
   }
 
   const waiting = queue.filter(e => e.status === 'waiting')
@@ -138,18 +138,18 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
         {!embedded && (
           <>
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Fila de espera</h1>
-            <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>Chame o próximo quando uma mesa da seção liberar.</p>
+            <p className="text-sm mt-1 font-mono" style={{ color: '#8B949E' }}>Chame o próximo quando uma mesa da seção liberar.</p>
           </>
         )}
-        <p className="text-xs mt-2 font-mono" style={{ color: '#dae2fd' }}>
-          <span style={{ color: '#f97316' }}>{waiting.length}</span> grupo{waiting.length !== 1 ? 's' : ''} esperando
-          {' · '}<span style={{ color: '#f97316' }}>{people}</span> pessoa{people !== 1 ? 's' : ''}
+        <p className="text-xs mt-2 font-mono" style={{ color: '#FFFFFF' }}>
+          <span style={{ color: '#00E676' }}>{waiting.length}</span> grupo{waiting.length !== 1 ? 's' : ''} esperando
+          {' · '}<span style={{ color: '#00E676' }}>{people}</span> pessoa{people !== 1 ? 's' : ''}
         </p>
       </div>
 
       {features.length === 0 && (
-        <div className="rounded-2xl py-10 text-center" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
-          <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>
+        <div className="rounded-2xl py-10 text-center" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}>
+          <p className="text-sm font-mono" style={{ color: '#8B949E' }}>
             Nenhuma seção cadastrada. Cadastre em Mesas → ao criar ou editar uma mesa.
           </p>
         </div>
@@ -160,11 +160,11 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
         const free = freeByFeature[f.id] ?? []
         const seatable = nextSeatable(entries, free)
         return (
-          <div key={f.id} className="rounded-2xl p-4" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
+          <div key={f.id} className="rounded-2xl p-4" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-base font-bold">{f.emoji} {f.name}</p>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono" style={{ color: free.length > 0 ? '#34d399' : '#584237' }}>
+                <span className="text-[11px] font-mono" style={{ color: free.length > 0 ? '#34d399' : '#30363D' }}>
                   {free.length} livre{free.length !== 1 ? 's' : ''}
                 </span>
                 <button
@@ -172,7 +172,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                   disabled={busy || !seatable}
                   onClick={() => seatable && act({ action: 'callNext', featureId: f.id, tableId: seatable.table.id })}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold font-mono disabled:opacity-40"
-                  style={{ background: '#f97316', color: '#582200' }}>
+                  style={{ background: '#00E676', color: '#003319' }}>
                   Chamar próximo
                 </button>
               </div>
@@ -190,7 +190,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
             )}
 
             {entries.length === 0 ? (
-              <p className="text-xs font-mono" style={{ color: '#584237' }}>Ninguém na fila.</p>
+              <p className="text-xs font-mono" style={{ color: '#30363D' }}>Ninguém na fila.</p>
             ) : (
               <ul className="space-y-2">
                 {entries.map((e, i) => {
@@ -205,9 +205,9 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                       style={{ background: ready ? 'rgba(52,211,153,0.08)' : 'rgba(0,0,0,0.2)', border: `1px solid ${ready ? 'rgba(52,211,153,0.3)' : 'transparent'}` }}>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">
-                          {!ready && <span className="font-mono" style={{ color: '#a78b7d' }}>{i + 1}º </span>}
-                          {e.name} <span className="text-[11px] font-mono" style={{ color: '#a78b7d' }}>· {e.partySize}p</span>
-                          {e.source === 'staff' && <span className="text-[9px] font-mono ml-1" style={{ color: '#584237' }}>(portaria)</span>}
+                          {!ready && <span className="font-mono" style={{ color: '#8B949E' }}>{i + 1}º </span>}
+                          {e.name} <span className="text-[11px] font-mono" style={{ color: '#8B949E' }}>· {e.partySize}p</span>
+                          {e.source === 'staff' && <span className="text-[9px] font-mono ml-1" style={{ color: '#30363D' }}>(portaria)</span>}
                         </p>
                         {ready && (
                           <p className="text-[11px] font-mono mt-0.5" style={{ color: '#34d399' }}>
@@ -247,7 +247,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                           {isBig && e.reservedTables.length === 0 && free.length > 0 && (
                             <button type="button" disabled={busy}
                               onClick={() => setReserveFor({ entryId: e.id, featureId: f.id, featureName: featureLabel(f), partySize: e.partySize })}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono" style={{ background: '#f97316', color: '#582200' }}>
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono" style={{ background: '#00E676', color: '#003319' }}>
                               Reservar mesas
                             </button>
                           )}
@@ -258,7 +258,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                             </button>
                           )}
                           <button type="button" disabled={busy} onClick={() => act({ action: 'cancel', entryId: e.id })}
-                            className="text-[11px] font-mono" style={{ color: '#584237' }}>Remover</button>
+                            className="text-[11px] font-mono" style={{ color: '#30363D' }}>Remover</button>
                         </div>
                       )}
                     </li>
@@ -272,7 +272,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
 
       {/* Reservas diretas (feitas pelo grid da página Mesas) */}
       {reservas.length > 0 && (
-        <div className="rounded-2xl p-4" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
+        <div className="rounded-2xl p-4" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}>
           <p className="text-base font-bold mb-2">Reservas diretas</p>
           <ul className="space-y-2">
             {reservas.map(e => (
@@ -280,7 +280,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
                 style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)' }}>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">
-                    {e.name} <span className="text-[11px] font-mono" style={{ color: '#a78b7d' }}>· {e.partySize}p</span>
+                    {e.name} <span className="text-[11px] font-mono" style={{ color: '#8B949E' }}>· {e.partySize}p</span>
                   </p>
                   {e.reservedTables.length > 0 && (
                     <p className="text-[11px] font-mono mt-0.5" style={{ color: '#34d399' }}>
@@ -309,7 +309,7 @@ export function WaitlistManager({ embedded = false }: { embedded?: boolean }) {
       {features.length > 0 && (
         <button type="button" onClick={() => setShowAdd(true)}
           className="w-full h-12 rounded-2xl text-sm font-bold font-mono flex items-center justify-center gap-2"
-          style={{ background: '#f97316', color: '#582200' }}>
+          style={{ background: '#00E676', color: '#003319' }}>
           <Plus className="h-4 w-4" /> Adicionar à fila
         </button>
       )}

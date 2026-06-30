@@ -33,10 +33,10 @@ export function WaiterMobileHeader({ restaurantName }: { restaurantName: string 
       <div className="flex items-center gap-2.5 min-w-0">
         <KiComandaLogo size={28} />
         <div className="min-w-0">
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
             {ROLE_LABEL[role]}
           </p>
-          <p className="text-sm font-bold truncate" style={{ color: '#dae2fd' }}>
+          <p className="text-sm font-bold truncate" style={{ color: '#FFFFFF' }}>
             {restaurantName}
           </p>
         </div>

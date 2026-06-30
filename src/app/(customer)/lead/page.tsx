@@ -61,10 +61,10 @@ export default function LeadPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #0b1326 0%, #0f1e3a 100%)' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#0D1117' }}>
         <div className="w-full max-w-sm text-center space-y-6">
-          <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.4)' }}>
-            <span className="material-symbols-outlined text-5xl" style={{ color: '#22c55e' }}>check_circle</span>
+          <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center" style={{ background: 'rgba(0,230,118,0.12)', border: '2px solid rgba(0,230,118,0.4)' }}>
+            <span className="material-symbols-outlined text-5xl" style={{ color: '#00E676' }}>check_circle</span>
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Obrigado, {form.name.split(' ')[0]}!</h1>
@@ -84,7 +84,7 @@ export default function LeadPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #0b1326 0%, #0f1e3a 100%)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#0D1117' }}>
       <div className="w-full max-w-sm space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
@@ -163,9 +163,9 @@ export default function LeadPage() {
                   onClick={() => setField('restaurantType', value)}
                   className="rounded-xl px-3 py-3 text-left text-sm font-medium transition-all"
                   style={{
-                    background: form.restaurantType === value ? 'rgba(255,182,144,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: form.restaurantType === value ? '1.5px solid #ffb690' : '1px solid rgba(255,255,255,0.08)',
-                    color: form.restaurantType === value ? '#ffb690' : '#94a3b8',
+                    background: form.restaurantType === value ? 'rgba(0,230,118,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: form.restaurantType === value ? '1.5px solid #00E676' : '1px solid rgba(255,255,255,0.08)',
+                    color: form.restaurantType === value ? '#00E676' : '#8B949E',
                   }}
                 >
                   {label}
@@ -182,7 +182,7 @@ export default function LeadPage() {
             type="submit"
             disabled={submitting}
             className="w-full rounded-xl py-4 text-sm font-bold transition-opacity disabled:opacity-60"
-            style={{ background: '#ffb690', color: '#0b1326' }}
+            style={{ background: '#00E676', color: '#003319' }}
           >
             {submitting ? 'Enviando...' : 'Quero conhecer a KiComanda →'}
           </button>

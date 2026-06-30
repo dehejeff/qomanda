@@ -12,9 +12,9 @@ import { loginWithWhatsApp, verifyLoginPin, setupLoginPin, finishCustomerLogin }
 import { CustomerPinSetupForm } from '@/components/customer/customer-pin-setup-form'
 
 const inputStyle: React.CSSProperties = {
-  background: '#131b2e',
-  border: '1px solid #584237',
-  color: '#dae2fd',
+  background: '#161B22',
+  border: '1px solid #30363D',
+  color: '#FFFFFF',
   outline: 'none',
   width: '100%',
   height: 48,
@@ -183,7 +183,7 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
         <form onSubmit={handlePinSubmit} className="space-y-4">
           <div className="text-center space-y-1">
             <p className="text-sm font-semibold">Olá, {pinStep.firstName}</p>
-            <p className="text-xs" style={{ color: '#a78b7d' }}>
+            <p className="text-xs" style={{ color: '#8B949E' }}>
               {isSix
                 ? 'Digite sua senha de 6 dígitos (cartão salvo na conta)'
                 : 'Digite seu PIN de 4 dígitos'}
@@ -192,12 +192,12 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
           <PinInput value={pin} onChange={setPin} length={pinStep.pinLength} autoFocus disabled={loading} />
           <button type="submit" disabled={loading || !pinValid}
             className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-            style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
+            style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}>
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : isSix ? 'Confirmar senha' : 'Confirmar PIN'}
           </button>
         </form>
         <button type="button" onClick={() => { setPinStep(null); setPin('') }}
-          className="w-full text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>
+          className="w-full text-xs font-mono underline underline-offset-2" style={{ color: '#30363D' }}>
           Voltar e usar outro WhatsApp
         </button>
       </div>
@@ -208,11 +208,11 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
     <div className="space-y-3">
       <form onSubmit={handleWhatsAppSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+          <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>
             WhatsApp
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>phone</span>
             <input
               type="tel"
               inputMode="numeric"
@@ -229,7 +229,7 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
         </div>
         <button type="submit" disabled={loading}
           className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-          style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
+          style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}>
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
             <>
               <span className="material-symbols-outlined text-[20px]">login</span>
@@ -240,20 +240,20 @@ export function CustomerLoginForm({ onFocus, onBlur }: Props) {
       </form>
       <Link href="/cadastro?tipo=cliente"
         className="w-full h-12 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
-        style={{ background: '#131b2e', border: '1px solid #584237', color: '#dae2fd' }}>
+        style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }}>
         <span className="material-symbols-outlined text-[20px]">person_add</span>
         Criar conta de cliente
       </Link>
       <Link href="/scan"
         className="w-full h-11 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
-        style={{ background: 'transparent', border: '1px solid #334155', color: '#a78b7d' }}>
+        style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}>
         <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
         Escanear mesa (check-in)
       </Link>
       <div className="rounded-xl p-4" style={{ background: 'rgba(123,208,255,0.06)', border: '1px solid rgba(123,208,255,0.15)' }}>
-        <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                <strong style={{ color: '#7bd0ff' }}>Brasil:</strong>{' '}
-                DDD + número. <strong style={{ color: '#7bd0ff' }}>Exterior:</strong>{' '}
+        <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
+                <strong style={{ color: '#58A6FF' }}>Brasil:</strong>{' '}
+                DDD + número. <strong style={{ color: '#58A6FF' }}>Exterior:</strong>{' '}
                 comece com + e código do país (ex: +351912345678).
         </p>
       </div>

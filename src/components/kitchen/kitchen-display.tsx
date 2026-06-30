@@ -22,7 +22,7 @@ const COLUMNS: { id: string; title: string; statuses: string[] }[] = [
   { id: 'preparando', title: 'Preparando', statuses: ['preparing'] },
   { id: 'prontos', title: 'Prontos', statuses: ['ready'] },
 ]
-const C = { surface: '#171f33', dim: '#131b2e', border: 'rgba(88,66,55,0.4)', accent: '#f97316', accentInk: '#582200', muted: '#a78b7d' }
+const C = { surface: '#161B22', dim: '#161B22', border: 'rgba(88,66,55,0.4)', accent: '#00E676', accentInk: '#003319', muted: '#8B949E' }
 
 function minsSince(iso: string) { return Math.floor((Date.now() - new Date(iso).getTime()) / 60000) }
 function ageColor(min: number) { return min >= 10 ? '#f87171' : min >= 5 ? '#fbbf24' : '#34d399' }
@@ -163,7 +163,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
       <header className="flex items-center justify-between mb-5">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: C.muted }}>Cozinha · {restaurantName}</p>
-          <h1 className="text-2xl font-black" style={{ color: '#ffb690' }}>KDS — Pedidos</h1>
+          <h1 className="text-2xl font-black" style={{ color: '#00E676' }}>KDS — Pedidos</h1>
         </div>
         <button
           type="button"
@@ -180,7 +180,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
         <p className="font-mono text-sm" style={{ color: C.muted }}>Carregando…</p>
       ) : orders.length === 0 ? (
         <div className="py-24 text-center">
-          <span className="material-symbols-outlined text-6xl block mb-3" style={{ color: '#334155' }}>skillet</span>
+          <span className="material-symbols-outlined text-6xl block mb-3" style={{ color: '#30363D' }}>skillet</span>
           <p className="font-mono" style={{ color: C.muted }}>Nenhum pedido na fila 🍔</p>
         </div>
       ) : (
@@ -190,7 +190,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
             return (
               <div key={col.id}>
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <h2 className="text-sm font-bold font-mono uppercase tracking-wider" style={{ color: '#dae2fd' }}>{col.title}</h2>
+                  <h2 className="text-sm font-bold font-mono uppercase tracking-wider" style={{ color: '#FFFFFF' }}>{col.title}</h2>
                   <span className="text-xs font-mono" style={{ color: C.muted }}>{colOrders.length}</span>
                 </div>
                 <div className="space-y-3">
@@ -201,9 +201,9 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-lg font-black font-mono" style={{ color: '#ffb690' }}>{o.label}</span>
+                              <span className="text-lg font-black font-mono" style={{ color: '#00E676' }}>{o.label}</span>
                               {o.customerName && (
-                                <span className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.customerName}</span>
+                                <span className="text-sm font-semibold truncate" style={{ color: '#FFFFFF' }}>{o.customerName}</span>
                               )}
                             </div>
                             <span className="text-[10px] font-mono" style={{ color: C.muted }}>{orderCode(o.id)}</span>
@@ -212,7 +212,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
                         </div>
                         <ul className="space-y-1 mb-3">
                           {o.items.map((it, i) => (
-                            <li key={i} className="text-sm" style={{ color: '#dae2fd' }}>
+                            <li key={i} className="text-sm" style={{ color: '#FFFFFF' }}>
                               <span className="font-bold" style={{ color: C.accent }}>{it.quantity}×</span> {it.name}
                               {it.notes && <span className="block text-xs italic ml-5" style={{ color: C.muted }}>↳ {it.notes}</span>}
                             </li>

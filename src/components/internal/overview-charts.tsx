@@ -169,8 +169,8 @@ export function StatCard({
   return (
     <div className="bg-surface-container border border-outline-variant rounded-xl p-4 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.07] -translate-y-1/2 translate-x-1/2"
-        style={{ background: accent ?? '#f97316' }} />
-      <span className="material-symbols-outlined text-[20px] mb-2" style={{ color: accent ?? '#f97316' }}>{icon}</span>
+        style={{ background: accent ?? '#00E676' }} />
+      <span className="material-symbols-outlined text-[20px] mb-2" style={{ color: accent ?? '#00E676' }}>{icon}</span>
       <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">{label}</p>
       <p className="text-xl font-black text-on-surface mt-1 font-mono">{value}</p>
       {sub && <p className="text-[10px] text-on-surface-variant mt-1">{sub}</p>}

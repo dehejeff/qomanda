@@ -1,9 +1,9 @@
 import Image from 'next/image'
 
 /** Cores laranja da marca (globals.css) */
-export const KICOMANDA_ORANGE = '#f97316'
-export const KICOMANDA_ORANGE_LIGHT = '#ffb690'
-export const KICOMANDA_NAVY = '#0b1326'
+export const KICOMANDA_ORANGE = '#00E676'
+export const KICOMANDA_ORANGE_LIGHT = '#00E676'
+export const KICOMANDA_NAVY = '#0D1117'
 
 /** Arquivos em public/brand/ */
 export const KICOMANDA_LOGO = {

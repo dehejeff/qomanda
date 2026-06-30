@@ -160,7 +160,7 @@ export function CrmBoard({ initialLeads }: Props) {
                 ))}
                 {colLeads.length === 0 && (
                   <div className="flex items-center justify-center h-16">
-                    <p className="text-[11px] font-mono" style={{ color: '#334155' }}>vazio</p>
+                    <p className="text-[11px] font-mono" style={{ color: '#30363D' }}>vazio</p>
                   </div>
                 )}
               </div>

@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 const C = {
-  bg: '#0b1326', bgCard: '#131b2e', bgCard2: '#1e293b',
+  bg: '#0D1117', bgCard: '#161B22', bgCard2: '#21262D',
   border: 'rgba(88,66,55,0.35)', borderBlu: 'rgba(51,65,85,0.6)',
-  primary: '#f97316', text: '#dae2fd', muted: '#a78b7d', faint: '#584237',
-  green: '#34d399', amber: '#fbbf24', red: '#f87171', blue: '#7bd0ff',
+  primary: '#00E676', text: '#FFFFFF', muted: '#8B949E', faint: '#30363D',
+  green: '#34d399', amber: '#fbbf24', red: '#f87171', blue: '#58A6FF',
 }
 const mono = { fontFamily: 'JetBrains Mono, ui-monospace, monospace' }
 const STORAGE_KEY = 'kicomanda_pilotos_checklist_v2'
@@ -112,7 +112,7 @@ function CheckRow({
         type="checkbox"
         checked={checked}
         onChange={onToggle}
-        className="mt-1 h-4 w-4 shrink-0 accent-[#f97316]"
+        className="mt-1 h-4 w-4 shrink-0 accent-[#00E676]"
       />
       <div className="min-w-0">
         <span className="text-sm block" style={{ color: checked ? C.green : C.text }}>
@@ -194,8 +194,8 @@ export function PilotosChecklist() {
           <KiComandaLogo size={30} />
         </Link>
         <div className="flex items-center gap-3 text-xs" style={{ color: C.muted }}>
-          <Link href="/roadmap" className="hover:text-[#dae2fd] hidden sm:inline">Roadmap</Link>
-          <button type="button" onClick={resetAll} className="hover:text-[#dae2fd]">Limpar progresso</button>
+          <Link href="/roadmap" className="hover:text-[#FFFFFF] hidden sm:inline">Roadmap</Link>
+          <button type="button" onClick={resetAll} className="hover:text-[#FFFFFF]">Limpar progresso</button>
         </div>
       </header>
 
@@ -353,7 +353,7 @@ export function PilotosChecklist() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/internal/clients/new"
               className="px-6 py-3 rounded-xl font-bold text-sm"
-              style={{ background: C.primary, color: '#582200' }}>
+              style={{ background: C.primary, color: '#003319' }}>
               Novo cliente · /internal
             </Link>
             <Link href="/internal/health"

@@ -84,18 +84,18 @@ export function WaiterCallsBanner() {
         <div
           key={call.id}
           className="flex items-center gap-3 rounded-xl px-4 py-3 animate-pulse-once"
-          style={{ background: 'rgba(249,115,22,0.14)', border: '1px solid rgba(249,115,22,0.4)' }}
+          style={{ background: 'rgba(0,230,118,0.14)', border: '1px solid rgba(0,230,118,0.4)' }}
         >
-          <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#ffb690' }}>room_service</span>
+          <span className="material-symbols-outlined text-[24px] shrink-0" style={{ color: '#00E676' }}>room_service</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold" style={{ color: '#ffb690' }}>{call.metadata?.localLabel ?? 'Mesa'} chamando</p>
+            <p className="text-sm font-bold" style={{ color: '#00E676' }}>{call.metadata?.localLabel ?? 'Mesa'} chamando</p>
             <p className="text-xs truncate" style={{ color: '#e0c0b1' }}>{call.body}</p>
           </div>
           <button
             type="button"
             onClick={() => acknowledge(call.id)}
             className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold font-mono active:scale-95 transition-all"
-            style={{ background: '#f97316', color: '#582200' }}
+            style={{ background: '#00E676', color: '#003319' }}
           >
             Atender
           </button>

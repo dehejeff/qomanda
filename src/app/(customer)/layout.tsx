@@ -23,7 +23,7 @@ export default function CustomerLayout({
   }, [pathname])
 
   return (
-    <div className="min-h-screen" style={{ background: '#0b1326' }}>
+    <div className="min-h-screen" style={{ background: '#0D1117' }}>
       {children}
     </div>
   )

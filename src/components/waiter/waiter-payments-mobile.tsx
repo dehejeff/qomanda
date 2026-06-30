@@ -142,7 +142,7 @@ export function WaiterPaymentsMobile() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} />
+        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -151,12 +151,12 @@ export function WaiterPaymentsMobile() {
     return (
       <div
         className="rounded-2xl py-14 text-center"
-        style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}
+        style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}
       >
-        <span className="material-symbols-outlined text-[40px] mb-2" style={{ color: '#584237' }}>
+        <span className="material-symbols-outlined text-[40px] mb-2" style={{ color: '#30363D' }}>
           payments
         </span>
-        <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>
+        <p className="text-sm font-mono" style={{ color: '#8B949E' }}>
           Nenhum pagamento aguardando confirmação
         </p>
       </div>
@@ -179,9 +179,9 @@ export function WaiterPaymentsMobile() {
             <div className="flex items-start gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(249,115,22,0.15)' }}
+                style={{ background: 'rgba(0,230,118,0.15)' }}
               >
-                <span className="material-symbols-outlined text-[22px]" style={{ color: '#ffb690' }}>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#00E676' }}>
                   {p.method === 'pix' ? 'qr_code_2' : 'payments'}
                 </span>
               </div>
@@ -189,28 +189,28 @@ export function WaiterPaymentsMobile() {
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-base font-bold truncate">{p.customerName}</p>
                   <span className="shrink-0 text-sm font-black font-mono px-2 py-1 rounded-lg"
-                    style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316' }}>
+                    style={{ background: 'rgba(0,230,118,0.15)', color: '#00E676' }}>
                     #{p.id.slice(-6).toUpperCase()}
                   </span>
                 </div>
-                <p className="text-xs font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                <p className="text-xs font-mono mt-0.5" style={{ color: '#8B949E' }}>
                   {p.locationLabel} · {p.method === 'pix' ? 'PIX manual' : 'Dinheiro'} · {time}
                 </p>
-                <p className="text-lg font-black font-mono mt-2" style={{ color: '#ffb690' }}>
+                <p className="text-lg font-black font-mono mt-2" style={{ color: '#00E676' }}>
                   Informou {formatCurrency(p.amount)}
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-mono uppercase tracking-wider block mb-2" style={{ color: '#a78b7d' }}>
+              <label className="text-[10px] font-mono uppercase tracking-wider block mb-2" style={{ color: '#8B949E' }}>
                 Valor recebido
               </label>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <span
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono"
-                    style={{ color: '#584237' }}
+                    style={{ color: '#30363D' }}
                   >
                     R$
                   </span>
@@ -223,9 +223,9 @@ export function WaiterPaymentsMobile() {
                     onChange={e => setReceivedAmounts(prev => ({ ...prev, [p.id]: e.target.value }))}
                     className="w-full h-12 pl-9 pr-3 rounded-xl font-mono text-base outline-none"
                     style={{
-                      background: '#131b2e',
-                      border: '1px solid #584237',
-                      color: '#dae2fd',
+                      background: '#161B22',
+                      border: '1px solid #30363D',
+                      color: '#FFFFFF',
                     }}
                   />
                 </div>
@@ -234,7 +234,7 @@ export function WaiterPaymentsMobile() {
                   onClick={() => void confirmPayment(p.id, p.amount)}
                   disabled={confirmingId !== null}
                   className="shrink-0 h-12 px-5 rounded-xl font-bold font-mono text-xs flex items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-50"
-                  style={{ background: '#f97316', color: '#582200' }}
+                  style={{ background: '#00E676', color: '#003319' }}
                 >
                   {confirmingId === p.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

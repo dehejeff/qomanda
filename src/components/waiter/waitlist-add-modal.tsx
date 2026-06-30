@@ -77,22 +77,22 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
     >
       <div
         className="w-full sm:max-w-sm max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl"
-        style={{ background: '#171f33', color: '#dae2fd', fontFamily: 'Geist, sans-serif', border: '1px solid rgba(88,66,55,0.4)' }}
+        style={{ background: '#161B22', color: '#FFFFFF', fontFamily: 'Geist, sans-serif', border: '1px solid rgba(88,66,55,0.4)' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'rgba(88,66,55,0.4)' }}>
           <h2 className="text-base font-black">Adicionar à fila</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#a78b7d' }} aria-label="Fechar"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#8B949E' }} aria-label="Fechar"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1.5" style={{ color: '#a78b7d' }}>Seção desejada</label>
+            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1.5" style={{ color: '#8B949E' }}>Seção desejada</label>
             <div className="flex flex-wrap gap-2">
               {features.map(f => (
                 <button key={f.id} type="button" onClick={() => setFeature(f.id)}
                   className="px-2.5 py-1 rounded-lg text-xs font-mono"
-                  style={{ background: feature === f.id ? '#f97316' : 'transparent', color: feature === f.id ? '#582200' : '#a78b7d', border: `1px solid ${feature === f.id ? '#f97316' : '#334155'}` }}>
+                  style={{ background: feature === f.id ? '#00E676' : 'transparent', color: feature === f.id ? '#003319' : '#8B949E', border: `1px solid ${feature === f.id ? '#00E676' : '#30363D'}` }}>
                   {f.emoji} {f.name}
                 </button>
               ))}
@@ -101,20 +101,20 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
 
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Cliente</label>
+              <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#8B949E' }}>Cliente</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome do cliente"
-                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
             </div>
             <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest mb-1 text-center" style={{ color: '#a78b7d' }}>Pessoas</label>
+              <label className="block text-[9px] font-mono uppercase tracking-widest mb-1 text-center" style={{ color: '#8B949E' }}>Pessoas</label>
               <input type="number" min={1} max={50} value={party} onChange={e => setParty(e.target.value)} aria-label="Nº de pessoas"
-                className="w-16 h-10 px-2 rounded-lg text-sm text-center outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+                className="w-16 h-10 px-2 rounded-lg text-sm text-center outline-none" style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
             </div>
           </div>
 
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>
-              WhatsApp <span style={{ color: '#f97316' }}>*</span>
+            <label className="block text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#8B949E' }}>
+              WhatsApp <span style={{ color: '#00E676' }}>*</span>
             </label>
             <input
               value={whatsapp}
@@ -123,9 +123,9 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
               inputMode="tel"
               autoComplete="off"
               className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
-              style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }}
+              style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
             />
-            <p className="text-[10px] mt-1" style={{ color: '#584237' }}>Aviso quando a mesa liberar (WhatsApp do restaurante).</p>
+            <p className="text-[10px] mt-1" style={{ color: '#30363D' }}>Aviso quando a mesa liberar (WhatsApp do restaurante).</p>
           </div>
 
           {!showSecond ? (
@@ -133,28 +133,28 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
               type="button"
               onClick={() => setShowSecond(true)}
               className="flex items-center gap-1.5 text-xs font-mono"
-              style={{ color: '#7bd0ff' }}
+              style={{ color: '#58A6FF' }}
             >
               <Plus className="h-3.5 w-3.5" /> Adicionar outra pessoa do grupo (opcional)
             </button>
           ) : (
-            <div className="rounded-lg p-3 space-y-3" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid #334155' }}>
+            <div className="rounded-lg p-3 space-y-3" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid #30363D' }}>
               <div className="flex items-center justify-between">
-                <p className="text-[9px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>2ª pessoa — também recebe aviso</p>
+                <p className="text-[9px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>2ª pessoa — também recebe aviso</p>
                 <button type="button" onClick={() => { setShowSecond(false); setSecondName(''); setSecondWhatsapp('') }}
-                  className="p-1 rounded" style={{ color: '#a78b7d' }} aria-label="Remover segunda pessoa">
+                  className="p-1 rounded" style={{ color: '#8B949E' }} aria-label="Remover segunda pessoa">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
               <input value={secondName} onChange={e => setSecondName(e.target.value)} placeholder="Nome (opcional)"
-                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }} />
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none" style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
               <input
                 value={secondWhatsapp}
                 onChange={e => setSecondWhatsapp(formatPhoneInput(e.target.value))}
                 placeholder="WhatsApp da 2ª pessoa"
                 inputMode="tel"
                 className="w-full h-10 px-3 rounded-lg text-sm outline-none font-mono"
-                style={{ background: '#0b1326', border: '1px solid #334155', color: '#dae2fd' }}
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
               />
             </div>
           )}
@@ -168,7 +168,7 @@ export function WaitlistAddModal({ features, featureMaxCapacity, onClose, onAdd 
 
           <button type="button" onClick={submit} disabled={busy || !canSubmit}
             className="w-full h-11 rounded-lg text-sm font-bold font-mono disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Adicionar à fila'}
           </button>
         </div>

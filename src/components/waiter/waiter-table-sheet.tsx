@@ -95,14 +95,14 @@ export function WaiterTableSheet({
       />
       <div
         className="relative max-h-[85vh] overflow-y-auto rounded-t-3xl px-5 pt-5 pb-32 max-w-lg mx-auto w-full"
-        style={{ background: '#171f33', borderTop: '1px solid rgba(88,66,55,0.5)' }}
+        style={{ background: '#161B22', borderTop: '1px solid rgba(88,66,55,0.5)' }}
       >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
               Mesa
             </p>
-            <h2 className="text-3xl font-black font-mono" style={{ color: '#f97316' }}>
+            <h2 className="text-3xl font-black font-mono" style={{ color: '#00E676' }}>
               {detail?.table.number ?? '…'}
             </h2>
           </div>
@@ -110,7 +110,7 @@ export function WaiterTableSheet({
             type="button"
             onClick={onClose}
             className="p-2 rounded-xl"
-            style={{ color: '#a78b7d', background: '#131b2e' }}
+            style={{ color: '#8B949E', background: '#161B22' }}
           >
             <X className="h-5 w-5" />
           </button>
@@ -118,7 +118,7 @@ export function WaiterTableSheet({
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#00E676' }} />
           </div>
         ) : apiError ? (
           <div className="py-8 text-center space-y-3">
@@ -128,14 +128,14 @@ export function WaiterTableSheet({
               type="button"
               onClick={() => void load()}
               className="px-4 py-2 rounded-lg text-xs font-mono"
-              style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid rgba(88,66,55,0.4)' }}
+              style={{ background: '#161B22', color: '#8B949E', border: '1px solid rgba(88,66,55,0.4)' }}
             >
               Tentar novamente
             </button>
           </div>
         ) : !detail?.session ? (
           <div className="py-8 text-center space-y-1">
-            <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Mesa livre — aguardando clientes</p>
+            <p className="text-sm font-mono" style={{ color: '#8B949E' }}>Mesa livre — aguardando clientes</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -149,9 +149,9 @@ export function WaiterTableSheet({
                 <div
                   key={item.label}
                   className="rounded-xl p-3"
-                  style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.35)' }}
+                  style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.35)' }}
                 >
-                  <p className="text-[10px] font-mono uppercase" style={{ color: '#584237' }}>{item.label}</p>
+                  <p className="text-[10px] font-mono uppercase" style={{ color: '#30363D' }}>{item.label}</p>
                   <p className="text-sm font-bold font-mono mt-1">{item.value}</p>
                 </div>
               ))}
@@ -168,7 +168,7 @@ export function WaiterTableSheet({
 
             {detail.participants.length > 0 && (
               <section>
-                <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#a78b7d' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#8B949E' }}>
                   Na mesa
                 </p>
                 <ul className="space-y-1">
@@ -181,7 +181,7 @@ export function WaiterTableSheet({
 
             {detail.loyaltyAlerts.length > 0 && (
               <section className="space-y-2">
-                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                   Fidelidade
                 </p>
                 <WaiterLoyaltyInlineList alerts={detail.loyaltyAlerts} />
@@ -193,7 +193,7 @@ export function WaiterTableSheet({
                 type="button"
                 onClick={() => router.push(`/garcom/pedido?session=${detail.session!.id}`)}
                 className="w-full h-12 rounded-xl font-bold text-sm font-mono flex items-center justify-center gap-2 active:scale-[0.98]"
-                style={{ background: '#131b2e', color: '#ffb690', border: '1px solid rgba(249,115,22,0.4)' }}
+                style={{ background: '#161B22', color: '#00E676', border: '1px solid rgba(0,230,118,0.4)' }}
               >
                 <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
                 Fazer pedido
@@ -207,9 +207,9 @@ export function WaiterTableSheet({
                 onClick={() => void handleClose()}
                 className="w-full h-12 rounded-xl font-bold text-sm font-mono flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
                 style={{
-                  background: detail.session.total <= 0.02 ? '#131b2e' : '#f97316',
-                  color: detail.session.total <= 0.02 ? '#a78b7d' : '#582200',
-                  border: detail.session.total <= 0.02 ? '1px solid #584237' : 'none',
+                  background: detail.session.total <= 0.02 ? '#161B22' : '#00E676',
+                  color: detail.session.total <= 0.02 ? '#8B949E' : '#003319',
+                  border: detail.session.total <= 0.02 ? '1px solid #30363D' : 'none',
                 }}
               >
                 {closing ? (

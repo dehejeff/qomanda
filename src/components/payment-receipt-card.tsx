@@ -22,16 +22,16 @@ type Props = {
 const ACCENT = {
   customer: {
     food: { border: 'rgba(52,211,153,0.3)', label: '#34d399', emoji: '🍽️' },
-    alcohol: { border: 'rgba(249,115,22,0.3)', label: '#f97316', emoji: '🍷' },
-    neutral: { border: '#334155', label: '#a78b7d', emoji: '🧾' },
+    alcohol: { border: 'rgba(0,230,118,0.3)', label: '#00E676', emoji: '🍷' },
+    neutral: { border: '#30363D', label: '#8B949E', emoji: '🧾' },
     codeBg: '#ffffff',
-    codeText: '#0b1326',
-    muted: '#a78b7d',
-    text: '#dae2fd',
+    codeText: '#0D1117',
+    muted: '#8B949E',
+    text: '#FFFFFF',
   },
   dashboard: {
     food: { border: 'rgba(52,211,153,0.35)', label: '#34d399', emoji: '🍽️' },
-    alcohol: { border: 'rgba(249,115,22,0.35)', label: '#f97316', emoji: '🍷' },
+    alcohol: { border: 'rgba(0,230,118,0.35)', label: '#00E676', emoji: '🍷' },
     neutral: { border: 'var(--outline-variant)', label: 'var(--on-surface-variant)', emoji: '🧾' },
     codeBg: 'var(--surface-container-highest)',
     codeText: 'var(--on-surface)',
@@ -97,7 +97,7 @@ export function PaymentReceiptCard({ payment, context, variant = 'customer', com
     <div
       className={`rounded-xl flex flex-col items-center gap-3 ${compact ? 'p-4' : 'p-5'}`}
       style={{
-        background: 'linear-gradient(135deg,#1e293b,#0f172a)',
+        background: 'linear-gradient(135deg,#21262D,#0f172a)',
         border: `1px solid ${accent.border}`,
       }}
     >

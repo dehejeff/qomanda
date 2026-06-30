@@ -10,9 +10,9 @@ import { WaiterTableSheet } from './waiter-table-sheet'
 type TableRow = { id: string; number: string; status: keyof typeof tableStatus | 'closing' }
 
 const MOBILE_TABLE_STYLE: Record<string, { bg: string; border: string; text: string }> = {
-  free: { bg: '#171f33', border: 'rgba(88,66,55,0.4)', text: '#a78b7d' },
-  occupied: { bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', text: '#ffb690' },
-  reserved: { bg: '#1e293b', border: 'rgba(88,66,55,0.3)', text: '#584237' },
+  free: { bg: '#161B22', border: 'rgba(88,66,55,0.4)', text: '#8B949E' },
+  occupied: { bg: 'rgba(0,230,118,0.12)', border: 'rgba(0,230,118,0.35)', text: '#00E676' },
+  reserved: { bg: '#21262D', border: 'rgba(88,66,55,0.3)', text: '#30363D' },
   closing: { bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)', text: '#fca5a5' },
 }
 
@@ -74,7 +74,7 @@ export function WaiterTablesGrid() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} />
+        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -86,14 +86,14 @@ export function WaiterTablesGrid() {
       <div className="space-y-5">
         <div>
           <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Mesas</h1>
-          <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>
+          <p className="text-sm mt-1 font-mono" style={{ color: '#8B949E' }}>
             Toque para detalhes · encerrar ou ver fidelidade · {occupied} ocupada{occupied !== 1 ? 's' : ''}
           </p>
         </div>
 
         {tables.length === 0 ? (
-          <div className="rounded-2xl py-14 text-center" style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}>
-            <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Nenhuma mesa cadastrada</p>
+          <div className="rounded-2xl py-14 text-center" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}>
+            <p className="text-sm font-mono" style={{ color: '#8B949E' }}>Nenhuma mesa cadastrada</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2.5">
@@ -114,7 +114,7 @@ export function WaiterTablesGrid() {
                   {meta.icon && (
                     <span className="material-symbols-outlined text-[18px] mb-0.5" style={{ color: style.text }}>{meta.icon}</span>
                   )}
-                  <p className="text-2xl font-black font-mono" style={{ color: status === 'occupied' || isClosing ? '#f97316' : '#dae2fd' }}>{t.number}</p>
+                  <p className="text-2xl font-black font-mono" style={{ color: status === 'occupied' || isClosing ? '#00E676' : '#FFFFFF' }}>{t.number}</p>
                   <p className="text-[9px] font-mono uppercase tracking-wider mt-1" style={{ color: style.text }}>{meta.legend}</p>
                 </button>
               )

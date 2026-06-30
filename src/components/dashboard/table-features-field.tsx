@@ -169,9 +169,9 @@ export function TableFeaturesField(props: Props) {
               <button key={f.id} type="button" onClick={() => toggle(f.id)}
                 className="px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors"
                 style={{
-                  background: on ? 'rgba(249,115,22,0.15)' : 'transparent',
-                  color: on ? '#f97316' : '#a78b7d',
-                  borderColor: on ? '#f97316' : '#334155',
+                  background: on ? 'rgba(0,230,118,0.15)' : 'transparent',
+                  color: on ? '#00E676' : '#8B949E',
+                  borderColor: on ? '#00E676' : '#30363D',
                 }}>
                 {f.emoji} {f.name}
               </button>

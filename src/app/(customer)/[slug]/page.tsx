@@ -507,13 +507,13 @@ export default function CheckInPage() {
   const canQuickCheckIn = savedCustomerId && !showFullForm && Boolean(tableToken) && !verifyError
   const tableVerified = Boolean(tableToken) && !verifyError && !verifyLoading
   const statusLabel = tableStatus === 'occupied' ? 'EM USO' : tableStatus === 'reserved' ? 'RESERVADA' : 'DISPONÍVEL'
-  const statusColor = tableStatus === 'occupied' ? '#f97316' : tableStatus === 'reserved' ? '#a78b7d' : '#34d399'
+  const statusColor = tableStatus === 'occupied' ? '#00E676' : tableStatus === 'reserved' ? '#8B949E' : '#34d399'
 
   // ── Loading ──────────────────────────────────────────────
   if (loading || verifyLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -522,8 +522,8 @@ export default function CheckInPage() {
   if (!restaurant) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
-        style={{ background: '#0b1326', color: '#dae2fd' }}>
-        <span className="material-symbols-outlined mb-4" style={{ fontSize: 64, color: '#584237' }}>no_meals</span>
+        style={{ background: '#0D1117', color: '#FFFFFF' }}>
+        <span className="material-symbols-outlined mb-4" style={{ fontSize: 64, color: '#30363D' }}>no_meals</span>
         <h1 className="text-xl font-semibold">Restaurante não encontrado</h1>
         <p className="mt-2 text-sm" style={{ color: '#e0c0b1' }}>Verifique o QR Code e tente novamente.</p>
       </div>
@@ -536,11 +536,11 @@ export default function CheckInPage() {
     const isCounterOnly = operationalMode === 'counter'
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center relative"
-        style={{ background: '#0b1326', color: '#dae2fd' }}>
+        style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
-          style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+          style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(120px)' }} />
         <div className="relative z-10 max-w-sm w-full space-y-6 flex flex-col items-center">
-          <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#f97316' }}>
+          <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 72, color: '#00E676' }}>
             {isCounterOnly ? 'countertops' : isBothMode ? 'layers' : 'qr_code_scanner'}
           </span>
           <div className="w-full text-center">
@@ -557,8 +557,8 @@ export default function CheckInPage() {
           </div>
           {!verifyError && !isBothMode && !isCounterOnly && (
             <div className="rounded-xl p-4 w-full text-center text-xs leading-relaxed"
-              style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
-              <span className="material-symbols-outlined block mx-auto mb-2 text-[20px]" style={{ color: '#7bd0ff' }}>info</span>
+              style={{ background: '#21262D', border: '1px solid #30363D', color: '#8B949E' }}>
+              <span className="material-symbols-outlined block mx-auto mb-2 text-[20px]" style={{ color: '#58A6FF' }}>info</span>
               O QR Code fica na sua mesa. Com ele você acessa o cardápio, faz pedidos e acompanha a conta.
             </div>
           )}
@@ -567,14 +567,14 @@ export default function CheckInPage() {
           {isCounterOnly ? (
             <Link href={`/${params.slug}/balcao`}
               className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               <span className="material-symbols-outlined text-[20px]">storefront</span>
               Pedir no balcão
             </Link>
           ) : (
             <Link href="/scan"
               className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
               Escanear QR da mesa
             </Link>
@@ -585,21 +585,21 @@ export default function CheckInPage() {
               type="button"
               onClick={() => navigateToCustomerHome(params.slug, openSession.sessionId)}
               className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-              style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+              style={{ background: '#21262D', border: '1px solid #30363D', color: '#00E676' }}>
               <span className="material-symbols-outlined text-[20px]">table_restaurant</span>
               Continuar na mesa {openSession.tableNumber}
             </button>
           )}
           {isBothMode && (
             <>
-              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#584237' }}>ou</p>
+              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#30363D' }}>ou</p>
               <Link href={`/${params.slug}/balcao`}
                 className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-                style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+                style={{ background: '#21262D', border: '1px solid #30363D', color: '#00E676' }}>
                 <span className="material-symbols-outlined text-[20px]">storefront</span>
                 Pedir no balcão
               </Link>
-              <p className="text-[11px] leading-relaxed px-2" style={{ color: '#584237' }}>
+              <p className="text-[11px] leading-relaxed px-2" style={{ color: '#30363D' }}>
                 No balcão você recebe um número (#42) e aviso quando ficar pronto — sem QR de mesa.
               </p>
             </>
@@ -607,14 +607,14 @@ export default function CheckInPage() {
           {hasWaitlist && (
             <Link href={`/${params.slug}/fila`}
               className="flex items-center justify-center gap-2 w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98]"
-              style={{ background: '#1e293b', border: '1px solid #334155', color: '#ffb690' }}>
+              style={{ background: '#21262D', border: '1px solid #30363D', color: '#00E676' }}>
               <span className="material-symbols-outlined text-[20px]">deck</span>
               Entrar na fila por mesa com vista
             </Link>
           )}
           <TestTableCheckInLink />
           {savedCustomerId && (
-            <Link href="/hub" className="block w-full text-center text-xs font-mono underline underline-offset-2" style={{ color: '#584237' }}>
+            <Link href="/hub" className="block w-full text-center text-xs font-mono underline underline-offset-2" style={{ color: '#30363D' }}>
               Ir para o Hub da minha conta
             </Link>
           )}
@@ -627,12 +627,12 @@ export default function CheckInPage() {
   if (nameEntry) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8"
-        style={{ background: '#0b1326', color: '#dae2fd' }}>
+        style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
-          style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+          style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(120px)' }} />
         <div className="relative z-10 max-w-sm w-full space-y-5">
           <div className="text-center space-y-1">
-            <span className="material-symbols-outlined block mx-auto mb-3" style={{ fontSize: 48, color: '#f97316' }}>waving_hand</span>
+            <span className="material-symbols-outlined block mx-auto mb-3" style={{ fontSize: 48, color: '#00E676' }}>waving_hand</span>
             <h1 className="text-xl font-semibold">Como quer ser chamado?</h1>
             <p className="text-sm" style={{ color: '#e0c0b1' }}>Informe seu nome para continuar.</p>
           </div>
@@ -644,14 +644,14 @@ export default function CheckInPage() {
             onKeyDown={e => { if (e.key === 'Enter') handleSaveEntryName() }}
             placeholder="Seu nome"
             className="w-full h-12 rounded-xl px-4 text-sm outline-none"
-            style={{ background: '#1e293b', border: '1px solid #334155', color: '#dae2fd' }}
+            style={{ background: '#21262D', border: '1px solid #30363D', color: '#FFFFFF' }}
           />
           <button
             type="button"
             onClick={handleSaveEntryName}
             disabled={savingEntryName || !nameEntryInput.trim()}
             className="w-full h-12 rounded-xl text-sm font-bold font-mono transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {savingEntryName ? 'Salvando…' : 'Continuar'}
           </button>
         </div>
@@ -662,10 +662,10 @@ export default function CheckInPage() {
   // ── Main ──────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col items-center relative"
-      style={{ background: '#0b1326', color: '#dae2fd' }}>
+      style={{ background: '#0D1117', color: '#FFFFFF' }}>
       {/* Ambient glow */}
       <div className="pointer-events-none fixed top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full"
-        style={{ background: 'rgba(255,182,144,0.07)', filter: 'blur(120px)' }} />
+        style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(120px)' }} />
       <div className="pointer-events-none fixed bottom-[-5%] right-[-5%] w-[40%] h-[30%] rounded-full"
         style={{ background: 'rgba(123,208,255,0.07)', filter: 'blur(100px)' }} />
 
@@ -676,13 +676,13 @@ export default function CheckInPage() {
             {restaurant.logo_url ? (
               <img src={restaurant.logo_url} alt={restaurant.name} className="max-w-[160px] max-h-14 object-contain" />
             ) : (
-              <span className="text-2xl font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
+              <span className="text-2xl font-bold" style={{ color: '#00E676' }}>{restaurant.name}</span>
             )}
           </div>
           <div className="text-center space-y-1">
             <h1 className="text-[26px] font-semibold leading-tight tracking-tight">
               Bem-vindo à{' '}
-              <span className="font-bold" style={{ color: '#ffb690' }}>{restaurant.name}</span>
+              <span className="font-bold" style={{ color: '#00E676' }}>{restaurant.name}</span>
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#e0c0b1' }}>
               {canQuickCheckIn
@@ -700,20 +700,20 @@ export default function CheckInPage() {
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                  style={{ background: '#f97316', color: '#582200' }}>1</div>
-                <span className="text-[11px] font-mono" style={{ color: '#ffb690' }}>Seus dados</span>
+                  style={{ background: '#00E676', color: '#003319' }}>1</div>
+                <span className="text-[11px] font-mono" style={{ color: '#00E676' }}>Seus dados</span>
               </div>
-              <div className="flex-1 h-px" style={{ background: '#334155' }} />
+              <div className="flex-1 h-px" style={{ background: '#30363D' }} />
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                  style={{ background: '#1e293b', color: '#584237', border: '1px solid #334155' }}>2</div>
-                <span className="text-[11px] font-mono" style={{ color: '#584237' }}>Cardápio</span>
+                  style={{ background: '#21262D', color: '#30363D', border: '1px solid #30363D' }}>2</div>
+                <span className="text-[11px] font-mono" style={{ color: '#30363D' }}>Cardápio</span>
               </div>
-              <div className="flex-1 h-px" style={{ background: '#334155' }} />
+              <div className="flex-1 h-px" style={{ background: '#30363D' }} />
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                  style={{ background: '#1e293b', color: '#584237', border: '1px solid #334155' }}>3</div>
-                <span className="text-[11px] font-mono" style={{ color: '#584237' }}>Pedido</span>
+                  style={{ background: '#21262D', color: '#30363D', border: '1px solid #30363D' }}>3</div>
+                <span className="text-[11px] font-mono" style={{ color: '#30363D' }}>Pedido</span>
               </div>
             </div>
           )}
@@ -722,20 +722,20 @@ export default function CheckInPage() {
         {/* Bento grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="col-span-2 p-4 rounded-xl flex items-center justify-between relative overflow-hidden"
-            style={{ background: '#1e293b', border: '1px solid #334155' }}>
+            style={{ background: '#21262D', border: '1px solid #30363D' }}>
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%)' }} />
             <div className="relative z-10">
               <span className="text-xs font-mono uppercase tracking-wider block mb-1" style={{ color: '#e0c0b1' }}>MESA ATUAL</span>
-              <span className="font-bold leading-none" style={{ fontSize: 36, color: '#ffb690' }}>{tableLabel}</span>
+              <span className="font-bold leading-none" style={{ fontSize: 36, color: '#00E676' }}>{tableLabel}</span>
             </div>
             <div className="relative z-10 flex flex-col items-end gap-2">
-              <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#ffb690' }}>table_restaurant</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#00E676' }}>table_restaurant</span>
               <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: statusColor, background: `${statusColor}20` }}>{statusLabel}</span>
             </div>
           </div>
           <Link href="/scan"
             className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono transition-colors"
-            style={{ background: '#131b2e', border: '1px dashed #584237', color: '#a78b7d' }}>
+            style={{ background: '#161B22', border: '1px dashed #30363D', color: '#8B949E' }}>
             <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
             Está em outra mesa? Escaneie o QR correto
           </Link>
@@ -746,14 +746,14 @@ export default function CheckInPage() {
                 onClick={() => setAccessMode('new')}
                 className="p-4 rounded-xl flex flex-col items-start gap-2 text-left transition-all active:scale-[0.98]"
                 style={{
-                  background: accessMode === 'new' ? 'rgba(249,115,22,0.12)' : '#1e293b',
-                  border: `1px solid ${accessMode === 'new' ? 'rgba(249,115,22,0.45)' : '#334155'}`,
+                  background: accessMode === 'new' ? 'rgba(0,230,118,0.12)' : '#21262D',
+                  border: `1px solid ${accessMode === 'new' ? 'rgba(0,230,118,0.45)' : '#30363D'}`,
                 }}
               >
-                <span className="material-symbols-outlined text-[22px]" style={{ color: '#ffb690' }}>person_add</span>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#00E676' }}>person_add</span>
                 <div>
-                  <span className="text-sm font-bold block" style={{ color: '#dae2fd' }}>Primeiro acesso</span>
-                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#a78b7d' }}>Cadastre-se agora</span>
+                  <span className="text-sm font-bold block" style={{ color: '#FFFFFF' }}>Primeiro acesso</span>
+                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#8B949E' }}>Cadastre-se agora</span>
                 </div>
               </button>
               <button
@@ -761,14 +761,14 @@ export default function CheckInPage() {
                 onClick={() => setAccessMode('returning')}
                 className="p-4 rounded-xl flex flex-col items-start gap-2 text-left transition-all active:scale-[0.98]"
                 style={{
-                  background: accessMode === 'returning' ? 'rgba(249,115,22,0.12)' : '#1e293b',
-                  border: `1px solid ${accessMode === 'returning' ? 'rgba(249,115,22,0.45)' : '#334155'}`,
+                  background: accessMode === 'returning' ? 'rgba(0,230,118,0.12)' : '#21262D',
+                  border: `1px solid ${accessMode === 'returning' ? 'rgba(0,230,118,0.45)' : '#30363D'}`,
                 }}
               >
-                <span className="material-symbols-outlined text-[22px]" style={{ color: '#ffb690' }}>login</span>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#00E676' }}>login</span>
                 <div>
-                  <span className="text-sm font-bold block" style={{ color: '#dae2fd' }}>Já tenho cadastro</span>
-                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</span>
+                  <span className="text-sm font-bold block" style={{ color: '#FFFFFF' }}>Já tenho cadastro</span>
+                  <span className="text-[11px] font-mono mt-0.5 block" style={{ color: '#8B949E' }}>Entrar com WhatsApp</span>
                 </div>
               </button>
             </>
@@ -778,11 +778,11 @@ export default function CheckInPage() {
         {/* Login returning customer */}
         {!canQuickCheckIn && accessMode === 'returning' && (
           <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
-            style={{ background: '#131b2e', border: '1px solid #334155' }}>
+            style={{ background: '#161B22', border: '1px solid #30363D' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</p>
-                <p className="text-xs mt-1" style={{ color: '#584237' }}>
+                <p className="text-sm font-semibold" style={{ color: '#8B949E' }}>Entrar com WhatsApp</p>
+                <p className="text-xs mt-1" style={{ color: '#30363D' }}>
                   Entre com seu número para check-in rápido.
                 </p>
               </div>
@@ -794,20 +794,20 @@ export default function CheckInPage() {
                   setLoginWhatsapp('')
                 }}
                 className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: '#1e293b', color: '#584237' }}>
+                style={{ background: '#21262D', color: '#30363D' }}>
                 <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>phone</span>
               <input type="tel" inputMode="tel" value={loginWhatsapp}
                 onChange={e => setLoginWhatsapp(formatPhoneInput(e.target.value))}
                 placeholder="(21) 99999-9999 ou +351…" autoComplete="tel"
                 disabled={Boolean(pinStep || pinSetupStep)}
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep || pinSetupStep ? 0.6 : 1 }}
-                onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')} />
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF', opacity: pinStep || pinSetupStep ? 0.6 : 1 }}
+                onFocus={e => (e.target.style.borderColor = '#00E676')}
+                onBlur={e => (e.target.style.borderColor = '#30363D')} />
             </div>
             {pinSetupStep && (
               <CustomerPinSetupForm
@@ -827,7 +827,7 @@ export default function CheckInPage() {
             )}
             {pinStep && !pinSetupStep && (
               <div className="space-y-2">
-                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
+                <p className="text-xs text-center" style={{ color: '#8B949E' }}>
                   {pinStep.pinLength === 6 ? `Senha de ${pinStep.firstName}` : `PIN de ${pinStep.firstName}`}
                 </p>
                 <PinInput value={loginPin} onChange={setLoginPin} length={pinStep.pinLength} autoFocus disabled={loggingIn} />
@@ -836,7 +836,7 @@ export default function CheckInPage() {
             {!pinSetupStep && (
             <button type="button" onClick={handleWhatsAppLogin} disabled={loggingIn || checkingIn}
               className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
-              style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', color: '#ffb690' }}>
+              style={{ background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.35)', color: '#00E676' }}>
               {loggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <>
                   <span className="material-symbols-outlined">{pinStep ? 'pin' : 'login'}</span>
@@ -851,22 +851,22 @@ export default function CheckInPage() {
         {/* Check-in rápido */}
         {canQuickCheckIn && (
           <div className="rounded-xl p-5 mb-6 flex flex-col gap-4"
-            style={{ background: 'linear-gradient(145deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.35)' }}>
+            style={{ background: 'linear-gradient(145deg,#21262D,#0f172a)', border: '1px solid rgba(0,230,118,0.35)' }}>
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold shrink-0"
-                style={{ background: 'rgba(249,115,22,0.15)', color: '#ffb690' }}>
+                style={{ background: 'rgba(0,230,118,0.15)', color: '#00E676' }}>
                 {savedCustomerName.trim()
                   ? savedCustomerName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
                   : '?'}
               </div>
               <div>
                 <p className="text-sm font-semibold">{savedCustomerName || 'Cliente'}</p>
-                <p className="text-xs" style={{ color: '#a78b7d' }}>Conta salva neste aparelho</p>
+                <p className="text-xs" style={{ color: '#8B949E' }}>Conta salva neste aparelho</p>
               </div>
             </div>
             <button onClick={handleQuickCheckIn} disabled={checkingIn || checkedIn}
               className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
-              style={{ background: '#f97316', color: '#582200', boxShadow: '0 12px 28px rgba(249,115,22,0.2)' }}>
+              style={{ background: '#00E676', color: '#003319', boxShadow: '0 12px 28px rgba(0,230,118,0.2)' }}>
               {checkingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <>
                   <span className="material-symbols-outlined">bolt</span>
@@ -876,7 +876,7 @@ export default function CheckInPage() {
             </button>
             <button type="button" onClick={() => { setShowFullForm(true); setAccessMode('new') }}
               className="text-xs font-mono underline underline-offset-2 self-center"
-              style={{ color: '#a78b7d' }}>
+              style={{ color: '#8B949E' }}>
               Usar outra conta
             </button>
           </div>
@@ -885,17 +885,17 @@ export default function CheckInPage() {
         {/* Form */}
         {!canQuickCheckIn && accessMode === 'new' && (
         <div className="rounded-xl p-5 flex flex-col gap-4 mb-6"
-          style={{ background: '#1e293b', border: '1px solid #334155' }}>
+          style={{ background: '#21262D', border: '1px solid #30363D' }}>
 
           {/* Name row */}
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px]" style={{ color: '#ffb690' }}>person</span>
+              <span className="material-symbols-outlined text-[20px]" style={{ color: '#00E676' }}>person</span>
               <span className="text-sm font-semibold">Seus dados</span>
             </div>
             <button type="button" onClick={() => setAccessMode('choose')}
               className="text-[11px] font-mono underline underline-offset-2"
-              style={{ color: '#a78b7d' }}>
+              style={{ color: '#8B949E' }}>
               Voltar
             </button>
           </div>
@@ -910,9 +910,9 @@ export default function CheckInPage() {
                 <input type="text" value={f.value} onChange={e => f.set(e.target.value)}
                   placeholder={f.placeholder} autoComplete={f.ac}
                   className="w-full h-11 px-3 rounded-lg text-sm outline-none transition-all"
-                  style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                  onFocus={e => (e.target.style.borderColor = '#f97316')}
-                  onBlur={e => (e.target.style.borderColor = '#584237')} />
+                  style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+                  onFocus={e => (e.target.style.borderColor = '#00E676')}
+                  onBlur={e => (e.target.style.borderColor = '#30363D')} />
               </div>
             ))}
           </div>
@@ -921,14 +921,14 @@ export default function CheckInPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>WhatsApp</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>phone</span>
               <input type="tel" inputMode="tel" value={whatsapp}
                 onChange={e => setWhatsapp(docType === 'passport' ? formatPhoneInput(e.target.value) : formatWhatsApp(e.target.value))}
                 placeholder={docType === 'passport' ? '+351 912 345 678' : '(11) 99999-9999'} autoComplete="tel"
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none transition-all"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')} />
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+                onFocus={e => (e.target.style.borderColor = '#00E676')}
+                onBlur={e => (e.target.style.borderColor = '#30363D')} />
             </div>
           </div>
 
@@ -943,7 +943,7 @@ export default function CheckInPage() {
                 obrigatório
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed flex items-center gap-1.5" style={{ color: '#a78b7d' }}>
+            <p className="text-[11px] leading-relaxed flex items-center gap-1.5" style={{ color: '#8B949E' }}>
               <span className="material-symbols-outlined text-[14px]">lock</span>
               Para acessar sua conta nas próximas visitas
             </p>
@@ -965,21 +965,21 @@ export default function CheckInPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: '#334155' }} />
-            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#584237' }}>
+            <div className="flex-1 h-px" style={{ background: '#30363D' }} />
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#30363D' }}>
               Identificação (opcional)
             </span>
-            <div className="flex-1 h-px" style={{ background: '#334155' }} />
+            <div className="flex-1 h-px" style={{ background: '#30363D' }} />
           </div>
 
           {/* BR / Estrangeiro toggle */}
-          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #334155' }}>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #30363D' }}>
             {(['cpf', 'passport'] as const).map(t => (
               <button key={t} onClick={() => setDocType(t)}
                 className="flex-1 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all"
                 style={{
-                  background: docType === t ? '#f97316' : 'transparent',
-                  color: docType === t ? '#582200' : '#a78b7d',
+                  background: docType === t ? '#00E676' : 'transparent',
+                  color: docType === t ? '#003319' : '#8B949E',
                 }}>
                 {t === 'cpf' ? '🇧🇷 CPF' : '🌍 Passaporte'}
               </button>
@@ -996,12 +996,12 @@ export default function CheckInPage() {
                   placeholder="000.000.000-00" maxLength={14}
                   className="w-full h-11 px-3 pr-10 rounded-lg text-sm font-mono outline-none transition-all"
                   style={{
-                    background: '#0b1326',
-                    border: `1px solid ${cpfComplete ? (cpfValid ? '#34d399' : '#f87171') : '#584237'}`,
-                    color: '#dae2fd',
+                    background: '#0D1117',
+                    border: `1px solid ${cpfComplete ? (cpfValid ? '#34d399' : '#f87171') : '#30363D'}`,
+                    color: '#FFFFFF',
                   }}
-                  onFocus={e => { if (!cpfComplete) e.target.style.borderColor = '#f97316' }}
-                  onBlur={e => { if (!cpfComplete) e.target.style.borderColor = '#584237' }} />
+                  onFocus={e => { if (!cpfComplete) e.target.style.borderColor = '#00E676' }}
+                  onBlur={e => { if (!cpfComplete) e.target.style.borderColor = '#30363D' }} />
                 {cpfComplete && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]"
                     style={{ color: cpfValid ? '#34d399' : '#f87171', fontVariationSettings: "'FILL' 1" }}>
@@ -1025,14 +1025,14 @@ export default function CheckInPage() {
                 onChange={e => setPassport(e.target.value.toUpperCase())}
                 placeholder="AB123456"
                 className="w-full h-11 px-3 rounded-lg text-sm font-mono outline-none transition-all"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                onFocus={e => (e.target.style.borderColor = '#f97316')}
-                onBlur={e => (e.target.style.borderColor = '#584237')} />
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+                onFocus={e => (e.target.style.borderColor = '#00E676')}
+                onBlur={e => (e.target.style.borderColor = '#30363D')} />
             </div>
           )}
 
           {/* Consent note */}
-          <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: '#30363D' }}>
             <span className="material-symbols-outlined text-[13px] align-middle mr-1">lock</span>
             Dados usados para emissão de nota fiscal e manutenção do seu histórico de fidelidade. Não compartilhamos com terceiros.
           </p>
@@ -1044,9 +1044,9 @@ export default function CheckInPage() {
         <button onClick={handleCheckIn} disabled={checkingIn || checkedIn || !formValid}
           className="w-full py-5 rounded-xl text-xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.97] disabled:opacity-50"
           style={{
-            background: checkedIn ? '#22c55e' : '#f97316',
-            color: checkedIn ? '#fff' : '#582200',
-            boxShadow: formValid ? '0 16px 32px rgba(249,115,22,0.2)' : 'none',
+            background: checkedIn ? '#22c55e' : '#00E676',
+            color: checkedIn ? '#fff' : '#003319',
+            boxShadow: formValid ? '0 16px 32px rgba(0,230,118,0.2)' : 'none',
             fontFamily: 'Geist, sans-serif',
           }}>
           {checkingIn ? (

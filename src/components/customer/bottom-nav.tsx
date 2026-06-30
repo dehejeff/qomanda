@@ -33,7 +33,7 @@ export function CustomerBottomNav({ slug, sessionId }: Props) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center h-20 px-2"
-      style={{ background: '#131b2e', borderTop: '1px solid rgba(88,66,55,0.35)' }}
+      style={{ background: '#161B22', borderTop: '1px solid rgba(88,66,55,0.35)' }}
     >
       {NAV_ITEMS.map(({ id, segment, icon, label }) => {
         const active = isActive(segment)

@@ -48,9 +48,9 @@ function statusBadgeStyle(status: string): React.CSSProperties {
     pending:   { background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)' },
     confirmed: { background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)' },
     preparing: { background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)' },
-    ready:     { background: 'rgba(249,115,22,0.15)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.3)' },
+    ready:     { background: 'rgba(0,230,118,0.15)', color: '#00E676', border: '1px solid rgba(0,230,118,0.3)' },
   }
-  return map[status] ?? { background: '#1e293b', color: '#a78b7d', border: '1px solid #334155' }
+  return map[status] ?? { background: '#21262D', color: '#8B949E', border: '1px solid #30363D' }
 }
 
 export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLink?: boolean }) {
@@ -169,7 +169,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} />
+        <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -195,7 +195,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
               <p className="text-sm font-bold" style={{ color: '#fde68a' }}>
                 {pendingPayments} pagamento{pendingPayments > 1 ? 's' : ''} aguardando
               </p>
-              <p className="text-xs font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+              <p className="text-xs font-mono mt-0.5" style={{ color: '#8B949E' }}>
                 Toque para confirmar dinheiro ou PIX manual
               </p>
             </div>
@@ -214,7 +214,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
               <p className="text-sm font-bold" style={{ color: '#34d399' }}>
                 {readyToDeliver} pedido{readyToDeliver > 1 ? 's' : ''} pronto{readyToDeliver > 1 ? 's' : ''} para entregar
               </p>
-              <p className="text-xs font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+              <p className="text-xs font-mono mt-0.5" style={{ color: '#8B949E' }}>
                 Leve à mesa e toque em “Entregar” ao concluir
               </p>
             </div>
@@ -224,7 +224,7 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
 
       <div>
         <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Fila de pedidos</h1>
-        <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>
+        <p className="text-sm mt-1 font-mono" style={{ color: '#8B949E' }}>
           Acompanhamento · a cozinha prepara; você entrega quando ficar pronto
         </p>
       </div>
@@ -232,12 +232,12 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
       {orders.length === 0 ? (
         <div
           className="rounded-2xl py-14 text-center"
-          style={{ background: '#171f33', border: '1px solid rgba(88,66,55,0.4)' }}
+          style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.4)' }}
         >
-          <span className="material-symbols-outlined text-[40px] mb-2" style={{ color: '#584237' }}>
+          <span className="material-symbols-outlined text-[40px] mb-2" style={{ color: '#30363D' }}>
             check_circle
           </span>
-          <p className="text-sm font-mono" style={{ color: '#a78b7d' }}>Nenhum pedido aberto</p>
+          <p className="text-sm font-mono" style={{ color: '#8B949E' }}>Nenhum pedido aberto</p>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -255,23 +255,23 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                 key={o.id}
                 className="rounded-2xl p-4"
                 style={{
-                  background: o.status === 'ready' ? 'rgba(52,211,153,0.06)' : '#171f33',
+                  background: o.status === 'ready' ? 'rgba(52,211,153,0.06)' : '#161B22',
                   border: o.status === 'ready' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(88,66,55,0.4)',
                 }}
               >
                 {/* Cabeçalho: local + ID + status */}
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
-                    <p className="text-xl font-black font-mono" style={{ color: o.status === 'ready' ? '#34d399' : '#f97316' }}>
+                    <p className="text-xl font-black font-mono" style={{ color: o.status === 'ready' ? '#34d399' : '#00E676' }}>
                       {orderLocation(o)}
                     </p>
                     <p className="text-sm font-medium truncate mt-0.5">{name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+                      <span className="text-[10px] font-mono" style={{ color: '#30363D' }}>
                         #{o.id.slice(-6).toUpperCase()}
                       </span>
-                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>·</span>
-                      <span className="text-[10px] font-mono" style={{ color: '#584237' }}>{time}</span>
+                      <span className="text-[10px] font-mono" style={{ color: '#30363D' }}>·</span>
+                      <span className="text-[10px] font-mono" style={{ color: '#30363D' }}>{time}</span>
                     </div>
                   </div>
                   <span
@@ -287,10 +287,10 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                   <ul className="mb-3 space-y-1 rounded-lg p-2.5" style={{ background: 'rgba(0,0,0,0.2)' }}>
                     {o.items.map((it, i) => (
                       <li key={i} className="text-sm flex items-start gap-2">
-                        <span className="font-bold shrink-0" style={{ color: '#f97316' }}>{it.quantity}×</span>
-                        <span style={{ color: '#dae2fd' }}>{it.name}</span>
+                        <span className="font-bold shrink-0" style={{ color: '#00E676' }}>{it.quantity}×</span>
+                        <span style={{ color: '#FFFFFF' }}>{it.name}</span>
                         {it.notes && (
-                          <span className="text-[11px] italic ml-1" style={{ color: '#a78b7d' }}>↳ {it.notes}</span>
+                          <span className="text-[11px] italic ml-1" style={{ color: '#8B949E' }}>↳ {it.notes}</span>
                         )}
                       </li>
                     ))}
@@ -304,9 +304,9 @@ export function WaiterOrdersQueue({ showPaymentsLink = true }: { showPaymentsLin
                     onClick={() => void advance(o)}
                     className="w-full h-12 rounded-xl font-bold text-sm font-mono flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
                     style={{
-                      background: '#f97316',
-                      color: '#582200',
-                      boxShadow: '0 4px 16px rgba(249,115,22,0.25)',
+                      background: '#00E676',
+                      color: '#003319',
+                      boxShadow: '0 4px 16px rgba(0,230,118,0.25)',
                     }}
                   >
                     {advancingId === o.id ? (

@@ -44,9 +44,9 @@ export function PinInput({ value, onChange, disabled, autoFocus, length = 4 }: P
             key={i}
             className={boxClass}
             style={{
-              background: '#0b1326',
-              border: `2px solid ${d ? '#f97316' : '#584237'}`,
-              color: '#dae2fd',
+              background: '#0D1117',
+              border: `2px solid ${d ? '#00E676' : '#30363D'}`,
+              color: '#FFFFFF',
             }}
           >
             {d ? '•' : ''}

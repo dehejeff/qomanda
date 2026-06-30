@@ -126,7 +126,7 @@ export default function InternalOverviewPage() {
           value={brl(stats.txRevenueLast30Days)}
           sub={`${stats.avgTxFeePercent.toFixed(2)}% sobre Pay digital`}
           icon="percent"
-          accent="#f97316"
+          accent="#00E676"
         />
         <StatCard
           label="Receita KiComanda 30d"

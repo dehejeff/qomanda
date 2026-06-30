@@ -186,8 +186,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -197,14 +197,14 @@ export default function ProfilePage() {
   const rewardPct    = data?.nextReward ? Math.min(100, ((data.visits / data.nextReward.visit_count) * 100)) : 100
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <div className="pointer-events-none fixed top-[-5%] left-[-5%] w-[50%] h-[35%] rounded-full"
-        style={{ background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)' }} />
+        style={{ background: 'rgba(0,230,118,0.06)', filter: 'blur(100px)' }} />
 
       {/* Header */}
       <header className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Meu Perfil</h1>
@@ -212,9 +212,9 @@ export default function ProfilePage() {
           onClick={() => editing ? handleSave() : setEditing(true)}
           className="text-sm font-mono px-3 py-1.5 rounded-lg transition-all active:scale-95"
           style={{
-            background: editing ? '#f97316' : 'transparent',
-            color: editing ? '#582200' : '#ffb690',
-            border: editing ? 'none' : '1px solid rgba(249,115,22,0.3)',
+            background: editing ? '#00E676' : 'transparent',
+            color: editing ? '#003319' : '#00E676',
+            border: editing ? 'none' : '1px solid rgba(0,230,118,0.3)',
             fontWeight: editing ? 700 : 400,
           }}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? 'Salvar' : 'Editar'}
@@ -225,13 +225,13 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="flex flex-col items-center gap-4 py-4">
           <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-black"
-            style={{ background: 'linear-gradient(135deg,#f97316,#d63400)', color: '#fff', boxShadow: '0 0 24px rgba(249,115,22,0.3)' }}>
+            style={{ background: 'linear-gradient(135deg,#00E676,#d63400)', color: '#fff', boxShadow: '0 0 24px rgba(0,230,118,0.3)' }}>
             {initials}
           </div>
           {!editing && (
             <div className="text-center">
               <p className="text-xl font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>{name}</p>
-              <p className="text-sm font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+              <p className="text-sm font-mono mt-0.5" style={{ color: '#8B949E' }}>
                 {formatWhatsAppDisplay(data?.whatsapp ?? '')}
               </p>
               {data?.hasCpf && (
@@ -247,8 +247,8 @@ export default function ProfilePage() {
 
         {/* Edit form */}
         {editing && (
-          <div className="rounded-xl p-5 space-y-4" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Dados pessoais</p>
+          <div className="rounded-xl p-5 space-y-4" style={{ background: '#21262D', border: '1px solid #30363D' }}>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Dados pessoais</p>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Nome', value: firstName, set: setFirstName, placeholder: 'João' },
@@ -258,9 +258,9 @@ export default function ProfilePage() {
                   <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>{f.label}</label>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
                     className="h-11 px-3 rounded-lg text-sm outline-none"
-                    style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                    onFocus={e => (e.target.style.borderColor = '#f97316')}
-                    onBlur={e => (e.target.style.borderColor = '#584237')} />
+                    style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+                    onFocus={e => (e.target.style.borderColor = '#00E676')}
+                    onBlur={e => (e.target.style.borderColor = '#30363D')} />
                 </div>
               ))}
             </div>
@@ -268,8 +268,8 @@ export default function ProfilePage() {
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>WhatsApp</label>
               <input value={formatWhatsAppDisplay(data?.whatsapp ?? '')} readOnly
                 className="h-11 px-3 rounded-lg text-sm opacity-50 cursor-not-allowed"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }} />
-              <p className="text-[10px] font-mono" style={{ color: '#584237' }}>
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }} />
+              <p className="text-[10px] font-mono" style={{ color: '#30363D' }}>
                 O WhatsApp é sua identidade e não pode ser alterado.
               </p>
             </div>
@@ -280,50 +280,50 @@ export default function ProfilePage() {
         <Link
           href={`/${params.slug}/receipts?session=${sessionId}`}
           className="block rounded-xl overflow-hidden transition-all active:scale-[0.98]"
-          style={{ background: '#1e293b', border: '1px solid #334155' }}
+          style={{ background: '#21262D', border: '1px solid #30363D' }}
         >
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-[22px]" style={{ color: '#34d399' }}>receipt_long</span>
               <div>
-                <p className="text-sm font-medium" style={{ color: '#dae2fd' }}>Meus recibos</p>
-                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                <p className="text-sm font-medium" style={{ color: '#FFFFFF' }}>Meus recibos</p>
+                <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
                   {receiptCount > 0
                     ? `${receiptCount} pagamento${receiptCount !== 1 ? 's' : ''} nesta visita`
                     : 'Códigos e comprovantes de pagamento'}
                 </p>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[20px]" style={{ color: '#584237' }}>chevron_right</span>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#30363D' }}>chevron_right</span>
           </div>
         </Link>
 
         {/* Loyalty */}
         <div className="rounded-xl p-5"
-          style={{ background: 'linear-gradient(145deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+          style={{ background: 'linear-gradient(145deg,#21262D,#0f172a)', border: '1px solid #30363D' }}>
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Programa de Fidelidade</p>
-              <p className="text-2xl font-black" style={{ fontFamily: 'Geist, sans-serif', color: '#ffb690' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#8B949E' }}>Programa de Fidelidade</p>
+              <p className="text-2xl font-black" style={{ fontFamily: 'Geist, sans-serif', color: '#00E676' }}>
                 {data?.visits ?? 0} {(data?.visits ?? 0) === 1 ? 'visita' : 'visitas'}
               </p>
             </div>
             <span className="material-symbols-outlined text-[28px] shrink-0"
-              style={{ color: '#f97316', fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+              style={{ color: '#00E676', fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
           </div>
           {data?.nextReward ? (
             <>
-              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#2d3449' }}>
+              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#30363D' }}>
                 <div className="h-full rounded-full"
-                  style={{ width: `${rewardPct}%`, background: 'linear-gradient(90deg,#f97316,#ffb690)' }} />
+                  style={{ width: `${rewardPct}%`, background: 'linear-gradient(90deg,#00E676,#00E676)' }} />
               </div>
               <p className="text-xs mb-2" style={{ color: '#e0c0b1' }}>
-                Faltam <strong style={{ color: '#ffb690' }}>{data.nextReward.visit_count - (data.visits ?? 0)}</strong> visitas para:
+                Faltam <strong style={{ color: '#00E676' }}>{data.nextReward.visit_count - (data.visits ?? 0)}</strong> visitas para:
               </p>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                <span className="material-symbols-outlined text-[16px]" style={{ color: '#f97316' }}>redeem</span>
-                <span className="text-xs font-semibold" style={{ color: '#ffb690' }}>{data.nextReward.benefit_value}</span>
+                style={{ background: 'rgba(0,230,118,0.1)', border: '1px solid rgba(0,230,118,0.2)' }}>
+                <span className="material-symbols-outlined text-[16px]" style={{ color: '#00E676' }}>redeem</span>
+                <span className="text-xs font-semibold" style={{ color: '#00E676' }}>{data.nextReward.benefit_value}</span>
               </div>
             </>
           ) : (
@@ -332,8 +332,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Preferences */}
-        <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest px-5 pt-4 pb-3" style={{ color: '#a78b7d' }}>Preferências</p>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#21262D', border: '1px solid #30363D' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest px-5 pt-4 pb-3" style={{ color: '#8B949E' }}>Preferências</p>
           {[
             { key: 'notifications' as keyof Prefs, icon: 'notifications', label: 'Notificações de pedido', desc: 'Status em tempo real dos seus pedidos' },
             { key: 'shareHistory'  as keyof Prefs, icon: 'history',       label: 'Histórico de visitas',  desc: 'Permitir uso para programa de fidelidade' },
@@ -342,15 +342,15 @@ export default function ProfilePage() {
             <div key={item.key} className="flex items-center justify-between px-5 py-4"
               style={{ borderTop: i > 0 ? '1px solid rgba(88,66,55,0.25)' : 'none' }}>
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[20px]" style={{ color: '#a78b7d' }}>{item.icon}</span>
+                <span className="material-symbols-outlined text-[20px]" style={{ color: '#8B949E' }}>{item.icon}</span>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: '#dae2fd' }}>{item.label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{item.desc}</p>
+                  <p className="text-sm font-medium" style={{ color: '#FFFFFF' }}>{item.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>{item.desc}</p>
                 </div>
               </div>
               <button onClick={() => togglePref(item.key)}
                 className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
-                style={{ background: prefs[item.key] ? '#f97316' : '#334155' }}>
+                style={{ background: prefs[item.key] ? '#00E676' : '#30363D' }}>
                 <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
                   style={{ left: prefs[item.key] ? '1.375rem' : '0.125rem' }} />
               </button>
@@ -361,8 +361,8 @@ export default function ProfilePage() {
         {/* Mesa / saída */}
         <div className="space-y-3">
           {tableNumber && (
-            <p className="text-xs font-mono text-center" style={{ color: '#a78b7d' }}>
-              Você está na <strong style={{ color: '#ffb690' }}>Mesa {tableNumber}</strong>
+            <p className="text-xs font-mono text-center" style={{ color: '#8B949E' }}>
+              Você está na <strong style={{ color: '#00E676' }}>Mesa {tableNumber}</strong>
             </p>
           )}
 
@@ -384,9 +384,9 @@ export default function ProfilePage() {
           </button>
 
           {hasOpenBalance && (
-            <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#a78b7d' }}>
+            <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#8B949E' }}>
               Há {formatCurrency(openBalance)} em aberto nesta mesa. Quite sua conta em{' '}
-              <Link href={`/${params.slug}/checkout?session=${sessionId}`} className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+              <Link href={`/${params.slug}/checkout?session=${sessionId}`} className="underline underline-offset-2" style={{ color: '#00E676' }}>
                 Pagamento
               </Link>{' '}
               antes de sair.
@@ -396,7 +396,7 @@ export default function ProfilePage() {
           <Link
             href="/hub"
             className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-            style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)', color: '#ffb690' }}
+            style={{ background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676' }}
           >
             <span className="material-symbols-outlined text-[18px]">home_storage</span>
             Ir para minha área (Hub)
@@ -406,7 +406,7 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-2 py-2">
           <div className="flex items-center gap-2 opacity-30">
             <KiComandaLogo size={18} />
-            <span className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Powered by KiComanda</span>
+            <span className="text-[10px] font-mono" style={{ color: '#8B949E' }}>Powered by KiComanda</span>
           </div>
         </div>
       </main>

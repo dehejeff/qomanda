@@ -189,9 +189,9 @@ export function WaiterPendingPaymentsPanel() {
               </div>
               {/* Código de referência — cliente mostra na tela */}
               <div className="shrink-0 text-center px-3 py-2 rounded-lg"
-                style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)' }}>
-                <p className="text-[9px] font-mono uppercase" style={{ color: '#a78b7d' }}>Ref.</p>
-                <p className="text-base font-black font-mono" style={{ color: '#f97316' }}>
+                style={{ background: 'rgba(0,230,118,0.1)', border: '1px solid rgba(0,230,118,0.3)' }}>
+                <p className="text-[9px] font-mono uppercase" style={{ color: '#8B949E' }}>Ref.</p>
+                <p className="text-base font-black font-mono" style={{ color: '#00E676' }}>
                   #{p.id.slice(-6).toUpperCase()}
                 </p>
               </div>

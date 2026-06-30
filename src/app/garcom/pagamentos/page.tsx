@@ -10,7 +10,7 @@ export default async function GarcomPagamentosPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Pagamentos</h1>
-        <p className="text-sm mt-1 font-mono" style={{ color: '#a78b7d' }}>
+        <p className="text-sm mt-1 font-mono" style={{ color: '#8B949E' }}>
           Confirme dinheiro e PIX manual quando o cliente pagar
         </p>
       </div>

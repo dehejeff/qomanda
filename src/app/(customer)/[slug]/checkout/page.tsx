@@ -87,39 +87,39 @@ function ManualPixScreen({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>PIX do restaurante</h2>
       </div>
 
       <div className="rounded-xl p-5 space-y-4"
-        style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+        style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid #30363D' }}>
         {manual.holderName && (
-          <p className="text-sm font-semibold text-center" style={{ color: '#dae2fd' }}>{manual.holderName}</p>
+          <p className="text-sm font-semibold text-center" style={{ color: '#FFFFFF' }}>{manual.holderName}</p>
         )}
         <div className="flex flex-col items-center gap-2">
           <span className="material-symbols-outlined text-[48px]" style={{ color: '#34d399' }}>qr_code_2</span>
-          <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>
             {manual.pixKeyType ? MANUAL_PIX_KEY_TYPE_LABELS[manual.pixKeyType] : 'Chave PIX'}
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-xl px-4 py-3"
-          style={{ background: '#0b1326', border: '1px solid #334155' }}>
-          <span className="flex-1 text-sm font-mono break-all" style={{ color: '#dae2fd' }}>{manual.pixKey}</span>
+          style={{ background: '#0D1117', border: '1px solid #30363D' }}>
+          <span className="flex-1 text-sm font-mono break-all" style={{ color: '#FFFFFF' }}>{manual.pixKey}</span>
           <button onClick={copyPixKey}
             className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
             style={{
-              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
-              color: copied ? '#34d399' : '#f97316',
-              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.2)'}`,
+              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(0,230,118,0.12)',
+              color: copied ? '#34d399' : '#00E676',
+              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(0,230,118,0.2)'}`,
             }}>
             <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
             {copied ? 'Copiado!' : 'Copiar'}
           </button>
         </div>
         {bankLine && (
-          <p className="text-xs text-center font-mono" style={{ color: '#a78b7d' }}>Conta: {bankLine}</p>
+          <p className="text-xs text-center font-mono" style={{ color: '#8B949E' }}>Conta: {bankLine}</p>
         )}
         {manual.notes && (
           <p className="text-xs text-center leading-relaxed" style={{ color: '#e0c0b1' }}>{manual.notes}</p>
@@ -129,32 +129,32 @@ function ManualPixScreen({
         </p>
       </div>
 
-      <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+      <div className="rounded-xl p-4 space-y-2" style={{ background: '#21262D', border: '1px solid #30363D' }}>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>
             {fixedAmount ? 'Valor a pagar (definido)' : 'Valor a transferir'}
           </span>
           {!fixedAmount && (
-            <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+            <span className="text-[10px] font-mono" style={{ color: '#30363D' }}>
               Mínimo: {formatCurrency(suggestedAmount)}
             </span>
           )}
         </div>
         {fixedAmount ? (
           <div className="flex items-center gap-2 h-12 px-3 rounded-lg"
-            style={{ background: '#0b1326', border: '1px solid #584237' }}>
-            <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
-            <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
+            style={{ background: '#0D1117', border: '1px solid #30363D' }}>
+            <span className="text-sm" style={{ color: '#8B949E' }}>R$</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#00E676' }}>
               {suggestedAmount.toFixed(2).replace('.', ',')}
             </span>
           </div>
         ) : (
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#8B949E' }}>R$</span>
             <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
               onChange={e => setAmount(e.target.value)}
               className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
-              style={{ background: '#0b1326', border: `1px solid ${valid ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+              style={{ background: '#0D1117', border: `1px solid ${valid ? '#00E676' : '#f87171'}`, color: '#FFFFFF' }}
             />
           </div>
         )}
@@ -166,7 +166,7 @@ function ManualPixScreen({
       {splitInfo && (
         <div className="rounded-xl p-4 space-y-2"
           style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
             Divisão para reembolso
           </p>
           <div className="flex justify-between text-sm">
@@ -174,8 +174,8 @@ function ManualPixScreen({
             <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
-            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+            <span style={{ color: '#8B949E' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#8B949E' }}>{formatCurrency(splitInfo.alcohol)}</span>
           </div>
         </div>
       )}
@@ -247,7 +247,7 @@ function PixScreen({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pague via PIX</h2>
@@ -255,7 +255,7 @@ function PixScreen({
 
       {/* QR Code — imagem real do Asaas */}
       <div className="flex flex-col items-center gap-4 rounded-xl p-6"
-        style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+        style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid #30363D' }}>
         <div className="bg-white p-4 rounded-xl">
           {pixQrCodeImage ? (
             <img
@@ -265,7 +265,7 @@ function PixScreen({
             />
           ) : (
             <div className="w-44 h-44 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#334155' }} />
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#30363D' }} />
             </div>
           )}
         </div>
@@ -277,16 +277,16 @@ function PixScreen({
       {/* PIX Copia-e-Cola */}
       {pixPayload && (
         <div className="flex items-center gap-2 rounded-xl px-4 py-3"
-          style={{ background: '#1e293b', border: '1px solid #334155' }}>
-          <span className="flex-1 text-xs font-mono truncate" style={{ color: '#dae2fd' }}>
+          style={{ background: '#21262D', border: '1px solid #30363D' }}>
+          <span className="flex-1 text-xs font-mono truncate" style={{ color: '#FFFFFF' }}>
             {pixPayload.slice(0, 40)}...
           </span>
           <button onClick={copyPayload}
             className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg shrink-0"
             style={{
-              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(249,115,22,0.12)',
-              color: copied ? '#34d399' : '#f97316',
-              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.2)'}`,
+              background: copied ? 'rgba(52,211,153,0.15)' : 'rgba(0,230,118,0.12)',
+              color: copied ? '#34d399' : '#00E676',
+              border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(0,230,118,0.2)'}`,
             }}>
             <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
             {copied ? 'Copiado!' : 'Copiar'}
@@ -295,33 +295,33 @@ function PixScreen({
       )}
 
       {/* Valor */}
-      <div className="rounded-xl p-4 space-y-2" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+      <div className="rounded-xl p-4 space-y-2" style={{ background: '#21262D', border: '1px solid #30363D' }}>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>
             {fixedAmount ? 'Valor a pagar (definido)' : 'Valor a pagar'}
           </span>
           {!fixedAmount && (
-            <span className="text-[10px] font-mono" style={{ color: '#584237' }}>
+            <span className="text-[10px] font-mono" style={{ color: '#30363D' }}>
               Mínimo: {formatCurrency(suggestedAmount)}
             </span>
           )}
         </div>
         {fixedAmount ? (
           <div className="flex items-center gap-2 h-12 px-3 rounded-lg"
-            style={{ background: '#0b1326', border: '1px solid #584237' }}>
-            <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
-            <span className="text-xl font-black font-mono" style={{ color: '#ffb690' }}>
+            style={{ background: '#0D1117', border: '1px solid #30363D' }}>
+            <span className="text-sm" style={{ color: '#8B949E' }}>R$</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#00E676' }}>
               {suggestedAmount.toFixed(2).replace('.', ',')}
             </span>
-            <span className="material-symbols-outlined text-[16px] ml-auto" style={{ color: '#584237' }}>lock</span>
+            <span className="material-symbols-outlined text-[16px] ml-auto" style={{ color: '#30363D' }}>lock</span>
           </div>
         ) : (
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#8B949E' }}>R$</span>
             <input type="number" step="0.01" min={suggestedAmount.toFixed(2)} value={amount}
               onChange={e => setAmount(e.target.value)}
               className="w-full h-12 pl-9 pr-3 rounded-lg text-base font-bold font-mono outline-none"
-              style={{ background: '#0b1326', border: `1px solid ${parsedAmt >= suggestedAmount ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+              style={{ background: '#0D1117', border: `1px solid ${parsedAmt >= suggestedAmount ? '#00E676' : '#f87171'}`, color: '#FFFFFF' }}
             />
           </div>
         )}
@@ -337,11 +337,11 @@ function PixScreen({
       {/* Countdown */}
       <div className="flex items-center justify-between rounded-xl px-4 py-3"
         style={{
-          background: expired ? 'rgba(248,113,113,0.1)' : 'rgba(249,115,22,0.08)',
-          border: `1px solid ${expired ? 'rgba(248,113,113,0.25)' : 'rgba(249,115,22,0.2)'}`,
+          background: expired ? 'rgba(248,113,113,0.1)' : 'rgba(0,230,118,0.08)',
+          border: `1px solid ${expired ? 'rgba(248,113,113,0.25)' : 'rgba(0,230,118,0.2)'}`,
         }}>
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: expired ? '#f87171' : '#f97316' }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: expired ? '#f87171' : '#00E676' }}>
             {expired ? 'timer_off' : 'timer'}
           </span>
           <span className="text-xs font-mono" style={{ color: expired ? '#f87171' : '#e0c0b1' }}>
@@ -349,7 +349,7 @@ function PixScreen({
           </span>
         </div>
         {!expired && (
-          <span className="text-lg font-black font-mono" style={{ color: seconds < 60 ? '#f87171' : '#f97316' }}>
+          <span className="text-lg font-black font-mono" style={{ color: seconds < 60 ? '#f87171' : '#00E676' }}>
             {mm}:{ss}
           </span>
         )}
@@ -359,12 +359,12 @@ function PixScreen({
         onClick={() => onConfirmManual(fixedAmount ? suggestedAmount : parsedAmt)}
         disabled={loading || expired || (!fixedAmount && parsedAmt < suggestedAmount)}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-        style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}>
+        style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 30px rgba(0,230,118,0.25)', fontFamily: 'Geist, sans-serif' }}>
         {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Aguardando confirmação...</> : (
           <><span className="material-symbols-outlined">check_circle</span> Já paguei — confirmar</>
         )}
       </button>
-      <p className="text-center text-[10px] font-mono" style={{ color: '#584237' }}>
+      <p className="text-center text-[10px] font-mono" style={{ color: '#30363D' }}>
         A confirmação automática chega em instantes após o pagamento.
       </p>
     </div>
@@ -396,20 +396,20 @@ function CashAmountScreen({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Quanto vai pagar?</h2>
       </div>
 
       <div className="rounded-xl p-5 space-y-4"
-        style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+        style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#8B949E' }}>
             Valor em dinheiro
           </p>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono" style={{ color: '#a78b7d' }}>R$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono" style={{ color: '#8B949E' }}>R$</span>
             <input
               type="number"
               step="0.01"
@@ -417,20 +417,20 @@ function CashAmountScreen({
               value={amount}
               onChange={e => onAmountChange(e.target.value)}
               className="w-full h-14 pl-12 pr-4 rounded-xl font-mono text-2xl font-black outline-none"
-              style={{ background: '#0b1326', border: '2px solid #584237', color: '#ffb690' }}
-              onFocus={e => (e.target.style.borderColor = '#f97316')}
-              onBlur={e => (e.target.style.borderColor = '#584237')}
+              style={{ background: '#0D1117', border: '2px solid #30363D', color: '#00E676' }}
+              onFocus={e => (e.target.style.borderColor = '#00E676')}
+              onBlur={e => (e.target.style.borderColor = '#30363D')}
             />
           </div>
-          <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+          <p className="text-[10px] font-mono mt-2" style={{ color: '#30363D' }}>
             Mínimo: {formatCurrency(minimumOwed)} (sua parte nesta mesa)
           </p>
         </div>
 
         <div className="space-y-2 pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.3)' }}>
           <div className="flex justify-between text-sm">
-            <span style={{ color: '#a78b7d' }}>Sua conta</span>
-            <span className="font-mono font-semibold" style={{ color: '#dae2fd' }}>{formatCurrency(minimumOwed)}</span>
+            <span style={{ color: '#8B949E' }}>Sua conta</span>
+            <span className="font-mono font-semibold" style={{ color: '#FFFFFF' }}>{formatCurrency(minimumOwed)}</span>
           </div>
           {extra > 0.01 && (
             <div className="flex justify-between text-sm">
@@ -439,8 +439,8 @@ function CashAmountScreen({
             </div>
           )}
           <div className="flex justify-between pt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
-            <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Total em dinheiro</span>
-            <span className="text-xl font-black font-mono" style={{ color: '#f97316' }}>{formatCurrency(valid ? parsed : minimumOwed)}</span>
+            <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Total em dinheiro</span>
+            <span className="text-xl font-black font-mono" style={{ color: '#00E676' }}>{formatCurrency(valid ? parsed : minimumOwed)}</span>
           </div>
         </div>
 
@@ -454,7 +454,7 @@ function CashAmountScreen({
       {splitInfo && (
         <div className="rounded-xl p-4 space-y-2"
           style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
             Divisão para reembolso
           </p>
           <div className="flex justify-between text-sm">
@@ -462,8 +462,8 @@ function CashAmountScreen({
             <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
-            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+            <span style={{ color: '#8B949E' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#8B949E' }}>{formatCurrency(splitInfo.alcohol)}</span>
           </div>
         </div>
       )}
@@ -473,7 +473,7 @@ function CashAmountScreen({
         onClick={onSubmit}
         disabled={loading || !valid}
         className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-        style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.25)', fontFamily: 'Geist, sans-serif' }}
+        style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 30px rgba(0,230,118,0.25)', fontFamily: 'Geist, sans-serif' }}
       >
         {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Registrando...</> : (
           <><span className="material-symbols-outlined">payments</span> Informar ao restaurante</>
@@ -515,7 +515,7 @@ function CashPendingScreen({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h2 className="text-lg font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
@@ -524,18 +524,18 @@ function CashPendingScreen({
       </div>
 
       <div className="flex flex-col items-center gap-4 rounded-xl p-6 text-center"
-        style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
+        style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid #30363D' }}>
         <div className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{
-            background: isPix ? 'rgba(52,211,153,0.12)' : 'rgba(249,115,22,0.12)',
-            border: `2px solid ${isPix ? 'rgba(52,211,153,0.35)' : 'rgba(249,115,22,0.35)'}`,
+            background: isPix ? 'rgba(52,211,153,0.12)' : 'rgba(0,230,118,0.12)',
+            border: `2px solid ${isPix ? 'rgba(52,211,153,0.35)' : 'rgba(0,230,118,0.35)'}`,
           }}>
-          <span className="material-symbols-outlined text-[32px]" style={{ color: isPix ? '#34d399' : '#f97316' }}>
+          <span className="material-symbols-outlined text-[32px]" style={{ color: isPix ? '#34d399' : '#00E676' }}>
             {isPix ? 'qr_code_2' : 'payments'}
           </span>
         </div>
         <div>
-          <p className="text-2xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+          <p className="text-2xl font-black" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
             {formatCurrency(amount)}
           </p>
           {extra > 0.01 && minimumOwed != null && (
@@ -554,14 +554,14 @@ function CashPendingScreen({
       {/* Código de referência — cliente mostra ao caixa */}
       {paymentId && (
         <div className="rounded-xl p-5 text-center space-y-2"
-          style={{ background: 'linear-gradient(135deg,rgba(249,115,22,0.1),rgba(249,115,22,0.05))', border: '2px solid rgba(249,115,22,0.35)' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+          style={{ background: 'linear-gradient(135deg,rgba(0,230,118,0.1),rgba(0,230,118,0.05))', border: '2px solid rgba(0,230,118,0.35)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
             Código de referência — mostre ao caixa
           </p>
-          <p className="text-4xl font-black font-mono tracking-widest" style={{ color: '#f97316', letterSpacing: '0.15em' }}>
+          <p className="text-4xl font-black font-mono tracking-widest" style={{ color: '#00E676', letterSpacing: '0.15em' }}>
             #{paymentId.slice(-6).toUpperCase()}
           </p>
-          <p className="text-[11px]" style={{ color: '#584237' }}>
+          <p className="text-[11px]" style={{ color: '#30363D' }}>
             O caixa usa este código para confirmar o recebimento
           </p>
         </div>
@@ -570,7 +570,7 @@ function CashPendingScreen({
       {splitInfo && (
         <div className="rounded-xl p-4 space-y-2"
           style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
             Divisão para reembolso
           </p>
           <div className="flex justify-between text-sm">
@@ -578,18 +578,18 @@ function CashPendingScreen({
             <span className="font-mono font-semibold" style={{ color: '#34d399' }}>{formatCurrency(splitInfo.food)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: '#a78b7d' }}>🍷 Bebidas (pessoal)</span>
-            <span className="font-mono font-semibold" style={{ color: '#a78b7d' }}>{formatCurrency(splitInfo.alcohol)}</span>
+            <span style={{ color: '#8B949E' }}>🍷 Bebidas (pessoal)</span>
+            <span className="font-mono font-semibold" style={{ color: '#8B949E' }}>{formatCurrency(splitInfo.alcohol)}</span>
           </div>
         </div>
       )}
 
       <div className="rounded-xl px-4 py-4 flex items-start gap-3"
         style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.2)' }}>
-        <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5 animate-pulse" style={{ color: '#7bd0ff' }}>hourglass_top</span>
+        <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5 animate-pulse" style={{ color: '#58A6FF' }}>hourglass_top</span>
         <div>
-          <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Aguardando confirmação do caixa</p>
-          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+          <p className="text-sm font-bold" style={{ color: '#58A6FF' }}>Aguardando confirmação do caixa</p>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
             Entregue o dinheiro e mostre o código acima. Após confirmação você receberá o comprovante de pagamento.
           </p>
         </div>
@@ -600,7 +600,7 @@ function CashPendingScreen({
         onClick={onCancel}
         disabled={cancelling}
         className="w-full h-12 rounded-xl text-sm font-mono transition-all active:scale-95 disabled:opacity-40"
-        style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}
+        style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#8B949E' }}
       >
         {cancelling ? 'Cancelando…' : 'Cancelar solicitação'}
       </button>
@@ -1691,8 +1691,8 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -1705,12 +1705,12 @@ export default function CheckoutPage() {
       : Math.max(0, myIndividualTotal - myOpen.openTotal)
 
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
           style={{ background: 'rgba(52,211,153,0.08)', filter: 'blur(80px)' }} />
         <header className="sticky top-0 z-40 flex justify-center items-center h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
-          <h1 className="text-base font-semibold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>Pagamento</h1>
+          <h1 className="text-base font-semibold" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>Pagamento</h1>
         </header>
         <main className="flex-1 flex flex-col items-center px-6 py-8 pb-28 gap-6">
           <div className="flex flex-col items-center text-center">
@@ -1725,25 +1725,25 @@ export default function CheckoutPage() {
           {tableSettled && (
             <div className="w-full rounded-xl px-5 py-4 flex items-start gap-3"
               style={{ background: 'rgba(123,208,255,0.1)', border: '1px solid rgba(123,208,255,0.3)' }}>
-              <span className="material-symbols-outlined text-[22px] shrink-0" style={{ color: '#7bd0ff', fontVariationSettings: "'FILL' 1" }}>table_restaurant</span>
+              <span className="material-symbols-outlined text-[22px] shrink-0" style={{ color: '#58A6FF', fontVariationSettings: "'FILL' 1" }}>table_restaurant</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: '#7bd0ff' }}>Mesa quitada!</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                <p className="text-sm font-bold" style={{ color: '#58A6FF' }}>Mesa quitada!</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
                   A conta da {formatServiceLocationLabel(tableNumber, isCounterSession ? 'counter' : 'dine_in')} foi paga por completo. A mesa já está liberada para novos clientes no restaurante.
                 </p>
               </div>
             </div>
           )}
           <div className="w-full rounded-xl p-5 flex justify-between items-center"
-            style={{ background: '#171f33', border: '1px solid #334155' }}>
+            style={{ background: '#161B22', border: '1px solid #30363D' }}>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>{isCounterSession ? 'Local' : 'Mesa'}</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#8B949E' }}>{isCounterSession ? 'Local' : 'Mesa'}</p>
               <p className="text-xl font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>{formatServiceLocationLabel(tableNumber, isCounterSession ? 'counter' : 'dine_in')}</p>
             </div>
-            <div className="w-px h-10" style={{ background: '#584237' }} />
+            <div className="w-px h-10" style={{ background: '#30363D' }} />
             <div className="text-right">
-              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#a78b7d' }}>Você pagou</p>
-              <p className="text-xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#8B949E' }}>Você pagou</p>
+              <p className="text-xl font-black" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                 {formatCurrency(confirmedPaidAmount)}
               </p>
             </div>
@@ -1752,35 +1752,35 @@ export default function CheckoutPage() {
             /* Two receipts */
             <div className="w-full space-y-3">
               <div className="rounded-xl p-5 flex flex-col items-center gap-3"
-                style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(52,211,153,0.3)' }}>
                 <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#34d399' }}>🍽️ Recibo Alimentação (Empresa)</p>
                 <div className="bg-white rounded-xl px-6 py-4">
-                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
+                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0D1117' }}>{confirmationCode}</p>
                 </div>
                 <p className="text-xs text-center" style={{ color: '#34d399' }}>
                   {formatCurrency(alcoholPaymentAmounts().food)} · Reembolsável
                 </p>
               </div>
               <div className="rounded-xl p-5 flex flex-col items-center gap-3"
-                style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.3)' }}>
-                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#f97316' }}>🍷 Recibo Bebidas (Pessoal)</p>
+                style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(0,230,118,0.3)' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#00E676' }}>🍷 Recibo Bebidas (Pessoal)</p>
                 <div className="bg-white rounded-xl px-6 py-4">
-                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode2}</p>
+                  <p className="text-3xl font-black tracking-widest" style={{ color: '#0D1117' }}>{confirmationCode2}</p>
                 </div>
-                <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
+                <p className="text-xs text-center" style={{ color: '#8B949E' }}>
                   {formatCurrency(alcoholPaymentAmounts().alcohol)} · Conta pessoal
                 </p>
               </div>
-              <p className="text-xs text-center leading-relaxed" style={{ color: '#a78b7d' }}>
+              <p className="text-xs text-center leading-relaxed" style={{ color: '#8B949E' }}>
                 Ambos os recibos foram enviados para o seu WhatsApp 📱
               </p>
             </div>
           ) : (
             <div className="w-full rounded-xl p-6 flex flex-col items-center gap-4"
-              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155' }}>
-              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Código de validação</p>
+              style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid #30363D' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Código de validação</p>
               <div className="bg-white rounded-xl px-8 py-5">
-                <p className="text-4xl font-black tracking-widest" style={{ color: '#0b1326' }}>{confirmationCode}</p>
+                <p className="text-4xl font-black tracking-widest" style={{ color: '#0D1117' }}>{confirmationCode}</p>
               </div>
               <p className="text-xs text-center max-w-[220px] leading-relaxed" style={{ color: '#e0c0b1' }}>
                 Apresente ao garçom para liberar a saída · Recibo enviado no WhatsApp 📱
@@ -1790,8 +1790,8 @@ export default function CheckoutPage() {
           {closeMode === 'table' && selectedParts.filter(p => !p.isMe).length > 0 && (
             <div className="w-full rounded-xl p-4 flex items-start gap-3"
               style={{ background: 'rgba(123,208,255,0.08)', border: '1px solid rgba(123,208,255,0.15)' }}>
-              <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#7bd0ff' }}>notifications</span>
-              <p className="text-xs leading-relaxed" style={{ color: '#7bd0ff' }}>
+              <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style={{ color: '#58A6FF' }}>notifications</span>
+              <p className="text-xs leading-relaxed" style={{ color: '#58A6FF' }}>
                 {selectedParts.filter(p => !p.isMe).map(p => p.name.split(' ')[0]).join(', ')} foram notificados com seus respectivos valores para pagar.
               </p>
             </div>
@@ -1812,12 +1812,12 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={() => router.push(`/${params.slug}/home?session=${sessionId}`)}
                 className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}
+                style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}
               >
                 <span className="material-symbols-outlined text-[20px]">home</span>
                 Ver código na página inicial
               </button>
-              <p className="text-[11px] font-mono text-center" style={{ color: '#584237' }}>
+              <p className="text-[11px] font-mono text-center" style={{ color: '#30363D' }}>
                 Redirecionando para o início em alguns segundos…
               </p>
             </>
@@ -1833,7 +1833,7 @@ export default function CheckoutPage() {
 
   if (step === 'manual_pix' && paymentConfig?.manual) {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
@@ -1858,7 +1858,7 @@ export default function CheckoutPage() {
 
   if (step === 'manual_pix_pending') {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
@@ -1883,7 +1883,7 @@ export default function CheckoutPage() {
 
   if (step === 'pix') {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
@@ -1907,7 +1907,7 @@ export default function CheckoutPage() {
 
   if (step === 'cash_amount') {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
@@ -1930,7 +1930,7 @@ export default function CheckoutPage() {
 
   if (step === 'cash_pending') {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
@@ -1955,7 +1955,7 @@ export default function CheckoutPage() {
 
   if (step === 'card') {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
           style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
@@ -2000,12 +2000,12 @@ export default function CheckoutPage() {
   ]
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <div className="pointer-events-none fixed top-1/4 right-0 w-64 h-64 rounded-full"
         style={{ background: 'rgba(123,208,255,0.04)', filter: 'blur(80px)' }} />
       <header className="sticky top-0 z-40 flex items-center px-6 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={goBack} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={goBack} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
@@ -2019,25 +2019,25 @@ export default function CheckoutPage() {
         {splitGate.kind === 'invited' && (
           <section className="space-y-4">
             <div className="rounded-2xl p-5 space-y-4"
-              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.4)' }}>
+              style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(0,230,118,0.4)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(249,115,22,0.15)' }}>
-                  <span className="material-symbols-outlined text-[24px]" style={{ color: '#f97316' }}>group_add</span>
+                  style={{ background: 'rgba(0,230,118,0.15)' }}>
+                  <span className="material-symbols-outlined text-[24px]" style={{ color: '#00E676' }}>group_add</span>
                 </div>
                 <div>
-                  <p className="text-base font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>Convite para dividir a conta</p>
-                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  <p className="text-base font-bold" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>Convite para dividir a conta</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
                     <strong>{splitGate.initiatorName}</strong> quer dividir a conta com você
                     {splitGate.others.length > 0 && ` e ${splitGate.others.join(', ')}`}.
                   </p>
                 </div>
               </div>
               <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(88,66,55,0.3)' }}>
-                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Sua parte</p>
-                <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Sua parte</p>
+                <p className="text-3xl font-black mt-1" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
               </div>
-              <p className="text-[11px] leading-relaxed" style={{ color: '#584237' }}>
+              <p className="text-[11px] leading-relaxed" style={{ color: '#30363D' }}>
                 A divisão só é fechada quando <strong>todos</strong> aceitarem. Depois disso cada um escolhe como pagar a sua parte.
               </p>
               <div className="flex gap-3">
@@ -2045,14 +2045,14 @@ export default function CheckoutPage() {
                   onClick={declineSplit}
                   disabled={splitActing}
                   className="flex-1 h-12 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
-                  style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+                  style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}>
                   Recusar
                 </button>
                 <button
                   onClick={acceptSplit}
                   disabled={splitActing}
                   className="flex-[2] h-12 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ background: '#f97316', color: '#582200' }}>
+                  style={{ background: '#00E676', color: '#003319' }}>
                   {splitActing ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Aceitar minha parte · {formatCurrency(splitGate.amount)}</>}
                 </button>
               </div>
@@ -2063,15 +2063,15 @@ export default function CheckoutPage() {
         {splitGate.kind === 'waiting' && (
           <section className="space-y-4">
             <div className="rounded-2xl p-6 text-center space-y-4"
-              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(123,208,255,0.3)' }}>
+              style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(123,208,255,0.3)' }}>
               <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(123,208,255,0.1)', border: '2px solid rgba(123,208,255,0.3)' }}>
-                <span className="material-symbols-outlined text-[32px] animate-pulse" style={{ color: '#7bd0ff' }}>hourglass_top</span>
+                <span className="material-symbols-outlined text-[32px] animate-pulse" style={{ color: '#58A6FF' }}>hourglass_top</span>
               </div>
               <div>
-                <p className="text-lg font-black" style={{ color: '#7bd0ff', fontFamily: 'Geist, sans-serif' }}>Você aceitou sua parte</p>
-                <p className="text-sm mt-1" style={{ color: '#dae2fd' }}>Sua parte: <strong>{formatCurrency(splitGate.amount)}</strong></p>
-                <p className="text-xs mt-3 leading-relaxed" style={{ color: '#a78b7d' }}>
+                <p className="text-lg font-black" style={{ color: '#58A6FF', fontFamily: 'Geist, sans-serif' }}>Você aceitou sua parte</p>
+                <p className="text-sm mt-1" style={{ color: '#FFFFFF' }}>Sua parte: <strong>{formatCurrency(splitGate.amount)}</strong></p>
+                <p className="text-xs mt-3 leading-relaxed" style={{ color: '#8B949E' }}>
                   Aguardando <strong>{splitGate.pendingNames.join(', ')}</strong> aceitar
                   {splitGate.pendingNames.length === 1 ? '' : 'em'}. O pagamento abre automaticamente quando todos confirmarem.
                 </p>
@@ -2083,14 +2083,14 @@ export default function CheckoutPage() {
         {splitGate.kind === 'locked' && (
           <section className="space-y-4">
             <div className="rounded-2xl p-6 text-center space-y-4"
-              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(251,191,36,0.3)' }}>
+              style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(251,191,36,0.3)' }}>
               <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(251,191,36,0.1)', border: '2px solid rgba(251,191,36,0.3)' }}>
                 <span className="material-symbols-outlined text-[32px]" style={{ color: '#fbbf24' }}>lock</span>
               </div>
               <div>
                 <p className="text-lg font-black" style={{ color: '#fbbf24', fontFamily: 'Geist, sans-serif' }}>Divisão em andamento</p>
-                <p className="text-xs mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#a78b7d' }}>
+                <p className="text-xs mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#8B949E' }}>
                   <strong>{splitGate.initiatorName}</strong> iniciou uma divisão da conta com pessoas selecionadas.
                   Enquanto a divisão estiver ativa, o pagamento fica disponível apenas para quem foi escolhido.
                 </p>
@@ -2098,7 +2098,7 @@ export default function CheckoutPage() {
               <button
                 onClick={goBack}
                 className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}>
+                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 Voltar
               </button>
@@ -2116,13 +2116,13 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <p className="text-lg font-black" style={{ color: '#34d399', fontFamily: 'Geist, sans-serif' }}>Sua parte da divisão está paga</p>
-                <p className="text-sm mt-1" style={{ color: '#dae2fd' }}>{formatCurrency(splitGate.amount)} pagos</p>
+                <p className="text-sm mt-1" style={{ color: '#FFFFFF' }}>{formatCurrency(splitGate.amount)} pagos</p>
               </div>
               {myPaymentRows.length > 0 && (
                 <Link
                   href={`/${params.slug}/receipts?session=${sessionId}`}
                   className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}>
+                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
                   <span className="material-symbols-outlined text-[16px]">history</span>
                   Ver seus recibos
                 </Link>
@@ -2135,16 +2135,16 @@ export default function CheckoutPage() {
         {splitPayMode && (
           <section className="space-y-2">
             <div className="rounded-2xl p-5"
-              style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid rgba(52,211,153,0.35)' }}>
+              style={{ background: 'linear-gradient(135deg,#21262D,#0f172a)', border: '1px solid rgba(52,211,153,0.35)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>handshake</span>
                 <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#34d399' }}>Todos aceitaram — pague a sua parte</p>
               </div>
-              <p className="text-3xl font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
+              <p className="text-3xl font-black" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>{formatCurrency(splitGate.amount)}</p>
               {splitGate.alreadyPaid > 0.01 && (
                 <p className="text-xs font-mono mt-1" style={{ color: '#34d399' }}>já pago {formatCurrency(splitGate.alreadyPaid)}</p>
               )}
-              <p className="text-[11px] mt-2 leading-relaxed" style={{ color: '#584237' }}>
+              <p className="text-[11px] mt-2 leading-relaxed" style={{ color: '#30363D' }}>
                 Este é o valor combinado na divisão. Escolha a forma de pagamento abaixo.
               </p>
             </div>
@@ -2160,9 +2160,9 @@ export default function CheckoutPage() {
             </div>
             <div className="text-center space-y-2">
               <p className="text-2xl font-black" style={{ fontFamily: 'Geist, sans-serif', color: '#34d399' }}>Sua parte quitada</p>
-              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
+              <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
               {remaining > 0.01 && (
-                <p className="text-xs" style={{ color: '#a78b7d' }}>
+                <p className="text-xs" style={{ color: '#8B949E' }}>
                   Falta {formatCurrency(remaining)} para fechar a mesa
                 </p>
               )}
@@ -2176,7 +2176,7 @@ export default function CheckoutPage() {
               <Link
                 href={`/${params.slug}/receipts?session=${sessionId}`}
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}
+                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}
               >
                 <span className="material-symbols-outlined text-[16px]">history</span>
                 Ver seus recibos
@@ -2185,7 +2185,7 @@ export default function CheckoutPage() {
             <button
               onClick={goBack}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-              style={{ background: '#f97316', color: '#582200' }}
+              style={{ background: '#00E676', color: '#003319' }}
             >
               <span className="material-symbols-outlined">arrow_back</span>
               Voltar
@@ -2211,7 +2211,7 @@ export default function CheckoutPage() {
               <p className="text-xs font-semibold" style={{ color: '#34d399' }}>
                 {sessionFullySettled ? 'Mesa quitada!' : `Saldo já pago: ${formatCurrency(sessionPaidTotal)}`}
               </p>
-              <p className="text-[10px]" style={{ color: '#a78b7d' }}>
+              <p className="text-[10px]" style={{ color: '#8B949E' }}>
                 {sessionFullySettled
                   ? `${formatCurrency(sessionPaidTotal)} recebidos — nada mais a pagar na mesa.`
                   : `Total da mesa: ${formatCurrency(sessionGrandTotal)} → Restante: ${formatCurrency(remaining)}`}
@@ -2223,7 +2223,7 @@ export default function CheckoutPage() {
         {/* ── Modo de fechamento ──────────────────────── */}
         {!sessionFullySettled && splitGate.kind === 'none' && (
         <section className="space-y-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Como você quer pagar?</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Como você quer pagar?</p>
 
           {/* Opção primária: minha parte */}
           {!hasPaidMyShare && (
@@ -2231,26 +2231,26 @@ export default function CheckoutPage() {
               onClick={() => setCloseMode('individual')}
               className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all active:scale-[0.98]"
               style={{
-                background: closeMode === 'individual' ? 'rgba(249,115,22,0.12)' : 'rgba(30,41,59,0.7)',
-                border: `2px solid ${closeMode === 'individual' ? '#f97316' : '#334155'}`,
+                background: closeMode === 'individual' ? 'rgba(0,230,118,0.12)' : 'rgba(30,41,59,0.7)',
+                border: `2px solid ${closeMode === 'individual' ? '#00E676' : '#30363D'}`,
               }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: closeMode === 'individual' ? 'rgba(249,115,22,0.2)' : '#1e293b' }}>
+                style={{ background: closeMode === 'individual' ? 'rgba(0,230,118,0.2)' : '#21262D' }}>
                 <span className="material-symbols-outlined text-[20px]"
-                  style={{ color: closeMode === 'individual' ? '#f97316' : '#a78b7d', fontVariationSettings: closeMode === 'individual' ? "'FILL' 1" : "'FILL' 0" }}>
+                  style={{ color: closeMode === 'individual' ? '#00E676' : '#8B949E', fontVariationSettings: closeMode === 'individual' ? "'FILL' 1" : "'FILL' 0" }}>
                   person
                 </span>
               </div>
               <div className="flex-1">
-                <p className="text-base font-bold" style={{ color: closeMode === 'individual' ? '#ffb690' : '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
+                <p className="text-base font-bold" style={{ color: closeMode === 'individual' ? '#00E676' : '#FFFFFF', fontFamily: 'Geist, sans-serif' }}>
                   {isCounterSession ? 'Pagar meu pedido' : 'Só a minha parte'}
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
                   {isCounterSession ? 'PIX, cartão ou dinheiro' : 'Pago apenas o que consumi'}
                 </p>
               </div>
               {closeMode === 'individual' && (
-                <span className="material-symbols-outlined text-[18px]" style={{ color: '#f97316', fontVariationSettings: "'FILL' 1" }}>radio_button_checked</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#00E676', fontVariationSettings: "'FILL' 1" }}>radio_button_checked</span>
               )}
             </button>
           )}
@@ -2261,7 +2261,7 @@ export default function CheckoutPage() {
               <span className="material-symbols-outlined text-[24px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               <div>
                 <p className="text-sm font-bold" style={{ color: '#34d399' }}>Sua parte quitada ✓</p>
-                <p className="text-xs" style={{ color: '#a78b7d' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
+                <p className="text-xs" style={{ color: '#8B949E' }}>{formatCurrency(myAlreadyPaid)} pagos</p>
               </div>
             </div>
           )}
@@ -2276,18 +2276,18 @@ export default function CheckoutPage() {
                   background: closeMode === 'table' ? 'rgba(251,191,36,0.08)' : 'transparent',
                   border: `1px solid ${closeMode === 'table' ? 'rgba(251,191,36,0.4)' : 'rgba(88,66,55,0.3)'}`,
                 }}>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: closeMode === 'table' ? '#fbbf24' : '#584237' }}>groups</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: closeMode === 'table' ? '#fbbf24' : '#30363D' }}>groups</span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: closeMode === 'table' ? '#fbbf24' : '#a78b7d' }}>
+                  <p className="text-sm font-semibold" style={{ color: closeMode === 'table' ? '#fbbf24' : '#8B949E' }}>
                     Pagar pela mesa toda ou dividir
                   </p>
-                  <p className="text-[11px]" style={{ color: '#584237' }}>
+                  <p className="text-[11px]" style={{ color: '#30363D' }}>
                     {closeMode === 'table'
                       ? `Pagando por todos · ${formatCurrency(remaining)}`
                       : 'Pague tudo ou divida a conta entre os participantes'}
                   </p>
                 </div>
-                <span className="material-symbols-outlined text-[16px]" style={{ color: '#584237' }}>chevron_right</span>
+                <span className="material-symbols-outlined text-[16px]" style={{ color: '#30363D' }}>chevron_right</span>
               </button>
             </div>
           )}
@@ -2299,7 +2299,7 @@ export default function CheckoutPage() {
           <div className="fixed inset-0 z-[70] flex items-end justify-center px-4 pb-8"
             style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
             <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
-              style={{ background: '#1e293b', border: '1px solid rgba(251,191,36,0.4)' }}>
+              style={{ background: '#21262D', border: '1px solid rgba(251,191,36,0.4)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(251,191,36,0.15)' }}>
@@ -2307,7 +2307,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <p className="text-base font-bold" style={{ color: '#fbbf24' }}>Pagar pela mesa toda ou dividir?</p>
-                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
                     Aqui você pode pagar a conta inteira da mesa <strong>ou dividir o valor</strong> entre os participantes — é só escolher quem paga e quanto na próxima etapa.
                   </p>
                 </div>
@@ -2315,11 +2315,11 @@ export default function CheckoutPage() {
 
               <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(88,66,55,0.3)' }}>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: '#a78b7d' }}>Total da mesa</span>
-                  <span className="font-bold" style={{ color: '#ffb690' }}>{formatCurrency(remaining)}</span>
+                  <span style={{ color: '#8B949E' }}>Total da mesa</span>
+                  <span className="font-bold" style={{ color: '#00E676' }}>{formatCurrency(remaining)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: '#a78b7d' }}>Pessoas na mesa</span>
+                  <span style={{ color: '#8B949E' }}>Pessoas na mesa</span>
                   <span className="font-bold">{participants.length || '—'}</span>
                 </div>
               </div>
@@ -2328,7 +2328,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={() => setShowTableConfirm(false)}
                   className="flex-1 py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
-                  style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid #334155' }}>
+                  style={{ background: '#161B22', color: '#8B949E', border: '1px solid #30363D' }}>
                   Cancelar
                 </button>
                 <button
@@ -2347,7 +2347,7 @@ export default function CheckoutPage() {
           <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-0"
             style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
             <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
-              style={{ background: '#1e293b', border: '1px solid rgba(248,113,113,0.4)' }}>
+              style={{ background: '#21262D', border: '1px solid rgba(248,113,113,0.4)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(248,113,113,0.15)' }}>
@@ -2355,8 +2355,8 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <p className="text-base font-bold" style={{ color: '#f87171' }}>Você já pagou nesta mesa</p>
-                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Já registramos um pagamento seu de <strong style={{ color: '#dae2fd' }}>{formatCurrency(myAlreadyPaid)}</strong>.
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
+                    Já registramos um pagamento seu de <strong style={{ color: '#FFFFFF' }}>{formatCurrency(myAlreadyPaid)}</strong>.
                     Se você pagar de novo, será cobrado mais uma vez. Tem certeza que deseja pagar novamente?
                   </p>
                 </div>
@@ -2376,7 +2376,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={() => setShowDoublePayConfirm(false)}
                   className="flex-[2] py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
-                  style={{ background: '#131b2e', color: '#a78b7d', border: '1px solid #334155' }}>
+                  style={{ background: '#161B22', color: '#8B949E', border: '1px solid #30363D' }}>
                   Não, já paguei
                 </button>
                 <button
@@ -2402,7 +2402,7 @@ export default function CheckoutPage() {
                     ? 'A mesa está totalmente paga!'
                     : 'Sua parte já está quitada!'}
                 </p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#a78b7d' }}>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#8B949E' }}>
                   {sessionFullySettled && !hasPaidMyShare
                     ? 'Todos os pagamentos da mesa foram recebidos. Você não precisa pagar nada.'
                     : (
@@ -2428,7 +2428,7 @@ export default function CheckoutPage() {
                 <Link
                   href={`/${params.slug}/receipts?session=${sessionId}`}
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', color: '#ffb690' }}
+                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}
                 >
                   <span className="material-symbols-outlined text-[16px]">history</span>
                   Ver histórico completo
@@ -2461,7 +2461,7 @@ export default function CheckoutPage() {
                   <p className="text-sm font-bold" style={{ color: '#34d399' }}>
                     Saldo da mesa reduziu o seu valor!
                   </p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#8B949E' }}>
                     Seu saldo em aberto é {formatCurrency(myOpen.openTotal)}
                     {myAlreadyPaid > 0.01 && ` (já pagou ${formatCurrency(myAlreadyPaid)})`}.
                     {' '}Pagamentos na mesa cobrem {formatCurrency(tableCreditForMe)} — você paga apenas {formatCurrency(myIndividualBase)}.
@@ -2473,13 +2473,13 @@ export default function CheckoutPage() {
             {/* Alcohol split option */}
             {alcoholSplit.hasAlcohol && !splitAlcohol && !alcoholSplitDismissed && (
               <div className="rounded-xl p-4 flex items-start gap-3"
-                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                style={{ background: 'rgba(0,230,118,0.08)', border: '1px solid rgba(0,230,118,0.25)' }}>
                 <span className="text-xl shrink-0 mt-0.5">🍷</span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>
+                  <p className="text-sm font-semibold" style={{ color: '#00E676' }}>
                     Você tem bebidas alcoólicas na conta
                   </p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#8B949E' }}>
                     Deseja separar alimentação e bebidas em recibos diferentes?
                   </p>
                   <div className="flex gap-2 mt-3">
@@ -2488,14 +2488,14 @@ export default function CheckoutPage() {
                       if (sessionId) sessionStorage.setItem(`kicomanda_split_alcohol_${sessionId}`, 'true')
                     }}
                       className="text-xs font-mono font-bold px-4 py-2 rounded-lg active:scale-95 transition-all"
-                      style={{ background: '#f97316', color: '#582200' }}>
+                      style={{ background: '#00E676', color: '#003319' }}>
                       Sim, separar recibos
                     </button>
                     <button
                       type="button"
                       onClick={() => setAlcoholSplitDismissed(true)}
                       className="text-xs font-mono px-4 py-2 rounded-lg transition-all active:scale-95"
-                      style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#a78b7d' }}>
+                      style={{ background: 'transparent', border: '1px solid rgba(88,66,55,0.4)', color: '#8B949E' }}>
                       Não, pagar tudo junto
                     </button>
                   </div>
@@ -2507,7 +2507,7 @@ export default function CheckoutPage() {
               const { food, alcohol } = alcoholPaymentAmounts()
               const feeOnFood = includeServiceFee && (alcoholSplit.serviceFeeOnFood ?? 0) > 0.01
               return (
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #30363D' }}>
                 <div className="px-4 py-3 flex items-center gap-2"
                   style={{ background: 'rgba(52,211,153,0.06)', borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
                   <span className="material-symbols-outlined text-[16px]" style={{ color: '#34d399' }}>call_split</span>
@@ -2519,16 +2519,16 @@ export default function CheckoutPage() {
                     setAlcoholSplitDismissed(false)
                     if (sessionId) sessionStorage.removeItem(`kicomanda_split_alcohol_${sessionId}`)
                   }}
-                    className="ml-auto text-[10px] font-mono" style={{ color: '#584237' }}>
+                    className="ml-auto text-[10px] font-mono" style={{ color: '#30363D' }}>
                     Desfazer
                   </button>
                 </div>
                 <div className="divide-y" style={{ borderColor: 'rgba(88,66,55,0.2)' }}>
                   <div className="flex items-center justify-between px-4 py-3">
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍽️ Alimentação</p>
+                      <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>🍽️ Alimentação</p>
                       {feeOnFood && (
-                        <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                        <p className="text-[10px] font-mono mt-0.5" style={{ color: '#8B949E' }}>
                           inclui taxa de serviço ({formatCurrency(alcoholSplit.serviceFeeOnFood!)})
                         </p>
                       )}
@@ -2539,19 +2539,19 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>🍷 Bebidas Alcoólicas</p>
-                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>🍷 Bebidas Alcoólicas</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#8B949E' }}>
                         Conta pessoal{feeOnFood ? ' · sem taxa' : ''}
                       </p>
                     </div>
-                    <p className="text-base font-black font-mono" style={{ color: '#ffb690' }}>
+                    <p className="text-base font-black font-mono" style={{ color: '#00E676' }}>
                       {formatCurrency(alcohol)}
                     </p>
                   </div>
                 </div>
                 <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', background: 'rgba(30,41,59,0.5)' }}>
-                  <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                    Você receberá <strong style={{ color: '#dae2fd' }}>2 recibos</strong> no WhatsApp — alimentação (RH{feeOnFood ? ', com taxa de serviço' : ''}) e bebidas (pessoal, sem taxa).
+                  <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
+                    Você receberá <strong style={{ color: '#FFFFFF' }}>2 recibos</strong> no WhatsApp — alimentação (RH{feeOnFood ? ', com taxa de serviço' : ''}) e bebidas (pessoal, sem taxa).
                   </p>
                 </div>
               </div>
@@ -2573,7 +2573,7 @@ export default function CheckoutPage() {
                 style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.25)' }}>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]" style={{ color: '#34d399' }}>redeem</span>
-                  <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Seus benefícios</p>
+                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Seus benefícios</p>
                 </div>
 
                 {appliedOffers.map(o => (
@@ -2581,7 +2581,7 @@ export default function CheckoutPage() {
                     style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: '#34d399' }}>{o.label}</p>
-                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Aplicado à sua conta</p>
+                      <p className="text-[10px] font-mono" style={{ color: '#8B949E' }}>Aplicado à sua conta</p>
                     </div>
                     <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                   </div>
@@ -2592,18 +2592,18 @@ export default function CheckoutPage() {
                   const noValue = est.discountTotal <= 0.01
                   return (
                     <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                      style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+                      style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-semibold truncate" style={{ color: '#dae2fd' }}>{o.label}</p>
+                          <p className="text-sm font-semibold truncate" style={{ color: '#FFFFFF' }}>{o.label}</p>
                           <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full shrink-0"
                             style={o.source_rule_id
                               ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
-                              : { background: 'rgba(249,115,22,0.15)', color: '#ffb690', border: '1px solid rgba(249,115,22,0.3)' }}>
+                              : { background: 'rgba(0,230,118,0.15)', color: '#00E676', border: '1px solid rgba(0,230,118,0.3)' }}>
                             {o.source_rule_id ? 'FIDELIDADE' : 'CORTESIA'}
                           </span>
                         </div>
-                        <p className="text-[10px] font-mono" style={{ color: noValue ? '#a78b7d' : '#34d399' }}>
+                        <p className="text-[10px] font-mono" style={{ color: noValue ? '#8B949E' : '#34d399' }}>
                           {noValue ? 'Sem valor em aberto' : `Desconto de ${formatCurrency(est.discountTotal)}`}
                           {est.freeItemName ? ` · ${est.freeItemName}` : ''}
                         </p>
@@ -2624,23 +2624,23 @@ export default function CheckoutPage() {
             )}
 
             <div className="rounded-xl p-5 space-y-3"
-              style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155', backdropFilter: 'blur(12px)' }}>
+              style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', backdropFilter: 'blur(12px)' }}>
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Saldo em aberto</span>
+                  <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Saldo em aberto</span>
                   {myAlreadyPaid > 0.01 && (
                     <p className="text-[10px] font-mono mt-0.5" style={{ color: '#34d399' }}>
                       Já pago: {formatCurrency(myAlreadyPaid)}
                     </p>
                   )}
                   {myOpen.openSubtotal < mySubtotal - 0.01 && (
-                    <p className="text-[10px] font-mono mt-0.5" style={{ color: '#a78b7d' }}>
+                    <p className="text-[10px] font-mono mt-0.5" style={{ color: '#8B949E' }}>
                       Subtotal pendente: {formatCurrency(myOpen.openSubtotal)}
                       {!includeServiceFee && ' (sem taxa)'}
                     </p>
                   )}
                 </div>
-                <span className="text-2xl font-black" style={{ color: '#f97316', fontFamily: 'Geist, sans-serif' }}>
+                <span className="text-2xl font-black" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                   {formatCurrency(myIndividualBase)}
                 </span>
               </div>
@@ -2648,24 +2648,24 @@ export default function CheckoutPage() {
               {/* Extra contribution — oculto no dinheiro (valor extra na tela de dinheiro) */}
               {myIndividualBase > 0.01 && method !== 'cash' && (
                 <div style={{ borderTop: '1px solid rgba(88,66,55,0.3)', paddingTop: 12 }}>
-                  <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#a78b7d' }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#8B949E' }}>
                     Contribuição extra para a mesa (opcional)
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#a78b7d' }}>R$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#8B949E' }}>R$</span>
                       <input
                         type="number" step="0.01" min="0" placeholder="0,00" value={extraAmount}
                         onChange={e => setExtraAmount(e.target.value)}
                         className="w-full h-11 pl-9 pr-3 rounded-lg font-mono outline-none text-sm"
-                        style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd' }}
-                        onFocus={e => (e.target.style.borderColor = '#f97316')}
-                        onBlur={e => (e.target.style.borderColor = '#584237')}
+                        style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF' }}
+                        onFocus={e => (e.target.style.borderColor = '#00E676')}
+                        onBlur={e => (e.target.style.borderColor = '#30363D')}
                       />
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[10px] font-mono" style={{ color: '#a78b7d' }}>Total a pagar</p>
-                      <p className="text-lg font-black" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                      <p className="text-[10px] font-mono" style={{ color: '#8B949E' }}>Total a pagar</p>
+                      <p className="text-lg font-black" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                         {formatCurrency(myIndividualTotal)}
                       </p>
                     </div>
@@ -2686,10 +2686,10 @@ export default function CheckoutPage() {
           <section className="space-y-4">
             {/* Participant selection */}
             <div className="space-y-2">
-              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                 Quem vai dividir? (você é o iniciador — obrigatório)
               </p>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #30363D' }}>
                 {participants.map((p, i) => {
                   const sel    = selectedIds.has(p.id)
                   const locked = p.isMe
@@ -2697,25 +2697,25 @@ export default function CheckoutPage() {
                     <button key={p.id} onClick={() => toggleParticipant(p.id)}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
                       style={{
-                        background: sel ? 'rgba(249,115,22,0.08)' : 'rgba(30,41,59,0.7)',
+                        background: sel ? 'rgba(0,230,118,0.08)' : 'rgba(30,41,59,0.7)',
                         borderTop: i > 0 ? '1px solid rgba(51,65,85,0.5)' : 'none',
                         cursor: locked ? 'not-allowed' : 'pointer',
                       }}>
                       <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 relative"
                         style={{
-                          background: sel ? '#f97316' : 'transparent',
-                          border: `2px solid ${sel ? '#f97316' : '#584237'}`,
+                          background: sel ? '#00E676' : 'transparent',
+                          border: `2px solid ${sel ? '#00E676' : '#30363D'}`,
                         }}>
-                        {sel && <span className="material-symbols-outlined text-[13px]" style={{ color: '#582200', fontVariationSettings: "'FILL' 1" }}>check</span>}
-                        {locked && <span className="absolute -top-1.5 -right-1.5 material-symbols-outlined text-[10px]" style={{ color: '#f97316' }}>lock</span>}
+                        {sel && <span className="material-symbols-outlined text-[13px]" style={{ color: '#003319', fontVariationSettings: "'FILL' 1" }}>check</span>}
+                        {locked && <span className="absolute -top-1.5 -right-1.5 material-symbols-outlined text-[10px]" style={{ color: '#00E676' }}>lock</span>}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>
+                        <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
                           {p.name}
                           {p.isMe && <span className="text-[10px] font-mono ml-2" style={{ color: '#34d399' }}>(você · iniciador)</span>}
                         </p>
                         {p.myConsumption > 0 && (
-                          <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>Consumiu {formatCurrency(p.myConsumption)}</p>
+                          <p className="text-xs font-mono" style={{ color: '#8B949E' }}>Consumiu {formatCurrency(p.myConsumption)}</p>
                         )}
                       </div>
                     </button>
@@ -2726,7 +2726,7 @@ export default function CheckoutPage() {
 
             {/* Split type */}
             <div className="space-y-3">
-              <div className="flex gap-2 p-1 rounded-xl" style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.35)' }}>
+              <div className="flex gap-2 p-1 rounded-xl" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.35)' }}>
                 {([
                   { type: 'equal' as SplitType, label: '= Dividir igualmente' },
                   { type: 'custom' as SplitType, label: '≠ Definir valores'   },
@@ -2734,8 +2734,8 @@ export default function CheckoutPage() {
                   <button key={opt.type} onClick={() => setSplitType(opt.type)}
                     className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                     style={{
-                      background: splitType === opt.type ? '#f97316' : 'transparent',
-                      color: splitType === opt.type ? '#582200' : '#a78b7d',
+                      background: splitType === opt.type ? '#00E676' : 'transparent',
+                      color: splitType === opt.type ? '#003319' : '#8B949E',
                       fontFamily: 'Geist, sans-serif',
                     }}>
                     {opt.label}
@@ -2744,31 +2744,31 @@ export default function CheckoutPage() {
               </div>
 
               {/* Per-person amounts */}
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #334155' }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #30363D' }}>
                 {selectedParts.map((p, i) => (
                   <div key={p.id} className="flex items-center gap-3 px-4 py-3"
                     style={{ borderTop: i > 0 ? '1px solid rgba(51,65,85,0.4)' : 'none', background: 'rgba(30,41,59,0.5)' }}>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>{p.name}</p>
+                      <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{p.name}</p>
                       {p.isMe && <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>você</p>}
                     </div>
                     {splitType === 'equal' ? (
                       <div className="flex items-center gap-1 h-10 px-3 rounded-lg"
-                        style={{ background: '#0b1326', border: '1px solid #584237' }}>
-                        <span className="text-sm" style={{ color: '#a78b7d' }}>R$</span>
-                        <span className="font-bold font-mono text-sm" style={{ color: '#ffb690' }}>
+                        style={{ background: '#0D1117', border: '1px solid #30363D' }}>
+                        <span className="text-sm" style={{ color: '#8B949E' }}>R$</span>
+                        <span className="font-bold font-mono text-sm" style={{ color: '#00E676' }}>
                           {equalShare.toFixed(2).replace('.', ',')}
                         </span>
                       </div>
                     ) : (
                       <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#a78b7d' }}>R$</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8B949E' }}>R$</span>
                         <input
                           type="number" step="0.01" min="0"
                           value={customAmounts[p.id] ?? ''}
                           onChange={e => setParticipantAmount(p.id, e.target.value)}
                           className="w-28 h-10 pl-7 pr-2 rounded-lg text-sm font-mono font-bold outline-none"
-                          style={{ background: '#0b1326', border: `1px solid ${customSumOk ? '#f97316' : '#f87171'}`, color: '#dae2fd' }}
+                          style={{ background: '#0D1117', border: `1px solid ${customSumOk ? '#00E676' : '#f87171'}`, color: '#FFFFFF' }}
                         />
                       </div>
                     )}
@@ -2790,7 +2790,7 @@ export default function CheckoutPage() {
                         : `Total definido: ${formatCurrency(customSum)} — Falta ${formatCurrency(remaining - customSum)}`
                     }
                   </p>
-                  <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+                  <p className="text-xs font-mono" style={{ color: '#8B949E' }}>
                     Necessário: {formatCurrency(remaining)}
                   </p>
                 </div>
@@ -2809,17 +2809,17 @@ export default function CheckoutPage() {
         {splitGate.kind === 'none' && openCouvertBase > 0.01 && (
           <section>
             <div className="flex items-center justify-between rounded-xl px-4 py-3.5"
-              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+              style={{ background: 'rgba(0,230,118,0.08)', border: '1px solid rgba(0,230,118,0.25)' }}>
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>bakery_dining</span>
+                <span className="material-symbols-outlined text-[20px]" style={{ color: '#00E676' }}>bakery_dining</span>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>Couvert</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#a78b7d' }}>
+                  <p className="text-sm font-semibold" style={{ color: '#00E676' }}>Couvert</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#8B949E' }}>
                     Incluso na conta {closeMode === 'individual' ? '' : 'da mesa '}· sem taxa de serviço
                   </p>
                 </div>
               </div>
-              <span className="text-sm font-bold font-mono" style={{ color: '#ffb690' }}>
+              <span className="text-sm font-bold font-mono" style={{ color: '#00E676' }}>
                 {formatCurrency(openCouvertBase)}
               </span>
             </div>
@@ -2830,10 +2830,10 @@ export default function CheckoutPage() {
         {splitGate.kind === 'none' && (
         <section>
           <div className="flex items-center justify-between rounded-xl px-4 py-3.5"
-            style={{ background: '#1e293b', border: '1px solid #334155' }}>
+            style={{ background: '#21262D', border: '1px solid #30363D' }}>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Taxa de serviço (10%)</p>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#a78b7d' }}>
+              <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Taxa de serviço (10%)</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#8B949E' }}>
                 {includeServiceFee
                   ? serviceFeeOpenBase > 0.01
                     ? `+ ${formatCurrency(serviceFeeDisplay)} incluídos (sobre ${formatCurrency(serviceFeeOpenBase)} em aberto ${closeMode === 'individual' ? 'da sua conta' : 'da mesa'})`
@@ -2843,7 +2843,7 @@ export default function CheckoutPage() {
                     : 'Você optou por não incluir a taxa de serviço'}
               </p>
               {!includeServiceFee && (
-                <p className="text-[10px] font-mono mt-1" style={{ color: '#584237' }}>
+                <p className="text-[10px] font-mono mt-1" style={{ color: '#30363D' }}>
                   A taxa é individual; outros da mesa podem incluir normalmente.
                 </p>
               )}
@@ -2851,7 +2851,7 @@ export default function CheckoutPage() {
             <button
               onClick={() => setIncludeServiceFee(v => !v)}
               className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
-              style={{ background: includeServiceFee ? '#f97316' : '#334155' }}>
+              style={{ background: includeServiceFee ? '#00E676' : '#30363D' }}>
               <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
                 style={{ left: includeServiceFee ? '1.375rem' : '0.125rem' }} />
             </button>
@@ -2863,8 +2863,8 @@ export default function CheckoutPage() {
         {showPaymentFlow && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]" style={{ color: '#7bd0ff' }}>payments</span>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Forma de Pagamento</p>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: '#58A6FF' }}>payments</span>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Forma de Pagamento</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {PAYMENT_METHODS.map(m => (
@@ -2874,16 +2874,16 @@ export default function CheckoutPage() {
                 disabled={m.disabled}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
-                  background: method === m.value ? 'rgba(249,115,22,0.1)' : 'rgba(30,41,59,0.7)',
-                  borderColor: method === m.value ? '#f97316' : '#334155',
+                  background: method === m.value ? 'rgba(0,230,118,0.1)' : 'rgba(30,41,59,0.7)',
+                  borderColor: method === m.value ? '#00E676' : '#30363D',
                 }}>
-                <span className="material-symbols-outlined text-[22px]" style={{ color: method === m.value ? '#f97316' : '#e0c0b1' }}>{m.icon}</span>
-                <span className="text-xs font-mono" style={{ color: method === m.value ? '#f97316' : '#e0c0b1' }}>{m.label}</span>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: method === m.value ? '#00E676' : '#e0c0b1' }}>{m.icon}</span>
+                <span className="text-xs font-mono" style={{ color: method === m.value ? '#00E676' : '#e0c0b1' }}>{m.label}</span>
               </button>
             ))}
           </div>
           {splitAlcohol && (
-            <p className="text-[10px] font-mono text-center" style={{ color: '#a78b7d' }}>
+            <p className="text-[10px] font-mono text-center" style={{ color: '#8B949E' }}>
               Dinheiro indisponível com recibos separados — use PIX ou cartão.
             </p>
           )}
@@ -2911,7 +2911,7 @@ export default function CheckoutPage() {
           onClick={() => handleProceed()}
           disabled={!canProceed || paying}
           className="w-full h-14 rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-          style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 30px rgba(249,115,22,0.3)', fontFamily: 'Geist, sans-serif' }}>
+          style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 30px rgba(0,230,118,0.3)', fontFamily: 'Geist, sans-serif' }}>
           {paying ? (
             <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</>
           ) : method === 'cash' ? (

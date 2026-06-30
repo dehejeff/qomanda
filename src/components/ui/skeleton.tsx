@@ -2,14 +2,14 @@ export function Skeleton({ className = '', style }: { className?: string; style?
   return (
     <div
       className={`animate-pulse rounded-lg ${className}`}
-      style={{ background: '#1e293b', ...style }}
+      style={{ background: '#21262D', ...style }}
     />
   )
 }
 
 export function OrderCardSkeleton() {
   return (
-    <div className="rounded-xl p-5 space-y-4" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+    <div className="rounded-xl p-5 space-y-4" style={{ background: '#21262D', border: '1px solid #30363D' }}>
       <div className="flex justify-between">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-16" />
@@ -25,7 +25,7 @@ export function OrderCardSkeleton() {
 
 export function MenuItemSkeleton() {
   return (
-    <div className="flex items-stretch gap-3 rounded-xl p-3" style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #334155' }}>
+    <div className="flex items-stretch gap-3 rounded-xl p-3" style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
       <Skeleton className="w-24 h-24 shrink-0 rounded-lg" />
       <div className="flex-1 space-y-2 py-1">
         <Skeleton className="h-4 w-3/4" />

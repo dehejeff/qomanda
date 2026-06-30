@@ -7,18 +7,18 @@ import { getAvailableRestaurantModels, RESTAURANT_MODELS } from '@/lib/restauran
 
 // ── Design tokens (inline styles para não depender do Tailwind config) ──────
 const C = {
-  bg:        '#0b1326',
-  bgCard:    '#131b2e',
-  bgCard2:   '#1e293b',
-  border:    'rgba(88,66,55,0.35)',
-  borderBlu: 'rgba(51,65,85,0.6)',
-  primary:   '#f97316',
-  primaryDm: '#ffb690',
-  text:      '#dae2fd',
-  muted:     '#a78b7d',
-  faint:     '#584237',
-  green:     '#34d399',
-  blue:      '#7bd0ff',
+  bg:        '#0D1117',
+  bgCard:    '#161B22',
+  bgCard2:   '#21262D',
+  border:    'rgba(48,54,61,0.5)',
+  borderBlu: 'rgba(48,54,61,0.8)',
+  primary:   '#00E676',
+  primaryDm: '#00C853',
+  text:      '#FFFFFF',
+  muted:     '#8B949E',
+  faint:     '#30363D',
+  green:     '#00E676',
+  blue:      '#58A6FF',
 }
 
 const MODEL_BENEFITS: Record<string, string[]> = {
@@ -86,14 +86,14 @@ function PricingCard({
   return (
     <div className="rounded-2xl p-7 flex flex-col gap-6 relative transition-all hover:scale-[1.01]"
       style={{
-        background: highlight ? `linear-gradient(145deg, #1e3a2f, ${C.bgCard})` : C.bgCard,
+        background: highlight ? `linear-gradient(145deg, #0D2818, ${C.bgCard})` : C.bgCard,
         border: `2px solid ${highlight ? C.primary : C.borderBlu}`,
-        boxShadow: highlight ? `0 0 40px rgba(249,115,22,0.12)` : 'none',
+        boxShadow: highlight ? `0 0 40px rgba(0,230,118,0.12)` : 'none',
       }}>
       {highlight && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
           <span className="text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-full"
-            style={{ ...mono, background: C.primary, color: '#582200' }}>
+            style={{ ...mono, background: C.primary, color: '#003319' }}>
             Mais Popular
           </span>
         </div>
@@ -128,7 +128,7 @@ function PricingCard({
         className="w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all active:scale-95"
         style={{
           background: highlight ? C.primary : 'transparent',
-          color: highlight ? '#582200' : C.primary,
+          color: highlight ? '#003319' : C.primary,
           border: highlight ? 'none' : `1px solid ${C.primary}`,
         }}>
         Começar agora
@@ -181,7 +181,7 @@ export default function LandingPage() {
 
       {/* ── NAVBAR ──────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: 'rgba(11,19,38,0.95)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
+        style={{ background: 'rgba(13,17,23,0.95)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
         <div className="flex justify-between items-center px-5 md:px-12 h-16">
           <div className="flex items-center gap-2.5">
             <KiComandaLogo size={28} />
@@ -206,7 +206,7 @@ export default function LandingPage() {
             </Link>
             <Link href="/cadastro"
               className="text-sm font-bold px-4 py-2.5 rounded-xl transition-all active:scale-95 hover:opacity-90"
-              style={{ background: C.primary, color: '#582200' }}>
+              style={{ background: C.primary, color: '#003319' }}>
               <span className="hidden sm:inline">Cadastre-se grátis</span>
               <span className="sm:hidden">Cadastrar</span>
             </Link>
@@ -254,7 +254,7 @@ export default function LandingPage() {
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-5 md:px-12 flex flex-col items-center text-center overflow-hidden">
         {/* Glows */}
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full"
-          style={{ background: 'rgba(249,115,22,0.08)', filter: 'blur(120px)' }} />
+          style={{ background: 'rgba(0,230,118,0.08)', filter: 'blur(120px)' }} />
         <div className="pointer-events-none absolute top-40 left-[-10%] w-[400px] h-[400px] rounded-full"
           style={{ background: 'rgba(123,208,255,0.05)', filter: 'blur(100px)' }} />
 
@@ -275,7 +275,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/cadastro"
               className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95"
-              style={{ background: C.primary, color: '#582200', boxShadow: '0 12px 40px rgba(249,115,22,0.3)' }}>
+              style={{ background: C.primary, color: '#003319', boxShadow: '0 12px 40px rgba(0,230,118,0.3)' }}>
               <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
               Comece grátis por 14 dias
             </Link>
@@ -680,7 +680,7 @@ export default function LandingPage() {
               <div className="flex-shrink-0">
                 <Link href="/lead"
                   className="inline-flex items-center gap-2 px-7 py-4 rounded-xl font-bold text-sm transition-all active:scale-95 hover:opacity-90 whitespace-nowrap"
-                  style={{ background: C.primary, color: '#582200', boxShadow: `0 8px 30px ${C.primary}30` }}>
+                  style={{ background: C.primary, color: '#003319', boxShadow: `0 8px 30px ${C.primary}30` }}>
                   <span className="material-symbols-outlined text-[20px]">chat</span>
                   Quero uma demonstração
                 </Link>
@@ -695,7 +695,7 @@ export default function LandingPage() {
         style={{ background: C.bgCard }}>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="w-[600px] h-[400px] rounded-full"
-            style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
+            style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(100px)' }} />
         </div>
         <div className="relative z-10 max-w-2xl mx-auto text-center">
           <KiComandaLogo size={56} className="mx-auto mb-6" />
@@ -707,7 +707,7 @@ export default function LandingPage() {
           </p>
           <Link href="/cadastro"
             className="inline-flex items-center gap-2 px-10 py-5 rounded-xl font-bold text-lg transition-all active:scale-95 hover:opacity-90"
-            style={{ background: C.primary, color: '#582200', boxShadow: '0 12px 40px rgba(249,115,22,0.3)' }}>
+            style={{ background: C.primary, color: '#003319', boxShadow: '0 12px 40px rgba(0,230,118,0.3)' }}>
             <span className="material-symbols-outlined">rocket_launch</span>
             Começar 14 dias grátis
           </Link>

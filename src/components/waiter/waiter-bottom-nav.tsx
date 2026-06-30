@@ -26,11 +26,11 @@ export function WaiterBottomNav({ showPayments = true, role }: { showPayments?: 
   const isReception = role === 'recepcionista'
 
   const itemStyle = (id: Tab) => ({
-    color: current === id ? '#ffb690' : '#e0c0b1',
+    color: current === id ? '#00E676' : '#e0c0b1',
   })
 
   const iconStyle = (id: Tab) =>
-    current === id ? { fontVariationSettings: "'FILL' 1", color: '#f97316' } as const : undefined
+    current === id ? { fontVariationSettings: "'FILL' 1", color: '#00E676' } as const : undefined
 
   const navItem = (id: Tab, href: string, icon: string, label: string, badge?: number) => (
     <Link
@@ -44,7 +44,7 @@ export function WaiterBottomNav({ showPayments = true, role }: { showPayments?: 
       {badge != null && badge > 0 && (
         <span
           className="absolute top-0 right-1 min-w-[16px] h-[16px] px-0.5 rounded-full flex items-center justify-center text-[8px] font-bold font-mono"
-          style={{ background: '#f97316', color: '#582200' }}
+          style={{ background: '#00E676', color: '#003319' }}
         >
           {badge > 9 ? '9+' : badge}
         </span>
@@ -55,7 +55,7 @@ export function WaiterBottomNav({ showPayments = true, role }: { showPayments?: 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 flex items-center h-[72px] px-1 max-w-lg mx-auto"
-      style={{ background: '#171f33', borderTop: '1px solid rgba(88,66,55,0.4)' }}
+      style={{ background: '#161B22', borderTop: '1px solid rgba(88,66,55,0.4)' }}
     >
       {isReception ? (
         <>

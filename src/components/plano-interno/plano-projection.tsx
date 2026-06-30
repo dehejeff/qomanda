@@ -86,7 +86,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 function tabActiveStyle(id: TabId): React.CSSProperties {
   if (id === 'overview') return { background: 'rgba(255,255,255,0.08)', color: C.text }
-  if (id === 'gtm') return { background: 'rgba(249,115,22,0.18)', color: '#fdba74', fontWeight: 600 }
+  if (id === 'gtm') return { background: 'rgba(0,230,118,0.18)', color: '#fdba74', fontWeight: 600 }
   const map: Record<string, { bg: string; color: string }> = {
     '1': { bg: 'rgba(59,130,246,0.2)', color: '#93c5fd' },
     '2': { bg: 'rgba(139,92,246,0.2)', color: '#c4b5fd' },
@@ -806,9 +806,9 @@ function GtmPanel() {
     <div>
       <div
         className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider mb-5"
-        style={{ background: 'rgba(249,115,22,0.12)', color: '#fdba74', border: '1px solid rgba(249,115,22,0.25)' }}
+        style={{ background: 'rgba(0,230,118,0.12)', color: '#fdba74', border: '1px solid rgba(0,230,118,0.25)' }}
       >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f97316', boxShadow: '0 0 8px #f97316' }} />
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#00E676', boxShadow: '0 0 8px #00E676' }} />
         Playbook · 8–10 clientes/mês · 2 founders
       </div>
 
@@ -887,7 +887,7 @@ function GtmPanel() {
             key={card.href}
             href={card.href}
             className="block rounded-[10px] px-4 py-4 transition-opacity hover:opacity-90"
-            style={{ background: C.surface2, border: '1px solid rgba(249,115,22,0.25)' }}
+            style={{ background: C.surface2, border: '1px solid rgba(0,230,118,0.25)' }}
           >
             <p className="text-sm font-semibold" style={{ color: '#fdba74' }}>{card.title}</p>
             <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: C.muted2 }}>{card.desc}</p>

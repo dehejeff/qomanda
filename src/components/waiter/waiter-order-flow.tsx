@@ -15,8 +15,8 @@ type TableRow = { id: string; number: string; status: string }
 type CartLine = { item: WaiterOrderMenuItem; quantity: number }
 
 const C = {
-  bg: '#0b1326', surface: '#171f33', dim: '#131b2e', border: 'rgba(88,66,55,0.4)',
-  text: '#dae2fd', muted: '#a78b7d', accent: '#f97316', accentInk: '#582200', peach: '#ffb690',
+  bg: '#0D1117', surface: '#161B22', dim: '#161B22', border: 'rgba(88,66,55,0.4)',
+  text: '#FFFFFF', muted: '#8B949E', accent: '#00E676', accentInk: '#003319', peach: '#00E676',
 }
 
 export function WaiterOrderFlow() {

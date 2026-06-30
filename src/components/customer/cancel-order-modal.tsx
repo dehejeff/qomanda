@@ -29,7 +29,7 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
       <div
         className="w-full sm:max-w-sm rounded-2xl p-6 flex flex-col gap-5 max-h-[85vh] overflow-y-auto"
         style={{
-          background: '#131b2e',
+          background: '#161B22',
           border: '1px solid rgba(88,66,55,0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -43,10 +43,10 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
               cancel
             </span>
             <div>
-              <p className="text-base font-bold" style={{ fontFamily: 'Geist, sans-serif', color: '#dae2fd' }}>
+              <p className="text-base font-bold" style={{ fontFamily: 'Geist, sans-serif', color: '#FFFFFF' }}>
                 Cancelar pedido?
               </p>
-              <p className="text-xs" style={{ color: '#a78b7d' }}>
+              <p className="text-xs" style={{ color: '#8B949E' }}>
                 Só é possível antes da confirmação da cozinha
               </p>
             </div>
@@ -56,7 +56,7 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
             onClick={onClose}
             disabled={loading}
             className="p-2 rounded-full transition-colors disabled:opacity-50"
-            style={{ color: '#584237' }}
+            style={{ color: '#30363D' }}
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -64,24 +64,24 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
 
         <div
           className="rounded-xl px-4 py-3 space-y-2"
-          style={{ background: '#1e293b', border: '1px solid rgba(88,66,55,0.35)' }}
+          style={{ background: '#21262D', border: '1px solid rgba(88,66,55,0.35)' }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+            <span className="text-xs font-mono" style={{ color: '#8B949E' }}>
               #{order.id.slice(-6).toUpperCase()}
             </span>
-            <span className="text-xs font-mono" style={{ color: '#ffb690' }}>
+            <span className="text-xs font-mono" style={{ color: '#00E676' }}>
               {formatCurrency(total)}
             </span>
           </div>
-          <p className="text-sm" style={{ color: '#dae2fd' }}>
+          <p className="text-sm" style={{ color: '#FFFFFF' }}>
             {itemCount} {itemCount === 1 ? 'item' : 'itens'} ·{' '}
             {(order.items ?? []).map((i) => i.menu_item?.name).filter(Boolean).slice(0, 2).join(', ')}
             {(order.items ?? []).length > 2 ? '…' : ''}
           </p>
         </div>
 
-        <p className="text-xs font-mono leading-relaxed" style={{ color: '#a78b7d' }}>
+        <p className="text-xs font-mono leading-relaxed" style={{ color: '#8B949E' }}>
           Esta ação não pode ser desfeita. O pedido será removido da fila do restaurante.
         </p>
 
@@ -91,7 +91,7 @@ export function CancelOrderModal({ order, loading, onClose, onConfirm }: Props) 
             onClick={onClose}
             disabled={loading}
             className="flex-1 h-12 rounded-xl text-sm font-mono transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}
+            style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}
           >
             Voltar
           </button>

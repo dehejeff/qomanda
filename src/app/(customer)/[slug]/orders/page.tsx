@@ -24,10 +24,10 @@ type Tab = 'mine' | 'table'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; progress: number }> = {
   pending:   { label: 'Aguardando',  color: '#f59e0b', progress: 15  },
-  confirmed: { label: 'Confirmado',  color: '#7bd0ff', progress: 35  },
-  preparing: { label: 'Preparando', color: '#f97316', progress: 65  },
+  confirmed: { label: 'Confirmado',  color: '#58A6FF', progress: 35  },
+  preparing: { label: 'Preparando', color: '#00E676', progress: 65  },
   ready:     { label: 'Pronto!',    color: '#34d399', progress: 90  },
-  delivered: { label: 'Entregue',   color: '#a78b7d', progress: 100 },
+  delivered: { label: 'Entregue',   color: '#8B949E', progress: 100 },
   cancelled: { label: 'Cancelado',  color: '#f87171', progress: 0   },
 }
 
@@ -88,7 +88,7 @@ function CustomerPayBadge({ status, paid, owed }: { status: PayStatus; paid: num
     )
   }
   return (
-    <span className="text-[10px] font-mono uppercase tracking-wide" style={{ color: '#a78b7d' }}>
+    <span className="text-[10px] font-mono uppercase tracking-wide" style={{ color: '#8B949E' }}>
       A pagar · taxa opcional
     </span>
   )
@@ -332,21 +332,21 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen pb-56" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-56" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <div className="pointer-events-none fixed top-0 right-0 w-[40%] h-[30%] rounded-full"
-        style={{ background: 'rgba(249,115,22,0.05)', filter: 'blur(80px)' }} />
+        style={{ background: 'rgba(0,230,118,0.05)', filter: 'blur(80px)' }} />
 
       {/* Header */}
       <header className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
         style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pedidos</h1>
@@ -357,13 +357,13 @@ export default function OrdersPage() {
         {/* Session closing banner */}
         {sessionClosing && (
           <div className="rounded-xl p-4 flex items-start gap-3"
-            style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)' }}>
-            <span className="material-symbols-outlined text-[22px] shrink-0 mt-0.5" style={{ color: '#f97316' }}>notifications_active</span>
+            style={{ background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)' }}>
+            <span className="material-symbols-outlined text-[22px] shrink-0 mt-0.5" style={{ color: '#00E676' }}>notifications_active</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: '#ffb690' }}>O garçom está encerrando sua mesa</p>
+              <p className="text-sm font-semibold" style={{ color: '#00E676' }}>O garçom está encerrando sua mesa</p>
               <button onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
                 className="mt-2 text-xs font-mono font-bold px-4 py-2 rounded-lg active:scale-95 transition-all"
-                style={{ background: '#f97316', color: '#582200' }}>
+                style={{ background: '#00E676', color: '#003319' }}>
                 Pagar agora →
               </button>
             </div>
@@ -371,12 +371,12 @@ export default function OrdersPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 p-1 rounded-xl" style={{ background: '#131b2e', border: '1px solid rgba(88,66,55,0.35)' }}>
+        <div className="flex gap-2 p-1 rounded-xl" style={{ background: '#161B22', border: '1px solid rgba(88,66,55,0.35)' }}>
           <button onClick={() => setTab('mine')}
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
             style={{
-              background: tab === 'mine' ? '#f97316' : 'transparent',
-              color: tab === 'mine' ? '#582200' : '#a78b7d',
+              background: tab === 'mine' ? '#00E676' : 'transparent',
+              color: tab === 'mine' ? '#003319' : '#8B949E',
               fontFamily: 'Geist, sans-serif',
             }}>
             Minha Conta
@@ -384,16 +384,16 @@ export default function OrdersPage() {
           <button onClick={() => setTab('table')}
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
             style={{
-              background: tab === 'table' ? '#f97316' : 'transparent',
-              color: tab === 'table' ? '#582200' : '#a78b7d',
+              background: tab === 'table' ? '#00E676' : 'transparent',
+              color: tab === 'table' ? '#003319' : '#8B949E',
               fontFamily: 'Geist, sans-serif',
             }}>
             Mesa Toda
             {participants.length > 1 && (
               <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded-full"
                 style={{
-                  background: tab === 'table' ? 'rgba(88,34,0,0.2)' : 'rgba(249,115,22,0.15)',
-                  color: tab === 'table' ? '#582200' : '#f97316',
+                  background: tab === 'table' ? 'rgba(88,34,0,0.2)' : 'rgba(0,230,118,0.15)',
+                  color: tab === 'table' ? '#003319' : '#00E676',
                 }}>
                 {participants.length}
               </span>
@@ -404,7 +404,7 @@ export default function OrdersPage() {
         {/* Active status card */}
         {activeSt && (
           <div className="rounded-xl p-5 relative overflow-hidden"
-            style={{ background: 'linear-gradient(145deg, #1e293b 0%, #131b2e 100%)', border: '1px solid #334155' }}>
+            style={{ background: 'linear-gradient(145deg, #21262D 0%, #161B22 100%)', border: '1px solid #30363D' }}>
             <div className="absolute top-0 right-0 p-3 pointer-events-none" style={{ opacity: 0.06 }}>
               <span className="material-symbols-outlined text-[80px]" style={{ color: activeSt.color }}>timer</span>
             </div>
@@ -418,7 +418,7 @@ export default function OrdersPage() {
             <p className="text-xs mb-4" style={{ color: '#e0c0b1' }}>
               {tab === 'mine' ? 'Seu pedido está sendo preparado.' : `${allOrders.filter(o => !['delivered','cancelled'].includes(o.status)).length} pedido(s) ativos na mesa.`}
             </p>
-            <div className="h-1 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: '#30363D' }}>
               <div className="h-full rounded-full" style={{ width: `${activeSt.progress}%`, background: activeSt.color }} />
             </div>
           </div>
@@ -444,10 +444,10 @@ export default function OrdersPage() {
             )}
             {myOrders.length === 0 ? (
               <div className="py-12 text-center">
-                <span className="material-symbols-outlined text-[48px] block mb-2" style={{ color: '#584237' }}>receipt_long</span>
-                <p className="text-sm" style={{ color: '#a78b7d' }}>Você ainda não fez nenhum pedido.</p>
+                <span className="material-symbols-outlined text-[48px] block mb-2" style={{ color: '#30363D' }}>receipt_long</span>
+                <p className="text-sm" style={{ color: '#8B949E' }}>Você ainda não fez nenhum pedido.</p>
                 <button onClick={() => router.push(`/${params.slug}/menu?session=${sessionId}`)}
-                  className="text-sm mt-2 font-mono" style={{ color: '#f97316' }}>
+                  className="text-sm mt-2 font-mono" style={{ color: '#00E676' }}>
                   Ver cardápio →
                 </button>
               </div>
@@ -460,12 +460,12 @@ export default function OrdersPage() {
                   return (
                     <div key={order.id} className="rounded-xl overflow-hidden"
                       style={{
-                        background: 'linear-gradient(145deg,#1e293b,#131b2e)',
-                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.2)' : '#334155'}`,
+                        background: 'linear-gradient(145deg,#21262D,#161B22)',
+                        border: `1px solid ${cancelled ? 'rgba(248,113,113,0.2)' : '#30363D'}`,
                         opacity: cancelled ? 0.75 : 1,
                       }}>
                       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
-                        <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>#{order.id.slice(-6).toUpperCase()}</span>
+                        <span className="text-xs font-mono" style={{ color: '#8B949E' }}>#{order.id.slice(-6).toUpperCase()}</span>
                         <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                           style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}30` }}>
                           {cfg.label}
@@ -479,19 +479,19 @@ export default function OrdersPage() {
                           <div key={item.id ?? idx}>
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
-                                style={{ background: '#2d3449' }}>
+                                style={{ background: '#30363D' }}>
                                 {item.menu_item?.image_url
                                   ? <img src={item.menu_item.image_url} alt="" className="w-full h-full object-cover rounded-lg" />
-                                  : <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>fastfood</span>}
+                                  : <span className="material-symbols-outlined text-[18px]" style={{ color: '#30363D' }}>fastfood</span>}
                               </div>
                               <div className="flex-1 flex items-center gap-2 min-w-0">
                                 <ItemStatusIcon status={payStatus} />
                                 <p className={`flex-1 min-w-0 truncate text-sm font-semibold ${cancelled ? 'line-through' : ''}`}
-                                  style={cancelled ? { color: '#584237' } : undefined}>
+                                  style={cancelled ? { color: '#30363D' } : undefined}>
                                   {item.quantity}x {item.menu_item?.name}
                                 </p>
                                 <p className={`text-sm font-mono shrink-0 ${cancelled ? 'line-through' : ''}`}
-                                  style={{ color: cancelled ? '#584237' : '#ffb690' }}>
+                                  style={{ color: cancelled ? '#30363D' : '#00E676' }}>
                                   {formatCurrency(item.unit_price * item.quantity)}
                                 </p>
                               </div>
@@ -507,8 +507,8 @@ export default function OrdersPage() {
                         })}
                       </div>
                       <div className="flex justify-between items-center px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)' }}>
-                        <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>Subtotal</span>
-                        <span className={`text-sm font-semibold ${cancelled ? 'line-through' : ''}`} style={{ color: cancelled ? '#584237' : '#ffb690' }}>
+                        <span className="text-xs font-mono" style={{ color: '#8B949E' }}>Subtotal</span>
+                        <span className={`text-sm font-semibold ${cancelled ? 'line-through' : ''}`} style={{ color: cancelled ? '#30363D' : '#00E676' }}>
                           {cancelled ? formatCurrency(orderItemsTotal(order)) : formatCurrency(ot)}
                         </span>
                       </div>
@@ -550,7 +550,7 @@ export default function OrdersPage() {
         {tab === 'table' && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                 {participants.length} {participants.length === 1 ? 'pessoa' : 'pessoas'} nesta mesa
               </p>
               <div className="flex flex-wrap gap-2 ml-auto">
@@ -558,7 +558,7 @@ export default function OrdersPage() {
                   <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                   Pago
                 </span>
-                <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#584237' }}>
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono" style={{ color: '#30363D' }}>
                   <span className="material-symbols-outlined text-[12px]">radio_button_unchecked</span>
                   Pendente
                 </span>
@@ -589,17 +589,17 @@ export default function OrdersPage() {
                 <div key={participant.id} className="rounded-xl overflow-hidden"
                   style={{
                     background: customerFullyPaid
-                      ? 'linear-gradient(145deg,#1a2e1a,#131b2e)'
-                      : isMe ? 'linear-gradient(145deg,#1e3a1e,#131b2e)' : 'linear-gradient(145deg,#1e293b,#131b2e)',
-                    border: `1px solid ${customerFullyPaid ? 'rgba(52,211,153,0.35)' : isMe ? 'rgba(52,211,153,0.3)' : '#334155'}`,
+                      ? 'linear-gradient(145deg,#1a2e1a,#161B22)'
+                      : isMe ? 'linear-gradient(145deg,#1e3a1e,#161B22)' : 'linear-gradient(145deg,#21262D,#161B22)',
+                    border: `1px solid ${customerFullyPaid ? 'rgba(52,211,153,0.35)' : isMe ? 'rgba(52,211,153,0.3)' : '#30363D'}`,
                   }}>
                   {/* Customer header */}
                   <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0"
                         style={{
-                          background: customerFullyPaid ? 'rgba(52,211,153,0.2)' : isMe ? 'rgba(52,211,153,0.2)' : 'rgba(249,115,22,0.15)',
-                          color: customerFullyPaid || isMe ? '#34d399' : '#ffb690',
+                          background: customerFullyPaid ? 'rgba(52,211,153,0.2)' : isMe ? 'rgba(52,211,153,0.2)' : 'rgba(0,230,118,0.15)',
+                          color: customerFullyPaid || isMe ? '#34d399' : '#00E676',
                         }}>
                         {customerFullyPaid
                           ? <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
@@ -626,15 +626,15 @@ export default function OrdersPage() {
                       {customerFullyPaid ? (
                         <>
                           <p className="text-sm font-bold font-mono" style={{ color: '#34d399' }}>{formatCurrency(paid)}</p>
-                          <p className="text-[10px] font-mono line-through" style={{ color: '#584237' }}>{formatCurrency(owed)}</p>
+                          <p className="text-[10px] font-mono line-through" style={{ color: '#30363D' }}>{formatCurrency(owed)}</p>
                         </>
                       ) : paySt === 'partial' ? (
                         <>
-                          <p className="text-sm font-semibold font-mono" style={{ color: '#ffb690' }}>{formatCurrency(owed)}</p>
+                          <p className="text-sm font-semibold font-mono" style={{ color: '#00E676' }}>{formatCurrency(owed)}</p>
                           <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>−{formatCurrency(paid)} pago</p>
                         </>
                       ) : (
-                        <p className="text-sm font-semibold font-mono" style={{ color: total > 0 ? '#ffb690' : '#584237' }}>
+                        <p className="text-sm font-semibold font-mono" style={{ color: total > 0 ? '#00E676' : '#30363D' }}>
                           {total > 0 ? formatCurrency(owed) : '—'}
                         </p>
                       )}
@@ -654,13 +654,13 @@ export default function OrdersPage() {
                             <ItemStatusIcon status={line.paymentStatus} />
                             <span
                               className={`flex-1 min-w-0 truncate ${cancelled ? 'line-through' : ''}`}
-                              style={{ color: cancelled ? '#584237' : line.paymentStatus === 'paid' ? '#a78b7d' : '#e0c0b1' }}
+                              style={{ color: cancelled ? '#30363D' : line.paymentStatus === 'paid' ? '#8B949E' : '#e0c0b1' }}
                             >
                               {line.quantity}x {line.name}
                             </span>
                             <span
                               className={`font-mono shrink-0 ${cancelled ? 'line-through' : ''}`}
-                              style={{ color: cancelled ? '#584237' : '#ffb690' }}
+                              style={{ color: cancelled ? '#30363D' : '#00E676' }}
                             >
                               {formatCurrency(line.lineTotal)}
                             </span>
@@ -670,7 +670,7 @@ export default function OrdersPage() {
                     </div>
                   )}
                   {itemLines.length === 0 && (
-                    <p className="px-4 py-3 text-xs" style={{ color: '#584237' }}>Nenhum pedido ainda</p>
+                    <p className="px-4 py-3 text-xs" style={{ color: '#30363D' }}>Nenhum pedido ainda</p>
                   )}
                 </div>
               )
@@ -678,9 +678,9 @@ export default function OrdersPage() {
 
             {/* Payment progress — fonte: tabela payments (pagamentos individuais e mesa toda) */}
             {(sessionPaid > 0 || closeRequestActive) && (
-              <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+              <div className="rounded-xl overflow-hidden" style={{ background: '#21262D', border: '1px solid #30363D' }}>
                 <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(88,66,55,0.2)' }}>
-                  <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                  <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                     Progresso do Fechamento
                   </p>
                 </div>
@@ -693,16 +693,16 @@ export default function OrdersPage() {
                     <div className="px-5 py-4 space-y-4">
                       <div>
                         <div className="flex justify-between mb-2">
-                          <span className="text-xs" style={{ color: '#a78b7d' }}>
+                          <span className="text-xs" style={{ color: '#8B949E' }}>
                             {formatCurrency(totalPaid)} pagos
                           </span>
                           <span className="text-xs font-bold" style={{ color: remaining > 0 ? '#f87171' : '#34d399' }}>
                             {remaining > 0 ? `Falta ${formatCurrency(remaining)}` : '✓ Mesa fechada!'}
                           </span>
                         </div>
-                        <div className="h-2 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: '#30363D' }}>
                           <div className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${pct}%`, background: pct === 100 ? '#34d399' : '#f97316' }} />
+                            style={{ width: `${pct}%`, background: pct === 100 ? '#34d399' : '#00E676' }} />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -724,11 +724,11 @@ export default function OrdersPage() {
 
             {/* Table total — saldo em aberto em destaque; total máximo só como referência */}
             {allOrders.length > 0 && sessionBilling && (
-              <div className="rounded-xl p-4" style={{ background: '#171f33', border: '1px solid #334155' }}>
+              <div className="rounded-xl p-4" style={{ background: '#161B22', border: '1px solid #30363D' }}>
                 {sessionPaid > 0.01 ? (
                   <>
                     <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
-                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                         Saldo em aberto na mesa
                       </p>
                       <p
@@ -741,12 +741,12 @@ export default function OrdersPage() {
                         {sessionRemaining <= 0.02 ? '✓ Quitada' : formatCurrency(sessionRemaining)}
                       </p>
                       {sessionRemaining > 0.02 && (
-                        <p className="text-[10px] font-mono mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#584237' }}>
+                        <p className="text-[10px] font-mono mt-2 leading-relaxed max-w-[280px] mx-auto" style={{ color: '#30363D' }}>
                           Taxa de serviço é opcional — cada pessoa escolhe no checkout.
                         </p>
                       )}
                     </div>
-                    <div className="space-y-1.5 text-sm" style={{ color: '#584237' }}>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#30363D' }}>
                       <div className="flex justify-between">
                         <span>Consumo da mesa</span>
                         <span className="font-mono">{formatCurrency(tableTotal)}</span>
@@ -768,29 +768,29 @@ export default function OrdersPage() {
                 ) : (
                   <>
                     <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
-                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                         Conta da mesa
                       </p>
-                      <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                      <p className="text-3xl font-black mt-1" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                         {formatCurrency(tableTotal)}
                       </p>
-                      <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                      <p className="text-[10px] font-mono mt-2" style={{ color: '#30363D' }}>
                         consumo · sem taxa de serviço
                       </p>
                     </div>
-                    <div className="space-y-1.5 text-sm" style={{ color: '#a78b7d' }}>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#8B949E' }}>
                       <div className="flex justify-between">
                         <span>Taxa de serviço (10% — opcional)</span>
                         <span className="font-mono">+ {formatCurrency(tableTotal * 0.1)}</span>
                       </div>
                       <div className="flex justify-between pt-1">
-                        <span className="font-medium" style={{ color: '#dae2fd' }}>Total máximo</span>
-                        <span className="font-mono font-semibold" style={{ color: '#ffb690' }}>
+                        <span className="font-medium" style={{ color: '#FFFFFF' }}>Total máximo</span>
+                        <span className="font-mono font-semibold" style={{ color: '#00E676' }}>
                           {formatCurrency(grandTotal)}
                         </span>
                       </div>
                     </div>
-                    <p className="text-[10px] font-mono mt-3 leading-relaxed" style={{ color: '#584237' }}>
+                    <p className="text-[10px] font-mono mt-3 leading-relaxed" style={{ color: '#30363D' }}>
                       Cada pessoa escolhe no checkout se inclui a taxa. Mínimo da mesa: {formatCurrency(sessionBilling.grandTotalMinimum)}.
                     </p>
                   </>
@@ -804,17 +804,17 @@ export default function OrdersPage() {
         {displayOrders.length > 0 && (
           <>
             {tab === 'mine' && myOrders.length > 0 && (
-              <div className="rounded-xl p-4" style={{ background: '#171f33', border: '1px solid #334155' }}>
+              <div className="rounded-xl p-4" style={{ background: '#161B22', border: '1px solid #30363D' }}>
                 {myPaid > 0.01 ? (
                   <>
                     <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
-                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                         {myPayStatus === 'paid' ? 'Sua conta' : 'Seu saldo em aberto'}
                       </p>
                       <p
                         className="text-3xl font-black mt-1"
                         style={{
-                          color: myPayStatus === 'paid' ? '#34d399' : '#ffb690',
+                          color: myPayStatus === 'paid' ? '#34d399' : '#00E676',
                           fontFamily: 'Geist, sans-serif',
                         }}
                       >
@@ -823,12 +823,12 @@ export default function OrdersPage() {
                           : formatCurrency(Math.max(0, myOwed - myPaid))}
                       </p>
                       {myPayStatus !== 'paid' && (
-                        <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                        <p className="text-[10px] font-mono mt-2" style={{ color: '#30363D' }}>
                           Taxa opcional — você escolhe no checkout
                         </p>
                       )}
                     </div>
-                    <div className="space-y-1.5 text-sm" style={{ color: '#584237' }}>
+                    <div className="space-y-1.5 text-sm" style={{ color: '#30363D' }}>
                       <div className="flex justify-between">
                         <span>Seu consumo</span>
                         <span className="font-mono">{formatCurrency(myTotal)}</span>
@@ -848,23 +848,23 @@ export default function OrdersPage() {
                 ) : (
                   <>
                     <div className="text-center pb-4 mb-4" style={{ borderBottom: '1px solid rgba(88,66,55,0.3)' }}>
-                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                      <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                         Sua conta
                       </p>
-                      <p className="text-3xl font-black mt-1" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+                      <p className="text-3xl font-black mt-1" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
                         {formatCurrency(myTotal)}
                       </p>
-                      <p className="text-[10px] font-mono mt-2" style={{ color: '#584237' }}>
+                      <p className="text-[10px] font-mono mt-2" style={{ color: '#30363D' }}>
                         consumo · sem taxa
                       </p>
                     </div>
-                    <div className="flex justify-between text-sm" style={{ color: '#a78b7d' }}>
+                    <div className="flex justify-between text-sm" style={{ color: '#8B949E' }}>
                       <span>Taxa de serviço (10% — opcional)</span>
                       <span className="font-mono">+ {formatCurrency(myTotal * 0.1)}</span>
                     </div>
-                    <div className="flex justify-between text-sm pt-2 mt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', color: '#dae2fd' }}>
+                    <div className="flex justify-between text-sm pt-2 mt-2" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', color: '#FFFFFF' }}>
                       <span className="font-medium">Total máximo</span>
-                      <span className="font-mono font-semibold" style={{ color: '#ffb690' }}>
+                      <span className="font-mono font-semibold" style={{ color: '#00E676' }}>
                         {formatCurrency(myTotal * 1.1)}
                       </span>
                     </div>
@@ -897,9 +897,9 @@ export default function OrdersPage() {
             <button onClick={() => router.push(`/${params.slug}/checkout?session=${sessionId}`)}
               className="w-full h-14 rounded-xl font-semibold text-base flex items-center justify-center gap-3 active:scale-95 transition-all"
               style={{
-                background: sessionClosing ? '#ef4444' : myPayStatus === 'paid' ? '#334155' : '#f97316',
-                color: myPayStatus === 'paid' ? '#dae2fd' : '#582200',
-                boxShadow: myPayStatus === 'paid' ? 'none' : '0 8px 30px rgba(249,115,22,0.3)',
+                background: sessionClosing ? '#ef4444' : myPayStatus === 'paid' ? '#30363D' : '#00E676',
+                color: myPayStatus === 'paid' ? '#FFFFFF' : '#003319',
+                boxShadow: myPayStatus === 'paid' ? 'none' : '0 8px 30px rgba(0,230,118,0.3)',
                 fontFamily: 'Geist, sans-serif',
               }}>
               <span className="material-symbols-outlined">payments</span>

@@ -15,7 +15,7 @@ export function WaitlistModal({ onClose }: { onClose: () => void }) {
     >
       <div
         className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl"
-        style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}
+        style={{ background: '#0D1117', color: '#FFFFFF', fontFamily: 'Geist, sans-serif' }}
         onClick={e => e.stopPropagation()}
       >
         <div
@@ -24,9 +24,9 @@ export function WaitlistModal({ onClose }: { onClose: () => void }) {
         >
           <div>
             <h2 className="text-lg font-black" style={{ letterSpacing: '-0.02em' }}>Fila de espera</h2>
-            <p className="text-[11px] font-mono" style={{ color: '#a78b7d' }}>Aloque clientes e chame o próximo quando uma mesa liberar.</p>
+            <p className="text-[11px] font-mono" style={{ color: '#8B949E' }}>Aloque clientes e chame o próximo quando uma mesa liberar.</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl active:scale-95 transition-transform" style={{ color: '#a78b7d' }} aria-label="Fechar">
+          <button onClick={onClose} className="p-2 rounded-xl active:scale-95 transition-transform" style={{ color: '#8B949E' }} aria-label="Fechar">
             <X className="h-5 w-5" />
           </button>
         </div>

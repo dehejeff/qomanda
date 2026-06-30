@@ -53,14 +53,14 @@ export function OrderReviewModal({
     >
       <div
         className="w-full max-w-lg max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden"
-        style={{ background: '#131b2e', border: '1px solid #334155', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}
+        style={{ background: '#161B22', border: '1px solid #30363D', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid #334155' }}>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid #30363D' }}>
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Revisar pedido</p>
-            <h2 className="text-lg font-bold" style={{ fontFamily: 'Geist, sans-serif', color: '#ffb690' }}>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Revisar pedido</p>
+            <h2 className="text-lg font-bold" style={{ fontFamily: 'Geist, sans-serif', color: '#00E676' }}>
               {itemCount} {itemCount === 1 ? 'item' : 'itens'} · {formatCurrency(total)}
             </h2>
           </div>
@@ -68,7 +68,7 @@ export function OrderReviewModal({
             type="button"
             onClick={onClose}
             className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}
+            style={{ background: '#21262D', border: '1px solid #30363D', color: '#8B949E' }}
             aria-label="Continuar comprando"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -78,7 +78,7 @@ export function OrderReviewModal({
         {/* Items */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {cart.length === 0 ? (
-            <p className="text-center text-sm py-8 font-mono" style={{ color: '#a78b7d' }}>
+            <p className="text-center text-sm py-8 font-mono" style={{ color: '#8B949E' }}>
               Seu carrinho está vazio.
             </p>
           ) : (
@@ -88,38 +88,38 @@ export function OrderReviewModal({
               <div
                 key={item.id}
                 className="rounded-xl p-4 space-y-3"
-                style={{ background: 'rgba(30,41,59,0.6)', border: '1px solid #334155' }}
+                style={{ background: 'rgba(30,41,59,0.6)', border: '1px solid #30363D' }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'Geist, sans-serif' }}>
                       {item.name}
                     </p>
-                    <p className="text-xs font-mono mt-0.5" style={{ color: '#ffb690' }}>
+                    <p className="text-xs font-mono mt-0.5" style={{ color: '#00E676' }}>
                       {formatCurrency(unit)} · {formatCurrency(unit * quantity)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <div
                       className="flex items-center rounded-full p-0.5"
-                      style={{ background: '#2d3449', border: '1px solid rgba(88,66,55,0.3)' }}
+                      style={{ background: '#30363D', border: '1px solid rgba(88,66,55,0.3)' }}
                     >
                       <button
                         type="button"
                         onClick={() => onUpdateQuantity(item.id, -1)}
                         className="w-9 h-9 flex items-center justify-center rounded-full active:scale-90"
-                        style={{ color: '#f97316' }}
+                        style={{ color: '#00E676' }}
                       >
                         <span className="material-symbols-outlined text-[18px]">remove</span>
                       </button>
-                      <span className="px-2 text-sm font-mono font-bold min-w-[28px] text-center" style={{ color: '#ffb690' }}>
+                      <span className="px-2 text-sm font-mono font-bold min-w-[28px] text-center" style={{ color: '#00E676' }}>
                         {quantity}
                       </span>
                       <button
                         type="button"
                         onClick={() => onUpdateQuantity(item.id, 1)}
                         className="w-9 h-9 flex items-center justify-center rounded-full active:scale-95"
-                        style={{ background: '#f97316', color: '#582200' }}
+                        style={{ background: '#00E676', color: '#003319' }}
                       >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                       </button>
@@ -147,14 +147,14 @@ export function OrderReviewModal({
                       onChange={e => setDraftNote(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveNote(item.id) }}
                       className="w-full h-11 px-3 rounded-xl text-sm outline-none font-mono"
-                      style={{ background: '#0b1326', border: '1px solid #f97316', color: '#dae2fd' }}
+                      style={{ background: '#0D1117', border: '1px solid #00E676', color: '#FFFFFF' }}
                     />
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => { setEditingNoteId(null); setDraftNote('') }}
                         className="flex-1 h-11 rounded-xl text-sm font-mono font-medium transition-colors"
-                        style={{ border: '1px solid #334155', color: '#a78b7d' }}
+                        style={{ border: '1px solid #30363D', color: '#8B949E' }}
                       >
                         Cancelar
                       </button>
@@ -175,9 +175,9 @@ export function OrderReviewModal({
                     onClick={() => startEditNote(item.id)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-xs font-mono transition-colors"
                     style={{
-                      background: notes[item.id] ? 'rgba(249,115,22,0.08)' : '#0b1326',
-                      border: notes[item.id] ? '1px solid rgba(249,115,22,0.35)' : '1px dashed #584237',
-                      color: notes[item.id] ? '#ffb690' : '#a78b7d',
+                      background: notes[item.id] ? 'rgba(0,230,118,0.08)' : '#0D1117',
+                      border: notes[item.id] ? '1px solid rgba(0,230,118,0.35)' : '1px dashed #30363D',
+                      color: notes[item.id] ? '#00E676' : '#8B949E',
                     }}
                   >
                     <span className="material-symbols-outlined text-[18px] shrink-0">
@@ -194,10 +194,10 @@ export function OrderReviewModal({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 px-5 py-4 space-y-3" style={{ borderTop: '1px solid #334155', background: '#0b1326' }}>
+        <div className="shrink-0 px-5 py-4 space-y-3" style={{ borderTop: '1px solid #30363D', background: '#0D1117' }}>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-mono" style={{ color: '#a78b7d' }}>Total do pedido</span>
-            <span className="text-xl font-bold" style={{ color: '#ffb690', fontFamily: 'Geist, sans-serif' }}>
+            <span className="text-sm font-mono" style={{ color: '#8B949E' }}>Total do pedido</span>
+            <span className="text-xl font-bold" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>
               {formatCurrency(total)}
             </span>
           </div>
@@ -205,7 +205,7 @@ export function OrderReviewModal({
             type="button"
             onClick={onClose}
             className="w-full h-11 rounded-xl text-sm font-mono font-medium transition-colors"
-            style={{ border: '1px solid #334155', color: '#dae2fd' }}
+            style={{ border: '1px solid #30363D', color: '#FFFFFF' }}
           >
             Continuar comprando
           </button>
@@ -214,7 +214,7 @@ export function OrderReviewModal({
             onClick={onConfirm}
             disabled={placing || cart.length === 0}
             className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.3)' }}
+            style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.3)' }}
           >
             {placing ? (
               <Loader2 className="h-5 w-5 animate-spin" />

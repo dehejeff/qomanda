@@ -182,23 +182,23 @@ export default function BalcaoPage() {
 
   if (modeLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   if (dineInOnly) {
     return (
-      <div className="min-h-screen px-6 py-10 max-w-md mx-auto" style={{ background: '#0b1326', color: '#dae2fd' }}>
-        <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#a78b7d' }}>← Voltar</Link>
+      <div className="min-h-screen px-6 py-10 max-w-md mx-auto" style={{ background: '#0D1117', color: '#FFFFFF' }}>
+        <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#8B949E' }}>← Voltar</Link>
         <h1 className="text-2xl font-black mt-4">Salão com mesas</h1>
         <p className="text-sm mt-3" style={{ color: '#e0c0b1' }}>
           {restaurantName ? `${restaurantName} atende` : 'Este restaurante atende'} apenas pelo{' '}
           <strong>QR Code na mesa</strong>. Escaneie o código na sua mesa para pedir e pagar.
         </p>
         <Link href={`/${slug}`} className="mt-8 inline-flex w-full justify-center py-3 rounded-xl font-bold"
-          style={{ background: '#f97316', color: '#582200' }}>Entendi</Link>
+          style={{ background: '#00E676', color: '#003319' }}>Entendi</Link>
       </div>
     )
   }
@@ -212,41 +212,41 @@ export default function BalcaoPage() {
   const canQuick = savedCustomerId && !showFullForm
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-md mx-auto" style={{ background: '#0b1326', color: '#dae2fd' }}>
-      <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#a78b7d' }}>← Voltar</Link>
+    <div className="min-h-screen px-6 py-8 max-w-md mx-auto" style={{ background: '#0D1117', color: '#FFFFFF' }}>
+      <Link href={`/${slug}`} className="text-xs font-mono" style={{ color: '#8B949E' }}>← Voltar</Link>
 
       <header className="mt-5 text-center">
-        <span className="material-symbols-outlined text-[40px]" style={{ color: '#f97316' }}>countertops</span>
+        <span className="material-symbols-outlined text-[40px]" style={{ color: '#00E676' }}>countertops</span>
         <h1 className="text-2xl font-black mt-2" style={{ fontFamily: 'Geist, sans-serif' }}>{title}</h1>
-        {restaurantName && <p className="text-xs font-mono mt-1" style={{ color: '#a78b7d' }}>{restaurantName}</p>}
+        {restaurantName && <p className="text-xs font-mono mt-1" style={{ color: '#8B949E' }}>{restaurantName}</p>}
         <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>{subtitle}</p>
       </header>
 
       {/* Check-in rápido — conta salva no aparelho */}
       {canQuick && (
         <div className="mt-8 rounded-xl p-5 flex flex-col gap-4"
-          style={{ background: 'linear-gradient(145deg,#1e293b,#0f172a)', border: '1px solid rgba(249,115,22,0.35)' }}>
+          style={{ background: 'linear-gradient(145deg,#21262D,#0f172a)', border: '1px solid rgba(0,230,118,0.35)' }}>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold shrink-0"
-              style={{ background: 'rgba(249,115,22,0.15)', color: '#ffb690' }}>
+              style={{ background: 'rgba(0,230,118,0.15)', color: '#00E676' }}>
               {savedCustomerName.trim()
                 ? savedCustomerName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
                 : '?'}
             </div>
             <div>
               <p className="text-sm font-semibold">{savedCustomerName || 'Cliente'}</p>
-              <p className="text-xs" style={{ color: '#a78b7d' }}>Conta salva neste aparelho</p>
+              <p className="text-xs" style={{ color: '#8B949E' }}>Conta salva neste aparelho</p>
             </div>
           </div>
           <button onClick={handleQuickCheckIn} disabled={loading}
             className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: '#f97316', color: '#582200', boxShadow: '0 12px 28px rgba(249,115,22,0.2)' }}>
+            style={{ background: '#00E676', color: '#003319', boxShadow: '0 12px 28px rgba(0,230,118,0.2)' }}>
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
               <><span className="material-symbols-outlined">bolt</span> Entrar e ver cardápio</>
             )}
           </button>
           <button type="button" onClick={() => setShowFullForm(true)}
-            className="text-xs font-mono underline underline-offset-2 self-center" style={{ color: '#a78b7d' }}>
+            className="text-xs font-mono underline underline-offset-2 self-center" style={{ color: '#8B949E' }}>
             Usar outra conta
           </button>
         </div>
@@ -258,21 +258,21 @@ export default function BalcaoPage() {
           <div className="grid grid-cols-2 gap-3">
             <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Nome" autoComplete="given-name"
               className="w-full h-11 px-3 rounded-lg text-sm outline-none"
-              style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} required />
+              style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} required />
             <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Sobrenome" autoComplete="family-name"
               className="w-full h-11 px-3 rounded-lg text-sm outline-none"
-              style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} required />
+              style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} required />
           </div>
           <input type="tel" inputMode="tel" value={whatsapp} onChange={e => setWhatsapp(formatWhatsApp(e.target.value))}
             placeholder="WhatsApp — (11) 99999-9999" autoComplete="tel"
             className="w-full h-11 px-3 rounded-lg text-sm outline-none"
-            style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} required />
+            style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} required />
 
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#e0c0b1' }}>
               Crie uma senha de 4 dígitos
             </label>
-            <p className="text-[11px] flex items-center gap-1.5" style={{ color: '#a78b7d' }}>
+            <p className="text-[11px] flex items-center gap-1.5" style={{ color: '#8B949E' }}>
               <span className="material-symbols-outlined text-[14px]">lock</span>
               Para acessar sua conta nas próximas visitas
             </p>
@@ -289,24 +289,24 @@ export default function BalcaoPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#584237' }}>CPF na nota (opcional)</label>
+            <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#30363D' }}>CPF na nota (opcional)</label>
             <input type="text" inputMode="numeric" value={cpf} onChange={e => setCpf(maskCPF(e.target.value))}
               placeholder="000.000.000-00" maxLength={14}
               className="w-full h-11 px-3 rounded-lg text-sm font-mono outline-none"
-              style={{ background: '#131b2e', border: '1px solid #334155', color: '#dae2fd' }} />
+              style={{ background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF' }} />
           </div>
 
           {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
           <button type="submit" disabled={loading}
             className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (<>Ver cardápio <span className="material-symbols-outlined">arrow_forward</span></>)}
           </button>
 
           {savedCustomerId && (
             <button type="button" onClick={() => setShowFullForm(false)}
-              className="w-full text-xs font-mono underline underline-offset-2" style={{ color: '#a78b7d' }}>
+              className="w-full text-xs font-mono underline underline-offset-2" style={{ color: '#8B949E' }}>
               Voltar para minha conta salva
             </button>
           )}
@@ -316,29 +316,29 @@ export default function BalcaoPage() {
       {/* Login WhatsApp — conta sem aparelho */}
       {!canQuick && !showLogin && (
         <button type="button" onClick={() => setShowLogin(true)}
-          className="w-full text-center text-sm mt-4 py-2" style={{ color: '#584237' }}>
+          className="w-full text-center text-sm mt-4 py-2" style={{ color: '#30363D' }}>
           Já usei aqui antes →{' '}
-          <span className="underline underline-offset-2" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</span>
+          <span className="underline underline-offset-2" style={{ color: '#8B949E' }}>Entrar com WhatsApp</span>
         </button>
       )}
 
       {!canQuick && showLogin && (
-        <div className="mt-5 rounded-xl p-5 flex flex-col gap-4" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+        <div className="mt-5 rounded-xl p-5 flex flex-col gap-4" style={{ background: '#161B22', border: '1px solid #30363D' }}>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: '#a78b7d' }}>Entrar com WhatsApp</p>
+            <p className="text-sm font-semibold" style={{ color: '#8B949E' }}>Entrar com WhatsApp</p>
             <button type="button" onClick={() => { setShowLogin(false); setPinStep(null); setPinSetupStep(null) }}
-              className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: '#1e293b', color: '#584237' }}>
+              className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: '#21262D', color: '#30363D' }}>
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
           </div>
 
           {!pinSetupStep && (
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#a78b7d' }}>phone</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>phone</span>
               <input type="tel" inputMode="tel" value={loginWhatsapp} onChange={e => setLoginWhatsapp(formatPhoneInput(e.target.value))}
                 placeholder="(21) 99999-9999" autoComplete="tel" disabled={Boolean(pinStep)}
                 className="w-full h-11 pl-9 pr-3 rounded-lg text-sm outline-none"
-                style={{ background: '#0b1326', border: '1px solid #584237', color: '#dae2fd', opacity: pinStep ? 0.6 : 1 }} />
+                style={{ background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF', opacity: pinStep ? 0.6 : 1 }} />
             </div>
           )}
 
@@ -352,7 +352,7 @@ export default function BalcaoPage() {
 
           {pinStep && !pinSetupStep && (
             <div className="space-y-2">
-              <p className="text-xs text-center" style={{ color: '#a78b7d' }}>
+              <p className="text-xs text-center" style={{ color: '#8B949E' }}>
                 {pinStep.pinLength === 6 ? `Senha de ${pinStep.firstName}` : `PIN de ${pinStep.firstName}`}
               </p>
               <PinInput value={loginPin} onChange={setLoginPin} length={pinStep.pinLength} autoFocus disabled={loggingIn} />
@@ -362,7 +362,7 @@ export default function BalcaoPage() {
           {!pinSetupStep && (
             <button type="button" onClick={handleWhatsAppLogin} disabled={loggingIn || loading}
               className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50"
-              style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', color: '#ffb690' }}>
+              style={{ background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.35)', color: '#00E676' }}>
               {loggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <><span className="material-symbols-outlined">{pinStep ? 'pin' : 'login'}</span>
                   {pinStep ? 'Confirmar' : 'Entrar com WhatsApp'}</>

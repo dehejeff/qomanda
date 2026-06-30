@@ -38,7 +38,7 @@ export function ParticipantPaymentRow({ name, isMe, billing, payerNames = {} }: 
   const iconColor =
     status === 'paid' ? '#34d399'
     : status === 'partial' ? '#f59e0b'
-    : '#a78b7d'
+    : '#8B949E'
 
   return (
     <div className="rounded-lg px-3 py-2.5 space-y-1"
@@ -65,14 +65,14 @@ export function ParticipantPaymentRow({ name, isMe, billing, payerNames = {} }: 
                 <>
                   Pago {formatCurrency(paid)}
                   {partiallyCovered && (
-                    <span style={{ color: '#a78b7d' }}>
+                    <span style={{ color: '#8B949E' }}>
                       {' '}· incl. {formatCurrency(coveredByOthers.reduce((s, c) => s + c.amount, 0))} de {payerLabel(coveredByOthers[0].payerId)}
                     </span>
                   )}
                 </>
               )}
               {serviceFeeIncluded === false && (
-                <span style={{ color: '#a78b7d' }}> · sem taxa de serviço</span>
+                <span style={{ color: '#8B949E' }}> · sem taxa de serviço</span>
               )}
             </p>
           )}
@@ -85,7 +85,7 @@ export function ParticipantPaymentRow({ name, isMe, billing, payerNames = {} }: 
               <p className="text-xs font-mono font-semibold" style={{ color: '#f87171' }}>
                 Falta {formatCurrency(remaining)}
               </p>
-              <p className="text-[10px] font-mono" style={{ color: '#584237' }}>
+              <p className="text-[10px] font-mono" style={{ color: '#30363D' }}>
                 Total da conta: {formatCurrency(amountDue)}
               </p>
             </div>
@@ -94,16 +94,16 @@ export function ParticipantPaymentRow({ name, isMe, billing, payerNames = {} }: 
           {status === 'pending' && subtotal > 0 && (
             <div className="mt-1 space-y-0.5">
               {serviceFeeIncluded === false ? (
-                <p className="text-xs font-mono font-semibold" style={{ color: '#ffb690' }}>
+                <p className="text-xs font-mono font-semibold" style={{ color: '#00E676' }}>
                   Falta {formatCurrency(amountDueWithoutFee)}
-                  <span className="font-normal" style={{ color: '#a78b7d' }}> · sem taxa</span>
+                  <span className="font-normal" style={{ color: '#8B949E' }}> · sem taxa</span>
                 </p>
               ) : (
                 <>
-                  <p className="text-xs font-mono font-semibold" style={{ color: '#ffb690' }}>
+                  <p className="text-xs font-mono font-semibold" style={{ color: '#00E676' }}>
                     Falta {formatCurrency(amountDueWithFee)}
                   </p>
-                  <p className="text-[10px] font-mono" style={{ color: '#584237' }}>
+                  <p className="text-[10px] font-mono" style={{ color: '#30363D' }}>
                     ou {formatCurrency(amountDueWithoutFee)} sem taxa de serviço
                   </p>
                 </>

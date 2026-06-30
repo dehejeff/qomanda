@@ -23,7 +23,7 @@ export function CounterQrModal({ url, restaurantName, onClose }: Props) {
       const qrDataUrl = await QRCode.toDataURL(url, {
         width: 320,
         margin: 3,
-        color: { dark: '#0b1326', light: '#ffffff' },
+        color: { dark: '#0D1117', light: '#ffffff' },
         errorCorrectionLevel: 'H',
       })
       const card = await buildCounterQrCardDataUrl(qrDataUrl, { restaurantName })

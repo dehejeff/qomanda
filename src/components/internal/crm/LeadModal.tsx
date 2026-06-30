@@ -229,7 +229,7 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
             onClick={handleSave}
             disabled={saving}
             className="px-5 py-2.5 rounded-xl text-sm font-bold transition-opacity disabled:opacity-60"
-            style={{ background: wonLost ? statusMeta.color : '#ffb690', color: '#0b1326' }}
+            style={{ background: wonLost ? statusMeta.color : '#00E676', color: '#0D1117' }}
           >
             {saving ? 'Salvando...' : 'Salvar'}
           </button>

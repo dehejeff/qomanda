@@ -177,18 +177,18 @@ export function SavedCardsSection({ customerId }: Props) {
   }
 
   const inputSt: React.CSSProperties = {
-    background: '#0b1326', border: '1px solid #334155', color: '#dae2fd',
+    background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF',
     outline: 'none', width: '100%', height: 40, borderRadius: 10, padding: '0 12px', fontSize: 14,
   }
 
   return (
     <section id="cards">
       <div className="flex items-center justify-between mb-3 px-1">
-        <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meus cartões</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Meus cartões</p>
         {!showForm && gate === 'unlocked' && (
           <button type="button" onClick={() => setShowForm(true)}
             className="text-[10px] font-mono uppercase tracking-wider flex items-center gap-1"
-            style={{ color: '#f97316' }}>
+            style={{ color: '#00E676' }}>
             <span className="material-symbols-outlined text-[14px]">add</span>
             Adicionar
           </button>
@@ -197,15 +197,15 @@ export function SavedCardsSection({ customerId }: Props) {
 
       {loading ? (
         <div className="py-6 flex justify-center">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#f97316' }} />
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#00E676' }} />
         </div>
       ) : gate === 'create_password' ? (
-        <div className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+        <div className="rounded-xl p-5 space-y-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>lock</span>
-            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Crie uma senha de 6 dígitos</p>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#00E676' }}>lock</span>
+            <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Crie uma senha de 6 dígitos</p>
           </div>
-          <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+          <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
             Para cadastrar cartões com segurança, defina uma senha. Ela será exigida sempre que acessar seus cartões ou pagar com cartão salvo.
           </p>
           <input type="password" inputMode="numeric" value={pwd} placeholder="Nova senha (6 dígitos)"
@@ -214,17 +214,17 @@ export function SavedCardsSection({ customerId }: Props) {
             onChange={e => setPwd2(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} style={inputSt} />
           <button type="button" onClick={handleCreatePassword} disabled={authing}
             className="w-full h-10 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-2"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar senha'}
           </button>
         </div>
       ) : gate === 'enter_password' ? (
-        <div className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+        <div className="rounded-xl p-5 space-y-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: '#f97316' }}>lock</span>
-            <p className="text-sm font-semibold" style={{ color: '#dae2fd' }}>Digite sua senha</p>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: '#00E676' }}>lock</span>
+            <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Digite sua senha</p>
           </div>
-          <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+          <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
             Confirme sua senha de 6 dígitos para acessar seus cartões.
           </p>
           <input type="password" inputMode="numeric" value={pwd} placeholder="Senha (6 dígitos)"
@@ -232,12 +232,12 @@ export function SavedCardsSection({ customerId }: Props) {
             onKeyDown={e => { if (e.key === 'Enter') handleEnterPassword() }} />
           <button type="button" onClick={handleEnterPassword} disabled={authing}
             className="w-full h-10 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-2"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desbloquear'}
           </button>
         </div>
       ) : showForm ? (
-        <div className="rounded-xl p-4 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+        <div className="rounded-xl p-4 space-y-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
           <input type="text" inputMode="numeric" value={cardNumber} placeholder="Número do cartão"
             onChange={e => setCardNumber(maskCard(e.target.value))} style={inputSt} />
           <input type="text" value={cardName} placeholder="Nome do titular"
@@ -248,39 +248,39 @@ export function SavedCardsSection({ customerId }: Props) {
             <input type="password" inputMode="numeric" value={cvv} placeholder="CVV"
               onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))} style={inputSt} />
           </div>
-          <p className="text-[10px] leading-relaxed" style={{ color: '#584237' }}>
+          <p className="text-[10px] leading-relaxed" style={{ color: '#30363D' }}>
             Seus dados de cartão são tokenizados com segurança. O KiComanda não armazena número completo nem CVV.
           </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setShowForm(false)}
               className="flex-1 h-10 rounded-lg text-xs font-mono"
-              style={{ border: '1px solid #584237', color: '#a78b7d' }}>
+              style={{ border: '1px solid #30363D', color: '#8B949E' }}>
               Cancelar
             </button>
             <button type="button" onClick={handleAdd} disabled={saving}
               className="flex-[2] h-10 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-2"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar cartão'}
             </button>
           </div>
         </div>
       ) : cards.length === 0 ? (
-        <div className="rounded-xl p-5 text-center" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-          <span className="material-symbols-outlined text-[32px] block mb-2" style={{ color: '#584237' }}>credit_card</span>
-          <p className="text-sm" style={{ color: '#a78b7d' }}>Nenhum cartão salvo. Adicione um para pagar mais rápido no checkout.</p>
+        <div className="rounded-xl p-5 text-center" style={{ background: '#161B22', border: '1px solid #30363D' }}>
+          <span className="material-symbols-outlined text-[32px] block mb-2" style={{ color: '#30363D' }}>credit_card</span>
+          <p className="text-sm" style={{ color: '#8B949E' }}>Nenhum cartão salvo. Adicione um para pagar mais rápido no checkout.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {cards.map(card => (
             <div key={card.id} className="rounded-xl p-4 flex items-center gap-3"
-              style={{ background: '#131b2e', border: '1px solid #334155' }}>
-              <span className="material-symbols-outlined text-[22px]" style={{ color: '#f97316' }}>credit_card</span>
+              style={{ background: '#161B22', border: '1px solid #30363D' }}>
+              <span className="material-symbols-outlined text-[22px]" style={{ color: '#00E676' }}>credit_card</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">{formatCardBrand(card.brand)} •••• {card.lastFour}</p>
-                <p className="text-xs truncate" style={{ color: '#a78b7d' }}>{card.holderName ?? 'Titular'}</p>
+                <p className="text-xs truncate" style={{ color: '#8B949E' }}>{card.holderName ?? 'Titular'}</p>
               </div>
               <button type="button" onClick={() => handleRemove(card.id)}
-                className="p-2 rounded-full" style={{ color: '#584237' }} aria-label="Remover cartão">
+                className="p-2 rounded-full" style={{ color: '#30363D' }} aria-label="Remover cartão">
                 <span className="material-symbols-outlined text-[18px]">delete</span>
               </button>
             </div>

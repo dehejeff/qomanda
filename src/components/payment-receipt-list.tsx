@@ -42,7 +42,7 @@ export function PaymentReceiptList({
   return (
     <div className="space-y-3">
       {title && (
-        <p className="text-[10px] font-mono uppercase tracking-widest px-1" style={{ color: '#a78b7d' }}>
+        <p className="text-[10px] font-mono uppercase tracking-widest px-1" style={{ color: '#8B949E' }}>
           {title}
         </p>
       )}

@@ -132,22 +132,22 @@ export function HubSessionGate({ customerId, children, onUnlocked }: Props) {
 
   if (gate === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   const inputSt: React.CSSProperties = {
-    background: '#0b1326', border: '1px solid #334155', color: '#dae2fd',
+    background: '#0D1117', border: '1px solid #30363D', color: '#FFFFFF',
     outline: 'none', width: '100%', height: 40, borderRadius: 10, padding: '0 12px', fontSize: 14,
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
-      style={{ background: '#0b1326', color: '#dae2fd' }}>
+      style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <div className="max-w-sm w-full space-y-6 flex flex-col items-center">
-        <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 64, color: '#f97316' }}>lock</span>
+        <span className="material-symbols-outlined block mx-auto" style={{ fontSize: 64, color: '#00E676' }}>lock</span>
         <div className="w-full text-center space-y-1">
           <h1 className="text-xl font-bold" style={{ fontFamily: 'Geist, sans-serif' }}>
             {firstName ? `Olá, ${firstName}` : 'Hub KiComanda'}
@@ -166,7 +166,7 @@ export function HubSessionGate({ customerId, children, onUnlocked }: Props) {
               onChange={e => setPwd2(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} style={inputSt} />
             <button type="button" onClick={handleCreatePassword} disabled={authing}
               className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar senha e entrar'}
             </button>
           </div>
@@ -175,16 +175,16 @@ export function HubSessionGate({ customerId, children, onUnlocked }: Props) {
             <PinInput value={pwd} onChange={setPwd} length={6} autoFocus />
             <button type="button" onClick={handleEnterPassword} disabled={authing}
               className="w-full h-12 rounded-xl text-sm font-bold font-mono flex items-center justify-center gap-2"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               {authing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desbloquear Hub'}
             </button>
           </div>
         )}
 
         {!getCustomerSessionToken() && gate === 'enter' && (
-          <p className="text-xs leading-relaxed" style={{ color: '#584237' }}>
+          <p className="text-xs leading-relaxed" style={{ color: '#30363D' }}>
             Esqueceu a senha? Entre com WhatsApp em{' '}
-            <a href="/login?perfil=cliente" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+            <a href="/login?perfil=cliente" className="underline underline-offset-2" style={{ color: '#00E676' }}>
               login
             </a>.
           </p>

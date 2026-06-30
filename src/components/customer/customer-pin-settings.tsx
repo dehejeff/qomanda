@@ -71,18 +71,18 @@ export function CustomerPinSettings({ customerId }: Props) {
   if (loading) {
     return (
       <div className="flex justify-center py-6">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#f97316' }} />
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   if (hasSavedCards) {
     return (
-      <section className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+      <section className="rounded-xl p-5 space-y-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Segurança</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Segurança</p>
           <p className="text-sm font-semibold mt-1">Senha de 6 dígitos</p>
-          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#584237' }}>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#30363D' }}>
             Com cartão salvo, o acesso ao Hub usa senha de 6 dígitos. Gerencie em &quot;Meus cartões&quot; abaixo.
           </p>
         </div>
@@ -91,28 +91,28 @@ export function CustomerPinSettings({ customerId }: Props) {
   }
 
   return (
-    <section className="rounded-xl p-5 space-y-4" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+    <section className="rounded-xl p-5 space-y-4" style={{ background: '#161B22', border: '1px solid #30363D' }}>
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Segurança</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Segurança</p>
         <p className="text-sm font-semibold mt-1">PIN de acesso</p>
-        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#584237' }}>
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#30363D' }}>
           PIN de 4 dígitos obrigatório para login remoto. Check-in na mesa continua rápido neste aparelho.
         </p>
       </div>
 
       {mode === 'idle' && (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#1e293b' }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: hasPin ? '#34d399' : '#584237' }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#21262D' }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: hasPin ? '#34d399' : '#30363D' }}>
               {hasPin ? 'lock' : 'lock_open'}
             </span>
-            <span className="text-xs font-mono" style={{ color: '#a78b7d' }}>
+            <span className="text-xs font-mono" style={{ color: '#8B949E' }}>
               {hasPin ? 'PIN ativo no login remoto' : 'Nenhum PIN configurado'}
             </span>
           </div>
           <button type="button" onClick={() => setMode(hasPin ? 'change' : 'create')}
             className="w-full h-11 rounded-xl text-sm font-mono font-semibold transition-all active:scale-[0.98]"
-            style={{ background: '#f97316', color: '#582200' }}>
+            style={{ background: '#00E676', color: '#003319' }}>
             {hasPin ? 'Alterar PIN' : 'Definir PIN'}
           </button>
         </div>
@@ -122,26 +122,26 @@ export function CustomerPinSettings({ customerId }: Props) {
         <div className="space-y-4">
           {hasPin && (
             <div className="space-y-2">
-              <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>PIN atual</p>
+              <p className="text-xs font-mono" style={{ color: '#8B949E' }}>PIN atual</p>
               <PinInput value={currentPin} onChange={setCurrentPin} length={4} autoFocus />
             </div>
           )}
           <div className="space-y-2">
-            <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>{hasPin ? 'Novo PIN' : 'Escolha um PIN'}</p>
+            <p className="text-xs font-mono" style={{ color: '#8B949E' }}>{hasPin ? 'Novo PIN' : 'Escolha um PIN'}</p>
             <PinInput value={newPin} onChange={setNewPin} length={4} autoFocus={!hasPin} />
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-mono" style={{ color: '#a78b7d' }}>Confirmar PIN</p>
+            <p className="text-xs font-mono" style={{ color: '#8B949E' }}>Confirmar PIN</p>
             <PinInput value={confirmPin} onChange={setConfirmPin} length={4} />
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => { setMode('idle'); setCurrentPin(''); setNewPin(''); setConfirmPin('') }}
-              className="flex-1 h-11 rounded-xl text-xs font-mono" style={{ border: '1px solid #584237', color: '#a78b7d' }}>
+              className="flex-1 h-11 rounded-xl text-xs font-mono" style={{ border: '1px solid #30363D', color: '#8B949E' }}>
               Cancelar
             </button>
             <button type="button" onClick={savePin} disabled={saving}
               className="flex-[2] h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar PIN'}
             </button>
           </div>
