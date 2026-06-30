@@ -92,7 +92,7 @@ export default function LeadPage() {
             <KiComandaLogo size={48} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Quero conhecer a Qomanda</h1>
+            <h1 className="text-2xl font-bold text-white">Quero conhecer a KiComanda</h1>
             <p className="text-sm mt-1.5" style={{ color: '#94a3b8' }}>
               Preencha seus dados e nossa equipe entra em contato pelo WhatsApp.
             </p>
@@ -184,7 +184,7 @@ export default function LeadPage() {
             className="w-full rounded-xl py-4 text-sm font-bold transition-opacity disabled:opacity-60"
             style={{ background: '#ffb690', color: '#0b1326' }}
           >
-            {submitting ? 'Enviando...' : 'Quero conhecer a Qomanda →'}
+            {submitting ? 'Enviando...' : 'Quero conhecer a KiComanda →'}
           </button>
         </form>
       </div>
