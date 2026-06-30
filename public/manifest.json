@@ -4,19 +4,19 @@
   "description": "Cardápio digital e pagamento para restaurantes",
   "start_url": "/scan",
   "display": "standalone",
-  "background_color": "#0b1326",
-  "theme_color": "#0b1326",
+  "background_color": "#0D1117",
+  "theme_color": "#0D1117",
   "orientation": "portrait",
   "categories": ["food", "lifestyle"],
   "icons": [
     {
-      "src": "/brand/logo-icon.png",
+      "src": "/Mascotinho/favicon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/brand/logo-icon.png",
+      "src": "/Mascotinho/comandinha-app-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

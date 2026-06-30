@@ -10,11 +10,13 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'KiComanda' },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '48x48' },
-      { url: '/icons/icon.png', type: 'image/png', sizes: '512x512' },
+      { url: '/Mascotinho/favicon-16.png',  type: 'image/png', sizes: '16x16'   },
+      { url: '/Mascotinho/favicon-32.png',  type: 'image/png', sizes: '32x32'   },
+      { url: '/Mascotinho/favicon-48.png',  type: 'image/png', sizes: '48x48'   },
+      { url: '/Mascotinho/favicon-512.png', type: 'image/png', sizes: '512x512' },
     ],
-    apple: [{ url: '/icons/icon.png', type: 'image/png', sizes: '180x180' }],
-    shortcut: '/favicon.ico',
+    apple:   [{ url: '/Mascotinho/favicon-180-apple-touch.png', type: 'image/png', sizes: '180x180' }],
+    shortcut:  '/Mascotinho/favicon-32.png',
   },
 }
 
