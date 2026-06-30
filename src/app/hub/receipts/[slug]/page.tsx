@@ -73,8 +73,8 @@ function HubReceiptsRestaurantContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
@@ -82,14 +82,14 @@ function HubReceiptsRestaurantContent() {
   const totalShown = days.reduce((s, d) => s + d.totalAmount, 0)
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <HubPageHeader title="Recibos" backHref="/hub/receipts" />
       <main className="px-5 pt-6 space-y-5 max-w-lg mx-auto">
-        <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: '#131b2e', border: '1px solid #334155' }}>
+        <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: '#161B22', border: '1px solid #30363D' }}>
           <RestaurantAvatar name={restaurantName} logoUrl={logoUrl} size={52} />
           <div className="flex-1 min-w-0">
             <p className="text-base font-bold truncate">{restaurantName}</p>
-            <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+            <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
               {days.reduce((n, d) => n + d.receipts.length, 0)} recibo(s)
               {selectedDate ? ` em ${formatDayLabel(selectedDate).toLowerCase()}` : ''}
             </p>
@@ -103,13 +103,13 @@ function HubReceiptsRestaurantContent() {
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setDateFilter(null)}
               className="px-3 py-1.5 rounded-lg text-[11px] font-mono"
-              style={{ background: '#f97316', color: '#582200' }}>
+              style={{ background: '#00E676', color: '#003319' }}>
               Todos os dias
             </button>
             {availableDates.slice(0, 8).map(date => (
               <button key={date} type="button" onClick={() => setDateFilter(date)}
                 className="px-3 py-1.5 rounded-lg text-[11px] font-mono transition-colors"
-                style={{ background: '#1e293b', border: '1px solid #334155', color: '#a78b7d' }}>
+                style={{ background: '#21262D', border: '1px solid #30363D', color: '#8B949E' }}>
                 {new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
               </button>
             ))}
@@ -118,20 +118,20 @@ function HubReceiptsRestaurantContent() {
 
         {selectedDate && (
           <button type="button" onClick={() => setDateFilter(null)}
-            className="text-xs font-mono underline underline-offset-2" style={{ color: '#ffb690' }}>
+            className="text-xs font-mono underline underline-offset-2" style={{ color: '#00E676' }}>
             Ver todos os dias
           </button>
         )}
 
         {days.length === 0 ? (
-          <div className="rounded-xl p-8 text-center" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-            <p className="text-sm" style={{ color: '#a78b7d' }}>Nenhum recibo neste período.</p>
+          <div className="rounded-xl p-8 text-center" style={{ background: '#161B22', border: '1px solid #30363D' }}>
+            <p className="text-sm" style={{ color: '#8B949E' }}>Nenhum recibo neste período.</p>
           </div>
         ) : (
           days.map(day => (
             <section key={day.date} className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>
                   {formatDayLabel(day.date)}
                 </p>
                 <p className="text-xs font-mono" style={{ color: '#34d399' }}>{formatCurrency(day.totalAmount)}</p>
@@ -160,7 +160,7 @@ function HubReceiptsRestaurantContent() {
                       ) : (
                         <div
                           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-mono"
-                          style={{ background: '#131b2e', border: '1px dashed #334155', color: '#a78b7d' }}
+                          style={{ background: '#161B22', border: '1px dashed #30363D', color: '#8B949E' }}
                         >
                           <span className="material-symbols-outlined text-[16px]">hourglass_top</span>
                           {r.nfe.status === 'error' ? 'Nota fiscal indisponível' : 'Nota fiscal em processamento'}
@@ -182,8 +182,8 @@ function HubReceiptsRestaurantContent() {
 export default function HubReceiptsRestaurantPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     }>
       <HubReceiptsRestaurantContent />

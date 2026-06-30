@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
@@ -203,7 +203,7 @@ export default function ProfilePage() {
 
       {/* Header */}
       <header className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
-        style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
         <button onClick={goBack} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>

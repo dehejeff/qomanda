@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -126,7 +126,7 @@ export default function ScanPage() {
 
   return (
     <div className="relative h-[100dvh] w-full flex flex-col overflow-hidden"
-      style={{ background: '#060e20', color: '#dae2fd' }}>
+      style={{ background: '#060e20', color: '#FFFFFF' }}>
 
       {!isDetected && (
         <>
@@ -136,7 +136,7 @@ export default function ScanPage() {
             aria-hidden="false"
           />
           <div className="absolute inset-0 z-[1] pointer-events-none"
-            style={{ background: 'rgba(11,19,38,0.55)', backdropFilter: 'blur(1px)' }} />
+            style={{ background: 'rgba(13,17,23,0.55)', backdropFilter: 'blur(1px)' }} />
         </>
       )}
 
@@ -146,7 +146,7 @@ export default function ScanPage() {
 
       <header className="relative z-20 flex justify-between items-center px-6 h-16 shrink-0"
         style={{ background: 'rgba(23,31,51,0.85)', borderBottom: '1px solid rgba(88,66,55,0.4)' }}>
-        <Link href="/hub" className="p-2 -ml-2 rounded-full" style={{ color: '#ffb690' }}>
+        <Link href="/hub" className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <div className="flex items-center gap-2">
@@ -167,11 +167,11 @@ export default function ScanPage() {
         )}
 
         {!isDetected && (status === 'starting' || status === 'scanning') && (
-          <div className="relative w-64 h-64 pointer-events-none" style={{ boxShadow: '0 0 24px rgba(249,115,22,0.18)' }}>
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl" style={{ borderColor: '#f97316' }} />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl" style={{ borderColor: '#f97316' }} />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl" style={{ borderColor: '#f97316' }} />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl" style={{ borderColor: '#f97316' }} />
+          <div className="relative w-64 h-64 pointer-events-none" style={{ boxShadow: '0 0 24px rgba(0,230,118,0.18)' }}>
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl" style={{ borderColor: '#00E676' }} />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl" style={{ borderColor: '#00E676' }} />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl" style={{ borderColor: '#00E676' }} />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl" style={{ borderColor: '#00E676' }} />
             <div className="absolute inset-2 rounded-lg overflow-hidden">
               <div className="scanner-laser absolute left-0 right-0 h-1 z-10" />
             </div>
@@ -181,7 +181,7 @@ export default function ScanPage() {
         {isDetected && parsed && (
           <div className="text-center space-y-5 max-w-[320px] w-full">
             <span className="material-symbols-outlined block mx-auto"
-              style={{ fontSize: 72, color: '#f97316', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              style={{ fontSize: 72, color: '#00E676', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             <div>
               <h2 className="text-xl font-semibold">Mesa {tableLabel ?? ''} identificada</h2>
               <p className="text-sm mt-2 leading-relaxed" style={{ color: '#e0c0b1' }}>
@@ -193,7 +193,7 @@ export default function ScanPage() {
             <a
               href={checkInPath ?? `/${parsed.slug}?mesa=${encodeURIComponent(parsed.mesa)}&t=${encodeURIComponent(parsed.token ?? '')}`}
               className="flex items-center justify-center gap-2 w-full h-14 rounded-xl text-base font-bold active:scale-[0.98] transition-transform"
-              style={{ background: '#f97316', color: '#fff' }}
+              style={{ background: '#00E676', color: '#fff' }}
             >
               Entrar na mesa
             </a>
@@ -202,7 +202,7 @@ export default function ScanPage() {
               <a
                 href={redirectApiUrl}
                 className="block w-full text-center text-xs font-mono underline underline-offset-2 py-2"
-                style={{ color: '#ffb690' }}
+                style={{ color: '#00E676' }}
               >
                 Não abriu? Toque aqui
               </a>
@@ -214,7 +214,7 @@ export default function ScanPage() {
                 if (checkInPath) router.push(checkInPath)
               }}
               className="w-full text-xs font-mono py-2"
-              style={{ color: '#a78b7d' }}
+              style={{ color: '#8B949E' }}
             >
               Tentar abrir dentro do app
             </button>
@@ -226,7 +226,7 @@ export default function ScanPage() {
             <p className="text-sm leading-relaxed" style={{ color: '#fca5a5' }}>{errorMessage}</p>
             <button type="button" onClick={() => resetScan()}
               className="w-full h-11 rounded-xl text-sm font-mono font-bold"
-              style={{ background: '#131b2e', border: '1px solid #584237', color: '#ffb690' }}>
+              style={{ background: '#161B22', border: '1px solid #30363D', color: '#00E676' }}>
               Escanear novamente
             </button>
           </div>
@@ -238,7 +238,7 @@ export default function ScanPage() {
               Permita o acesso à câmera nas configurações do navegador para escanear o QR da mesa.
             </p>
             <p className="text-xs font-mono leading-relaxed px-4 py-3 rounded-xl"
-              style={{ background: '#131b2e', border: '1px solid #584237', color: '#a78b7d' }}>
+              style={{ background: '#161B22', border: '1px solid #30363D', color: '#8B949E' }}>
               Alternativa: abra a câmera do celular e aponte para o QR — o link abre direto no navegador.
             </p>
           </div>
@@ -272,7 +272,7 @@ export default function ScanPage() {
         .scanner-laser {
           position: absolute;
           animation: scan-line 2.5s ease-in-out infinite;
-          background: linear-gradient(to bottom, transparent, #f97316, transparent);
+          background: linear-gradient(to bottom, transparent, #00E676, transparent);
         }
         #${SCANNER_ID} img[alt="Info icon"] { display: none !important; }
       `}</style>

@@ -95,9 +95,9 @@ export default function LoginPage() {
   }
 
   const inputStyle: React.CSSProperties = {
-    background: '#131b2e',
-    border: '1px solid #584237',
-    color: '#dae2fd',
+    background: '#161B22',
+    border: '1px solid #30363D',
+    color: '#FFFFFF',
     outline: 'none',
     width: '100%',
     height: 48,
@@ -108,14 +108,14 @@ export default function LoginPage() {
     transition: 'border-color 0.15s',
   }
 
-  function onFocus(e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#f97316' }
-  function onBlur(e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#584237' }
+  function onFocus(e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#00E676' }
+  function onBlur(e: React.FocusEvent<HTMLInputElement>) { e.target.style.borderColor = '#30363D' }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 relative"
-      style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
+      style={{ background: '#0D1117', color: '#FFFFFF', fontFamily: 'Geist, sans-serif' }}>
       <div className="pointer-events-none fixed top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full"
-        style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
+        style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(100px)' }} />
 
       <div className="relative z-10 w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3">
@@ -123,7 +123,7 @@ export default function LoginPage() {
           <p className="text-sm font-black tracking-tight text-on-surface">KiComanda</p>
           <div className="text-center">
             <h1 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>{copy.title}</h1>
-            <p className="text-sm mt-1 max-w-[280px] mx-auto leading-relaxed" style={{ color: '#a78b7d' }}>
+            <p className="text-sm mt-1 max-w-[280px] mx-auto leading-relaxed" style={{ color: '#8B949E' }}>
               {copy.subtitle}
             </p>
           </div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
         {/* Seletor de perfil */}
         <div className="flex rounded-xl overflow-hidden p-1 gap-1"
-          style={{ background: '#131b2e', border: '1px solid #334155' }}>
+          style={{ background: '#161B22', border: '1px solid #30363D' }}>
           {ROLES.map(r => {
             const active = role === r.id
             return (
@@ -141,8 +141,8 @@ export default function LoginPage() {
                 onClick={() => setRole(r.id)}
                 className="flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg transition-all active:scale-[0.98]"
                 style={{
-                  background: active ? '#f97316' : 'transparent',
-                  color: active ? '#582200' : '#a78b7d',
+                  background: active ? '#00E676' : 'transparent',
+                  color: active ? '#003319' : '#8B949E',
                 }}
               >
                 <span className="material-symbols-outlined text-[20px]"
@@ -165,20 +165,20 @@ export default function LoginPage() {
           <>
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>E-mail</label>
+                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>E-mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="seu@restaurante.com" required autoComplete="email"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Senha</label>
+                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Senha</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" required autoComplete="current-password"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <button type="submit" disabled={loading}
                 className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-                style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}>
+                style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)', marginTop: 8 }}>
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                   <>
                     <span className="material-symbols-outlined text-[18px]">dashboard</span>
@@ -187,9 +187,9 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-            <p className="text-center text-sm" style={{ color: '#584237' }}>
+            <p className="text-center text-sm" style={{ color: '#30363D' }}>
               Novo restaurante?{' '}
-              <Link href="/cadastro" className="font-semibold transition-colors hover:opacity-80" style={{ color: '#f97316' }}>
+              <Link href="/cadastro" className="font-semibold transition-colors hover:opacity-80" style={{ color: '#00E676' }}>
                 Cadastre seu estabelecimento
               </Link>
             </p>
@@ -201,20 +201,20 @@ export default function LoginPage() {
           <>
             <form onSubmit={handleWaiterLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>E-mail</label>
+                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>E-mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="garcom@restaurante.com" required autoComplete="email"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Senha</label>
+                <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Senha</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" required autoComplete="current-password"
                   style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <button type="submit" disabled={loading}
                 className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-                style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)', marginTop: 8 }}>
+                style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)', marginTop: 8 }}>
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                   <>
                     <span className="material-symbols-outlined text-[18px]">room_service</span>
@@ -223,7 +223,7 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-            <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#584237' }}>
+            <p className="text-xs text-center leading-relaxed px-2" style={{ color: '#30363D' }}>
               Credenciais criadas pelo admin em Configurações → Equipe. App otimizado para celular.
             </p>
           </>
@@ -232,7 +232,7 @@ export default function LoginPage() {
         <div className="pt-2">
           <Link href="/"
             className="flex items-center justify-center gap-1.5 text-xs font-mono transition-opacity hover:opacity-80"
-            style={{ color: '#584237' }}>
+            style={{ color: '#30363D' }}>
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             Voltar ao site
           </Link>

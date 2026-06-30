@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { LegalPageShell, LegalSection } from '@/components/legal-page-shell'
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function PrivacidadePage() {
         </p>
         <p>
           Canal para exercer direitos ou esclarecer dúvidas sobre privacidade:{' '}
-          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             contato@kicomanda.com.br
           </a>
         </p>
@@ -83,8 +83,8 @@ export default function PrivacidadePage() {
 
       <LegalSection title="6. Cookies e armazenamento local">
         <p>
-          Utilizamos cookies essenciais e armazenamento local do navegador (<code className="text-xs px-1 py-0.5 rounded" style={{ background: '#1e293b' }}>localStorage</code>,{' '}
-          <code className="text-xs px-1 py-0.5 rounded" style={{ background: '#1e293b' }}>sessionStorage</code>) para manter sessão de mesa,
+          Utilizamos cookies essenciais e armazenamento local do navegador (<code className="text-xs px-1 py-0.5 rounded" style={{ background: '#21262D' }}>localStorage</code>,{' '}
+          <code className="text-xs px-1 py-0.5 rounded" style={{ background: '#21262D' }}>sessionStorage</code>) para manter sessão de mesa,
           identificação do cliente e preferências no dispositivo. Tokens de autenticação para áreas
           sensíveis (ex.: cartões salvos) possuem expiração por tempo e inatividade.
         </p>
@@ -113,7 +113,7 @@ export default function PrivacidadePage() {
         </ul>
         <p>
           Envie pedidos para{' '}
-          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             contato@kicomanda.com.br
           </a>
           . Responderemos em prazo razoável, conforme a legislação.
@@ -145,7 +145,7 @@ export default function PrivacidadePage() {
       <LegalSection title="12. Contato">
         <p>
           Privacidade e proteção de dados:{' '}
-          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             contato@kicomanda.com.br
           </a>
         </p>

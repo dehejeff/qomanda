@@ -1,4 +1,4 @@
-import type { AnalyticsData } from '@/lib/dashboard-analytics'
+﻿import type { AnalyticsData } from '@/lib/dashboard-analytics'
 import { WEEKDAY_LABELS, METHOD_LABELS } from '@/lib/dashboard-analytics'
 
 function brl(n: number): string {
@@ -101,7 +101,7 @@ export function buildAnalyticsHtml(data: AnalyticsData, periodLabel: string, res
   .kpi { border: 1px solid #e5e5e5; border-radius: 10px; padding: 12px; }
   .kl { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #888; }
   .kv { display: block; font-size: 18px; font-weight: 800; margin-top: 4px; }
-  h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 2px solid #f97316; padding-bottom: 4px; display: inline-block; }
+  h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 2px solid #00E676; padding-bottom: 4px; display: inline-block; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
   th { font-size: 10px; text-transform: uppercase; color: #888; }
@@ -112,7 +112,7 @@ export function buildAnalyticsHtml(data: AnalyticsData, periodLabel: string, res
 </style></head><body>
   <h1>Analytics — ${esc(restaurantName)}</h1>
   <p class="sub">${esc(periodLabel)} · gerado em ${new Date().toLocaleString('pt-BR')}</p>
-  <button class="noprint" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;border:0;border-radius:8px;background:#f97316;color:#fff;font-weight:700;cursor:pointer">Imprimir / Salvar PDF</button>
+  <button class="noprint" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;border:0;border-radius:8px;background:#00E676;color:#fff;font-weight:700;cursor:pointer">Imprimir / Salvar PDF</button>
   <div class="kpis">${kpiHtml}</div>
 
   <h2>Itens mais vendidos</h2>

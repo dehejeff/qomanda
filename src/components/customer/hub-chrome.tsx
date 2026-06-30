@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
@@ -6,7 +6,7 @@ import { KiComandaLogo } from '@/components/kicomanda-logo'
 export function HubPageHeader({ title, backHref }: { title?: string; backHref?: string }) {
   return (
     <header className="sticky top-0 z-40 px-6 h-16 flex items-center justify-between"
-      style={{ background: 'rgba(11,19,38,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
+      style={{ background: 'rgba(13,17,23,0.92)', borderBottom: '1px solid rgba(88,66,55,0.35)', backdropFilter: 'blur(12px)' }}>
       {backHref ? (
         <Link href={backHref} className="p-2 -ml-2 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>

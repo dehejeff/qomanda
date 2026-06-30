@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KiComanda Design System — fonte única de verdade para tokens visuais.
  * Importe estas constantes em todos os componentes em vez de escrever
  * classes Tailwind diretamente para garantir consistência.
@@ -8,18 +8,18 @@
 // SUPERFÍCIES
 // ─────────────────────────────────────────────────────────────────────────────
 export const surface = {
-  page:     'bg-background',               // #0b1326 — fundo de toda página
-  base:     'bg-surface-container',        // #171f33 — cards, sidebar
-  raised:   'bg-surface-container-high',   // #222a3d — table header, hover
-  overlay:  'bg-surface-container-highest',// #2d3449 — tooltips, dropdowns
-  inset:    'bg-surface-container-low',    // #131b2e — inputs, campos
+  page:     'bg-background',               // #0D1117 — fundo de toda página
+  base:     'bg-surface-container',        // #161B22 — cards, sidebar
+  raised:   'bg-surface-container-high',   // #21262D — table header, hover
+  overlay:  'bg-surface-container-highest',// #30363D — tooltips, dropdowns
+  inset:    'bg-surface-container-low',    // #161B22 — inputs, campos
 } as const
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BORDAS
 // ─────────────────────────────────────────────────────────────────────────────
 export const border = {
-  default:  'border border-outline-variant',  // #584237 — borda padrão de card
+  default:  'border border-outline-variant',  // #30363D — borda padrão de card
   subtle:   'border border-outline-variant/50',
   active:   'border border-primary/30',       // laranja suave — item ativo/ocupado
 } as const
@@ -28,10 +28,10 @@ export const border = {
 // TIPOGRAFIA
 // ─────────────────────────────────────────────────────────────────────────────
 export const text = {
-  primary:   'text-on-surface',          // #dae2fd — texto principal
+  primary:   'text-on-surface',          // #FFFFFF — texto principal
   secondary: 'text-on-surface-variant',  // #e0c0b1 — texto secundário/labels
-  accent:    'text-primary',             // #ffb690 — laranja claro (links, valores)
-  brand:     'text-primary-container',   // #f97316 — laranja sólido (CTAs)
+  accent:    'text-primary',             // #00E676 — laranja claro (links, valores)
+  brand:     'text-primary-container',   // #00E676 — laranja sólido (CTAs)
   muted:     'text-on-surface-variant/60',
 } as const
 

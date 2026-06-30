@@ -224,11 +224,11 @@ export default function CaixaPage() {
                   {/* Código de referência */}
                   <div className="shrink-0 w-24 text-center py-2 px-3 rounded-xl"
                     style={{
-                      background: isPaid ? 'rgba(52,211,153,0.1)' : 'rgba(249,115,22,0.08)',
-                      border: `1px solid ${isPaid ? 'rgba(52,211,153,0.3)' : 'rgba(249,115,22,0.25)'}`,
+                      background: isPaid ? 'rgba(52,211,153,0.1)' : 'rgba(0,230,118,0.08)',
+                      border: `1px solid ${isPaid ? 'rgba(52,211,153,0.3)' : 'rgba(0,230,118,0.25)'}`,
                     }}>
                     <p className="text-[9px] font-mono uppercase text-on-surface-variant">Ref.</p>
-                    <p className="text-lg font-black font-mono" style={{ color: isPaid ? '#34d399' : '#f97316' }}>
+                    <p className="text-lg font-black font-mono" style={{ color: isPaid ? '#34d399' : '#00E676' }}>
                       #{p.ref}
                     </p>
                   </div>
@@ -261,7 +261,7 @@ export default function CaixaPage() {
                       )}
                       {isPending && !p.isManualPending && (
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded"
-                          style={{ background: 'rgba(123,208,255,0.1)', color: '#7bd0ff', border: '1px solid rgba(123,208,255,0.25)' }}>
+                          style={{ background: 'rgba(123,208,255,0.1)', color: '#58A6FF', border: '1px solid rgba(123,208,255,0.25)' }}>
                           Processando gateway
                         </span>
                       )}
@@ -280,7 +280,7 @@ export default function CaixaPage() {
                         disabled={confirmingId === p.id}
                         onClick={() => void confirmPayment(p.id)}
                         className="h-10 px-5 rounded-xl text-sm font-mono font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-                        style={{ background: '#f97316', color: '#582200' }}
+                        style={{ background: '#00E676', color: '#003319' }}
                       >
                         {confirmingId === p.id
                           ? <Loader2 className="h-4 w-4 animate-spin" />

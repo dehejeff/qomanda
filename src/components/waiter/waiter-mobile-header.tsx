@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -25,7 +25,7 @@ export function WaiterMobileHeader({ restaurantName }: { restaurantName: string 
     <header
       className="sticky top-0 z-40 px-5 h-16 flex items-center justify-between"
       style={{
-        background: 'rgba(11,19,38,0.92)',
+        background: 'rgba(13,17,23,0.92)',
         borderBottom: '1px solid rgba(88,66,55,0.35)',
         backdropFilter: 'blur(12px)',
       }}

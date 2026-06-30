@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import type { CartItem } from '@/types'
@@ -48,7 +48,7 @@ export function OrderReviewModal({
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
-      style={{ background: 'rgba(11,19,38,0.75)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(13,17,23,0.75)', backdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
@@ -88,7 +88,7 @@ export function OrderReviewModal({
               <div
                 key={item.id}
                 className="rounded-xl p-4 space-y-3"
-                style={{ background: 'rgba(30,41,59,0.6)', border: '1px solid #30363D' }}
+                style={{ background: 'rgba(33,38,45,0.6)', border: '1px solid #30363D' }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

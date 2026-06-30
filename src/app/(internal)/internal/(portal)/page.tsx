@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -28,8 +28,8 @@ const SUB_COLORS: Record<string, string> = {
   trialing: '#60a5fa',
   past_due: '#f87171',
   paused: '#a78bfa',
-  cancelled: '#64748b',
-  none: '#475569',
+  cancelled: '#8B949E',
+  none: '#6E7681',
 }
 
 export default function InternalOverviewPage() {
@@ -80,7 +80,7 @@ export default function InternalOverviewPage() {
   const donutItems = data.subscriptionDistribution.map(d => ({
     label: d.label,
     count: d.count,
-    color: SUB_COLORS[d.id] ?? '#94a3b8',
+    color: SUB_COLORS[d.id] ?? '#8B949E',
   }))
 
   return (

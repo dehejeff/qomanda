@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 export const LEGAL_C = {
@@ -27,7 +27,7 @@ export function LegalPageShell({ title, subtitle, updatedAt, children }: Props) 
       <nav
         className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-12 h-16"
         style={{
-          background: 'rgba(11,19,38,0.9)',
+          background: 'rgba(13,17,23,0.9)',
           borderBottom: `1px solid ${LEGAL_C.border}`,
           backdropFilter: 'blur(16px)',
         }}

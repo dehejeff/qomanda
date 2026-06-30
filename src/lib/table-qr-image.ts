@@ -1,4 +1,4 @@
-type TableQrCardOptions = {
+﻿type TableQrCardOptions = {
   restaurantName?: string
 }
 
@@ -33,20 +33,20 @@ export async function buildMenuQrCardDataUrl(
   const centerX = width / 2
   let textY = qrSize + padding + 40
 
-  ctx.fillStyle = '#0b1326'
+  ctx.fillStyle = '#0D1117'
   ctx.font = 'bold 36px Geist, system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.fillText('Veja nosso cardápio', centerX, textY)
 
   textY += 28
   ctx.font = '600 20px ui-monospace, SFMono-Regular, Menlo, monospace'
-  ctx.fillStyle = '#f97316'
+  ctx.fillStyle = '#00E676'
   ctx.fillText('📋 CARDÁPIO DIGITAL', centerX, textY)
 
   if (options.restaurantName) {
     textY += 30
     ctx.font = '500 16px Geist, system-ui, sans-serif'
-    ctx.fillStyle = '#94a3b8'
+    ctx.fillStyle = '#8B949E'
     ctx.fillText(options.restaurantName, centerX, textY)
   }
 
@@ -85,20 +85,20 @@ export async function buildTableQrCardDataUrl(
   const centerX = width / 2
   let textY = qrSize + padding + 36
 
-  ctx.fillStyle = '#0b1326'
+  ctx.fillStyle = '#0D1117'
   ctx.font = 'bold 44px Geist, system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.fillText(`Mesa ${tableNumber}`, centerX, textY)
 
   textY += 30
   ctx.font = '600 22px ui-monospace, SFMono-Regular, Menlo, monospace'
-  ctx.fillStyle = '#64748b'
+  ctx.fillStyle = '#8B949E'
   ctx.fillText(`T-${tableNumber.padStart(2, '0')}`, centerX, textY)
 
   if (options.restaurantName) {
     textY += 28
     ctx.font = '500 16px Geist, system-ui, sans-serif'
-    ctx.fillStyle = '#94a3b8'
+    ctx.fillStyle = '#8B949E'
     ctx.fillText(options.restaurantName, centerX, textY)
   }
 
@@ -136,20 +136,20 @@ export async function buildCounterQrCardDataUrl(
   const centerX = width / 2
   let textY = qrSize + padding + 40
 
-  ctx.fillStyle = '#0b1326'
+  ctx.fillStyle = '#0D1117'
   ctx.font = 'bold 40px Geist, system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.fillText('Peça pelo celular', centerX, textY)
 
   textY += 28
   ctx.font = '600 20px ui-monospace, SFMono-Regular, Menlo, monospace'
-  ctx.fillStyle = '#f97316'
+  ctx.fillStyle = '#00E676'
   ctx.fillText('📱 BALCÃO', centerX, textY)
 
   if (options.restaurantName) {
     textY += 28
     ctx.font = '500 16px Geist, system-ui, sans-serif'
-    ctx.fillStyle = '#94a3b8'
+    ctx.fillStyle = '#8B949E'
     ctx.fillText(options.restaurantName, centerX, textY)
   }
 

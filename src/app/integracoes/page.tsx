@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 }
 
 const C = {
-  bg: '#0b1326', card: '#131b2e', border: 'rgba(88,66,55,0.35)', borderBlu: 'rgba(51,65,85,0.6)',
-  primary: '#f97316', primaryDm: '#ffb690', text: '#dae2fd', muted: '#a78b7d', faint: '#584237',
-  green: '#34d399', blue: '#7bd0ff',
+  bg: '#0D1117', card: '#161B22', border: 'rgba(88,66,55,0.35)', borderBlu: 'rgba(51,65,85,0.6)',
+  primary: '#00E676', primaryDm: '#00E676', text: '#FFFFFF', muted: '#8B949E', faint: '#30363D',
+  green: '#34d399', blue: '#58A6FF',
 }
 
 type Item = { name: string; desc: string; tags: string[] }
@@ -69,7 +69,7 @@ export default function IntegracoesPage() {
           <KiComandaLogo size={28} />
           <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
         </Link>
-        <Link href="/cadastro" className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#582200' }}>
+        <Link href="/cadastro" className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#003319' }}>
           Começar
         </Link>
       </nav>
@@ -127,10 +127,10 @@ export default function IntegracoesPage() {
           </div>
         </section>
 
-        <div className="rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.12), transparent)', border: `1px solid ${C.border}` }}>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(0,230,118,0.12), transparent)', border: `1px solid ${C.border}` }}>
           <h2 className="text-2xl font-black" style={{ letterSpacing: '-0.02em' }}>Pronto para começar?</h2>
           <p className="text-sm mt-2 mb-5" style={{ color: C.muted }}>PIX manual e dinheiro funcionam no primeiro dia, sem nenhuma integração.</p>
-          <Link href="/cadastro" className="inline-block px-6 py-3 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#582200' }}>
+          <Link href="/cadastro" className="inline-block px-6 py-3 rounded-lg text-sm font-bold" style={{ background: C.primary, color: '#003319' }}>
             Começar 14 dias grátis
           </Link>
         </div>

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { LegalPageShell, LegalSection } from '@/components/legal-page-shell'
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function TermosPage() {
         </p>
         <p>
           Dúvidas sobre estes termos podem ser enviadas para{' '}
-          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             contato@kicomanda.com.br
           </a>.
         </p>
@@ -31,7 +31,7 @@ export default function TermosPage() {
         <p>
           Ao acessar ou utilizar a KiComanda — seja como restaurante, colaborador autorizado ou cliente — você
           declara ter lido, compreendido e concordado com estes Termos de Uso e com a nossa{' '}
-          <a href="/privacidade" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="/privacidade" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             Política de Privacidade
           </a>.
         </p>
@@ -117,7 +117,7 @@ export default function TermosPage() {
         </p>
         <p>
           O roadmap público em{' '}
-          <a href="/roadmap" className="underline underline-offset-2" style={{ color: '#ffb690' }}>/roadmap</a>{' '}
+          <a href="/roadmap" className="underline underline-offset-2" style={{ color: '#00E676' }}>/roadmap</a>{' '}
           descreve direções do produto, sem garantia de prazos ou escopo definitivo.
         </p>
       </LegalSection>
@@ -158,7 +158,7 @@ export default function TermosPage() {
       <LegalSection title="12. Contato">
         <p>
           Para questões sobre estes Termos de Uso:{' '}
-          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#ffb690' }}>
+          <a href="mailto:contato@kicomanda.com.br" className="underline underline-offset-2" style={{ color: '#00E676' }}>
             contato@kicomanda.com.br
           </a>
         </p>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { X } from 'lucide-react'
 import { WaitlistManager } from '@/components/waiter/waitlist-manager'
@@ -20,7 +20,7 @@ export function WaitlistModal({ onClose }: { onClose: () => void }) {
       >
         <div
           className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b"
-          style={{ background: 'rgba(11,19,38,0.95)', borderColor: 'rgba(88,66,55,0.4)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'rgba(13,17,23,0.95)', borderColor: 'rgba(88,66,55,0.4)', backdropFilter: 'blur(8px)' }}
         >
           <div>
             <h2 className="text-lg font-black" style={{ letterSpacing: '-0.02em' }}>Fila de espera</h2>

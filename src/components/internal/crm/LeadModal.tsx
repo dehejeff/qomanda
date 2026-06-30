@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import {
@@ -115,7 +115,7 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
               </span>
             </div>
             <h2 className="text-lg font-bold text-white truncate">{lead.restaurantName}</h2>
-            <p className="text-sm mt-0.5" style={{ color: '#94a3b8' }}>{RESTAURANT_TYPE_LABELS[lead.restaurantType]}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#8B949E' }}>{RESTAURANT_TYPE_LABELS[lead.restaurantType]}</p>
           </div>
           <button onClick={onClose} className="ml-4 text-slate-400 hover:text-white transition-colors flex-shrink-0">
             <span className="material-symbols-outlined text-[22px]">close</span>
@@ -126,13 +126,13 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Contact */}
           <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Contato</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Contato</p>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-[18px]" style={{ color: '#64748b' }}>person</span>
+              <span className="material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>person</span>
               <span className="text-sm text-white font-medium">{lead.name}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-[18px]" style={{ color: '#64748b' }}>phone</span>
+              <span className="material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>phone</span>
               <a
                 href={whatsappHref}
                 target="_blank"
@@ -146,19 +146,19 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
             </div>
             {lead.email && (
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[18px]" style={{ color: '#64748b' }}>mail</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>mail</span>
                 <a href={`mailto:${lead.email}`} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">{lead.email}</a>
               </div>
             )}
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-[18px]" style={{ color: '#64748b' }}>schedule</span>
-              <span className="text-sm" style={{ color: '#64748b' }}>{fmtDate(lead.createdAt)}</span>
+              <span className="material-symbols-outlined text-[18px]" style={{ color: '#8B949E' }}>schedule</span>
+              <span className="text-sm" style={{ color: '#8B949E' }}>{fmtDate(lead.createdAt)}</span>
             </div>
           </div>
 
           {/* Status */}
           <div className="space-y-2">
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Status do pipeline</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Status do pipeline</p>
             <div className="grid grid-cols-2 gap-1.5">
               {LEAD_STATUSES.map(s => (
                 <button
@@ -169,7 +169,7 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
                   style={{
                     background: status === s.value ? `${s.color}22` : 'rgba(255,255,255,0.03)',
                     border: status === s.value ? `1.5px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
-                    color: status === s.value ? s.color : '#64748b',
+                    color: status === s.value ? s.color : '#8B949E',
                   }}
                 >
                   {s.label}
@@ -180,7 +180,7 @@ export function LeadModal({ lead, onClose, onUpdate, onDelete }: Props) {
 
           {/* Notes */}
           <div className="space-y-2">
-            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Observações</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Observações</p>
             <textarea
               ref={textareaRef}
               value={notes}

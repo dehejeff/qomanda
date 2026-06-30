@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { formatCurrency } from '@/lib/utils'
 
@@ -25,7 +25,7 @@ export function SessionSettledPanel({ tableNumber, payments, onLeaveRestaurant }
 
   return (
     <div className="rounded-xl overflow-hidden"
-      style={{ background: 'linear-gradient(145deg, rgba(52,211,153,0.12) 0%, rgba(30,41,59,0.9) 100%)', border: '1px solid rgba(52,211,153,0.35)' }}>
+      style={{ background: 'linear-gradient(145deg, rgba(52,211,153,0.12) 0%, rgba(33,38,45,0.9) 100%)', border: '1px solid rgba(52,211,153,0.35)' }}>
       <div className="px-5 py-4 flex items-start gap-3">
         <span className="material-symbols-outlined text-[28px] shrink-0" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>verified</span>
         <div>

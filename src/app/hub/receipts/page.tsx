@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -46,26 +46,26 @@ function HubReceiptsContent() {
 
   if (loading || !customerId) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   return (
     <HubSessionGate customerId={customerId}>
-    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <HubPageHeader title="Recibos" backHref="/hub" />
       <main className="px-5 pt-6 space-y-4 max-w-lg mx-auto">
-        <p className="text-xs px-1" style={{ color: '#584237' }}>
+        <p className="text-xs px-1" style={{ color: '#30363D' }}>
           {totalReceipts} comprovante{totalReceipts !== 1 ? 's' : ''} · agrupados por restaurante
         </p>
 
         {restaurants.length === 0 ? (
-          <div className="rounded-xl p-10 text-center" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-            <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: '#584237' }}>receipt_long</span>
+          <div className="rounded-xl p-10 text-center" style={{ background: '#161B22', border: '1px solid #30363D' }}>
+            <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: '#30363D' }}>receipt_long</span>
             <p className="text-sm font-semibold">Nenhum recibo ainda</p>
-            <p className="text-xs mt-2 leading-relaxed max-w-[260px] mx-auto" style={{ color: '#a78b7d' }}>
+            <p className="text-xs mt-2 leading-relaxed max-w-[260px] mx-auto" style={{ color: '#8B949E' }}>
               Após pagar pela KiComanda, seus comprovantes aparecem aqui organizados por restaurante.
             </p>
           </div>
@@ -74,11 +74,11 @@ function HubReceiptsContent() {
             {restaurants.map(r => (
               <Link key={r.restaurantId || r.slug} href={`/hub/receipts/${r.slug}`}
                 className="flex items-center gap-3 p-4 rounded-xl transition-all active:scale-[0.98]"
-                style={{ background: '#131b2e', border: '1px solid #334155' }}>
+                style={{ background: '#161B22', border: '1px solid #30363D' }}>
                 <RestaurantAvatar name={r.name} logoUrl={r.logoUrl} size={48} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{r.name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>
+                  <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>
                     {r.receiptCount} recibo{r.receiptCount !== 1 ? 's' : ''} recente{r.receiptCount !== 1 ? 's' : ''}
                     {r.lifetimePaymentCount > r.receiptCount && (
                       <> · {r.lifetimePaymentCount} no total</>
@@ -91,11 +91,11 @@ function HubReceiptsContent() {
                     {formatCurrency(r.lifetimeTotal > r.totalAmount ? r.lifetimeTotal : r.totalAmount)}
                   </p>
                   {r.lifetimeTotal > r.totalAmount && (
-                    <p className="text-[10px]" style={{ color: '#584237' }}>
+                    <p className="text-[10px]" style={{ color: '#30363D' }}>
                       {formatCurrency(r.totalAmount)} últimos 90d
                     </p>
                   )}
-                  <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>chevron_right</span>
+                  <span className="material-symbols-outlined text-[18px]" style={{ color: '#30363D' }}>chevron_right</span>
                 </div>
               </Link>
             ))}
@@ -111,8 +111,8 @@ function HubReceiptsContent() {
 export default function HubReceiptsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     }>
       <HubReceiptsContent />

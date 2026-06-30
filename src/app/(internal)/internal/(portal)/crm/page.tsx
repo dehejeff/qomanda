@@ -1,4 +1,4 @@
-import { requireStaff, StaffAuthError } from '@/lib/staff-auth'
+﻿import { requireStaff, StaffAuthError } from '@/lib/staff-auth'
 import { mapLeadRow } from '@/lib/crm-leads'
 import { CrmBoard } from '@/components/internal/crm/CrmBoard'
 import { redirect } from 'next/navigation'
@@ -28,8 +28,8 @@ export default async function CrmPage() {
     <div className="flex-1 p-6 md:p-8 overflow-hidden">
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white tracking-tight">CRM</h1>
-        <p className="text-sm mt-1 font-mono" style={{ color: '#475569' }}>
-          Pipeline de leads comerciais · <span style={{ color: '#64748b' }}>acesso via <code className="text-xs">/lead</code></span>
+        <p className="text-sm mt-1 font-mono" style={{ color: '#6E7681' }}>
+          Pipeline de leads comerciais · <span style={{ color: '#8B949E' }}>acesso via <code className="text-xs">/lead</code></span>
         </p>
       </div>
 

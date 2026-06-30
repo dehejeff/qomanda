@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import type { MenuItem } from '@/types'
@@ -48,7 +48,7 @@ export function MenuItemDetailModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      style={{ background: 'rgba(11,19,38,0.82)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(13,17,23,0.82)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
@@ -100,7 +100,7 @@ export function MenuItemDetailModal({
             type="button"
             onClick={showVideo ? () => setShowVideo(false) : onClose}
             className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(11,19,38,0.75)', border: '1px solid #30363D', color: '#FFFFFF' }}
+            style={{ background: 'rgba(13,17,23,0.75)', border: '1px solid #30363D', color: '#FFFFFF' }}
             aria-label={showVideo ? 'Voltar' : 'Fechar'}
           >
             <span className="material-symbols-outlined text-[20px]">{showVideo ? 'arrow_back' : 'close'}</span>

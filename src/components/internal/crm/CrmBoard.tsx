@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useCallback } from 'react'
 import {
@@ -37,14 +37,14 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-sm font-semibold text-white leading-tight line-clamp-1">{lead.restaurantName}</p>
-        <span className="text-[10px] font-mono shrink-0 mt-0.5" style={{ color: '#475569' }}>{relativeTime(lead.createdAt)}</span>
+        <span className="text-[10px] font-mono shrink-0 mt-0.5" style={{ color: '#6E7681' }}>{relativeTime(lead.createdAt)}</span>
       </div>
-      <p className="text-xs mb-2 line-clamp-1" style={{ color: '#64748b' }}>{RESTAURANT_TYPE_LABELS[lead.restaurantType]}</p>
+      <p className="text-xs mb-2 line-clamp-1" style={{ color: '#8B949E' }}>{RESTAURANT_TYPE_LABELS[lead.restaurantType]}</p>
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
-          <span className="material-symbols-outlined text-[12px]" style={{ color: '#64748b' }}>person</span>
+          <span className="material-symbols-outlined text-[12px]" style={{ color: '#8B949E' }}>person</span>
         </div>
-        <span className="text-xs truncate" style={{ color: '#94a3b8' }}>{lead.name}</span>
+        <span className="text-xs truncate" style={{ color: '#8B949E' }}>{lead.name}</span>
         {lead.notes && (
           <span className="material-symbols-outlined text-[14px] ml-auto" style={{ color: meta.color, opacity: 0.7 }}>note</span>
         )}
@@ -97,22 +97,22 @@ export function CrmBoard({ initialLeads }: Props) {
       <div className="flex items-center gap-6 mb-6">
         <div>
           <p className="text-2xl font-black text-white">{totalLeads}</p>
-          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Total leads</p>
+          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Total leads</p>
         </div>
         <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.08)' }} />
         <div>
           <p className="text-2xl font-black" style={{ color: '#22c55e' }}>{wonCount}</p>
-          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Fechados</p>
+          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Fechados</p>
         </div>
         <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.08)' }} />
         <div>
           <p className="text-2xl font-black" style={{ color: '#f59e0b' }}>{activeCount}</p>
-          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#475569' }}>Em andamento</p>
+          <p className="text-xs font-mono uppercase tracking-widest" style={{ color: '#6E7681' }}>Em andamento</p>
         </div>
         <div className="flex-1" />
         {/* Search */}
         <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]" style={{ color: '#475569' }}>search</span>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]" style={{ color: '#6E7681' }}>search</span>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}

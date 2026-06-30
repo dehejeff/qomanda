@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { KiComandaLogo } from '@/components/kicomanda-logo'
 
 const C = {
-  bg: '#0b1326', bgCard: '#131b2e', bgCard2: '#1e293b',
+  bg: '#0D1117', bgCard: '#161B22', bgCard2: '#21262D',
   border: 'rgba(88,66,55,0.35)', borderBlu: 'rgba(51,65,85,0.6)',
-  primary: '#f97316', text: '#dae2fd', muted: '#a78b7d', faint: '#584237',
-  green: '#34d399', blue: '#7bd0ff', amber: '#f59e0b', red: '#f87171',
+  primary: '#00E676', text: '#FFFFFF', muted: '#8B949E', faint: '#30363D',
+  green: '#34d399', blue: '#58A6FF', amber: '#f59e0b', red: '#f87171',
 }
 const font = { fontFamily: 'Geist, system-ui, sans-serif' }
 const mono = { fontFamily: 'JetBrains Mono, monospace' }
@@ -423,7 +423,7 @@ export default function RoadmapPage() {
 
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-12 h-16"
-        style={{ background: 'rgba(11,19,38,0.9)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
+        style={{ background: 'rgba(13,17,23,0.9)', borderBottom: `1px solid ${C.border}`, backdropFilter: 'blur(16px)' }}>
         <Link href="/" className="flex items-center gap-2.5">
           <KiComandaLogo size={28} />
           <span className="font-black text-base" style={{ letterSpacing: '-0.02em' }}>KiComanda</span>
@@ -433,7 +433,7 @@ export default function RoadmapPage() {
           <Link href="/login?perfil=admin" className="hidden md:block text-sm transition-colors hover:opacity-80" style={{ ...mono, color: C.muted }}>Entrar</Link>
           <Link href="/cadastro"
             className="text-sm font-bold px-4 py-2 rounded-xl transition-all"
-            style={{ background: C.primary, color: '#582200' }}>
+            style={{ background: C.primary, color: '#003319' }}>
             Cadastre-se
           </Link>
         </div>
@@ -441,7 +441,7 @@ export default function RoadmapPage() {
 
       {/* Ambient */}
       <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] rounded-full"
-        style={{ background: 'rgba(249,115,22,0.06)', filter: 'blur(120px)' }} />
+        style={{ background: 'rgba(0,230,118,0.06)', filter: 'blur(120px)' }} />
 
       <main className="max-w-5xl mx-auto px-6 md:px-12 pt-28 pb-20">
 
@@ -542,7 +542,7 @@ export default function RoadmapPage() {
                   <span className="text-sm" style={{ color: C.text }}>{s.label}</span>
                   <span className="text-xs font-bold" style={{ ...mono, color: s.color }}>{s.pct}%</span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#2d3449' }}>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#30363D' }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${s.pct}%`, background: s.color }} />
                 </div>
               </div>
@@ -620,7 +620,7 @@ export default function RoadmapPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="mailto:contato@kicomanda.com.br"
               className="flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90"
-              style={{ background: C.primary, color: '#582200' }}>
+              style={{ background: C.primary, color: '#003319' }}>
               <span className="material-symbols-outlined text-[18px]">mail</span>
               Enviar feedback
             </a>

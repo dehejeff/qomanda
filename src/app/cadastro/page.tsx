@@ -119,21 +119,21 @@ export default function CadastroPage() {
   }
 
   const inputStyle: React.CSSProperties = {
-    background: '#131b2e', border: '1px solid #584237', color: '#dae2fd',
+    background: '#161B22', border: '1px solid #30363D', color: '#FFFFFF',
     outline: 'none', width: '100%', height: 48, borderRadius: 12,
     padding: '0 16px', fontSize: 14, fontFamily: 'Geist, sans-serif',
     transition: 'border-color 0.15s',
   }
-  function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#f97316' }
-  function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#584237' }
+  function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#00E676' }
+  function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) { e.target.style.borderColor = '#30363D' }
 
   const isRestaurant = tipo === 'restaurant'
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 relative"
-      style={{ background: '#0b1326', color: '#dae2fd', fontFamily: 'Geist, sans-serif' }}>
+      style={{ background: '#0D1117', color: '#FFFFFF', fontFamily: 'Geist, sans-serif' }}>
       <div className="pointer-events-none fixed top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full"
-        style={{ background: 'rgba(249,115,22,0.07)', filter: 'blur(100px)' }} />
+        style={{ background: 'rgba(0,230,118,0.07)', filter: 'blur(100px)' }} />
 
       <div className="relative z-10 w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3">
@@ -146,7 +146,7 @@ export default function CadastroPage() {
                   : 'Seu estabelecimento')
                 : 'Cadastro de cliente'}
             </h1>
-            <p className="text-sm mt-1 max-w-[300px] mx-auto leading-relaxed" style={{ color: '#a78b7d' }}>
+            <p className="text-sm mt-1 max-w-[300px] mx-auto leading-relaxed" style={{ color: '#8B949E' }}>
               {isRestaurant
                 ? (step === 'account' ? 'Conta do administrador · 14 dias grátis'
                   : step === 'model' ? 'Como seu negócio opera?'
@@ -158,7 +158,7 @@ export default function CadastroPage() {
 
         {/* Tipo: Restaurante | Cliente */}
         <div className="flex rounded-xl overflow-hidden p-1 gap-1"
-          style={{ background: '#131b2e', border: '1px solid #334155' }}>
+          style={{ background: '#161B22', border: '1px solid #30363D' }}>
           {([
             { id: 'restaurant' as const, icon: 'storefront', label: 'Restaurante' },
             { id: 'customer' as const, icon: 'person', label: 'Cliente' },
@@ -168,7 +168,7 @@ export default function CadastroPage() {
               <button key={t.id} type="button"
                 onClick={() => { setTipo(t.id); setStep('account') }}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all active:scale-[0.98]"
-                style={{ background: active ? '#f97316' : 'transparent', color: active ? '#582200' : '#a78b7d' }}>
+                style={{ background: active ? '#00E676' : 'transparent', color: active ? '#003319' : '#8B949E' }}>
                 <span className="material-symbols-outlined text-[18px]"
                   style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}>{t.icon}</span>
                 <span className="text-xs font-mono font-bold uppercase tracking-wide">{t.label}</span>
@@ -182,13 +182,13 @@ export default function CadastroPage() {
           <>
             <CustomerSignupForm submitLabel="Criar conta e ir ao hub" onSubmit={handleCustomerSignup} />
             <div className="rounded-xl p-4" style={{ background: 'rgba(123,208,255,0.06)', border: '1px solid rgba(123,208,255,0.15)' }}>
-              <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
-                <strong style={{ color: '#7bd0ff' }}>Primeira visita a um restaurante?</strong>{' '}
+              <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
+                <strong style={{ color: '#58A6FF' }}>Primeira visita a um restaurante?</strong>{' '}
                 Você também pode se cadastrar escaneando o QR Code da mesa — os mesmos dados serão usados.
               </p>
               <Link href="/scan"
                 className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono font-bold"
-                style={{ color: '#7bd0ff' }}>
+                style={{ color: '#58A6FF' }}>
                 <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
                 Escanear mesa
               </Link>
@@ -205,24 +205,24 @@ export default function CadastroPage() {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
                       style={{
-                        background: step === s ? '#f97316'
-                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#1e293b',
-                        color: step === s ? '#582200'
-                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#052e16' : '#584237',
-                        border: `1px solid ${step === s ? '#f97316'
-                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#584237'}`,
+                        background: step === s ? '#00E676'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#21262D',
+                        color: step === s ? '#003319'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#052e16' : '#30363D',
+                        border: `1px solid ${step === s ? '#00E676'
+                          : (['account', 'model', 'restaurant'].indexOf(step) > i) ? '#34d399' : '#30363D'}`,
                       }}>
                       {['account', 'model', 'restaurant'].indexOf(step) > i ? (
                         <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
                       ) : i + 1}
                     </div>
-                    <span className="text-[10px] font-mono truncate hidden sm:inline" style={{ color: step === s ? '#dae2fd' : '#584237' }}>
+                    <span className="text-[10px] font-mono truncate hidden sm:inline" style={{ color: step === s ? '#FFFFFF' : '#30363D' }}>
                       {s === 'account' ? 'Conta' : s === 'model' ? 'Modelo' : 'Loja'}
                     </span>
                   </div>
                   {i < 2 && (
                     <div className="flex-1 h-px min-w-[8px]"
-                      style={{ background: ['account', 'model', 'restaurant'].indexOf(step) > i ? '#34d399' : '#1e293b' }} />
+                      style={{ background: ['account', 'model', 'restaurant'].indexOf(step) > i ? '#34d399' : '#21262D' }} />
                   )}
                 </div>
               ))}
@@ -231,30 +231,30 @@ export default function CadastroPage() {
             {step === 'account' && (
               <form onSubmit={handleAccount} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Seu nome</label>
+                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Seu nome</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)}
                     placeholder="João Silva" required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>E-mail</label>
+                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>E-mail</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="joao@seurestaurante.com" required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Senha</label>
+                    <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Senha</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••" required minLength={6} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Confirmar</label>
+                    <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Confirmar</label>
                     <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
                       placeholder="••••••••" required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
                 <button type="submit"
                   className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 mt-2"
-                  style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
+                  style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}>
                   Continuar
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
@@ -263,7 +263,7 @@ export default function CadastroPage() {
 
             {step === 'model' && (
               <form onSubmit={handleModelContinue} className="space-y-4">
-                <p className="text-xs leading-relaxed" style={{ color: '#a78b7d' }}>
+                <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
                   O sistema já configura fluxo de pedido, pagamento e painel conforme o modelo.
                   Depois você só ajusta a chave PIX ou Asaas.
                 </p>
@@ -277,19 +277,19 @@ export default function CadastroPage() {
                         onClick={() => setRestModel(m.id)}
                         className="w-full text-left rounded-xl p-4 transition-all active:scale-[0.99]"
                         style={{
-                          background: active ? 'rgba(249,115,22,0.12)' : '#131b2e',
-                          border: `1px solid ${active ? '#f97316' : '#334155'}`,
+                          background: active ? 'rgba(0,230,118,0.12)' : '#161B22',
+                          border: `1px solid ${active ? '#00E676' : '#30363D'}`,
                         }}
                       >
                         <div className="flex items-start gap-3">
                           <span className="material-symbols-outlined text-[22px] shrink-0"
-                            style={{ color: active ? '#f97316' : '#a78b7d', fontVariationSettings: active ? "'FILL' 1" : undefined }}>
+                            style={{ color: active ? '#00E676' : '#8B949E', fontVariationSettings: active ? "'FILL' 1" : undefined }}>
                             {m.icon}
                           </span>
                           <div className="min-w-0">
-                            <p className="font-semibold text-sm" style={{ color: active ? '#ffb690' : '#dae2fd' }}>{m.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: '#a78b7d' }}>{m.tagline}</p>
-                            <p className="text-[10px] font-mono mt-1.5" style={{ color: '#584237' }}>{m.examples}</p>
+                            <p className="font-semibold text-sm" style={{ color: active ? '#00E676' : '#FFFFFF' }}>{m.name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: '#8B949E' }}>{m.tagline}</p>
+                            <p className="text-[10px] font-mono mt-1.5" style={{ color: '#30363D' }}>{m.examples}</p>
                           </div>
                         </div>
                       </button>
@@ -299,12 +299,12 @@ export default function CadastroPage() {
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setStep('account')}
                     className="flex-1 h-12 rounded-xl font-bold text-sm"
-                    style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+                    style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}>
                     Voltar
                   </button>
                   <button type="submit"
                     className="flex-[2] h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-                    style={{ background: '#f97316', color: '#582200' }}>
+                    style={{ background: '#00E676', color: '#003319' }}>
                     Continuar
                     <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                   </button>
@@ -315,12 +315,12 @@ export default function CadastroPage() {
             {step === 'restaurant' && (
               <form onSubmit={handleRestaurantSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Nome do estabelecimento</label>
+                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Nome do estabelecimento</label>
                   <input type="text" value={restName} onChange={e => handleRestNameChange(e.target.value)}
                     placeholder="Tasca do Porto" required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Tipo</label>
+                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Tipo</label>
                   <select value={restType} onChange={e => setRestType(e.target.value)}
                     style={{ ...inputStyle, appearance: 'none' } as React.CSSProperties}
                     onFocus={onFocus} onBlur={onBlur}>
@@ -333,11 +333,11 @@ export default function CadastroPage() {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#a78b7d' }}>Link do cardápio</label>
+                  <label className="text-[11px] font-mono uppercase tracking-wider" style={{ color: '#8B949E' }}>Link do cardápio</label>
                   <div className="flex items-center h-12 px-4 rounded-xl text-sm"
-                    style={{ background: '#0b1326', border: '1px solid #1e293b' }}>
-                    <span style={{ color: '#584237', fontFamily: 'JetBrains Mono, monospace' }}>kicomanda.app/</span>
-                    <span style={{ color: restSlug ? '#ffb690' : '#584237', fontFamily: 'JetBrains Mono, monospace' }}>
+                    style={{ background: '#0D1117', border: '1px solid #21262D' }}>
+                    <span style={{ color: '#30363D', fontFamily: 'JetBrains Mono, monospace' }}>kicomanda.app/</span>
+                    <span style={{ color: restSlug ? '#00E676' : '#30363D', fontFamily: 'JetBrains Mono, monospace' }}>
                       {restSlug || 'seu-restaurante'}
                     </span>
                   </div>
@@ -345,12 +345,12 @@ export default function CadastroPage() {
                 <div className="flex gap-3 mt-2">
                   <button type="button" onClick={() => setStep('model')}
                     className="flex-1 h-12 rounded-xl font-bold text-sm transition-all active:scale-95"
-                    style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+                    style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}>
                     Voltar
                   </button>
                   <button type="submit" disabled={loading}
                     className="flex-[2] h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
-                    style={{ background: '#f97316', color: '#582200', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}>
+                    style={{ background: '#00E676', color: '#003319', boxShadow: '0 8px 24px rgba(0,230,118,0.25)' }}>
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                       <><span className="material-symbols-outlined text-[18px]">rocket_launch</span>Criar minha conta</>
                     )}
@@ -361,10 +361,10 @@ export default function CadastroPage() {
           </>
         )}
 
-        <p className="text-center text-sm" style={{ color: '#584237' }}>
+        <p className="text-center text-sm" style={{ color: '#30363D' }}>
           Já tem conta?{' '}
           <Link href={isRestaurant ? '/login?perfil=admin' : '/login?perfil=cliente'}
-            className="font-semibold hover:opacity-80 transition-opacity" style={{ color: '#f97316' }}>
+            className="font-semibold hover:opacity-80 transition-opacity" style={{ color: '#00E676' }}>
             Entrar
           </Link>
         </p>

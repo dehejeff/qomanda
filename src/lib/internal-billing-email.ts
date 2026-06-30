@@ -44,7 +44,7 @@ function buildChargeEmail(p: ChargeEmailInput): { subject: string; html: string;
     : `Sua cobrança KiComanda — vencimento ${fmtDate(p.dueDate)}`
 
   const cta = p.invoiceUrl
-    ? `<p style="margin:20px 0"><a href="${p.invoiceUrl}" style="background:#f97316;color:#582200;font-weight:700;padding:12px 20px;border-radius:10px;text-decoration:none">Pagar agora</a></p><p style="font-size:12px;color:#888">Ou copie o link: ${p.invoiceUrl}</p>`
+    ? `<p style="margin:20px 0"><a href="${p.invoiceUrl}" style="background:#00E676;color:#003319;font-weight:700;padding:12px 20px;border-radius:10px;text-decoration:none">Pagar agora</a></p><p style="font-size:12px;color:#888">Ou copie o link: ${p.invoiceUrl}</p>`
     : `<p>Em breve enviaremos o link de pagamento.</p>`
 
   const intro = p.overdue
@@ -53,7 +53,7 @@ function buildChargeEmail(p: ChargeEmailInput): { subject: string; html: string;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
-      <h2 style="color:#f97316">Cobrança KiComanda</h2>
+      <h2 style="color:#00E676">Cobrança KiComanda</h2>
       ${intro}
       <p><strong>Valor:</strong> ${brl(p.amount)}<br/><strong>Vencimento:</strong> ${fmtDate(p.dueDate)}</p>
       ${cta}

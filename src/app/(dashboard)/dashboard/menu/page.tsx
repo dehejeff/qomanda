@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -260,7 +260,7 @@ export default function MenuManagementPage() {
                           )}
                           {item.is_chef_pick && (
                             <span className="absolute top-1 left-1 text-[7px] font-mono font-bold uppercase px-1 py-0.5 rounded"
-                              style={{ background: '#ffb690', color: '#552100' }}>
+                              style={{ background: '#00E676', color: '#552100' }}>
                               Chef
                             </span>
                           )}
@@ -310,7 +310,7 @@ export default function MenuManagementPage() {
                             {/* Álcool badge */}
                             {item.contains_alcohol && (
                               <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded"
-                                style={{ background: 'rgba(249,115,22,0.12)', color: '#f97316', border: '1px solid rgba(249,115,22,0.25)' }}>
+                                style={{ background: 'rgba(0,230,118,0.12)', color: '#00E676', border: '1px solid rgba(0,230,118,0.25)' }}>
                                 🍷 ALCOÓLICO
                               </span>
                             )}

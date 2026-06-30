@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
@@ -347,7 +347,7 @@ export default function CustomerHomePage() {
       {/* Header */}
       <header
         className="sticky top-0 z-40 flex justify-between items-center px-6 h-16"
-        style={{ background: 'rgba(11,19,38,0.85)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(13,17,23,0.85)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}
       >
         <div className="flex items-center gap-3">
           {logoUrl ? (

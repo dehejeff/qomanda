@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { ClientStorageBootstrap } from '@/components/client-storage-bootstrap'
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0b1326',
+  themeColor: '#0D1117',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

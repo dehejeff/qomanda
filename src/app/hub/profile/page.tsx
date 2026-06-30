@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -63,36 +63,36 @@ function HubProfileContent() {
 
   if (loading || !customerId) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     )
   }
 
   return (
     <HubSessionGate customerId={customerId}>
-    <div className="min-h-screen pb-24" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       <HubPageHeader title="Perfil" backHref="/hub" />
       <main className="px-5 pt-6 space-y-5 max-w-lg mx-auto">
-        <section className="rounded-xl p-5 space-y-3" style={{ background: '#131b2e', border: '1px solid #334155' }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#a78b7d' }}>Meu perfil</p>
+        <section className="rounded-xl p-5 space-y-3" style={{ background: '#161B22', border: '1px solid #30363D' }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#8B949E' }}>Meu perfil</p>
           <div>
             <p className="text-lg font-bold">{firstName} {lastName}</p>
-            <p className="text-sm mt-0.5" style={{ color: '#a78b7d' }}>{formatWhatsAppDisplay(whatsapp)}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#8B949E' }}>{formatWhatsAppDisplay(whatsapp)}</p>
           </div>
           {activeSession && (
             <>
               <Link href={`/${activeSession.slug}/home?session=${activeSession.sessionId}`}
                 className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
-                style={{ background: '#1e293b', border: '1px solid #334155' }}>
+                style={{ background: '#21262D', border: '1px solid #30363D' }}>
                 <span className="text-sm">Visita em andamento · Mesa {activeSession.tableNumber}</span>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>chevron_right</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#30363D' }}>chevron_right</span>
               </Link>
               <Link href={`/${activeSession.slug}/profile?session=${activeSession.sessionId}`}
                 className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
-                style={{ background: '#1e293b', border: '1px solid #334155' }}>
+                style={{ background: '#21262D', border: '1px solid #30363D' }}>
                 <span className="text-sm">Preferências e fidelidade</span>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: '#584237' }}>chevron_right</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: '#30363D' }}>chevron_right</span>
               </Link>
             </>
           )}
@@ -103,7 +103,7 @@ function HubProfileContent() {
 
         <button type="button" onClick={handleLogout}
           className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-mono transition-all active:scale-[0.98]"
-          style={{ background: 'transparent', border: '1px solid #584237', color: '#a78b7d' }}>
+          style={{ background: 'transparent', border: '1px solid #30363D', color: '#8B949E' }}>
           <span className="material-symbols-outlined text-[18px]">logout</span>
           Sair deste aparelho
         </button>
@@ -117,8 +117,8 @@ function HubProfileContent() {
 export default function HubProfilePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b1326' }}>
-        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#f97316' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1117' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00E676' }} />
       </div>
     }>
       <HubProfileContent />

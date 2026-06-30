@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
@@ -119,7 +119,7 @@ export default function PublicMenuPage() {
     <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       {/* Header */}
       <header className="sticky top-0 z-40 flex items-center gap-4 px-5 h-16"
-        style={{ background: 'rgba(11,19,38,0.95)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(13,17,23,0.95)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
         {logoUrl ? (
           <img src={logoUrl} alt={restaurantName} className="h-9 w-9 rounded-full object-cover shrink-0"
             style={{ border: '1px solid #30363D' }} />
@@ -157,7 +157,7 @@ export default function PublicMenuPage() {
       {categories.length > 1 && (
         <div ref={tabsRef}
           className="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar sticky top-16 z-30"
-          style={{ background: 'rgba(11,19,38,0.95)', backdropFilter: 'blur(8px)' }}>
+          style={{ background: 'rgba(13,17,23,0.95)', backdropFilter: 'blur(8px)' }}>
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -236,7 +236,7 @@ function MenuItemCard({ item, onClick }: { item: MenuItem; onClick: () => void }
       type="button"
       onClick={onClick}
       className="w-full flex items-center gap-4 p-3 rounded-xl text-left transition-all active:scale-[0.98]"
-      style={{ background: 'rgba(30,41,59,0.6)', border: '1px solid rgba(51,65,85,0.6)' }}>
+      style={{ background: 'rgba(33,38,45,0.6)', border: '1px solid rgba(51,65,85,0.6)' }}>
       {item.image_url ? (
         <img src={item.image_url} alt={item.name}
           className="h-16 w-16 rounded-lg object-cover shrink-0"
@@ -302,7 +302,7 @@ function ReadOnlyItemModal({ item, onClose, slug }: { item: MenuItem; onClose: (
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      style={{ background: 'rgba(11,19,38,0.82)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(13,17,23,0.82)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
@@ -340,7 +340,7 @@ function ReadOnlyItemModal({ item, onClose, slug }: { item: MenuItem; onClose: (
           <button type="button"
             onClick={showVideo ? () => setShowVideo(false) : onClose}
             className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(11,19,38,0.75)', border: '1px solid #30363D', color: '#FFFFFF' }}>
+            style={{ background: 'rgba(13,17,23,0.75)', border: '1px solid #30363D', color: '#FFFFFF' }}>
             <span className="material-symbols-outlined text-[20px]">{showVideo ? 'arrow_back' : 'close'}</span>
           </button>
           {!showVideo && item.is_chef_pick && (

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
@@ -403,7 +403,7 @@ function CashAmountScreen({
       </div>
 
       <div className="rounded-xl p-5 space-y-4"
-        style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
+        style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D' }}>
         <div>
           <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: '#8B949E' }}>
             Valor em dinheiro
@@ -1709,7 +1709,7 @@ export default function CheckoutPage() {
         <div className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full"
           style={{ background: 'rgba(52,211,153,0.08)', filter: 'blur(80px)' }} />
         <header className="sticky top-0 z-40 flex justify-center items-center h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ color: '#00E676', fontFamily: 'Geist, sans-serif' }}>Pagamento</h1>
         </header>
         <main className="flex-1 flex flex-col items-center px-6 py-8 pb-28 gap-6">
@@ -1835,7 +1835,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
@@ -1860,7 +1860,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
@@ -1885,7 +1885,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · PIX</h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
@@ -1909,7 +1909,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
@@ -1932,7 +1932,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>Pagamento · Dinheiro</h1>
         </header>
         <main className="flex-1 px-6 py-6 pb-28">
@@ -1957,7 +1957,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0D1117', color: '#FFFFFF' }}>
         <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-          style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
           <h1 className="text-base font-semibold" style={{ fontFamily: 'Geist, sans-serif' }}>
             Pagamento · Crédito
           </h1>
@@ -2004,7 +2004,7 @@ export default function CheckoutPage() {
       <div className="pointer-events-none fixed top-1/4 right-0 w-64 h-64 rounded-full"
         style={{ background: 'rgba(123,208,255,0.04)', filter: 'blur(80px)' }} />
       <header className="sticky top-0 z-40 flex items-center px-6 h-16"
-        style={{ background: 'rgba(11,19,38,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(13,17,23,0.9)', borderBottom: '1px solid rgba(88,66,55,0.3)', backdropFilter: 'blur(12px)' }}>
         <button onClick={goBack} className="p-2 -ml-2 mr-3 rounded-full" style={{ color: '#00E676' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -2098,7 +2098,7 @@ export default function CheckoutPage() {
               <button
                 onClick={goBack}
                 className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
+                style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 Voltar
               </button>
@@ -2122,7 +2122,7 @@ export default function CheckoutPage() {
                 <Link
                   href={`/${params.slug}/receipts?session=${sessionId}`}
                   className="mx-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
+                  style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D', color: '#00E676' }}>
                   <span className="material-symbols-outlined text-[16px]">history</span>
                   Ver seus recibos
                 </Link>
@@ -2176,7 +2176,7 @@ export default function CheckoutPage() {
               <Link
                 href={`/${params.slug}/receipts?session=${sessionId}`}
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}
+                style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D', color: '#00E676' }}
               >
                 <span className="material-symbols-outlined text-[16px]">history</span>
                 Ver seus recibos
@@ -2231,7 +2231,7 @@ export default function CheckoutPage() {
               onClick={() => setCloseMode('individual')}
               className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all active:scale-[0.98]"
               style={{
-                background: closeMode === 'individual' ? 'rgba(0,230,118,0.12)' : 'rgba(30,41,59,0.7)',
+                background: closeMode === 'individual' ? 'rgba(0,230,118,0.12)' : 'rgba(33,38,45,0.7)',
                 border: `2px solid ${closeMode === 'individual' ? '#00E676' : '#30363D'}`,
               }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2428,7 +2428,7 @@ export default function CheckoutPage() {
                 <Link
                   href={`/${params.slug}/receipts?session=${sessionId}`}
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-mono font-semibold transition-all active:scale-95"
-                  style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', color: '#00E676' }}
+                  style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D', color: '#00E676' }}
                 >
                   <span className="material-symbols-outlined text-[16px]">history</span>
                   Ver histórico completo
@@ -2549,7 +2549,7 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                 </div>
-                <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', background: 'rgba(30,41,59,0.5)' }}>
+                <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(88,66,55,0.2)', background: 'rgba(33,38,45,0.5)' }}>
                   <p className="text-xs leading-relaxed" style={{ color: '#8B949E' }}>
                     Você receberá <strong style={{ color: '#FFFFFF' }}>2 recibos</strong> no WhatsApp — alimentação (RH{feeOnFood ? ', com taxa de serviço' : ''}) e bebidas (pessoal, sem taxa).
                   </p>
@@ -2592,7 +2592,7 @@ export default function CheckoutPage() {
                   const noValue = est.discountTotal <= 0.01
                   return (
                     <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                      style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
+                      style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D' }}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-semibold truncate" style={{ color: '#FFFFFF' }}>{o.label}</p>
@@ -2624,7 +2624,7 @@ export default function CheckoutPage() {
             )}
 
             <div className="rounded-xl p-5 space-y-3"
-              style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D', backdropFilter: 'blur(12px)' }}>
+              style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D', backdropFilter: 'blur(12px)' }}>
               <div className="flex justify-between items-center">
                 <div>
                   <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Saldo em aberto</span>
@@ -2697,7 +2697,7 @@ export default function CheckoutPage() {
                     <button key={p.id} onClick={() => toggleParticipant(p.id)}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
                       style={{
-                        background: sel ? 'rgba(0,230,118,0.08)' : 'rgba(30,41,59,0.7)',
+                        background: sel ? 'rgba(0,230,118,0.08)' : 'rgba(33,38,45,0.7)',
                         borderTop: i > 0 ? '1px solid rgba(51,65,85,0.5)' : 'none',
                         cursor: locked ? 'not-allowed' : 'pointer',
                       }}>
@@ -2747,7 +2747,7 @@ export default function CheckoutPage() {
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #30363D' }}>
                 {selectedParts.map((p, i) => (
                   <div key={p.id} className="flex items-center gap-3 px-4 py-3"
-                    style={{ borderTop: i > 0 ? '1px solid rgba(51,65,85,0.4)' : 'none', background: 'rgba(30,41,59,0.5)' }}>
+                    style={{ borderTop: i > 0 ? '1px solid rgba(51,65,85,0.4)' : 'none', background: 'rgba(33,38,45,0.5)' }}>
                     <div className="flex-1">
                       <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{p.name}</p>
                       {p.isMe && <p className="text-[10px] font-mono" style={{ color: '#34d399' }}>você</p>}
@@ -2874,7 +2874,7 @@ export default function CheckoutPage() {
                 disabled={m.disabled}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
-                  background: method === m.value ? 'rgba(0,230,118,0.1)' : 'rgba(30,41,59,0.7)',
+                  background: method === m.value ? 'rgba(0,230,118,0.1)' : 'rgba(33,38,45,0.7)',
                   borderColor: method === m.value ? '#00E676' : '#30363D',
                 }}>
                 <span className="material-symbols-outlined text-[22px]" style={{ color: method === m.value ? '#00E676' : '#e0c0b1' }}>{m.icon}</span>
@@ -2896,7 +2896,7 @@ export default function CheckoutPage() {
       {/* CTA */}
       {sessionFullySettled && !showPaymentFlow && splitGate.kind === 'none' && (
         <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
-          style={{ background: 'rgba(11,19,38,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
+          style={{ background: 'rgba(13,17,23,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
           <div className="w-full h-14 rounded-xl flex items-center justify-center gap-2"
             style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
             <span className="material-symbols-outlined text-[20px]" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
@@ -2906,7 +2906,7 @@ export default function CheckoutPage() {
       )}
       {showPaymentFlow && (splitGate.kind === 'none' || splitPayMode) && (
       <div className="fixed bottom-20 left-0 right-0 px-6 py-3 z-40"
-        style={{ background: 'rgba(11,19,38,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
+        style={{ background: 'rgba(13,17,23,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(88,66,55,0.2)' }}>
         <button
           onClick={() => handleProceed()}
           disabled={!canProceed || paying}

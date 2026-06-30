@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 import { FocusNfeAdapter } from '@/lib/nfe/focus-nfe'
 import { getKiComandaFiscalConfig } from '@/lib/nfe/kicomanda-fiscal'
 import type { NfeEmitResult } from '@/lib/nfe/types'
@@ -159,11 +159,11 @@ function buildServiceNfeEmailHtml(p: {
   description: string
 }): string {
   const linkBlock = p.status === 'issued' && p.danfeUrl
-    ? `<p><a href="${p.danfeUrl}" style="color:#f97316;font-weight:600">📄 Baixar nota fiscal (PDF)</a></p>`
+    ? `<p><a href="${p.danfeUrl}" style="color:#00E676;font-weight:600">📄 Baixar nota fiscal (PDF)</a></p>`
     : `<p>Sua nota está sendo emitida e o PDF chegará por aqui em instantes.</p>`
   return `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
-      <h2 style="color:#f97316">Nota fiscal de serviço — KiComanda</h2>
+      <h2 style="color:#00E676">Nota fiscal de serviço — KiComanda</h2>
       <p>Olá, <strong>${p.restaurantName}</strong>.</p>
       <p>Referente a: ${p.description}.</p>
       <p><strong>Valor:</strong> ${brl(p.amount)}</p>

@@ -896,7 +896,7 @@ export default function SettingsPage() {
             <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 <div className="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                  style={{ background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.25)' }}>
                   <span className="material-symbols-outlined text-[28px] text-primary">account_balance</span>
                 </div>
                 <div className="flex-1">
@@ -1524,7 +1524,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => toggleRule(rule.id)}
                       className="relative w-11 h-6 rounded-full transition-colors"
-                      style={{ background: rule.active ? '#f97316' : '#2d3449' }}
+                      style={{ background: rule.active ? '#00E676' : '#30363D' }}
                       title={rule.active ? 'Desativar' : 'Ativar'}
                     >
                       <span
@@ -1677,7 +1677,7 @@ export default function SettingsPage() {
               </div>
               <button type="button" onClick={() => setCouvertEnabled(v => !v)}
                 className="relative w-11 h-6 rounded-full shrink-0 transition-colors"
-                style={{ background: couvertEnabled ? '#f97316' : '#334155' }}>
+                style={{ background: couvertEnabled ? '#00E676' : '#30363D' }}>
                 <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
                   style={{ left: couvertEnabled ? '1.375rem' : '0.125rem' }} />
               </button>
@@ -1711,7 +1711,7 @@ export default function SettingsPage() {
               </div>
               <button type="button" onClick={() => setArtEnabled(v => !v)}
                 className="relative w-11 h-6 rounded-full shrink-0 transition-colors"
-                style={{ background: artEnabled ? '#f97316' : '#334155' }}>
+                style={{ background: artEnabled ? '#00E676' : '#30363D' }}>
                 <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
                   style={{ left: artEnabled ? '1.375rem' : '0.125rem' }} />
               </button>
@@ -1741,9 +1741,9 @@ export default function SettingsPage() {
                         <button key={i} type="button" onClick={() => toggleArtDay(i)}
                           className="w-11 h-9 rounded-lg text-xs font-bold font-mono transition-all"
                           style={{
-                            background: on ? '#f97316' : 'transparent',
-                            color: on ? '#582200' : '#a78b7d',
-                            border: `1px solid ${on ? '#f97316' : '#334155'}`,
+                            background: on ? '#00E676' : 'transparent',
+                            color: on ? '#003319' : '#8B949E',
+                            border: `1px solid ${on ? '#00E676' : '#30363D'}`,
                           }}>
                           {d}
                         </button>
@@ -1869,7 +1869,7 @@ export default function SettingsPage() {
                 </div>
                 <button type="button" onClick={() => setWpNfeEnabled(v => !v)}
                   className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
-                  style={{ background: wpNfeEnabled ? '#f97316' : '#2d3449' }}>
+                  style={{ background: wpNfeEnabled ? '#00E676' : '#30363D' }}>
                   <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
                     style={{ left: wpNfeEnabled ? '1.375rem' : '0.125rem' }} />
                 </button>

@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import { getRestaurantAccess } from '@/lib/restaurant-auth'
 
 // Apenas cozinha, gerentes e donos — garçom usa /garcom
@@ -11,7 +11,7 @@ export default async function CozinhaLayout({ children }: { children: React.Reac
     redirect('/login?perfil=garcom')
   }
   return (
-    <div className="min-h-screen" style={{ background: '#0b1326', color: '#dae2fd' }}>
+    <div className="min-h-screen" style={{ background: '#0D1117', color: '#FFFFFF' }}>
       {children}
     </div>
   )

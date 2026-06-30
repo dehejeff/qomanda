@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
@@ -327,7 +327,7 @@ export default function MenuPage() {
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openItemDetail(item) }}
                   className="flex items-stretch gap-3 rounded-xl p-3 transition-all cursor-pointer active:scale-[0.99]"
                   style={{
-                    background: 'rgba(30,41,59,0.7)',
+                    background: 'rgba(33,38,45,0.7)',
                     border: qty > 0 ? '1px solid #00E676' : '1px solid #30363D',
                     backdropFilter: 'blur(12px)',
                   }}

@@ -1,4 +1,4 @@
-export type RestaurantType = 'salao' | 'balcao' | 'salao_balcao' | 'food_hall'
+﻿export type RestaurantType = 'salao' | 'balcao' | 'salao_balcao' | 'food_hall'
 
 export type LeadStatus =
   | 'novo'
@@ -31,11 +31,11 @@ export const RESTAURANT_TYPE_LABELS: Record<RestaurantType, string> = {
 }
 
 export const LEAD_STATUSES: { value: LeadStatus; label: string; color: string }[] = [
-  { value: 'novo',              label: 'Novo',               color: '#64748b' },
+  { value: 'novo',              label: 'Novo',               color: '#8B949E' },
   { value: 'contato_feito',     label: 'Contato feito',      color: '#3b82f6' },
   { value: 'demo_agendada',     label: 'Demo agendada',      color: '#8b5cf6' },
   { value: 'proposta_enviada',  label: 'Proposta enviada',   color: '#f59e0b' },
-  { value: 'negociacao',        label: 'Negociação',         color: '#f97316' },
+  { value: 'negociacao',        label: 'Negociação',         color: '#00E676' },
   { value: 'fechado_ganho',     label: 'Fechado — Ganho',    color: '#22c55e' },
   { value: 'fechado_perdido',   label: 'Fechado — Perdido',  color: '#ef4444' },
 ]

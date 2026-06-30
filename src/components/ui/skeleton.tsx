@@ -1,4 +1,4 @@
-export function Skeleton({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
+﻿export function Skeleton({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div
       className={`animate-pulse rounded-lg ${className}`}
@@ -25,7 +25,7 @@ export function OrderCardSkeleton() {
 
 export function MenuItemSkeleton() {
   return (
-    <div className="flex items-stretch gap-3 rounded-xl p-3" style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid #30363D' }}>
+    <div className="flex items-stretch gap-3 rounded-xl p-3" style={{ background: 'rgba(33,38,45,0.7)', border: '1px solid #30363D' }}>
       <Skeleton className="w-24 h-24 shrink-0 rounded-lg" />
       <div className="flex-1 space-y-2 py-1">
         <Skeleton className="h-4 w-3/4" />

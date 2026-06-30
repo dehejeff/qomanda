@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -189,7 +189,7 @@ export function PilotosChecklist() {
     <div className="min-h-screen" style={{ background: C.bg, color: C.text, ...mono }}>
       {/* Header */}
       <header className="sticky top-0 z-40 px-6 py-4 flex items-center justify-between backdrop-blur-md"
-        style={{ background: 'rgba(11,19,38,0.92)', borderBottom: `1px solid ${C.border}` }}>
+        style={{ background: 'rgba(13,17,23,0.92)', borderBottom: `1px solid ${C.border}` }}>
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
           <KiComandaLogo size={30} />
         </Link>

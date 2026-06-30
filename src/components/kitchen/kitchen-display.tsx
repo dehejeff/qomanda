@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -253,7 +253,7 @@ export function KitchenDisplay({ restaurantName, role = 'kitchen' }: { restauran
                       </div>
                     )
                   })}
-                  {colOrders.length === 0 && <p className="text-xs font-mono px-1 py-4" style={{ color: '#475569' }}>—</p>}
+                  {colOrders.length === 0 && <p className="text-xs font-mono px-1 py-4" style={{ color: '#6E7681' }}>—</p>}
                 </div>
               </div>
             )
