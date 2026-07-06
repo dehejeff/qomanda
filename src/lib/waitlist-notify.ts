@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { enqueueWhatsApp } from '@/lib/job-queue'
+import { sendRestaurantWhatsApp } from '@/lib/send-whatsapp'
 import {
   DEFAULT_WAITLIST_READY_TEMPLATE,
   DEFAULT_WAITLIST_RESERVE_TEMPLATE,
@@ -124,11 +124,7 @@ async function enqueueForRecipients(
   }
 
   for (const r of recipients) {
-    await enqueueWhatsApp(admin, {
-      restaurantId: ctx.restaurantId,
-      to: r.to,
-      message: messageFor(r.forSecondary),
-    })
+    await sendRestaurantWhatsApp(admin, ctx.restaurantId, r.to, messageFor(r.forSecondary))
   }
 }
 
