@@ -57,7 +57,7 @@ const PHASES = [
         items: [
           'Smoke test E2E — salão, balcão, híbrido, food hall, garçom ✓',
           'Deploy contínuo na Vercel (kicomanda.app) ✓',
-          'Rodar migrações Supabase pendentes em produção (se ainda não aplicadas)',
+          'Migrações Supabase aplicadas em produção (fila de espera completa) ✓',
         ],
       },
       {
@@ -80,7 +80,7 @@ const PHASES = [
           'Materiais de vendas e entrega (/materiais-vendas · /materiais-entrega) ✓',
           'Flow A reserva de grupo no grid Mesas + smoke group-reserve ✓',
           'Teste de carga 10×20 (npm run load:10x20) ✓',
-          'Migrações fila allocations + notify-contacts + whatsapp-templates — rodar em prod',
+          'Migrações fila allocations + notify-contacts + whatsapp-templates ✓',
         ],
       },
     ],
@@ -261,7 +261,7 @@ const PHASES = [
         items: [
           'Fila assíncrona — NF-e e WhatsApp fora do request de pagamento ✓',
           'Webhooks idempotentes — Asaas e Mercado Pago ✓',
-          'Sentry — wiring no código ✓ · conta/DSN + alertas pendente',
+          'Sentry — ativo em produção (DSN + alerta email) ✓',
           'Runbook modo degradado — pendente (ver UPGRADE-PLANOS-PAGOS.md)',
           'Connection pooler (6543) — N/A no runtime (PostgREST/HTTPS)',
         ],
@@ -413,7 +413,7 @@ const STATUS_SUMMARY = [
   { label: 'WhatsApp (config + envio NF-e)', pct: 60, color: C.amber  },
   { label: 'Onboarding restaurante',        pct: 92, color: C.green  },
   { label: 'Infraestrutura & escala',       pct: 20, color: C.amber  },
-  { label: 'Observabilidade (Sentry)',      pct: 85, color: C.amber  },
+  { label: 'Observabilidade (Sentry)',      pct: 100, color: C.green  },
   { label: 'Legal (Termos + Privacidade)',  pct: 100, color: C.green  },
 ]
 
