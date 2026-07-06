@@ -1,6 +1,6 @@
 # Qomanda — Roadmap
 
-> Última atualização: 2026-06-12  
+> Última atualização: 2026-06-30  
 > **Esteira detalhada (modelos, fases, go-live):** [`docs/ESTEIRA.md`](docs/ESTEIRA.md)  
 > **Checklist de go-live (passo a passo):** [`docs/GO-LIVE-CHECKLIST.md`](docs/GO-LIVE-CHECKLIST.md)  
 > **Piloto 5 restaurantes (interativo):** [`/pilotos`](https://kicomanda.app/pilotos)
@@ -13,7 +13,7 @@
 
 | Prioridade | Entrega | Status |
 |------------|---------|--------|
-| **Agora** | Rodar migrações Supabase pendentes em produção (se ainda não aplicadas) | ⏳ Verificar |
+| **Agora** | Rodar migrações Supabase pendentes em produção (se ainda não aplicadas) | ✅ Migrações da fila rodadas 2026-06-30 · `CRON_SECRET` configurado na Vercel |
 | **P0** | Garçom confirmar PIX manual + dinheiro (`/garcom/pagamentos`) | ✅ Feito |
 | **P0** | App garçom mobile — pedidos, pagamentos, mesas, benefícios, fechar mesa | ✅ Feito |
 | **P0** | Check-in QR mobile — scanner html5-qrcode, redirect `/api/checkin/redirect`, retomada de sessão | ✅ Feito |
@@ -27,9 +27,9 @@
 | **P1** | Deploy contínuo na Vercel (`kicomanda.app`) | ✅ Feito |
 | **P0** | **Região Supabase `sa-east-1` (SP)** | ✅ Confirmado (projeto já em São Paulo) |
 | **P0** | Connection pooler (Supavisor 6543) | ➖ N/A no runtime (app usa supabase-js/PostgREST; pooler só p/ migração/BI) — ver `docs/INFRA-SUPABASE-REGION-POOLER.md` |
-| **P1** | Migração `migrate-waitlist-allocations.sql` (reserva grupo — Flow A grid + Flow B fila) | ⏳ Pendente — rodar no Supabase |
-| **P1** | Migração `migrate-waitlist-notify-contacts.sql` (WhatsApp na fila + 2ª pessoa) | ⏳ Pendente — rodar no Supabase (após allocations) |
-| **P1** | Migração `migrate-waitlist-whatsapp-templates.sql` (textos WhatsApp fila + confirmação reserva) | ⏳ Pendente — rodar no Supabase (após notify-contacts) |
+| **P1** | Migração `migrate-waitlist-allocations.sql` (reserva grupo — Flow A grid + Flow B fila) | ✅ Rodada em produção 2026-06-30 (junto com a base `migrate-table-waitlist.sql`) |
+| **P1** | Migração `migrate-waitlist-notify-contacts.sql` (WhatsApp na fila + 2ª pessoa) | ✅ Rodada em produção 2026-06-30 |
+| **P1** | Migração `migrate-waitlist-whatsapp-templates.sql` (textos WhatsApp fila + confirmação reserva) | ✅ Rodada em produção 2026-06-30 |
 | **P1** | Textos WhatsApp customizáveis + confirmação ao reservar mesas | ✅ Feito 2026-06-10 |
 | **P1** | Webhooks idempotentes (Asaas / Mercado Pago) | ✅ Feito 2026-06-04 |
 | **P1** | Chamar Garçom — sino realtime no dashboard + banner no app do garçom | ✅ Feito 2026-06-04 |
@@ -37,7 +37,7 @@
 | **P1** | Cozinha (KDS) mostra nome do cliente + ID do pedido no card e na comanda | ✅ Feito 2026-06-06 |
 | **P1** | Dividir a conta com **aceite obrigatório** + convite WhatsApp + trava de pagamento (só selecionados pagam) | ✅ Feito 2026-06-06 |
 | **P1** | Trava anti-pagamento-duplo no checkout (confirmação se já pagou) | ✅ Feito 2026-06-06 |
-| **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ Código pronto (base + wiring) · falta criar conta/DSN + alertas (`docs/OBSERVABILITY-WIP.md`) |
+| **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ **ATIVO em produção 2026-06-30** — DSN na Vercel, captura validada, alerta email (`docs/OBSERVABILITY-WIP.md`) |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ✅ Harness pronto (`npm run load:10x20`) · rodar contra staging p/ baseline real |
 | **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |

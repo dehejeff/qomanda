@@ -1,8 +1,9 @@
 # Observabilidade (Sentry)
 
-> Status: **base + wiring concluídos** (2026-06-04). Integração degradável no ar,
-> `captureError` ligado nos caminhos de background, env vars documentadas.
-> Falta apenas: **criar conta/DSN no Sentry + configurar alertas** (não é código).
+> Status: **ATIVO em produção** (2026-06-30). Conta criada (kicomanda.sentry.io,
+> projeto `javascript-nextjs`), DSN configurado na Vercel (`SENTRY_DSN` +
+> `NEXT_PUBLIC_SENTRY_DSN`), captura client-side validada com evento de teste.
+> Alerta de novo issue por email configurado.
 
 ## Decisões de arquitetura
 
@@ -48,17 +49,17 @@ Camadas complementares: o **painel interno** é o raio-x operacional do dia a di
 (externo, ao configurar o DSN) traz stack traces e alertas push.
 Libs: `src/lib/internal-health.ts` · API `GET /api/internal/health`.
 
-## O que falta (não é código)
+## Configuração ativa (2026-06-30)
 
-1. **Criar conta/projeto no Sentry** e preencher `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`.
-2. **Alertas** (5xx, falha de job/fila, erros de webhook) — configurar no projeto Sentry.
-3. **(Opcional) Source maps** — upload via CI quando houver pipeline dedicado.
-4. **(Opcional) Mais `captureError`** em crons (`monthly-billing`, `billing-reminders`) se quiser granularidade.
+- Conta: `kicomanda.sentry.io` · projeto `javascript-nextjs` (plano Developer/free após trial)
+- Env vars na Vercel (Production): `SENTRY_DSN` e `NEXT_PUBLIC_SENTRY_DSN` (mesmo DSN)
+- Validação: evento de teste client-side capturado com stack trace e env `production`
+- Alerta: email em novo issue
 
-## Como ligar (quando tiver conta Sentry)
+## Melhorias futuras (opcional)
 
-```
-SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
-NEXT_PUBLIC_SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
-```
-Sem essas variáveis, o sistema roda normalmente sem enviar nada ao Sentry.
+1. **Source maps** — upload via CI quando houver pipeline dedicado.
+2. **Mais `captureError`** em crons (`monthly-billing`, `billing-reminders`) se quiser granularidade.
+3. **Alertas refinados** — regras específicas por `scope` (job/webhook) e frequência.
+
+Sem as env vars, o sistema roda normalmente sem enviar nada ao Sentry (no-op).
