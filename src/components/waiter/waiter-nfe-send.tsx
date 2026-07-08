@@ -277,6 +277,18 @@ function NfeScanModal({ payment, onClose, onSent }: {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 gap-5 overflow-y-auto py-6">
+        <div className="flex items-center gap-2.5 w-full max-w-sm px-4 py-3 rounded-xl"
+          style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)' }}>
+          <span className="material-symbols-outlined text-[20px] shrink-0" style={{ color: '#fbbf24' }}>
+            warning
+          </span>
+          <p className="text-xs leading-relaxed" style={{ color: '#fbbf24' }}>
+            Confira antes de escanear: a nota deve ser de{' '}
+            <strong style={{ color: '#FFFFFF' }}>{formatCurrency(payment.amount)}</strong>
+            {' '}— o valor pago por <strong style={{ color: '#FFFFFF' }}>{payment.customerName}</strong>.
+          </p>
+        </div>
+
         {!cameraDenied && (
           <>
             <p className="text-sm text-center max-w-[280px]" style={{ color: '#8B949E' }}>
