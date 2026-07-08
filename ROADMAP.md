@@ -39,7 +39,8 @@
 | **P1** | Trava anti-pagamento-duplo no checkout (confirmação se já pagou) | ✅ Feito 2026-06-06 |
 | **P0** | **Observabilidade — Sentry (5xx, fila, webhooks)** — prioridade de go-live | ✅ **ATIVO em produção 2026-06-30** — DSN na Vercel, captura validada, alerta email (`docs/OBSERVABILITY-WIP.md`) |
 | **P2** | Teste de carga — simular 10 restaurantes × 20 mesas | ✅ Harness pronto (`npm run load:10x20`) · rodar contra staging p/ baseline real |
-| **P2** | NF-e real Focus NFe (homologação/produção) | 🔴 Fase 3 |
+| **P1** | **NF-e ao cliente via QR do DANFE** — garçom escaneia o QR da nota emitida no sistema fiscal do restaurante e o cliente recebe o link no WhatsApp (`/garcom/pagamentos` · `POST /api/garcom/nfe-whatsapp`) | ✅ Feito 2026-07-08 — funciona com qualquer emissor, sem custo de provedor |
+| **P2** | NF-e real Focus NFe (homologação/produção) — emissão própria automática | 🔴 Fase 3 (feature premium; ponte via QR cobre o piloto) |
 | **P2** | NF-e de serviço Qomanda → restaurante | ✅ Feito 2026-06-04 (simulado; real via env) |
 | **P2** | Mercado Pago OAuth connect | 🟢 Código pronto · falta app MP + domínio kicomanda.app |
 | **P2** | PagBank (#5), Stone (#6), Cielo (#7), Getnet (#8) — ver tabela #1–#8 abaixo | 🔴 Fase 3–4 |
