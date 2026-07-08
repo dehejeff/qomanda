@@ -1,4 +1,4 @@
-﻿export type RestaurantType = 'salao' | 'balcao' | 'salao_balcao' | 'food_hall'
+﻿export type RestaurantType = 'salao' | 'balcao' | 'salao_balcao' | 'food_hall' | 'delivery'
 
 export type LeadStatus =
   | 'novo'
@@ -28,6 +28,7 @@ export const RESTAURANT_TYPE_LABELS: Record<RestaurantType, string> = {
   balcao: 'Balcão / Fast food',
   salao_balcao: 'Salão + Balcão',
   food_hall: 'Food Hall / Praça',
+  delivery: 'Lanchonete / Delivery',
 }
 
 export const LEAD_STATUSES: { value: LeadStatus; label: string; color: string }[] = [
