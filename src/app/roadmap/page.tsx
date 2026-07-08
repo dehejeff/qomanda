@@ -221,11 +221,12 @@ const PHASES = [
       {
         title: '2 · Notas fiscais',
         items: [
+          'NF ao cliente via QR do DANFE — garçom escaneia a nota do emissor do restaurante e o cliente recebe no WhatsApp ✓',
           'Cadastro NF-e ao consumidor (Focus NFe) — configuração ✓',
           'WhatsApp para envio de NF-e — configuração pelo restaurante ✓',
           'Emissão automática após pagamento confirmado ✓ (simulado/homologação)',
           'Cliente visualiza e baixa NF-e no Hub ✓',
-          'Emissão real Focus NFe em produção (token homologação/produção)',
+          'Emissão própria Focus NFe em produção — evolução premium (QR bridge cobre o piloto)',
           'Histórico pagamento ↔ nota fiscal no painel ✓',
         ],
       },
@@ -408,7 +409,7 @@ const STATUS_SUMMARY = [
   { label: 'Dashboard — Suporte',           pct: 85, color: C.green  },
   { label: 'Gateways (#1–4 disponíveis)',   pct: 85, color: C.green  },
   { label: 'Gateways (#5–8 planejados)',    pct: 0, color: C.red    },
-  { label: 'NF-e (emissão automática)',     pct: 65, color: C.amber  },
+  { label: 'Nota fiscal ao cliente (QR + WhatsApp)', pct: 90, color: C.green  },
   { label: 'Fidelidade',                    pct: 90, color: C.green  },
   { label: 'WhatsApp (config + envio NF-e)', pct: 60, color: C.amber  },
   { label: 'Onboarding restaurante',        pct: 92, color: C.green  },
